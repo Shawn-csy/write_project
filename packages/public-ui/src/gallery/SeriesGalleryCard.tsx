@@ -58,6 +58,8 @@ function SeriesGalleryCardInner({
   const leadSummary = normalizeCardText(leadScript?._cardSummary || leadScript?.synopsis || "");
   const leadOutline = normalizeOutlineText(leadScript?._hoverOutline || leadScript?.outline || "");
   const cardSummary = truncateCardText(summary || leadSummary);
+  const hoverText = leadOutline || cardSummary || "尚未提供大綱";
+  const hoverLabel = leadOutline ? "大綱" : cardSummary ? "作品簡介" : "系列資訊";
 
   const authorName =
     typeof leadScript.author === "object"
@@ -65,7 +67,7 @@ function SeriesGalleryCardInner({
       : leadScript.author;
 
   const hoverCtx = useGalleryHoverPreview();
-  const previewData = leadOutline ? { title: name, author: authorName, outline: leadOutline } : null;
+  const previewData = { title: name, author: authorName, outline: hoverText, label: hoverLabel };
   const hoverPreviewProps: React.HTMLAttributes<HTMLElement> = previewData && hoverCtx ? {
     onMouseEnter: (e) => hoverCtx.show(previewData, e.clientX, e.clientY),
     onMouseMove: (e) => hoverCtx.move(e.clientX, e.clientY),

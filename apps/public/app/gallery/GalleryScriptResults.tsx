@@ -14,17 +14,42 @@ import {
   type CoverImageRenderer,
   getSeriesTimestamp,
   getGalleryPublishedTimestamp,
+  enrichScript,
+  groupScriptsIntoGalleryEntries,
 } from "@write/public-ui";
 import { GalleryEmptyState } from "./GalleryEmptyState";
 import { PublicImage } from "@/components/PublicImage";
 import { ExternalPublicScriptCard } from "@/components/ExternalPublicScriptSection";
+import { externalEntityHref } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
+
+// The server HTML only needs enough cards to cover the first screens and give
+// crawlers real links; rendering every card there cost ~5 KB each. The rest
+// mount right after hydration, so the first client render matches the server's.
+export const INITIAL_RENDERED_CARDS = 24;
+
+export function useProgressiveLimit(initial: number): number {
+  const [limit, setLimit] = useState(initial);
+  useEffect(() => {
+    const expand = () => setLimit(Number.POSITIVE_INFINITY);
+    if (typeof window.requestIdleCallback === "function") {
+      const handle = window.requestIdleCallback(expand, { timeout: 1500 });
+      return () => window.cancelIdleCallback(handle);
+    }
+    const timer = window.setTimeout(expand, 300);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return limit;
+}
 
 const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
 
 type MixedGalleryEntry =
   | { kind: "external"; item: ExternalPublicScript }
+  | { kind: "external-series"; entry: Extract<PublicGalleryEntry, { type: "series" }> }
   | { kind: "gallery"; entry: PublicGalleryEntry };
+
+type ExternalGalleryEntry = Exclude<MixedGalleryEntry, { kind: "gallery" }>;
 
 function toTimestamp(value: number | string | null | undefined): number {
   if (value == null || value === "") return 0;
@@ -38,20 +63,80 @@ function galleryEntryTimestamp(entry: PublicGalleryEntry): number {
   return getGalleryPublishedTimestamp(entry.script);
 }
 
+function externalGalleryInput(item: ExternalPublicScript) {
+  const authorName = item.authorName || item.organizationName || "";
+  const authorAvatar = item.authorName
+    ? item.authorAvatarUrl
+    : item.organizationAvatarUrl;
+  // Profile edits and refresh bookkeeping update `updatedAt`; a series card
+  // should instead reflect the newest work's content/publication date.
+  const contentTimestamp = item.mountedAt || item.sourceCreatedAt || item.createdAt;
+  return enrichScript({
+    id: `external:${item.id}`,
+    title: item.title || item.remoteTitle || item.sourceDomain || "外部公開台本",
+    synopsis: item.summary || item.remoteSummary || "",
+    coverUrl: item.coverUrl ? `/api/public-media/external/${item.id}` : undefined,
+    tags: item.categories || [],
+    series: item.seriesName ? { name: item.seriesName } : undefined,
+    seriesName: item.seriesName,
+    seriesOrder: item.seriesOrder,
+    author: authorName
+      ? { displayName: authorName, avatarUrl: authorAvatar, profileUrl: item.authorUrl }
+      : null,
+    organization: item.organizationName
+      ? { name: item.organizationName, logoUrl: item.organizationAvatarUrl, profileUrl: item.organizationUrl }
+      : null,
+    views: item.views,
+    createdAt: contentTimestamp,
+    updatedAt: contentTimestamp,
+  });
+}
+
+function externalSeriesEntries(items: ExternalPublicScript[]): ExternalGalleryEntry[] {
+  const seriesItems = items.filter((item) => item.seriesName?.trim());
+  const grouped = groupScriptsIntoGalleryEntries(seriesItems.map(externalGalleryInput));
+  const seriesByKey = new Map(
+    grouped
+      .filter((entry): entry is Extract<PublicGalleryEntry, { type: "series" }> => entry.type === "series")
+      .map((entry) => [entry.key, entry])
+  );
+  const emittedSeries = new Set<string>();
+  const result: ExternalGalleryEntry[] = [];
+
+  for (const item of items) {
+    const seriesName = item.seriesName?.trim();
+    if (seriesName) {
+      const key = seriesName.toLocaleLowerCase();
+      if (emittedSeries.has(key)) continue;
+      const entry = seriesByKey.get(key);
+      if (entry) {
+        emittedSeries.add(key);
+        result.push({ kind: "external-series", entry });
+      }
+      continue;
+    }
+    result.push({ kind: "external", item });
+  }
+
+  return result;
+}
+
+function mixedEntryTimestamp(entry: MixedGalleryEntry): number {
+  if (entry.kind === "external") return toTimestamp(entry.item.mountedAt || entry.item.createdAt);
+  if (entry.kind === "external-series") return toTimestamp(entry.entry.updatedAt);
+  return galleryEntryTimestamp(entry.entry);
+}
+
 function sortMixedEntries(
   entries: PublicGalleryEntry[],
   externalItems: ExternalPublicScript[],
 ): MixedGalleryEntry[] {
   return [
     ...entries.map((entry): MixedGalleryEntry => ({ kind: "gallery", entry })),
-    ...externalItems.map((item): MixedGalleryEntry => ({ kind: "external", item })),
+    ...externalSeriesEntries(externalItems),
   ].sort((a, b) => {
-    const aDate = a.kind === "external"
-      ? toTimestamp(a.item.mountedAt || a.item.createdAt)
-      : galleryEntryTimestamp(a.entry);
-    const bDate = b.kind === "external"
-      ? toTimestamp(b.item.mountedAt || b.item.createdAt)
-      : galleryEntryTimestamp(b.entry);
+    const aDate = mixedEntryTimestamp(a);
+    const bDate = mixedEntryTimestamp(b);
     return bDate - aDate;
   });
 }
@@ -63,7 +148,8 @@ function laneSortMode(id: string): "latest" | "top" | undefined {
 type AllScriptsSort = "latest" | "top";
 type AllScriptsItem =
   | { kind: "local"; item: EnrichedGalleryScript }
-  | { kind: "external"; item: ExternalPublicScript };
+  | { kind: "external"; item: ExternalPublicScript }
+  | { kind: "external-series"; entry: Extract<PublicGalleryEntry, { type: "series" }> };
 
 function externalTimestamp(item: ExternalPublicScript): number {
   return toTimestamp(item.mountedAt || item.createdAt || item.updatedAt);
@@ -76,14 +162,32 @@ function sortAllScripts(
 ): AllScriptsItem[] {
   const items: AllScriptsItem[] = [
     ...scripts.map((item) => ({ kind: "local" as const, item })),
-    ...externalItems.map((item) => ({ kind: "external" as const, item })),
+    ...externalSeriesEntries(externalItems).map((entry) => entry.kind === "external"
+      ? { kind: "external" as const, item: entry.item }
+      : { kind: "external-series" as const, entry: entry.entry }),
   ];
 
   return items.sort((a, b) => {
-    const aViews = a.kind === "local" ? a.item.views || 0 : a.item.views || 0;
-    const bViews = b.kind === "local" ? b.item.views || 0 : b.item.views || 0;
-    const aDate = a.kind === "local" ? getGalleryPublishedTimestamp(a.item) : externalTimestamp(a.item);
-    const bDate = b.kind === "local" ? getGalleryPublishedTimestamp(b.item) : externalTimestamp(b.item);
+    const aViews = a.kind === "local"
+      ? a.item.views || 0
+      : a.kind === "external"
+        ? a.item.views || 0
+        : Math.max(0, ...a.entry.scripts.map((script) => script.views || 0));
+    const bViews = b.kind === "local"
+      ? b.item.views || 0
+      : b.kind === "external"
+        ? b.item.views || 0
+        : Math.max(0, ...b.entry.scripts.map((script) => script.views || 0));
+    const aDate = a.kind === "local"
+      ? getGalleryPublishedTimestamp(a.item)
+      : a.kind === "external"
+        ? externalTimestamp(a.item)
+        : toTimestamp(a.entry.updatedAt);
+    const bDate = b.kind === "local"
+      ? getGalleryPublishedTimestamp(b.item)
+      : b.kind === "external"
+        ? externalTimestamp(b.item)
+        : toTimestamp(b.entry.updatedAt);
     const primary = sort === "top" ? bViews - aViews : bDate - aDate;
     return primary || (sort === "top" ? bDate - aDate : bViews - aViews);
   });
@@ -174,6 +278,7 @@ export function GalleryScriptResults({
     () => sortMixedEntries(galleryEntries, externalItems),
     [galleryEntries, externalItems]
   );
+  const renderLimit = useProgressiveLimit(INITIAL_RENDERED_CARDS);
   const [randomSeed, setRandomSeed] = useState(0.314159);
   useEffect(() => {
     setRandomSeed(Math.random());
@@ -186,7 +291,7 @@ export function GalleryScriptResults({
     () => sortAllScripts(model.filteredScripts, externalItems, allScriptsSort || "latest"),
     [model.filteredScripts, externalItems, allScriptsSort]
   );
-  const revealDeps = [viewMode, mergedEntries.length, showLanes];
+  const revealDeps = [viewMode, mergedEntries.length, showLanes, renderLimit];
   const compactRef = useScrollReveal(revealDeps) as React.RefObject<HTMLDivElement>;
   const gridRef = useScrollReveal(revealDeps) as React.RefObject<HTMLDivElement>;
 
@@ -198,6 +303,12 @@ export function GalleryScriptResults({
     (authorId: string) => { window.location.href = `/author/${authorId}`; },
     []
   );
+  const externalSeriesAuthorHref = useCallback((entry: Extract<PublicGalleryEntry, { type: "series" }>) => {
+    const author = entry.leadScript.author;
+    const name = typeof author === "object" ? author?.displayName : author;
+    const profileUrl = typeof author === "object" ? String(author?.profileUrl || "") : "";
+    return name ? externalEntityHref("author", name, profileUrl) : undefined;
+  }, []);
   const authorHref = useCallback(
     (s: EnrichedGalleryScript) =>
       typeof s.author === "object" && s.author?.id ? `/author/${s.author.id}` : undefined,
@@ -228,6 +339,19 @@ export function GalleryScriptResults({
         {allScripts.map((entry) => {
           if (entry.kind === "external") {
             return <ExternalPublicScriptCard key={`external:${entry.item.id}`} item={entry.item} onTagClick={onTagClick} />;
+          }
+          if (entry.kind === "external-series") {
+            return (
+              <SeriesGalleryCard
+                key={`external-series:${entry.entry.key}`}
+                series={entry.entry}
+                variant="standard"
+                href={`/series/${encodeURIComponent(entry.entry.name)}`}
+                authorHref={externalSeriesAuthorHref(entry.entry)}
+                showAgeGate={entry.entry.hasAgeGate}
+                coverImageRenderer={galleryCoverImageRenderer}
+              />
+            );
           }
 
           const script = entry.item;
@@ -262,11 +386,13 @@ export function GalleryScriptResults({
   if (viewMode === "compact") {
     return (
       <div ref={compactRef} className="flex flex-col">
-        {mergedEntries.map((entry) => (
-          <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>
+        {mergedEntries.slice(0, renderLimit).map((entry) => (
+          <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>
             {entry.kind === "external"
               ? <ExternalPublicScriptCard item={entry.item} variant="compact" onTagClick={onTagClick} />
-              : renderGalleryEntry(entry.entry, { ...cardRenderOptions, viewMode: "compact" })}
+              : entry.kind === "external-series"
+                ? <SeriesGalleryCard series={entry.entry} variant="compact" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                : renderGalleryEntry(entry.entry, { ...cardRenderOptions, viewMode: "compact" })}
           </div>
         ))}
         {emptyState !== "none" && (
@@ -284,11 +410,13 @@ export function GalleryScriptResults({
         className="grid gap-5 sm:gap-6"
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}
       >
-        {mergedEntries.map((entry) => (
-          <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>
+        {mergedEntries.slice(0, renderLimit).map((entry) => (
+          <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>
             {entry.kind === "external"
               ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
-              : renderGalleryEntry(entry.entry, { ...cardRenderOptions, viewMode: "standard" })}
+              : entry.kind === "external-series"
+                ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                : renderGalleryEntry(entry.entry, { ...cardRenderOptions, viewMode: "standard" })}
           </div>
         ))}
         {emptyState !== "none" && (
@@ -326,11 +454,13 @@ export function GalleryScriptResults({
               : undefined}
           >
             {laneIndex === 0
-              ? sortMixedEntries(lane.entries, externalItems).map((entry) => (
-                  <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
+              ? sortMixedEntries(lane.entries, externalItems).slice(0, renderLimit).map((entry) => (
+                  <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
                     {entry.kind === "external"
                       ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
-                      : renderGalleryEntry(entry.entry, cardRenderOptions)}
+                      : entry.kind === "external-series"
+                        ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                        : renderGalleryEntry(entry.entry, cardRenderOptions)}
                   </div>
                 ))
               : renderLaneEntries(lane.entries, cardRenderOptions)}
@@ -340,10 +470,12 @@ export function GalleryScriptResults({
       {randomEntries.length > 0 && (
         <HorizontalScrollLane key="random" title="隨機推薦">
           {randomEntries.map((entry) => (
-            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
+            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
               {entry.kind === "external"
                 ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
-                : renderGalleryEntry(entry.entry, cardRenderOptions)}
+                : entry.kind === "external-series"
+                  ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                  : renderGalleryEntry(entry.entry, cardRenderOptions)}
             </div>
           ))}
         </HorizontalScrollLane>

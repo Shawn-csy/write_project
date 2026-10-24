@@ -264,6 +264,7 @@ export interface ExternalPublicScript {
   authorUrl?: string;
   authorAvatarUrl?: string;
   organizationName?: string;
+  organizationBio?: string;
   organizationUrl?: string;
   organizationAvatarUrl?: string;
   remoteTitle?: string;
@@ -272,6 +273,8 @@ export interface ExternalPublicScript {
   titleOverride?: string;
   summaryOverride?: string;
   coverUrlOverride?: string;
+  seriesName?: string;
+  seriesOrder?: number | null;
   title: string;
   summary?: string;
   coverUrl?: string;
@@ -280,6 +283,8 @@ export interface ExternalPublicScript {
   sortOrder?: number;
   lastFetchedAt?: number | null;
   lastFetchError?: string;
+  sourceCreatedAt?: number | null;
+  sourceModifiedAt?: number | null;
   createdAt?: number;
   mountedAt?: number;
   updatedAt?: number;
@@ -339,6 +344,23 @@ export interface PublicTermsAcceptanceRecord {
   scriptId?: string;
   version?: string;
   acceptedAt?: string | number;
+}
+
+export interface PublicFeedbackRecord {
+  id: string;
+  kind: "bug" | "listing";
+  contactName: string;
+  contactEmail: string;
+  content: string;
+  pageUrl: string;
+  status: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface PublicFeedbackListResponse {
+  total: number;
+  items: PublicFeedbackRecord[];
 }
 
 export interface ScriptMetadataUpdatePayload {

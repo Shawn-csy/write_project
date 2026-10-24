@@ -292,6 +292,24 @@ describe("SeriesGalleryCard — hover preview events (gallery-level layer)", () 
     expect(titleIdx).toBeLessThan(outlineIdx);
     expect(authorIdx).toBeLessThan(outlineIdx);
   });
+
+  it("uses the series summary when the lead chapter has no outline", () => {
+    const series: PublicSeriesGroup = {
+      ...SERIES,
+      summary: "Series summary fallback",
+      leadScript: { ...SERIES.leadScript!, _hoverOutline: "", outline: "" } as typeof SERIES.leadScript,
+    };
+    const { container } = render(
+      <GalleryHoverPreviewProvider>
+        <SeriesGalleryCard series={series} variant="standard" href="/series/s" />
+      </GalleryHoverPreviewProvider>
+    );
+    fireEvent.mouseEnter(container.querySelector("article")!, { clientX: 200, clientY: 100 });
+    const layer = document.querySelector("[data-testid='gallery-hover-preview']");
+    expect(layer).not.toBeNull();
+    expect(layer?.textContent).toContain("Series summary fallback");
+    expect(layer?.textContent).toContain("作品簡介");
+  });
 });
 
 // ─── root element contract ────────────────────────────────────────────────────

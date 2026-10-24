@@ -205,6 +205,18 @@ bash scripts/cf-purge.sh <url>...   # 清除指定網址
 
 Token 只從環境變數讀取，不會出現在指令參數或任何輸出中。
 
+### 公開站快取設定
+
+- 首頁為動態渲染，`next.config.ts` 給它 `s-maxage=120, stale-while-revalidate=300`；
+  Cloudflare 是否真的快取 HTML 取決於 zone 的 Cache Rule。若要讓首頁走邊緣快取，
+  需在 Cloudflare 建立 Cache Rule（Eligible for cache、Edge TTL 選 *Use cache-control header if present*）。
+  `cf-cache-status: DYNAMIC` 代表該請求沒有被快取。
+- 圖片 proxy `/api/public-media/*.webp` 帶 `s-maxage=2592000`（本站媒體）或 `s-maxage=86400`（外部封面）；
+  因網址含 `.webp` 副檔名，Cloudflare 預設即會快取。`?w=` 只接受固定寬度，避免快取被任意參數打散。
+- 縮圖由 `sharp` 在 Next 容器內產生；若 `sharp` 載入失敗，proxy 會退回原圖。
+- 靜態頁（`/about` 等）的 sitemap `lastmod` 在 `lib/publicSeoModel.ts` 的 `STATIC_PAGES_LASTMOD`，
+  修改這些頁面的內容時請一併更新。
+
 ## 7. 重要環境變數
 - `VITE_API_URL`：前端 API 入口（預設 `/api`）
 - `DATABASE_URL`：後端 DB 連線字串（正式主用 Postgres）
@@ -218,6 +230,11 @@ Token 只從環境變數讀取，不會出現在指令參數或任何輸出中�
 - `ADMIN_USER_IDS` / `ADMIN_USER_EMAILS`：管理權限白名單。優先使用 `ADMIN_USER_IDS`
   —— 以 userId 為準的路徑不可竄改，email 路徑的安全性建立在
   「`users.email` 只由後端從已驗證的 Firebase token 寫入」這個前提上。
+- `FEEDBACK_NOTIFICATION_EMAIL`：公開頁回報／上架申請的通知收件人，預設為
+  `silence0603@gmail.com`。
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_FROM`：回報通知寄信設定。
+  Gmail 請使用應用程式密碼；`SMTP_USE_TLS=1`（預設）使用 STARTTLS，若使用 SSL 連線則設定
+  `SMTP_USE_SSL=1`。
 
 > 機敏檔案（`.env`、`server/secrets/firebase-service-account.json`）權限應為 `600`。
 

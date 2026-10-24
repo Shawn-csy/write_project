@@ -10,6 +10,7 @@ import { AdminUserManagementCard } from "../components/admin/AdminUserManagement
 import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
 import { HomepageBannerSection } from "../components/admin/HomepageBannerSection";
 import { ExternalPublicScriptSection } from "../components/admin/ExternalPublicScriptSection";
+import { PublicFeedbackInbox } from "../components/admin/PublicFeedbackInbox";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
@@ -114,6 +115,9 @@ export default function SuperAdminPage() {
             </CollapsibleSection>
             <CollapsibleSection title="首頁 Banner 設定" description="管理首頁輪播 Banner 內容">
               <HomepageBannerSection />
+            </CollapsibleSection>
+            <CollapsibleSection title="回報與上架申請" description="查看公開頁訪客送出的 Bug 回報與台本申請">
+              <PublicFeedbackInbox />
             </CollapsibleSection>
           </div>
           <CollapsibleSection title="外部公開台本" description="整合其他網站的公開台本，取得封面、標題、摘要、作者與掛載時間並設定分類" defaultOpen>

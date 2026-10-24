@@ -18,11 +18,20 @@ import type { MediaCropLike } from "@write/media-crop";
 import type { PublicImagePreset } from "@/lib/imagePresets";
 import { resolvePresetStyle, getPresetConfig } from "@/lib/imagePresets";
 import { isNextImageOptimizableSrc } from "@/lib/publicImageOrigins";
+import { buildMediaSrcSet, withMediaExtension } from "@/lib/publicMediaUrl";
 
 // Read once at module load — available during SSR (server process).
 // In client bundle this is undefined, but next/image src is already baked
 // into the SSR HTML as /_next/image?url=ABSOLUTE_URL by that point.
 const BACKEND_ORIGIN = (process.env.BACKEND_API_URL ?? "").replace(/\/+$/, "");
+
+const RESIZABLE_PRESETS: ReadonlySet<PublicImagePreset> = new Set([
+  "script-cover",
+  "series-cover",
+  "thumbnail",
+  "avatar",
+  "logo",
+]);
 
 function resolveMediaSrc(src: string): string {
   if (BACKEND_ORIGIN && src.startsWith("/media/")) return `${BACKEND_ORIGIN}${src}`;
@@ -34,7 +43,7 @@ function resolvePublicMediaProxySrc(src: string): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   const token = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return `/api/public-media/${token}`;
+  return `/api/public-media/${token}.webp`;
 }
 
 interface Props {
@@ -80,10 +89,18 @@ export function PublicImage({
   const config = getPresetConfig(preset);
   const isPublicMedia = cleanSrc.startsWith("/media/");
   const isMediaProxy = cleanSrc.startsWith("/api/public-media/");
-  if (isMediaProxy) {
+  if (isMediaProxy || isPublicMedia) {
+    const proxySrc = isMediaProxy ? withMediaExtension(cleanSrc) : resolvePublicMediaProxySrc(cleanSrc);
+    // Priority images keep a single src: a srcset could make the browser pick
+    // a different URL than the one preloaded in <head>. Everything else gets
+    // resized variants so cards do not download full-size originals.
+    // Banners/backdrops span the viewport, so they stay at full resolution.
+    const srcSet = priority || !RESIZABLE_PRESETS.has(preset) ? "" : buildMediaSrcSet(proxySrc);
     return (
       <img
-        src={cleanSrc}
+        src={proxySrc}
+        srcSet={srcSet || undefined}
+        sizes={srcSet ? (sizes ?? config.sizes) : undefined}
         alt={alt}
         loading={priority ? "eager" : "lazy"}
         fetchPriority={priority ? "high" : undefined}
@@ -94,20 +111,7 @@ export function PublicImage({
       />
     );
   }
-  if (isPublicMedia) {
-    return (
-      <img
-        src={resolvePublicMediaProxySrc(cleanSrc)}
-        alt={alt}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined}
-        decoding="async"
-        referrerPolicy="no-referrer"
-        style={style}
-        className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
-      />
-    );
-  }
+
   const resolvedSrc = resolveMediaSrc(cleanSrc);
 
   if (!isNextImageOptimizableSrc(resolvedSrc, BACKEND_ORIGIN)) {

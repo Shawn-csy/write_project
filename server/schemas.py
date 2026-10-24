@@ -636,6 +636,50 @@ class PublicTermsAcceptanceListResponse(BaseModel):
     items: List[PublicTermsAcceptanceRecord] = []
 
 
+class PublicFeedbackCreate(BaseModel):
+    kind: Literal["bug", "listing"] = "bug"
+    contactName: Optional[str] = ""
+    contactEmail: Optional[str] = ""
+    content: str
+    pageUrl: Optional[str] = ""
+    website: Optional[str] = ""  # Honeypot; real visitors should leave this empty.
+
+    @field_validator("contactName", "contactEmail", "pageUrl", mode="before")
+    @classmethod
+    def normalize_optional_text(cls, value: Any) -> str:
+        return str(value or "").strip()
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def normalize_content(cls, value: Any) -> str:
+        return str(value or "").strip()
+
+
+class PublicFeedbackRecord(BaseModel):
+    id: str
+    kind: Literal["bug", "listing"]
+    contactName: str = ""
+    contactEmail: str = ""
+    content: str
+    pageUrl: str = ""
+    status: str = "new"
+    createdAt: int
+    updatedAt: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicFeedbackResponse(BaseModel):
+    success: bool = True
+    feedbackId: str
+    createdAt: int
+
+
+class PublicFeedbackListResponse(BaseModel):
+    total: int
+    items: List[PublicFeedbackRecord] = []
+
+
 class AdminUserCreate(BaseModel):
     email: Optional[str] = None
     userId: Optional[str] = None
@@ -689,6 +733,7 @@ class ExternalPublicScriptPayload(BaseModel):
     authorUrl: Optional[str] = None
     authorAvatarUrl: Optional[str] = None
     organizationName: Optional[str] = None
+    organizationBio: Optional[str] = None
     organizationUrl: Optional[str] = None
     organizationAvatarUrl: Optional[str] = None
     remoteTitle: Optional[str] = None
@@ -697,11 +742,14 @@ class ExternalPublicScriptPayload(BaseModel):
     titleOverride: str = ""
     summaryOverride: str = ""
     coverUrlOverride: str = ""
+    seriesName: str = ""
+    seriesOrder: Optional[int] = None
     categories: List[str] = []
     status: Literal["draft", "published", "hidden"] = "draft"
     sortOrder: float = 0.0
     mountedAt: Optional[int] = None
     refreshMetadata: bool = False
+    skipFirstPageCover: bool = False
 
 
 class ExternalPublicScriptUpdate(BaseModel):
@@ -714,6 +762,7 @@ class ExternalPublicScriptUpdate(BaseModel):
     authorUrl: Optional[str] = None
     authorAvatarUrl: Optional[str] = None
     organizationName: Optional[str] = None
+    organizationBio: Optional[str] = None
     organizationUrl: Optional[str] = None
     organizationAvatarUrl: Optional[str] = None
     remoteTitle: Optional[str] = None
@@ -722,11 +771,14 @@ class ExternalPublicScriptUpdate(BaseModel):
     titleOverride: Optional[str] = None
     summaryOverride: Optional[str] = None
     coverUrlOverride: Optional[str] = None
+    seriesName: Optional[str] = None
+    seriesOrder: Optional[int] = None
     categories: Optional[List[str]] = None
     status: Optional[Literal["draft", "published", "hidden"]] = None
     sortOrder: Optional[float] = None
     mountedAt: Optional[int] = None
     refreshMetadata: bool = False
+    skipFirstPageCover: bool = False
 
 
 class ExternalPublicScriptResponse(BaseModel):
@@ -740,6 +792,7 @@ class ExternalPublicScriptResponse(BaseModel):
     authorUrl: str = ""
     authorAvatarUrl: str = ""
     organizationName: str = ""
+    organizationBio: str = ""
     organizationUrl: str = ""
     organizationAvatarUrl: str = ""
     remoteTitle: str = ""
@@ -748,6 +801,8 @@ class ExternalPublicScriptResponse(BaseModel):
     titleOverride: str = ""
     summaryOverride: str = ""
     coverUrlOverride: str = ""
+    seriesName: str = ""
+    seriesOrder: Optional[int] = None
     title: str = ""
     summary: str = ""
     coverUrl: str = ""
@@ -757,6 +812,8 @@ class ExternalPublicScriptResponse(BaseModel):
     sortOrder: float = 0.0
     lastFetchedAt: Optional[int] = None
     lastFetchError: str = ""
+    sourceCreatedAt: Optional[int] = None
+    sourceModifiedAt: Optional[int] = None
     createdAt: int
     mountedAt: int = 0
     updatedAt: int
@@ -772,9 +829,12 @@ class ExternalPublicScriptPreview(BaseModel):
     authorUrl: str = ""
     authorAvatarUrl: str = ""
     organizationName: str = ""
+    organizationBio: str = ""
     organizationUrl: str = ""
     organizationAvatarUrl: str = ""
     remoteTitle: str = ""
     remoteSummary: str = ""
     remoteCoverUrl: str = ""
+    sourceCreatedAt: Optional[int] = None
+    sourceModifiedAt: Optional[int] = None
     coverPreviewDataUrl: str = ""

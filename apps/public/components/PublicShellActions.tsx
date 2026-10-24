@@ -8,6 +8,7 @@
 
 import { PublicAppearanceMenu } from "@/components/PublicAppearanceMenu";
 import { PublicInfoMenu } from "@/components/PublicInfoMenu";
+import { PublicFeedbackDialog } from "@/components/PublicFeedbackDialog";
 import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
 import { useAnimePrewarm } from "@/lib/motion/useAnimePrewarm";
 
@@ -33,6 +34,7 @@ export function PublicShellActions() {
   useAnimePrewarm();
   return (
     <div className="flex items-center gap-2">
+      <PublicFeedbackDialog />
       <PublicAppearanceMenu />
       <PublicInfoMenu />
       <StudioLink />

@@ -63,6 +63,7 @@ function filterExternalPublicScripts(
         item.sourceDomain,
         item.authorName,
         item.organizationName,
+        item.seriesName,
         ...categories,
       ]
         .filter(Boolean)

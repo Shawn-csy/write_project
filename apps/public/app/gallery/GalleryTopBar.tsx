@@ -6,6 +6,7 @@ import { MoreHorizontal, X } from "lucide-react";
 import { PublicGalleryTopBar } from "@write/public-ui";
 import type { GalleryView } from "@write/public-ui";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { PublicFeedbackDialog } from "@/components/PublicFeedbackDialog";
 import { AppearanceMenuContent } from "@/components/PublicAppearanceMenu";
 import { InfoMenuContent } from "@/components/PublicInfoMenu";
 
@@ -121,6 +122,13 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
             <p className={sheetSectionTitleClass}>說明與資訊</p>
             <div className="rounded-xl border border-border/45 bg-card/45 p-2">
               <InfoMenuContent />
+            </div>
+          </section>
+
+          <section>
+            <p className={sheetSectionTitleClass}>聯絡平台</p>
+            <div className="rounded-xl border border-border/45 bg-card/45 p-2">
+              <PublicFeedbackDialog />
             </div>
           </section>
         </div>

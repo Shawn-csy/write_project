@@ -12,6 +12,7 @@ vi.mock("lucide-react", () => ({
   Sun: () => <span />,
   Moon: () => <span />,
   Monitor: () => <span />,
+  MessageSquarePlus: () => <span data-testid="feedback-icon" />,
 }));
 
 vi.mock("@/components/PublicShellActions", () => ({

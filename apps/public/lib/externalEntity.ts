@@ -1,13 +1,55 @@
 export type ExternalEntityKind = "author" | "org";
 
 /**
- * Resolve the public profile route for an imported author or organization.
- * The display name stays readable in the URL while encodeURIComponent keeps
- * names containing punctuation or CJK characters safe.
+ * Return a short, stable URL token for an imported author or organization.
+ * Social profile handles are preferred because they are unique and readable;
+ * a website host, ASCII name, or short deterministic fallback is used when a
+ * social URL is unavailable.
  */
-export function externalEntityHref(kind: ExternalEntityKind, name: string): string {
+export function externalEntitySlug(name: string, profileUrl?: string | null): string {
+  const slugify = (value: string, preserveUnderscore = false) =>
+    value
+      .normalize("NFKD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(preserveUnderscore ? /[^A-Za-z0-9_-]+/g : /[^A-Za-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .toLowerCase()
+      .slice(0, 64);
+
+  const urlToken = (() => {
+    const raw = String(profileUrl || "").trim();
+    if (!raw) return "";
+    try {
+      const parsed = new URL(raw.includes("://") ? raw : `https://${raw}`);
+      const segments = parsed.pathname.split("/").filter(Boolean);
+      return segments.length > 0
+        ? slugify(segments.at(-1) || "", true)
+        : slugify(parsed.hostname.replace(/^www\./i, ""));
+    } catch {
+      return slugify(raw.split("/").filter(Boolean).at(-1) || "", true);
+    }
+  })();
+  if (urlToken) return urlToken;
+
+  const nameToken = slugify(String(name || ""));
+  if (nameToken) return nameToken;
+
+  // FNV-1a keeps the fallback deterministic without exposing the full name.
+  let hash = 2166136261;
+  for (const char of String(name || "")) {
+    hash ^= char.codePointAt(0) || 0;
+    hash = Math.imul(hash, 16777619);
+  }
+  return `entity-${(hash >>> 0).toString(36)}`;
+}
+
+export function externalEntityHref(
+  kind: ExternalEntityKind,
+  name: string,
+  profileUrl?: string | null,
+): string {
   const base = kind === "author" ? "/author/external" : "/org/external";
-  return `${base}/${encodeURIComponent(name)}`;
+  return `${base}/${encodeURIComponent(externalEntitySlug(name, profileUrl))}`;
 }
 
 /**

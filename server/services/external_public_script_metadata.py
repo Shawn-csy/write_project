@@ -3,19 +3,24 @@
 from __future__ import annotations
 
 import base64
+import json
 import ipaddress
+import os
 import re
 import socket
+from datetime import datetime
 from html import unescape
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import parse_qs, urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_GOOGLE_DOC_PDF_BYTES = 10 * 1024 * 1024
 FETCH_TIMEOUT_SECONDS = 8
 USER_AGENT = "PublicScriptAggregator/1.0 (+metadata preview)"
+GOOGLE_DRIVE_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("VITE_GOOGLE_API_KEY")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://open-scripts.shawnup.com").rstrip("/")
 GOOGLE_DOC_ID_PATTERN = re.compile(r"/document/(?:u/\d+/)?d/([a-zA-Z0-9_-]+)")
 GOOGLE_DRIVE_FILE_ID_PATTERN = re.compile(r"/file/d/([a-zA-Z0-9_-]+)")
 X_PROFILE_HOSTS = {"x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"}
@@ -173,6 +178,61 @@ def google_drive_file_id(raw_url: str) -> str:
 
 def is_google_drive_file_url(raw_url: str) -> bool:
     return bool(google_drive_file_id(raw_url))
+
+
+def _google_timestamp(value: Any) -> int | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return int(parsed.timestamp() * 1000)
+
+
+def fetch_google_drive_file_metadata(raw_url: str) -> dict[str, Any]:
+    """Read public Drive metadata, including the file's original created time.
+
+    The public Drive viewer exposes the document itself but not its file
+    details.  The restricted browser key used by the app can read metadata for
+    publicly shared files when the app origin is sent as the referer.
+    """
+
+    file_id = google_document_id(raw_url) or google_drive_file_id(raw_url)
+    if not file_id or not GOOGLE_DRIVE_API_KEY:
+        return {}
+    query = urlencode(
+        {
+            "fields": "id,name,createdTime,modifiedTime,mimeType",
+            "key": GOOGLE_DRIVE_API_KEY,
+        }
+    )
+    request = Request(
+        f"https://www.googleapis.com/drive/v3/files/{file_id}?{query}",
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/json",
+            "Referer": f"{PUBLIC_BASE_URL}/",
+        },
+    )
+    try:
+        with build_opener(_SafeRedirectHandler()).open(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
+            data = json.loads(response.read(MAX_METADATA_BYTES).decode("utf-8", errors="replace"))
+    except Exception:
+        # Metadata is an enhancement. A public document should remain
+        # importable when the API key is unavailable or Drive rate-limits it.
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    created_at = _google_timestamp(data.get("createdTime"))
+    modified_at = _google_timestamp(data.get("modifiedTime"))
+    return {
+        "sourceCreatedAt": created_at,
+        "sourceModifiedAt": modified_at,
+        "sourceFileName": str(data.get("name") or "").strip(),
+        "sourceMimeType": str(data.get("mimeType") or "").strip(),
+    }
 
 
 def _fetch_url_bytes(
@@ -360,7 +420,7 @@ def fetch_google_drive_file_cover_preview(raw_url: str) -> str:
         raise
 
 
-def fetch_external_public_script_metadata(raw_url: str) -> dict[str, str]:
+def fetch_external_public_script_metadata(raw_url: str) -> dict[str, Any]:
     """Fetch OG/title metadata without downloading the article body."""
 
     source_url = _assert_safe_url(raw_url)
@@ -440,6 +500,7 @@ def fetch_external_public_script_metadata(raw_url: str) -> dict[str, str]:
     google_docs = is_google_docs_url(source_url)
     google_drive_file = is_google_drive_file_url(source_url)
     google_source = google_docs or google_drive_file
+    google_file_metadata = fetch_google_drive_file_metadata(source_url) if google_source else {}
     if google_source:
         source_name = source_name or ("Google Docs" if google_docs else "Google Drive")
         title = title or ("Google 文件" if google_docs else "Google Drive 檔案")
@@ -459,6 +520,7 @@ def fetch_external_public_script_metadata(raw_url: str) -> dict[str, str]:
         "organizationName": organization_value[:300],
         "organizationUrl": resolved_organization_url,
         "organizationAvatarUrl": avatar_for(resolved_organization_url),
+        "organizationBio": bio_for(resolved_organization_url)[:2000],
         "coverPreviewDataUrl": (
             fetch_google_docs_cover_preview(source_url)
             if google_docs
@@ -466,4 +528,8 @@ def fetch_external_public_script_metadata(raw_url: str) -> dict[str, str]:
             if google_drive_file
             else ""
         ),
+        "sourceCreatedAt": google_file_metadata.get("sourceCreatedAt"),
+        "sourceModifiedAt": google_file_metadata.get("sourceModifiedAt"),
+        "sourceFileName": google_file_metadata.get("sourceFileName", ""),
+        "sourceMimeType": google_file_metadata.get("sourceMimeType", ""),
     }

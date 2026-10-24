@@ -131,7 +131,7 @@ export function externalPersonasFromScripts(items: ExternalPublicScript[]): Publ
       avatar: current?.avatar || item.authorAvatarUrl || socialAvatarUrl(item.authorUrl),
       links: current?.links || (item.authorUrl ? [{ url: item.authorUrl, label: "X / Twitter" }] : []),
       tags,
-      externalHref: externalEntityHref("author", displayName),
+      externalHref: externalEntityHref("author", displayName, item.authorUrl),
     });
   }
   return Array.from(map.values()).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant"));
@@ -150,10 +150,11 @@ export function externalOrgsFromScripts(items: ExternalPublicScript[]): PublicOr
       ...(current || {}),
       id: current?.id || `external-org:${name}`,
       name,
+      description: current?.description || item.organizationBio || undefined,
       website: current?.website || item.organizationUrl || undefined,
       logoUrl: current?.logoUrl || item.organizationAvatarUrl || socialAvatarUrl(item.organizationUrl),
       tags,
-      externalHref: externalEntityHref("org", name),
+      externalHref: externalEntityHref("org", name, item.organizationUrl),
     });
   }
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
@@ -174,4 +175,74 @@ export function publicPersonasFromResponse(data: unknown): PublicPersona[] {
 
 export function publicOrgsFromResponse(data: unknown): PublicOrg[] {
   return Array.isArray(data) ? (data as PublicOrg[]) : [];
+}
+
+// ── Homepage payload slimming ────────────────────────────────────────────────
+//
+// The homepage hands its script lists to a client component, so every field is
+// serialized twice (once as HTML, once in the RSC payload). The public bundle
+// carries reader-only data (marker themes alone were ~28 KB) and admin
+// bookkeeping the gallery never reads. Strip it on the server.
+
+// Generous ceilings: they only exist to cap outliers, not to shorten normal text.
+const HOMEPAGE_EXTERNAL_SUMMARY_MAX = 600;
+const HOMEPAGE_EXTERNAL_BIO_MAX = 500;
+
+function clip(value: string | undefined, max: number): string | undefined {
+  if (!value) return value;
+  return value.length > max ? `${value.slice(0, max)}…` : value;
+}
+
+export function slimScriptForHomepage(script: PublicScript): PublicScript {
+  const {
+    markerTheme: _markerTheme,
+    markerThemeId: _markerThemeId,
+    activityName: _activityName,
+    activityBannerUrl: _activityBannerUrl,
+    activityContent: _activityContent,
+    activityWorkUrl: _activityWorkUrl,
+    activityDemoLinks: _activityDemoLinks,
+    publishReadiness: _publishReadiness,
+    hasPublishIdentity: _hasPublishIdentity,
+    metadataSeriesName: _metadataSeriesName,
+    coverIsAiGenerated: _coverIsAiGenerated,
+    folder: _folder,
+    sortOrder: _sortOrder,
+    ...rest
+  } = script as PublicScript & Record<string, unknown>;
+  return rest as PublicScript;
+}
+
+export function slimExternalScriptForHomepage(item: ExternalPublicScript): ExternalPublicScript {
+  return {
+    id: item.id,
+    sourceUrl: item.sourceUrl,
+    sourceDomain: item.sourceDomain,
+    sourceName: item.sourceName,
+    authorName: item.authorName,
+    authorBio: clip(item.authorBio, HOMEPAGE_EXTERNAL_BIO_MAX),
+    authorUrl: item.authorUrl,
+    authorAvatarUrl: item.authorAvatarUrl,
+    organizationName: item.organizationName,
+    organizationBio: clip(item.organizationBio, HOMEPAGE_EXTERNAL_BIO_MAX),
+    organizationUrl: item.organizationUrl,
+    organizationAvatarUrl: item.organizationAvatarUrl,
+    seriesName: item.seriesName,
+    seriesOrder: item.seriesOrder,
+    // Consumers read `title || remoteTitle` and `summary || remoteSummary`;
+    // fold the fallback in so the second copy does not ship.
+    title: item.title || item.remoteTitle || "",
+    summary: clip(item.summary || item.remoteSummary, HOMEPAGE_EXTERNAL_SUMMARY_MAX),
+    // Only used as a truthy check: the card image goes through /api/public-media/external/:id.
+    coverUrl: item.coverUrl ? `/api/public-media/external/${item.id}` : undefined,
+    categories: item.categories,
+    views: item.views,
+    status: item.status,
+    sortOrder: item.sortOrder,
+    sourceCreatedAt: item.sourceCreatedAt,
+    sourceModifiedAt: item.sourceModifiedAt,
+    createdAt: item.createdAt,
+    mountedAt: item.mountedAt,
+    updatedAt: item.updatedAt,
+  };
 }

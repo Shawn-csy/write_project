@@ -3,7 +3,7 @@
  * No React, no router, no i18n. Framework adapters live in host apps.
  */
 
-import { SEGMENT_KEYS } from "./filterModel";
+import { normalizeSelectedGalleryTags, SEGMENT_KEYS } from "./filterModel";
 import type { SegmentKey, UsageFilter } from "./filterModel";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -82,6 +82,10 @@ function safeStringArray(values: string[]): string[] {
   ].sort();
 }
 
+function safeTagArray(values: string[]): string[] {
+  return normalizeSelectedGalleryTags(values);
+}
+
 // ─── Parse ────────────────────────────────────────────────────────────────────
 
 /**
@@ -96,7 +100,7 @@ export function parseGalleryUrlState(
 
   return {
     view: safeView(params.get("view")),
-    tags: safeStringArray(params.getAll("tag")),
+    tags: safeTagArray(params.getAll("tag")),
     authorTags: safeStringArray(params.getAll("authorTag")),
     orgTags: safeStringArray(params.getAll("orgTag")),
     usage: safeUsage(params.get("usage")),
@@ -122,7 +126,7 @@ export function serializeGalleryUrlState(
     params.set("view", state.view);
   }
   // Normalize before writing: trim, dedupe, sort — same rules as parse/merge.
-  safeStringArray(state.tags).forEach((tag) => params.append("tag", tag));
+  safeTagArray(state.tags).forEach((tag) => params.append("tag", tag));
   safeStringArray(state.authorTags).forEach((tag) => params.append("authorTag", tag));
   safeStringArray(state.orgTags).forEach((tag) => params.append("orgTag", tag));
 
@@ -168,7 +172,7 @@ export function mergeGalleryUrlState(
 ): PublicHomepageUrlState {
   return {
     view: patch.view != null ? safeView(patch.view) : current.view,
-    tags: patch.tags != null ? safeStringArray(patch.tags) : current.tags,
+    tags: patch.tags != null ? safeTagArray(patch.tags) : current.tags,
     authorTags: patch.authorTags != null ? safeStringArray(patch.authorTags) : current.authorTags,
     orgTags: patch.orgTags != null ? safeStringArray(patch.orgTags) : current.orgTags,
     usage: patch.usage != null ? safeUsage(patch.usage) : current.usage,

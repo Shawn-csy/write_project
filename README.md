@@ -149,6 +149,10 @@ npm run test:e2e         # Playwright E2E
 - Vite studio API base: `VITE_API_URL`，未設時預設 `/api`。
 - Next public app backend base: `BACKEND_API_URL`，public client 透過 same-origin `/api/*` BFF 存取。
 - Public canonical base: `NEXT_PUBLIC_BASE_URL`。
+- `FEEDBACK_NOTIFICATION_EMAIL`：公開頁回報／上架申請的通知收件人，預設為 `silence0603@gmail.com`。
+- `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD`：寄信服務設定；Gmail 請使用應用程式密碼，不要使用一般登入密碼。
+- `SMTP_FROM`：寄件地址，未設定時使用 `SMTP_USERNAME`。
+- `SMTP_USE_TLS` / `SMTP_USE_SSL`：SMTP 加密方式，預設使用 STARTTLS。
 - 正式部署由 Nginx 反代 backend API。
 - 認證使用 `Authorization: Bearer <Firebase token>`。
 - 本機測試模式可使用 `X-User-ID`，詳見後端認證文件。

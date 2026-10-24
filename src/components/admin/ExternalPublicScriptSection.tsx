@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ExternalLink, ImageIcon, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, ImageIcon, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -28,6 +28,7 @@ interface Draft {
   authorUrl: string;
   authorAvatarUrl: string;
   organizationName: string;
+  organizationBio: string;
   organizationUrl: string;
   organizationAvatarUrl: string;
   remoteTitle: string;
@@ -36,6 +37,8 @@ interface Draft {
   titleOverride: string;
   summaryOverride: string;
   coverUrlOverride: string;
+  seriesName: string;
+  seriesOrder: string;
   refreshMetadata: boolean;
   categoriesText: string;
   mountedAt: string;
@@ -53,6 +56,7 @@ const EMPTY_DRAFT: Draft = {
   authorUrl: "",
   authorAvatarUrl: "",
   organizationName: "",
+  organizationBio: "",
   organizationUrl: "",
   organizationAvatarUrl: "",
   remoteTitle: "",
@@ -61,6 +65,8 @@ const EMPTY_DRAFT: Draft = {
   titleOverride: "",
   summaryOverride: "",
   coverUrlOverride: "",
+  seriesName: "",
+  seriesOrder: "",
   refreshMetadata: false,
   categoriesText: "",
   mountedAt: "",
@@ -80,6 +86,7 @@ function toDraft(item: ExternalPublicScript): Draft {
     authorUrl: item.authorUrl || "",
     authorAvatarUrl: item.authorAvatarUrl || "",
     organizationName: item.organizationName || "",
+    organizationBio: item.organizationBio || "",
     organizationUrl: item.organizationUrl || "",
     organizationAvatarUrl: item.organizationAvatarUrl || "",
     remoteTitle: item.remoteTitle || "",
@@ -88,6 +95,8 @@ function toDraft(item: ExternalPublicScript): Draft {
     titleOverride: item.titleOverride || item.remoteTitle || "",
     summaryOverride: item.summaryOverride || item.remoteSummary || "",
     coverUrlOverride: item.coverUrlOverride || "",
+    seriesName: item.seriesName || "",
+    seriesOrder: item.seriesOrder == null ? "" : String(item.seriesOrder),
     refreshMetadata: false,
     categoriesText: (item.categories || []).join(", "),
     mountedAt: toDateTimeLocal(item.mountedAt || item.createdAt),
@@ -111,13 +120,23 @@ function fromDateTimeLocal(value: string): number | undefined {
 }
 
 function makeEmptyDraft(): Draft {
-  return { ...EMPTY_DRAFT, mountedAt: toDateTimeLocal(Date.now()) };
+  return { ...EMPTY_DRAFT };
 }
 
 interface DirectoryOption {
   name: string;
   url: string;
 }
+
+interface AuthorGroup {
+  key: string;
+  name: string;
+  url: string;
+  items: ExternalPublicScript[];
+}
+
+const UNKNOWN_AUTHOR_KEY = "__unknown-author__";
+const UNKNOWN_AUTHOR_NAME = "未指定作者";
 
 function firstPersonaLink(persona: PersonaLike): string {
   if (persona.website?.trim()) return persona.website.trim();
@@ -158,6 +177,7 @@ function toPayload(draft: Draft): ExternalPublicScriptPayload {
     authorUrl: draft.authorUrl.trim(),
     authorAvatarUrl: draft.authorAvatarUrl.trim(),
     organizationName: draft.organizationName.trim(),
+    organizationBio: draft.organizationBio.trim(),
     organizationUrl: draft.organizationUrl.trim(),
     organizationAvatarUrl: draft.organizationAvatarUrl.trim(),
     remoteTitle: draft.remoteTitle,
@@ -166,6 +186,8 @@ function toPayload(draft: Draft): ExternalPublicScriptPayload {
     titleOverride: draft.titleOverride.trim(),
     summaryOverride: draft.summaryOverride.trim(),
     coverUrlOverride: draft.coverUrlOverride.trim(),
+    seriesName: draft.seriesName.trim(),
+    seriesOrder: draft.seriesOrder.trim() ? Number(draft.seriesOrder) : null,
     refreshMetadata: draft.refreshMetadata,
     categories: toCategories(draft.categoriesText),
     mountedAt: fromDateTimeLocal(draft.mountedAt),
@@ -186,6 +208,7 @@ export function ExternalPublicScriptSection() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [expandedAuthors, setExpandedAuthors] = useState<Set<string>>(new Set());
 
   const loadItems = async () => {
     setIsLoading(true);
@@ -240,6 +263,35 @@ export function ExternalPublicScriptSection() {
     return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
   }, [items, organizations]);
 
+  const seriesOptions = useMemo(() => Array.from(new Set(
+    items.map((item) => item.seriesName?.trim()).filter((name): name is string => Boolean(name))
+  )).sort((a, b) => a.localeCompare(b, "zh-Hant")), [items]);
+
+  const authorGroups = useMemo<AuthorGroup[]>(() => {
+    const groups = new Map<string, AuthorGroup>();
+    for (const item of items) {
+      const name = item.authorName?.trim() || UNKNOWN_AUTHOR_NAME;
+      const key = name === UNKNOWN_AUTHOR_NAME ? UNKNOWN_AUTHOR_KEY : `author:${name}`;
+      const existing = groups.get(key);
+      if (existing) {
+        existing.items.push(item);
+        if (!existing.url && item.authorUrl?.trim()) existing.url = item.authorUrl.trim();
+      } else {
+        groups.set(key, {
+          key,
+          name,
+          url: item.authorUrl?.trim() || "",
+          items: [item],
+        });
+      }
+    }
+    return Array.from(groups.values()).sort((a, b) => {
+      if (a.key === UNKNOWN_AUTHOR_KEY) return 1;
+      if (b.key === UNKNOWN_AUTHOR_KEY) return -1;
+      return a.name.localeCompare(b.name, "zh-Hant");
+    });
+  }, [items]);
+
   const updateDraft = (patch: Partial<Draft>) => {
     setDraft((current) => ({ ...current, ...patch }));
   };
@@ -270,8 +322,12 @@ export function ExternalPublicScriptSection() {
         authorUrl: forceRefresh ? (nextPreview.authorUrl || current.authorUrl) : (current.authorUrl || nextPreview.authorUrl || ""),
         authorAvatarUrl: forceRefresh ? (nextPreview.authorAvatarUrl || current.authorAvatarUrl) : (current.authorAvatarUrl || nextPreview.authorAvatarUrl || ""),
         organizationName: forceRefresh ? (nextPreview.organizationName || current.organizationName) : (current.organizationName || nextPreview.organizationName || ""),
+        organizationBio: forceRefresh ? (nextPreview.organizationBio || current.organizationBio) : (current.organizationBio || nextPreview.organizationBio || ""),
         organizationUrl: forceRefresh ? (nextPreview.organizationUrl || current.organizationUrl) : (current.organizationUrl || nextPreview.organizationUrl || ""),
         organizationAvatarUrl: forceRefresh ? (nextPreview.organizationAvatarUrl || current.organizationAvatarUrl) : (current.organizationAvatarUrl || nextPreview.organizationAvatarUrl || ""),
+        mountedAt: !current.id && !current.mountedAt && nextPreview.sourceCreatedAt
+          ? toDateTimeLocal(nextPreview.sourceCreatedAt)
+          : current.mountedAt,
         remoteTitle: nextPreview.remoteTitle || "",
         remoteSummary: nextPreview.remoteSummary || "",
         remoteCoverUrl: nextPreview.remoteCoverUrl || "",
@@ -354,6 +410,13 @@ export function ExternalPublicScriptSection() {
   };
 
   const handleEdit = (item: ExternalPublicScript) => {
+    const authorName = item.authorName?.trim() || UNKNOWN_AUTHOR_NAME;
+    const authorKey = authorName === UNKNOWN_AUTHOR_NAME ? UNKNOWN_AUTHOR_KEY : `author:${authorName}`;
+    setExpandedAuthors((current) => {
+      const next = new Set(current);
+      next.add(authorKey);
+      return next;
+    });
     setDraft(toDraft(item));
     setPreview({
       sourceUrl: item.sourceUrl,
@@ -369,6 +432,9 @@ export function ExternalPublicScriptSection() {
       remoteTitle: item.remoteTitle,
       remoteSummary: item.remoteSummary,
       remoteCoverUrl: item.remoteCoverUrl,
+      organizationBio: item.organizationBio,
+      sourceCreatedAt: item.sourceCreatedAt,
+      sourceModifiedAt: item.sourceModifiedAt,
     });
     setError("");
     setStatusMessage("");
@@ -395,6 +461,15 @@ export function ExternalPublicScriptSection() {
     setPreview(null);
     setError("");
     setStatusMessage("");
+  };
+
+  const toggleAuthor = (authorKey: string) => {
+    setExpandedAuthors((current) => {
+      const next = new Set(current);
+      if (next.has(authorKey)) next.delete(authorKey);
+      else next.add(authorKey);
+      return next;
+    });
   };
 
   const previewImage = draft.coverUrlOverride.trim() || preview?.coverPreviewDataUrl || draft.remoteCoverUrl.trim();
@@ -477,6 +552,7 @@ export function ExternalPublicScriptSection() {
                 />
                 <Input value={draft.organizationUrl} onChange={(event) => updateDraft({ organizationUrl: event.target.value })} placeholder="組織連結（可修改）" aria-label="組織連結" />
                 <Input value={draft.organizationAvatarUrl} onChange={(event) => updateDraft({ organizationAvatarUrl: event.target.value })} placeholder="組織頭像／Logo 網址（可手動指定）" aria-label="組織頭像網址" />
+                <Textarea value={draft.organizationBio} onChange={(event) => updateDraft({ organizationBio: event.target.value })} placeholder="組織說明（可從 X 公開介紹帶入）" aria-label="組織說明" rows={3} />
               </div>
               <datalist id="external-script-author-options">
                 {authorOptions.map((option) => <option key={`${option.name}-${option.url}`} value={option.name} />)}
@@ -494,6 +570,26 @@ export function ExternalPublicScriptSection() {
               <Textarea value={draft.summaryOverride} onChange={(event) => updateDraft({ summaryOverride: event.target.value })} placeholder={previewSummary || "摘要（可修改）"} rows={3} aria-label="台本摘要" />
               <Input value={draft.coverUrlOverride} onChange={(event) => updateDraft({ coverUrlOverride: event.target.value })} placeholder="封面照片網址（可手動指定；第一頁封面會自動保留）" aria-label="封面照片網址" />
               <Input value={draft.categoriesText} onChange={(event) => updateDraft({ categoriesText: event.target.value })} placeholder="分類，以逗號分隔，例如：奇幻、短篇、配音" />
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem]">
+                <Input
+                  value={draft.seriesName}
+                  onChange={(event) => updateDraft({ seriesName: event.target.value })}
+                  list="external-script-series-options"
+                  placeholder="系列名稱（可從既有系列選擇）"
+                  aria-label="系列名稱"
+                />
+                <Input
+                  type="number"
+                  min="0"
+                  value={draft.seriesOrder}
+                  onChange={(event) => updateDraft({ seriesOrder: event.target.value })}
+                  placeholder="系列順序"
+                  aria-label="系列順序"
+                />
+              </div>
+              <datalist id="external-script-series-options">
+                {seriesOptions.map((name) => <option key={name} value={name} />)}
+              </datalist>
               <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <span>掛載時間</span>
                 <Input type="datetime-local" value={draft.mountedAt} onChange={(event) => updateDraft({ mountedAt: event.target.value })} aria-label="掛載時間" />
@@ -535,31 +631,58 @@ export function ExternalPublicScriptSection() {
         <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">尚未加入外部公開台本。</div>
       ) : (
         <div className="space-y-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex items-center gap-3 rounded-md border p-3">
-              <div className="h-16 w-11 shrink-0 overflow-hidden rounded border bg-muted">
-                {item.coverUrl ? <img src={item.coverUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : null}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium">{item.title || "無標題"}</div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {item.sourceName || item.sourceDomain || item.sourceUrl}
-                  {formatMountedAt(item.mountedAt || item.createdAt) && <span className="ml-2">· 掛載於 {formatMountedAt(item.mountedAt || item.createdAt)}</span>}
-                </div>
-                <div className="mt-1 flex flex-wrap gap-1">
-                  {(item.categories || []).map((category) => <Badge key={category} variant="secondary" className="text-[10px]">{category}</Badge>)}
-                  <Badge variant={item.status === "published" ? "default" : "outline"} className="text-[10px]">{item.status === "published" ? "首頁顯示" : item.status === "hidden" ? "隱藏" : "草稿"}</Badge>
-                </div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label="開啟原始台本" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-                <Button type="button" variant="ghost" size="sm" onClick={() => handleEdit(item)} aria-label="編輯外部台本"><Pencil className="h-4 w-4" /></Button>
-                <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void handleDelete(item)} aria-label="移除外部台本"><Trash2 className="h-4 w-4" /></Button>
-              </div>
-            </div>
-          ))}
+          {authorGroups.map((group) => {
+            const isExpanded = expandedAuthors.has(group.key);
+            return (
+              <section key={group.key} className="overflow-hidden rounded-md border">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between gap-3 bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                  onClick={() => toggleAuthor(group.key)}
+                  aria-expanded={isExpanded}
+                >
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold">{group.name}</span>
+                      {group.url && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="作者連結" />}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{group.items.length} 部外部台本</span>
+                  </span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                </button>
+                {isExpanded && (
+                  <div className="divide-y">
+                    {group.items.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 p-3">
+                        <div className="h-16 w-11 shrink-0 overflow-hidden rounded border bg-muted">
+                          {item.coverUrl ? <img src={item.coverUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : null}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">{item.title || "無標題"}</div>
+                          <div className="truncate text-xs text-muted-foreground">
+                            {item.sourceName || item.sourceDomain || item.sourceUrl}
+                            {formatMountedAt(item.mountedAt || item.createdAt) && <span className="ml-2">· 掛載於 {formatMountedAt(item.mountedAt || item.createdAt)}</span>}
+                          </div>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {(item.categories || []).map((category) => <Badge key={category} variant="secondary" className="text-[10px]">{category}</Badge>)}
+                            {item.seriesName && <Badge variant="outline" className="text-[10px]">系列：{item.seriesName}{item.seriesOrder != null ? ` #${item.seriesOrder}` : ""}</Badge>}
+                            <Badge variant={item.status === "published" ? "default" : "outline"} className="text-[10px]">{item.status === "published" ? "首頁顯示" : item.status === "hidden" ? "隱藏" : "草稿"}</Badge>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label="開啟原始台本" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => handleEdit(item)} aria-label="編輯外部台本"><Pencil className="h-4 w-4" /></Button>
+                          <Button type="button" variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void handleDelete(item)} aria-label="移除外部台本"><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

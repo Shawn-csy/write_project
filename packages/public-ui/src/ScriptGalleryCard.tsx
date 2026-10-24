@@ -151,10 +151,12 @@ function ScriptGalleryCardInner({
   const cardSummary = truncateCardText(script._cardSummary || script.synopsis || "");
   const hoverOutline = normalizeOutlineText(script._hoverOutline || script.outline || "");
   const authorDisplayName = typeof author === "object" ? author?.displayName : (typeof author === "string" ? author : undefined);
+  const hoverText = hoverOutline || cardSummary || "尚未提供大綱";
+  const hoverLabel = hoverOutline ? "大綱" : cardSummary ? "作品簡介" : "作品資訊";
 
   // Gallery-level hover preview
   const hoverCtx = useGalleryHoverPreview();
-  const previewData = hoverOutline ? { title, author: authorDisplayName, outline: hoverOutline } : null;
+  const previewData = { title, author: authorDisplayName, outline: hoverText, label: hoverLabel };
   const hoverPreviewProps: React.HTMLAttributes<HTMLElement> = previewData && hoverCtx ? {
     onMouseEnter: (e) => hoverCtx.show(previewData, e.clientX, e.clientY),
     onMouseMove: (e) => hoverCtx.move(e.clientX, e.clientY),

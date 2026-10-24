@@ -16,6 +16,7 @@ const AI_BOT_RULES = {
     "/.well-known/api-catalog",
     "/api/public-scripts",
     "/api/public-scripts/",
+    "/api/public-media/",
   ],
   disallow: ["/dashboard", "/studio", "/edit", "/settings", "/admin", "/api/revalidate", "/api/public-bundle"],
 };
@@ -37,7 +38,12 @@ export default function robots(): MetadataRoute.Robots {
           "/license",
           "/privacy",
           "/terms",
+          // Card/hero images are served through this proxy. The longer rule
+          // wins over `Disallow: /api/`, so Googlebot can fetch and index them.
+          "/api/public-media/",
         ],
+        // `/gallery` is intentionally absent: it returns 410, and blocking it
+        // would stop crawlers from ever seeing that status and dropping the URL.
         disallow: [
           "/dashboard",
           "/studio",
@@ -45,7 +51,6 @@ export default function robots(): MetadataRoute.Robots {
           "/settings",
           "/admin",
           "/api/",
-          "/gallery", // retired
         ],
       },
       ...AI_BOTS.map((userAgent) => ({ userAgent, ...AI_BOT_RULES })),

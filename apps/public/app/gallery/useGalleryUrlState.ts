@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   serializeGalleryUrlState,
   mergeGalleryUrlState,
@@ -39,6 +39,20 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   // intended URL, not the previous render's searchParams snapshot.
   const stateRef = useRef(state);
   stateRef.current = state;
+
+  // Canonicalize legacy URLs on first render as well as after future state
+  // changes. This removes conflicting duplicate license tags from the address
+  // bar, not just from the visible filter chips.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = serializeGalleryUrlState(state);
+    const qs = params.toString();
+    const canonicalUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (currentUrl !== canonicalUrl) {
+      window.history.replaceState(null, "", canonicalUrl);
+    }
+  }, [state]);
 
   const nav = useCallback(
     (patch: Partial<PublicHomepageUrlState>, method: "push" | "replace" = "push") => {

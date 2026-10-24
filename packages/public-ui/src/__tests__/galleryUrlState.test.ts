@@ -88,6 +88,16 @@ describe("parseGalleryUrlState — tags", () => {
     expect(parse("tag=%20Drama%20").tags).toEqual(["Drama"]);
   });
 
+  it("keeps only the last option when conflicting license tags are present", () => {
+    expect(parse("tag=%E6%8E%88%E6%AC%8A%3A%E4%B8%8D%E5%8F%AF%E5%95%86%E7%94%A8&tag=%E6%8E%88%E6%AC%8A%3A%E5%8F%AF%E5%95%86%E7%94%A8").tags)
+      .toEqual(["授權:可商用"]);
+  });
+
+  it("keeps different license facets while resolving each conflict group", () => {
+    expect(parse("tag=%E6%8E%88%E6%AC%8A%3A%E4%B8%8D%E5%8F%AF%E6%94%B9%E4%BD%9C&tag=%E6%8E%88%E6%AC%8A%3A%E5%8F%AF%E5%95%86%E7%94%A8&tag=%E6%8E%88%E6%AC%8A%3A%E5%8F%AF%E6%94%B9%E4%BD%9C").tags)
+      .toEqual(["授權:可商用", "授權:可改作"]);
+  });
+
   it("authorTag", () => {
     expect(parse("authorTag=writer").authorTags).toEqual(["writer"]);
   });
@@ -155,6 +165,14 @@ describe("round trip — serialize then parse", () => {
     expect(qs).toBe("?tag=Drama");
   });
 
+  it("serialize removes conflicting license tags", () => {
+    const qs = serialize({
+      ...DEFAULT_URL_STATE,
+      tags: ["授權:不可商用", "授權:可商用"],
+    });
+    expect(qs).toBe("?tag=%E6%8E%88%E6%AC%8A%3A%E5%8F%AF%E5%95%86%E7%94%A8");
+  });
+
   it("serialize omits default lane", () => {
     const state = { ...DEFAULT_URL_STATE, q: "x" };
     expect(serialize(state)).not.toContain("lane=");
@@ -185,6 +203,12 @@ describe("mergeGalleryUrlState", () => {
   it("tag deduplication in merge", () => {
     const merged = mergeGalleryUrlState(DEFAULT_URL_STATE, { tags: ["a", "a", "b"] });
     expect(merged.tags).toEqual(["a", "b"]);
+  });
+
+  it("last selected license shortcut replaces its conflicting option", () => {
+    const commercial = mergeGalleryUrlState(DEFAULT_URL_STATE, { tags: ["授權:不可商用"] });
+    const switched = mergeGalleryUrlState(commercial, { tags: [...commercial.tags, "授權:可商用"] });
+    expect(switched.tags).toEqual(["授權:可商用"]);
   });
 });
 

@@ -20,7 +20,7 @@ export type UsageFilter = "all" | "commercial";
 
 export const SEGMENT_TAGS: Record<string, string[]> = {
   [SEGMENT_KEYS.allAges]: ["全年齡向", "一般", "一般內容"],
-  [SEGMENT_KEYS.adult]: ["成人向", "R-18", "r18", "18+"],
+  [SEGMENT_KEYS.adult]: ["成人向", "R-18", "r18", "18+", "18禁"],
   [SEGMENT_KEYS.male]: ["男性向"],
   [SEGMENT_KEYS.female]: ["女性向"],
 };
@@ -83,6 +83,55 @@ export function deriveSimpleLicenseTags({
   if (notify === "required") tags.push("授權:修改需告知");
   if (notify === "not_required") tags.push("授權:修改免告知");
   return tags;
+}
+
+// License shortcuts are facets, not ordinary free-form tags. Options inside
+// the same facet are mutually exclusive (for example, a script cannot be both
+// commercially usable and non-commercial), while different facets can still
+// be selected together.
+const EXCLUSIVE_LICENSE_TAG_GROUPS: readonly (readonly string[])[] = [
+  ["授權:可商用", "授權:不可商用"],
+  ["授權:可改作", "授權:限定改作", "授權:不可改作"],
+  ["授權:修改需告知", "授權:修改免告知"],
+];
+
+const EXCLUSIVE_LICENSE_TAG_GROUP_BY_TAG = new Map(
+  EXCLUSIVE_LICENSE_TAG_GROUPS.flatMap((group, index) =>
+    group.map((tag) => [tag, index] as const)
+  )
+);
+
+/**
+ * Normalize selected gallery tags while preserving the existing multi-select
+ * behavior for ordinary tags. If a URL or stale client state contains two
+ * options from one license facet, the last one wins.
+ */
+export function normalizeSelectedGalleryTags(values: string[]): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  for (const raw of values) {
+    const tag = typeof raw === "string" ? raw.trim() : "";
+    if (!tag) continue;
+
+    const groupIndex = EXCLUSIVE_LICENSE_TAG_GROUP_BY_TAG.get(tag);
+    if (groupIndex !== undefined) {
+      const group = EXCLUSIVE_LICENSE_TAG_GROUPS[groupIndex];
+      for (const existing of group) {
+        if (!seen.has(existing)) continue;
+        seen.delete(existing);
+        const existingIndex = result.indexOf(existing);
+        if (existingIndex >= 0) result.splice(existingIndex, 1);
+      }
+    }
+
+    if (!seen.has(tag)) {
+      seen.add(tag);
+      result.push(tag);
+    }
+  }
+
+  return result.sort();
 }
 
 // ─── License helpers (from structured fields) ──────────────────────────────
@@ -179,7 +228,7 @@ export interface GalleryScriptInput {
   outline?: string | null;
   persona?: Partial<PersonaLike> | null;
   author?: AuthorLike | string | null;
-  organization?: { name?: string; logoUrl?: string } | null;
+  organization?: { name?: string; logoUrl?: string; profileUrl?: string } | null;
   series?: { name?: string; coverUrl?: string } | null;
   seriesName?: string;
   seriesOrder?: number | null;
@@ -336,7 +385,8 @@ export function filterGalleryScripts(
   scripts: EnrichedGalleryScript[],
   opts: GalleryFilterOptions
 ): EnrichedGalleryScript[] {
-  const { searchNeedle, selectedTags, segmentFilter, usageFilter } = opts;
+  const { searchNeedle, segmentFilter, usageFilter } = opts;
+  const selectedTags = normalizeSelectedGalleryTags(opts.selectedTags);
   return scripts
     .filter((script) => {
       const matchesSearch =

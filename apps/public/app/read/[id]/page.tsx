@@ -16,6 +16,9 @@ import {
   buildReadPageBreadcrumbData,
   buildReadPageOpenGraph,
   buildReadPageTwitterCard,
+  buildReadPageExcerpt,
+  buildReadPageRatingMeta,
+  isAdultScript,
 } from "@/lib/readPageSeo";
 import { TITLE_SUFFIX } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
@@ -63,12 +66,15 @@ export async function generateMetadata({
   const description = buildReadPageDescription(script);
   const canonicalUrl = buildReadPageCanonicalUrl(id);
 
+  const rating = buildReadPageRatingMeta(script);
+
   return {
     title,
     description,
     alternates: { canonical: canonicalUrl },
     openGraph: buildReadPageOpenGraph(script, id),
     twitter: buildReadPageTwitterCard(script),
+    ...(rating && { other: { rating } }),
   };
 }
 
@@ -87,6 +93,7 @@ export default async function ScriptReaderPage({
   const description = buildReadPageDescription(script);
   const authorName = script.persona?.displayName ?? script.owner?.displayName ?? "";
   const tags = (script.tags ?? []).map((t) => t.name).filter(Boolean);
+  const excerpt = buildReadPageExcerpt(script);
 
   // JSON-LD injected as a real <script> tag for crawlers (same model as generateMetadata)
   const structuredData = buildReadPageStructuredData(script, id);
@@ -99,6 +106,9 @@ export default async function ScriptReaderPage({
     : null;
   const scriptAst: AstNode = scriptDocument?.ast ?? { type: "root", children: [] };
   const toc: TocEntry[] = scriptDocument?.toc ?? [];
+  // TOC labels come from the script body, which sits behind the consent gate.
+  // For age-gated (adult) works they must not leak into the public HTML.
+  const showToc = toc.length > 0 && !isAdultScript(script);
 
   return (
     <>
@@ -119,7 +129,25 @@ export default async function ScriptReaderPage({
         summary={
           <div data-seo-excerpt className="px-4 py-6 max-w-2xl mx-auto">
             <h1 className="text-2xl font-bold mb-2">{script.title}</h1>
-            {description && <p className="text-muted-foreground mb-3">{description}</p>}
+            {(excerpt.synopsis || description) && (
+              <p className="text-muted-foreground mb-3 whitespace-pre-line">{excerpt.synopsis || description}</p>
+            )}
+            {excerpt.outline && (
+              <section className="mb-3">
+                <h2 className="text-base font-semibold mb-1">大綱</h2>
+                <p className="text-sm text-muted-foreground whitespace-pre-line">{excerpt.outline}</p>
+              </section>
+            )}
+            {showToc && (
+              <nav aria-label="目錄" className="mb-3">
+                <h2 className="text-base font-semibold mb-1">目錄</h2>
+                <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-0.5">
+                  {toc.slice(0, 40).map((entry, index) => (
+                    <li key={`${entry.id}:${index}`}>{entry.label}</li>
+                  ))}
+                </ol>
+              </nav>
+            )}
             <dl className="text-sm text-muted-foreground space-y-1">
               {authorName && <div><dt className="inline font-medium">作者：</dt><dd className="inline">{authorName}</dd></div>}
               {script.organization?.name && <div><dt className="inline font-medium">組織：</dt><dd className="inline">{script.organization.name}</dd></div>}

@@ -3,10 +3,43 @@
 All notable product-facing changes are documented here.
 
 For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/archive/release-version-map-after-v0.5.0.md`.
+The early `v0.1.0`–`v0.4.9` releases are summarized in the historical overview below.
 
 ## [Unreleased]
 
-- No unreleased changes yet.
+### SEO
+
+- `robots.txt` 對一般爬蟲開放 `/api/public-media/`（卡片與主視覺圖片），並移除對已回 410 的 `/gallery` 的
+  Disallow，讓搜尋引擎能看到 410 並移除舊索引。
+- Sitemap 的 `lastmod` 改用真實內容日期（首頁取最新作品、靜態頁用固定日期），不再每次請求都變；
+  移除搜尋引擎會忽略的 `changefreq`／`priority`；上游資料改走 Next data cache。
+- 台本閱讀頁的伺服器端 HTML 加入完整簡介、大綱與目錄；JSON-LD 補上 `abstract`、`datePublished`、
+  `mainEntityOfPage` 與作者頁網址；成人向作品輸出 `rating` meta 與 `isFamilyFriendly: false`。
+- 外部台本連結加上 `rel="nofollow"`；首頁移除已被 Google 取消的 SearchAction，改附 publisher。
+
+### 效能
+
+- 首頁資料先在伺服器端瘦身（移除 marker theme、活動欄位與外部作品的重複文字），HTML 約減半；
+  首屏只 SSR 前 24 張卡片，其餘於 hydration 後補上。
+- 首頁、`/sitemap.xml`、`/llms.txt` 加上可被 CDN 快取的 `Cache-Control`（首頁 `s-maxage=120`）。
+- 圖片 proxy 路徑加上 `.webp` 副檔名讓 Cloudflare 預設即可快取，支援 `?w=` 縮圖
+  （240／360／480／720／960，使用 sharp），並加長快取時間；卡片圖改用 `srcset`。
+- 外部封面查詢不再每張圖重抓整份 public bundle。
+
+### 安全（公開媒體 proxy）
+
+- 修正路徑穿越：先前 `%2e%2e` 可繞過 `..` 檢查，讓 proxy 代抓後端 `/media/` 以外的路徑；
+  現在改驗證解析後的路徑與來源，並拒絕反斜線、控制字元與 `//`。
+- 外部圖片來源除了字面 IP，也會解析 DNS 並拒絕私有網段；重新導向逐跳驗證（最多 3 次）。
+- 上游請求加上逾時；宣告大小或實際串流超過 25 MB 的圖片會被拒絕或截斷；非圖片內容回 415。
+- 縮圖只對已宣告大小（≤ 12 MB）的 JPEG/PNG/WebP 進行，並限制輸入像素數與同時處理數（3）；
+  超出時改回原圖並只快取 60 秒，避免原圖被 CDN 長期綁在縮圖網址上。
+- 回應加上 `X-Content-Type-Options: nosniff` 與沙箱化 CSP；錯誤回應不快取。
+- `/api/revalidate` 同時讓 `public-bundle`／`public-scripts` 資料快取標記為過期，首頁與 sitemap 不再等 5～10 分鐘。
+- 作品頁目錄（來自受同意閘門保護的正文）不再輸出給成人向作品。
+- `/og/homepage.png` 由 808 KB 壓縮為 146 KB（尺寸不變）。
+- `apps/public` 明確宣告 `sharp` 相依。
+
 
 ## [0.7.1] - 2026-10-20
 
@@ -319,6 +352,37 @@ v0.6.0 是 v0.5.0 之後的第一個 minor release，將公開站從 Vite SPA �
 - `customMetadata` runtime fallback 已移除。依賴此欄位的自訂整合需更新至 canonical fields。
 - nginx `/.well-known/` 路由須 proxy 至 Next（見 `nginx.conf`），否則 `/.well-known/llms.txt` 等機器文件會 404。
 
+## 歷史版本概覽（v0.1.0–v0.4.9）
+
+這段早期版本沒有完整的逐版 changelog，以下依 Git tags、當時的 README 與 release commit
+整理產品演進，細部修正仍以各版本 commit 為準。
+
+### v0.1.0–v0.2.2：Fountain 閱讀器基礎
+
+- 從 React + Vite 的本機 Fountain 台本閱讀器起步，讀取 `src/scripts_file` 內的 `.fountain` 檔案。
+- 加入角色篩選、順讀／專注模式、字級與主題設定、PDF 匯出、Sidebar 與 About 頁面。
+- 支援 SFX、方位、情緒／口氣與留白等台本標記，並補上快捷鍵、單元測試與手機版元件。
+
+### v0.3.0：編輯器與創作工作室
+
+- 從閱讀器擴展成 Fountain Pro 編輯平台，加入雲端工作室、Live Editor 與即時預覽。
+- 建立可自訂的智慧標記系統，支援 inline／block 規則、Regex、樣式、優先順序與匯入／匯出。
+- 加入角色／場景／停頓統計、雙模式閱讀、RWD、SEO 分享預覽與 Docker 部署基礎。
+
+### v0.4.0–v0.4.4：公開台本平台成形
+
+- 產品定位從單機閱讀器轉為公開閱讀與創作工作室平台。
+- 新增公開作品列表、搜尋排序、作者／組織頁、工作室 Dashboard、授權與 metadata 管理。
+- 持續補強系列、標籤、公開 Hero、雙欄編輯預覽、反向代理與正式部署架構。
+
+### v0.4.5–v0.4.9：資料與正式環境成熟化
+
+- metadata、授權、作者資料與封面裁切逐步改為結構化欄位，移除舊 fallback 寫入路徑。
+- 加入 PostgreSQL 正式資料庫支援、SQLite 遷移工具、媒體庫、封面裁切／縮放與公開頁效能優化。
+- 補強 CSP、瀏覽統計、手機版 UX、多語系、公開頁 SEO 與 script metadata 流程。
+- 大量重構為 TypeScript，共用閱讀器／公開頁元件，並補上測試與效能改善。
+
 ## [0.5.0] - baseline
 
-`v0.5.0` is the baseline tag for this changelog. Earlier changes are not reconstructed here.
+`v0.5.0` is the baseline tag for the detailed release entries in this changelog.
+The historical overview above is intentionally high-level rather than a complete commit inventory.

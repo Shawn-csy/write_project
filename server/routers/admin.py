@@ -166,6 +166,58 @@ def list_public_terms_acceptances(
     return schemas.PublicTermsAcceptanceListResponse(total=total, items=rows)
 
 
+@router.get("/public-feedback", response_model=schemas.PublicFeedbackListResponse)
+def list_public_feedback(
+    q: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    safe_limit = max(1, min(limit, 200))
+    safe_offset = max(offset, 0)
+    normalized_q = (q or "").strip()
+    query = db.query(models.PublicFeedback)
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            (models.PublicFeedback.contactName.ilike(like_q))
+            | (models.PublicFeedback.contactEmail.ilike(like_q))
+            | (models.PublicFeedback.content.ilike(like_q))
+            | (models.PublicFeedback.pageUrl.ilike(like_q))
+        )
+
+    total = query.count()
+    rows = (
+        query.order_by(models.PublicFeedback.createdAt.desc())
+        .offset(safe_offset)
+        .limit(safe_limit)
+        .all()
+    )
+    return schemas.PublicFeedbackListResponse(total=total, items=rows)
+
+
+@router.delete("/public-feedback/{feedback_id}")
+def delete_public_feedback(
+    feedback_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    row = db.query(models.PublicFeedback).filter(models.PublicFeedback.id == feedback_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Public feedback not found")
+
+    db.delete(row)
+    db.commit()
+    return {"success": True}
+
+
 @router.get("/admin-users", response_model=List[schemas.AdminUserRecord])
 def list_admin_users(
     db: Session = Depends(get_db),

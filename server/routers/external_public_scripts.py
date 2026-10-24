@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import httpx
 import os
 import re
 import time
 import uuid
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
@@ -20,9 +21,11 @@ from dependencies import get_db, get_external_public_scripts_user_id, is_admin_u
 from services.external_public_script_metadata import (
     ExternalMetadataError,
     fetch_external_public_script_metadata,
+    fetch_google_drive_file_metadata,
     fetch_google_drive_file_cover_preview,
     fetch_social_avatar_image,
     fetch_social_avatar_url,
+    fetch_social_profile,
     is_google_drive_file_url,
     is_google_docs_url,
     normalize_external_url,
@@ -34,6 +37,8 @@ EXTERNAL_COVER_PREFIX = "/media/external-public-scripts/"
 EXTERNAL_COVER_FOLDER = "外部台本封面"
 EXTERNAL_AVATAR_FOLDER = "外部台本圖片"
 MAX_GENERATED_COVER_BYTES = 2 * 1024 * 1024
+_REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
+_REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
 
 
 def _categories(value: Any) -> list[str]:
@@ -234,6 +239,7 @@ def serialize_external_public_script(item: models.ExternalPublicScript) -> dict[
         "authorUrl": str(item.authorUrl or ""),
         "authorAvatarUrl": str(item.authorAvatarUrl or ""),
         "organizationName": str(item.organizationName or ""),
+        "organizationBio": str(item.organizationBio or ""),
         "organizationUrl": str(item.organizationUrl or ""),
         "organizationAvatarUrl": str(item.organizationAvatarUrl or ""),
         "remoteTitle": remote_title,
@@ -242,6 +248,8 @@ def serialize_external_public_script(item: models.ExternalPublicScript) -> dict[
         "titleOverride": title_override,
         "summaryOverride": summary_override,
         "coverUrlOverride": cover_override,
+        "seriesName": str(item.seriesName or "").strip(),
+        "seriesOrder": item.seriesOrder,
         "title": title_override or remote_title or str(item.sourceDomain or "外部公開台本"),
         "summary": summary_override or remote_summary,
         "coverUrl": cover_override or remote_cover,
@@ -251,6 +259,8 @@ def serialize_external_public_script(item: models.ExternalPublicScript) -> dict[
         "sortOrder": float(item.sortOrder or 0),
         "lastFetchedAt": item.lastFetchedAt,
         "lastFetchError": str(item.lastFetchError or ""),
+        "sourceCreatedAt": item.sourceCreatedAt,
+        "sourceModifiedAt": item.sourceModifiedAt,
         "createdAt": int(item.createdAt or 0),
         "mountedAt": int(item.mountedAt or item.createdAt or 0),
         "updatedAt": int(item.updatedAt or 0),
@@ -263,12 +273,54 @@ def _require_admin(db: Session, user_id: str) -> None:
 
 
 def _metadata_from_payload(payload: Any, source_url: str) -> dict[str, Any]:
+    has_snapshot = any(
+        str(getattr(payload, field, None) or "").strip()
+        for field in (
+            "canonicalUrl",
+            "sourceDomain",
+            "sourceName",
+            "authorName",
+            "authorBio",
+            "authorUrl",
+            "organizationName",
+            "organizationBio",
+            "organizationUrl",
+            "remoteTitle",
+            "remoteSummary",
+            "remoteCoverUrl",
+        )
+    )
+
     # Google Docs and Google Drive PDFs require a fresh export so the first-page cover can be
     # generated server-side. The browser preview intentionally does not carry
     # the image bytes back in the save payload.
     if is_google_docs_url(source_url) or is_google_drive_file_url(source_url):
+        # Some documents use their first page as script content rather than a
+        # cover. Allow an admin to save a complete metadata snapshot without
+        # forcing a first-page export; the cover can remain empty for now.
+        if bool(getattr(payload, "skipFirstPageCover", False)):
+            if not has_snapshot:
+                raise HTTPException(status_code=400, detail="略過文件第一頁封面時，請先提供標題與來源資料。")
+            return _enrich_profile_bios({
+                "sourceUrl": source_url,
+                "canonicalUrl": str(getattr(payload, "canonicalUrl", None) or "").strip(),
+                "sourceDomain": str(getattr(payload, "sourceDomain", None) or "").strip(),
+                "sourceName": str(getattr(payload, "sourceName", None) or "Google Docs").strip(),
+                "authorName": str(getattr(payload, "authorName", None) or "").strip(),
+                "authorBio": str(getattr(payload, "authorBio", None) or "").strip(),
+                "authorUrl": _safe_link_url(getattr(payload, "authorUrl", None)),
+                "authorAvatarUrl": _safe_image_url(getattr(payload, "authorAvatarUrl", None)),
+                "organizationName": str(getattr(payload, "organizationName", None) or "").strip(),
+                "organizationBio": str(getattr(payload, "organizationBio", None) or "").strip(),
+                "organizationUrl": _safe_link_url(getattr(payload, "organizationUrl", None)),
+                "organizationAvatarUrl": _safe_image_url(getattr(payload, "organizationAvatarUrl", None)),
+                "remoteTitle": str(getattr(payload, "remoteTitle", None) or "").strip(),
+                "remoteSummary": str(getattr(payload, "remoteSummary", None) or "").strip(),
+                "remoteCoverUrl": "",
+                "coverPreviewDataUrl": "",
+            }, payload)
         try:
-            return fetch_external_public_script_metadata(source_url)
+            return _enrich_profile_bios(fetch_external_public_script_metadata(source_url), payload)
         except ExternalMetadataError as exc:
             # Some shared Drive PDFs allow anonymous download but reject the
             # HTML file page for server-side clients.  When an admin supplies
@@ -284,7 +336,8 @@ def _metadata_from_payload(payload: Any, source_url: str) -> dict[str, Any]:
                     cover_preview = fetch_google_drive_file_cover_preview(source_url)
                 except ExternalMetadataError:
                     cover_preview = ""
-                return {
+                drive_metadata = fetch_google_drive_file_metadata(source_url)
+                return _enrich_profile_bios({
                     "sourceUrl": source_url,
                     "canonicalUrl": source_url,
                     "sourceDomain": "drive.google.com",
@@ -294,6 +347,7 @@ def _metadata_from_payload(payload: Any, source_url: str) -> dict[str, Any]:
                     "authorUrl": _safe_link_url(getattr(payload, "authorUrl", None)),
                     "authorAvatarUrl": _safe_image_url(getattr(payload, "authorAvatarUrl", None)),
                     "organizationName": str(getattr(payload, "organizationName", None) or "").strip(),
+                    "organizationBio": str(getattr(payload, "organizationBio", None) or "").strip(),
                     "organizationUrl": _safe_link_url(getattr(payload, "organizationUrl", None)),
                     "organizationAvatarUrl": _safe_image_url(getattr(payload, "organizationAvatarUrl", None)),
                     "remoteTitle": title_hint,
@@ -303,26 +357,12 @@ def _metadata_from_payload(payload: Any, source_url: str) -> dict[str, Any]:
                         or ""
                     ).strip(),
                     "remoteCoverUrl": _safe_image_url(getattr(payload, "remoteCoverUrl", None)),
+                    "sourceCreatedAt": drive_metadata.get("sourceCreatedAt"),
+                    "sourceModifiedAt": drive_metadata.get("sourceModifiedAt"),
                     "coverPreviewDataUrl": cover_preview,
-                }
+                }, payload)
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    has_snapshot = any(
-        str(getattr(payload, field, None) or "").strip()
-        for field in (
-            "canonicalUrl",
-            "sourceDomain",
-            "sourceName",
-            "authorName",
-            "authorBio",
-            "authorUrl",
-            "organizationName",
-            "organizationUrl",
-            "remoteTitle",
-            "remoteSummary",
-            "remoteCoverUrl",
-        )
-    )
     if not getattr(payload, "refreshMetadata", False) and has_snapshot:
         return {
             "sourceUrl": source_url,
@@ -334,6 +374,7 @@ def _metadata_from_payload(payload: Any, source_url: str) -> dict[str, Any]:
             "authorUrl": _safe_link_url(getattr(payload, "authorUrl", None)),
             "authorAvatarUrl": _safe_image_url(getattr(payload, "authorAvatarUrl", None)),
             "organizationName": str(getattr(payload, "organizationName", None) or "").strip(),
+            "organizationBio": str(getattr(payload, "organizationBio", None) or "").strip(),
             "organizationUrl": _safe_link_url(getattr(payload, "organizationUrl", None)),
             "organizationAvatarUrl": _safe_image_url(getattr(payload, "organizationAvatarUrl", None)),
             "remoteTitle": str(getattr(payload, "remoteTitle", None) or "").strip(),
@@ -341,15 +382,81 @@ def _metadata_from_payload(payload: Any, source_url: str) -> dict[str, Any]:
             "remoteCoverUrl": _safe_image_url(getattr(payload, "remoteCoverUrl", None)),
         }
     try:
-        return fetch_external_public_script_metadata(source_url)
+        return _enrich_profile_bios(fetch_external_public_script_metadata(source_url), payload)
     except ExternalMetadataError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+def _metadata_timestamp(value: Any) -> int | None:
+    try:
+        timestamp = int(value)
+    except (TypeError, ValueError):
+        return None
+    return timestamp if timestamp > 0 else None
+
+
+def _enrich_profile_bios(metadata: dict[str, Any], payload: Any) -> dict[str, Any]:
+    """Prefer public social-profile descriptions when a source exposes a profile URL.
+
+    External article pages often contain licensing text in their author fields.
+    When the admin has linked an author or organization to X/Twitter, the social
+    profile is the canonical place for that entity's introduction instead.
+    The returned values are still editable by the admin before saving.
+    """
+
+    enriched = dict(metadata)
+    for bio_key, url_key in (("authorBio", "authorUrl"), ("organizationBio", "organizationUrl")):
+        profile_url = str(getattr(payload, url_key, None) or enriched.get(url_key) or "").strip()
+        if not profile_url:
+            continue
+        profile = fetch_social_profile(profile_url)
+        if profile.get("bio"):
+            enriched[bio_key] = profile["bio"]
+    return enriched
 
 
 def _invalidate_public_bundle_cache() -> None:
     import routers.public_bundle as public_bundle_router
 
     public_bundle_router._bundle_cache = None
+
+
+def _external_public_paths(item: models.ExternalPublicScript | None) -> list[str]:
+    paths = ["/"]
+    if not item:
+        return paths
+    if str(item.authorName or "").strip():
+        paths.append(f"/author/external/{quote(str(item.authorName).strip(), safe='')}")
+    if str(item.organizationName or "").strip():
+        paths.append(f"/org/external/{quote(str(item.organizationName).strip(), safe='')}")
+    if str(item.seriesName or "").strip():
+        paths.append(f"/series/{quote(str(item.seriesName).strip(), safe='')}")
+    return paths
+
+
+def _send_external_revalidation(paths: list[str]) -> None:
+    if not _REVALIDATE_URL or not _REVALIDATE_SECRET or not paths:
+        return
+    try:
+        httpx.post(
+            _REVALIDATE_URL,
+            json={"secret": _REVALIDATE_SECRET, "paths": sorted(set(paths))},
+            timeout=5,
+        )
+    except Exception:
+        # Data writes must succeed even when the public renderer is restarting.
+        pass
+
+
+def _queue_external_revalidation(
+    background_tasks: BackgroundTasks | None,
+    *items: models.ExternalPublicScript | None,
+) -> None:
+    paths: list[str] = []
+    for item in items:
+        paths.extend(_external_public_paths(item))
+    if background_tasks and paths:
+        background_tasks.add_task(_send_external_revalidation, sorted(set(paths)))
 
 
 @router.post("/preview", response_model=schemas.ExternalPublicScriptPreview)
@@ -360,7 +467,10 @@ def preview_external_public_script(
 ):
     _require_admin(db, user_id)
     try:
-        metadata = fetch_external_public_script_metadata(payload.sourceUrl)
+        metadata = _enrich_profile_bios(
+            fetch_external_public_script_metadata(payload.sourceUrl),
+            payload,
+        )
     except ExternalMetadataError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     if not metadata.get("authorAvatarUrl") and payload.authorUrl:
@@ -387,6 +497,7 @@ def list_external_public_scripts(
 @router.post("", response_model=schemas.ExternalPublicScriptResponse)
 def create_external_public_script(
     payload: schemas.ExternalPublicScriptPayload,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_external_public_scripts_user_id),
 ):
@@ -411,6 +522,8 @@ def create_external_public_script(
     if duplicate_canonical:
         raise HTTPException(status_code=409, detail="這個公開台本已經加入過了。")
     now_ms = int(time.time() * 1000)
+    source_created_at = _metadata_timestamp(metadata.get("sourceCreatedAt"))
+    source_modified_at = _metadata_timestamp(metadata.get("sourceModifiedAt"))
     item_id = str(uuid.uuid4())
     generated_cover_url = _materialize_cover(
         item_id,
@@ -444,6 +557,7 @@ def create_external_public_script(
             payload.authorUrl if payload.authorUrl is not None else metadata.get("authorUrl", ""),
         ),
         organizationName=str(payload.organizationName if payload.organizationName is not None else metadata.get("organizationName", "") or "").strip(),
+        organizationBio=str(payload.organizationBio if payload.organizationBio is not None else metadata.get("organizationBio", "") or "").strip(),
         organizationUrl=_safe_link_url(payload.organizationUrl if payload.organizationUrl is not None else metadata.get("organizationUrl", "")),
         organizationAvatarUrl=_materialize_social_avatar(
             user_id,
@@ -457,19 +571,24 @@ def create_external_public_script(
         titleOverride=str(payload.titleOverride or "").strip(),
         summaryOverride=str(payload.summaryOverride or "").strip(),
         coverUrlOverride=_safe_image_url(payload.coverUrlOverride),
+        seriesName=str(payload.seriesName or "").strip(),
+        seriesOrder=payload.seriesOrder,
         categories=_categories(payload.categories),
         status=payload.status,
         sortOrder=float(payload.sortOrder or 0),
         lastFetchedAt=now_ms,
         lastFetchError="",
+        sourceCreatedAt=source_created_at,
+        sourceModifiedAt=source_modified_at,
         createdAt=now_ms,
-        mountedAt=int(payload.mountedAt) if payload.mountedAt is not None else now_ms,
+        mountedAt=int(payload.mountedAt) if payload.mountedAt is not None else source_created_at or now_ms,
         updatedAt=now_ms,
     )
     db.add(item)
     db.commit()
     db.refresh(item)
     _invalidate_public_bundle_cache()
+    _queue_external_revalidation(background_tasks, item)
     return serialize_external_public_script(item)
 
 
@@ -477,6 +596,7 @@ def create_external_public_script(
 def update_external_public_script(
     item_id: str,
     payload: schemas.ExternalPublicScriptUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_external_public_scripts_user_id),
 ):
@@ -484,6 +604,13 @@ def update_external_public_script(
     item = db.query(models.ExternalPublicScript).filter(models.ExternalPublicScript.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="External public script not found")
+
+    previous_public_item = models.ExternalPublicScript(
+        id=item.id,
+        authorName=item.authorName,
+        organizationName=item.organizationName,
+        seriesName=item.seriesName,
+    )
 
     source_url = item.sourceUrl
     source_changed = payload.sourceUrl is not None and payload.sourceUrl.strip() != item.sourceUrl
@@ -504,7 +631,10 @@ def update_external_public_script(
     if should_refresh:
         if source_changed:
             try:
-                metadata = fetch_external_public_script_metadata(source_url)
+                metadata = _enrich_profile_bios(
+                    fetch_external_public_script_metadata(source_url),
+                    payload,
+                )
             except ExternalMetadataError as exc:
                 raise HTTPException(status_code=400, detail=str(exc)) from exc
         else:
@@ -534,6 +664,7 @@ def update_external_public_script(
             force=should_refresh,
         )
         item.organizationName = str(payload.organizationName if payload.organizationName is not None else metadata.get("organizationName", "") or "").strip()
+        item.organizationBio = str(payload.organizationBio if payload.organizationBio is not None else metadata.get("organizationBio", "") or "").strip()
         item.organizationUrl = _safe_link_url(payload.organizationUrl if payload.organizationUrl is not None else metadata.get("organizationUrl", ""))
         item.organizationAvatarUrl = _materialize_social_avatar(
             user_id,
@@ -559,13 +690,19 @@ def update_external_public_script(
         ) or _safe_image_url(metadata["remoteCoverUrl"])
         item.lastFetchedAt = int(time.time() * 1000)
         item.lastFetchError = ""
+        item.sourceCreatedAt = _metadata_timestamp(metadata.get("sourceCreatedAt"))
+        item.sourceModifiedAt = _metadata_timestamp(metadata.get("sourceModifiedAt"))
+        if payload.mountedAt is None and item.sourceCreatedAt:
+            item.mountedAt = item.sourceCreatedAt
     else:
         for attr in ("canonicalUrl", "sourceDomain", "sourceName", "remoteTitle", "remoteSummary", "remoteCoverUrl"):
             value = getattr(payload, attr, None)
             if value is not None:
+                if attr == "remoteCoverUrl" and _is_materialized_cover(item.remoteCoverUrl):
+                    _remove_materialized_cover(item.id, item.remoteCoverUrl)
                 setattr(item, attr, _safe_image_url(value) if attr == "remoteCoverUrl" else str(value).strip())
 
-    for attr in ("authorName", "authorBio", "organizationName"):
+    for attr in ("authorName", "authorBio", "organizationName", "organizationBio"):
         value = getattr(payload, attr, None)
         if value is not None:
             setattr(item, attr, str(value).strip())
@@ -574,14 +711,30 @@ def update_external_public_script(
         if value is not None:
             setattr(item, attr, _safe_link_url(value))
     if not should_refresh:
-        for attr in ("authorAvatarUrl", "organizationAvatarUrl"):
+        for attr, url_attr, role in (
+            ("authorAvatarUrl", "authorUrl", "作者"),
+            ("organizationAvatarUrl", "organizationUrl", "組織"),
+        ):
             value = getattr(payload, attr, None)
             if value is not None:
-                setattr(item, attr, _safe_image_url(value))
+                setattr(
+                    item,
+                    attr,
+                    _materialize_social_avatar(
+                        user_id,
+                        _safe_image_url(value),
+                        role,
+                        getattr(item, url_attr, ""),
+                    ),
+                )
     for attr in ("titleOverride", "summaryOverride", "coverUrlOverride"):
         value = getattr(payload, attr, None)
         if value is not None:
             setattr(item, attr, _safe_image_url(value) if attr == "coverUrlOverride" else str(value).strip())
+    if payload.seriesName is not None:
+        item.seriesName = str(payload.seriesName).strip()
+    if payload.seriesOrder is not None or payload.seriesName is not None:
+        item.seriesOrder = payload.seriesOrder
     if payload.categories is not None:
         item.categories = _categories(payload.categories)
     if payload.status is not None:
@@ -594,12 +747,14 @@ def update_external_public_script(
     db.commit()
     db.refresh(item)
     _invalidate_public_bundle_cache()
+    _queue_external_revalidation(background_tasks, previous_public_item, item)
     return serialize_external_public_script(item)
 
 
 @router.delete("/{item_id}")
 def delete_external_public_script(
     item_id: str,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user_id: str = Depends(get_external_public_scripts_user_id),
 ):
@@ -607,10 +762,16 @@ def delete_external_public_script(
     item = db.query(models.ExternalPublicScript).filter(models.ExternalPublicScript.id == item_id).first()
     if not item:
         raise HTTPException(status_code=404, detail="External public script not found")
+    previous_public_item = models.ExternalPublicScript(
+        id=item.id,
+        authorName=item.authorName,
+        organizationName=item.organizationName,
+    )
     _remove_materialized_cover(item.id, item.remoteCoverUrl)
     db.delete(item)
     db.commit()
     _invalidate_public_bundle_cache()
+    _queue_external_revalidation(background_tasks, previous_public_item)
     return {"success": True}
 
 
@@ -618,7 +779,11 @@ def get_published_external_public_scripts(db: Session) -> list[dict[str, Any]]:
     rows = (
         db.query(models.ExternalPublicScript)
         .filter(models.ExternalPublicScript.status == "published")
-        .order_by(models.ExternalPublicScript.sortOrder.asc(), models.ExternalPublicScript.updatedAt.desc())
+        .order_by(
+            models.ExternalPublicScript.sortOrder.asc(),
+            models.ExternalPublicScript.mountedAt.desc(),
+            models.ExternalPublicScript.createdAt.desc(),
+        )
         .all()
     )
     return [serialize_external_public_script(row) for row in rows]

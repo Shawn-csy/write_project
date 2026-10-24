@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy import orm
@@ -14,6 +14,7 @@ from crud_ops.publish_state import is_publicly_visible as _is_publicly_visible_s
 from dependencies import get_db
 from rate_limit import limiter
 from utils import normalize_homepage_banner_value, safe_json_list
+from services.public_feedback_email import send_public_feedback_notification
 
 router = APIRouter(prefix="/api", tags=["public"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
@@ -84,6 +85,69 @@ def _extract_client_ip(request: Request) -> tuple[str, str]:
 
     request_ip = request.client.host if request.client else ""
     return (request_ip or ""), ""
+
+
+@router.post("/public-feedback", response_model=schemas.PublicFeedbackResponse)
+@limiter.limit("5/minute")
+def create_public_feedback(
+    request: Request,
+    payload: schemas.PublicFeedbackCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """Receive a short bug report or public-listing request from visitors."""
+    if payload.website:
+        # Silently accept the honeypot so simple bots do not learn the field is
+        # being used. No message is stored or exposed.
+        now_ms = int(time.time() * 1000)
+        return schemas.PublicFeedbackResponse(success=True, feedbackId="", createdAt=now_ms)
+
+    contact_name = (payload.contactName or "").strip()
+    contact_email = (payload.contactEmail or "").strip()
+    content = (payload.content or "").strip()
+    if not contact_name and not contact_email:
+        raise HTTPException(status_code=400, detail="請至少填寫聯絡名稱或 Email")
+    if contact_email and (len(contact_email) > 320 or "@" not in contact_email or " " in contact_email):
+        raise HTTPException(status_code=400, detail="Email 格式不正確")
+    if len(contact_name) > 120:
+        raise HTTPException(status_code=400, detail="聯絡名稱過長")
+    if len(content) < 5:
+        raise HTTPException(status_code=400, detail="內容至少需要 5 個字")
+    if len(content) > 10000:
+        raise HTTPException(status_code=400, detail="內容過長")
+
+    ip_address, forwarded_for = _extract_client_ip(request)
+    now_ms = int(time.time() * 1000)
+    row = models.PublicFeedback(
+        id=str(uuid.uuid4()),
+        kind=payload.kind,
+        contactName=contact_name[:120],
+        contactEmail=contact_email[:320],
+        content=content,
+        pageUrl=(payload.pageUrl or "").strip()[:2000],
+        status="new",
+        ipAddress=ip_address[:200],
+        forwardedFor=forwarded_for[:1000],
+        userAgent=(request.headers.get("user-agent") or "")[:2000],
+        referer=(request.headers.get("referer") or "")[:2000],
+        createdAt=now_ms,
+        updatedAt=now_ms,
+    )
+    db.add(row)
+    db.commit()
+    background_tasks.add_task(
+        send_public_feedback_notification,
+        {
+            "id": row.id,
+            "kind": row.kind,
+            "contactName": row.contactName,
+            "contactEmail": row.contactEmail,
+            "content": row.content,
+            "pageUrl": row.pageUrl,
+            "createdAt": str(row.createdAt),
+        },
+    )
+    return schemas.PublicFeedbackResponse(success=True, feedbackId=row.id, createdAt=now_ms)
 
 
 def _has_public_script_for_persona(db: Session, persona_id: str) -> bool:

@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicScript } from "@/lib/types";
 import { PublicImage } from "@/components/PublicImage";
+import { externalEntityHref } from "@/lib/externalEntity";
 
 interface SeriesMeta {
   name?: string;
@@ -15,7 +16,17 @@ interface SeriesMeta {
 interface Props {
   seriesName: string;
   scripts: PublicScript[];
+  externalItems?: ExternalPublicScript[];
   seriesMeta: SeriesMeta | null;
+}
+
+type Chapter =
+  | { kind: "local"; item: PublicScript }
+  | { kind: "external"; item: ExternalPublicScript };
+
+interface SeriesAuthor {
+  name: string;
+  href: string;
 }
 
 function formatDate(value: number | string | null | undefined): string {
@@ -36,10 +47,32 @@ function chapterLabel(order: number | null | undefined): string {
   return `第 ${order} 部`;
 }
 
-export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
-  const firstScript = scripts[0] ?? null;
+export function SeriesPageClient({ seriesName, scripts, externalItems = [], seriesMeta }: Props) {
+  const chapters: Chapter[] = [
+    ...scripts.map((item) => ({ kind: "local" as const, item })),
+    ...externalItems.map((item) => ({ kind: "external" as const, item })),
+  ];
+  const firstChapter = chapters[0] ?? null;
   const latestScriptId = seriesMeta?.latestScriptId;
-  const latestScript = scripts.find((s) => s.id === latestScriptId) ?? null;
+  const latestChapter = chapters.find((chapter) => chapter.item.id === latestScriptId) ?? null;
+  const authors = Array.from(
+    new Map(
+      chapters.flatMap((chapter): SeriesAuthor[] => {
+        if (chapter.kind === "external") {
+          const name = chapter.item.authorName?.trim();
+          return name ? [{ name, href: externalEntityHref("author", name, chapter.item.authorUrl) }] : [];
+        }
+        const persona = chapter.item.persona;
+        if (persona?.displayName?.trim() && persona.id) {
+          return [{ name: persona.displayName.trim(), href: `/author/${persona.id}` }];
+        }
+        const owner = chapter.item.owner;
+        return owner?.displayName?.trim() && owner.id
+          ? [{ name: owner.displayName.trim(), href: `/author/${owner.id}` }]
+          : [];
+      }).map((author) => [author.name.toLocaleLowerCase(), author])
+    ).values()
+  );
 
   const hasCover = Boolean(seriesMeta?.coverUrl);
 
@@ -79,8 +112,19 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
               <h1 className="text-3xl sm:text-4xl font-bold font-serif leading-tight">{seriesName}</h1>
 
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>{scripts.length} 部作品</span>
+                <span>{chapters.length} 部作品</span>
               </div>
+
+              {authors.length > 0 && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                  <span>作者</span>
+                  {authors.map((author) => (
+                    <Link key={author.href} href={author.href} className="text-primary hover:underline">
+                      {author.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
 
               {seriesMeta?.summary && (
                 <p className="text-foreground/80 leading-relaxed max-w-2xl">
@@ -89,24 +133,26 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
               )}
 
               {/* CTA buttons */}
-              {scripts.length > 0 && (
+              {chapters.length > 0 && (
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {firstScript && (
-                    <Link
-                      href={`/read/${firstScript.id}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors no-underline"
-                    >
+                  {firstChapter && (firstChapter.kind === "external" ? (
+                    <a href={firstChapter.item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors no-underline">
+                      前往原文
+                    </a>
+                  ) : (
+                    <Link href={`/read/${firstChapter.item.id}`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors no-underline">
                       開始閱讀
                     </Link>
-                  )}
-                  {latestScript && latestScript.id !== firstScript?.id && (
-                    <Link
-                      href={`/read/${latestScript.id}`}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline"
-                    >
+                  ))}
+                  {latestChapter && latestChapter.item.id !== firstChapter?.item.id && (latestChapter.kind === "external" ? (
+                    <a href={latestChapter.item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline">
+                      最新章節
+                    </a>
+                  ) : (
+                    <Link href={`/read/${latestChapter.item.id}`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline">
                       最新章節
                     </Link>
-                  )}
+                  ))}
                 </div>
               )}
             </div>
@@ -114,7 +160,7 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
         </div>
 
         {/* Chapter list card */}
-        {scripts.length === 0 ? (
+        {chapters.length === 0 ? (
           <div className="rounded-xl border border-border/60 bg-muted/20 py-16 text-center text-muted-foreground">
             <p>這個系列目前沒有公開作品。</p>
             <Link href="/" className="text-sm underline mt-2 inline-block">返回首頁</Link>
@@ -124,33 +170,31 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
             <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
               <h2 className="text-xl font-bold">章節列表</h2>
               <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border/60">
-                {scripts.length} 部
+                {chapters.length} 部
               </span>
             </div>
 
             <div className="space-y-1">
-              {scripts.map((script, index) => {
-                const isLatest = script.id === latestScriptId && scripts.length > 1;
-                const order = script.seriesOrder;
+              {chapters.map((chapter, index) => {
+                const isLatest = chapter.item.id === latestScriptId && chapters.length > 1;
+                const isExternal = chapter.kind === "external";
+                const script = chapter.kind === "local" ? chapter.item : null;
+                const external = chapter.kind === "external" ? chapter.item : null;
+                const order = chapter.item.seriesOrder;
                 const label = chapterLabel(order);
-                const dateLabel = formatDate(script.lastModified ?? script.updatedAt);
+                const dateLabel = formatDate(isExternal
+                  ? (external?.mountedAt ?? external?.sourceCreatedAt ?? external?.createdAt)
+                  : (script?.lastModified ?? script?.updatedAt));
 
-                return (
-                  <Link
-                    key={script.id}
-                    href={`/read/${script.id}`}
-                    className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline"
-                  >
-                    {/* Order number */}
+                const row = (
+                  <>
                     <span className="shrink-0 w-7 text-center text-xs text-muted-foreground/50 font-mono tabular-nums">
                       {order == null ? (index + 1) : order === 0 ? "★" : order}
                     </span>
-
-                    {/* Title + label */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
-                          {script.title}
+                          {chapter.item.title}
                         </span>
                         {isLatest && (
                           <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
@@ -158,23 +202,23 @@ export function SeriesPageClient({ seriesName, scripts, seriesMeta }: Props) {
                           </span>
                         )}
                       </div>
-                      {label && (
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>
-                      )}
+                      {label && <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>}
                     </div>
+                    {dateLabel && <span className="shrink-0 text-[11px] text-muted-foreground/60 hidden sm:block">{dateLabel}</span>}
+                    <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>→</span>
+                  </>
+                );
 
-                    {/* Date */}
-                    {dateLabel && (
-                      <span className="shrink-0 text-[11px] text-muted-foreground/60 hidden sm:block">
-                        {dateLabel}
-                      </span>
-                    )}
-
-                    {/* Arrow */}
-                    <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>
-                      →
-                    </span>
-                  </Link>
+                return (
+                  isExternal ? (
+                    <a key={chapter.item.id} href={external!.sourceUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline">
+                      {row}
+                    </a>
+                  ) : (
+                    <Link key={chapter.item.id} href={`/read/${script!.id}`} className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline">
+                      {row}
+                    </Link>
+                  )
                 );
               })}
             </div>

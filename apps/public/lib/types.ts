@@ -86,6 +86,7 @@ export interface ExternalPublicScript {
   authorUrl?: string;
   authorAvatarUrl?: string;
   organizationName?: string;
+  organizationBio?: string;
   organizationUrl?: string;
   organizationAvatarUrl?: string;
   remoteTitle?: string;
@@ -94,6 +95,8 @@ export interface ExternalPublicScript {
   titleOverride?: string;
   summaryOverride?: string;
   coverUrlOverride?: string;
+  seriesName?: string;
+  seriesOrder?: number | null;
   title: string;
   summary?: string;
   coverUrl?: string;
@@ -103,6 +106,8 @@ export interface ExternalPublicScript {
   sortOrder?: number;
   lastFetchedAt?: number | null;
   lastFetchError?: string;
+  sourceCreatedAt?: number | null;
+  sourceModifiedAt?: number | null;
   createdAt?: number;
   mountedAt?: number;
   updatedAt?: number;
