@@ -9,6 +9,8 @@ import {
 import { JsonLdScript } from "@/lib/jsonLd";
 import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
+export const revalidate = 3600;
+
 export const metadata: Metadata = {
   title: "使用說明｜泛用型產品作坊",
   description: "泛用型產品作坊音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",

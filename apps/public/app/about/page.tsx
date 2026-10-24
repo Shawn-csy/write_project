@@ -8,6 +8,16 @@ import {
 } from "@/components/info/PublicInfoDocument";
 import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { SITE_VERSION } from "@/lib/siteVersion";
+import { JsonLdScript } from "@/lib/jsonLd";
+import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
+
+export const revalidate = 3600;
+
+const webPageJsonLd = createPublicInfoWebPageJsonLd({
+  path: "/about",
+  name: "關於｜泛用型產品作坊",
+  description: "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
+});
 
 export const metadata: Metadata = {
   title: "關於｜泛用型產品作坊",
@@ -35,6 +45,7 @@ export default function AboutPage() {
         { href: "/license", label: "授權說明" },
       ]}
     >
+      <JsonLdScript data={webPageJsonLd} />
       <PublicInfoDocument>
         {/* Lead — plain text, first viewport */}
         <PublicInfoLead>

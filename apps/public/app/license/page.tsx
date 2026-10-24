@@ -7,6 +7,16 @@ import {
   PublicInfoBelowFold,
 } from "@/components/info/PublicInfoDocument";
 import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
+import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
+
+export const revalidate = 3600;
+
+const webPageJsonLd = createPublicInfoWebPageJsonLd({
+  path: "/license",
+  name: "授權說明｜泛用型產品作坊",
+  description: "泛用型產品作坊台本與音聲台本授權體系說明：CC 授權、商業使用、衍生創作規則。",
+});
 
 export const metadata: Metadata = {
   title: "授權說明｜泛用型產品作坊",
@@ -34,6 +44,7 @@ export default function LicensePage() {
         { href: "/help", label: "使用說明" },
       ]}
     >
+      <JsonLdScript data={webPageJsonLd} />
       <PublicInfoDocument>
         {/* Lead — plain text overview */}
         <PublicInfoLead>

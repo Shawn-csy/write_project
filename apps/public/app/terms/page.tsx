@@ -1,6 +1,16 @@
 import type { Metadata } from "next";
 import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
 import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { JsonLdScript } from "@/lib/jsonLd";
+import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
+
+export const revalidate = 3600;
+
+const webPageJsonLd = createPublicInfoWebPageJsonLd({
+  path: "/terms",
+  name: "Terms of Service｜泛用型產品作坊",
+  description: "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
+});
 
 export const metadata: Metadata = {
   title: "Terms of Service｜泛用型產品作坊",
@@ -22,6 +32,7 @@ export default function TermsPage() {
       description="Last updated: May 27, 2026"
       relatedLinks={[{ href: "/", label: "← 返回台本列表" }]}
     >
+      <JsonLdScript data={webPageJsonLd} />
       <div className="space-y-8 text-sm leading-relaxed text-muted-foreground">
         <section>
           <h2 className="text-xl font-semibold mb-3 text-foreground">1. Acceptance of Terms</h2>

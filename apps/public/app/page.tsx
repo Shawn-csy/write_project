@@ -110,6 +110,7 @@ export default async function HomePage({
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "WebSite",
+    "@id": `${BASE_URL}/#website`,
     name: SITE_NAME,
     alternateName: [PRODUCT_NAME, "公開台本", "音聲台本", "配音台本"],
     url: `${BASE_URL}/`,
