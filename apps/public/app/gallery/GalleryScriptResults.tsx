@@ -43,6 +43,7 @@ export function useProgressiveLimit(initial: number): number {
 }
 
 const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
+const FEATURED_HOMEPAGE_TAG = "清淡校園練習";
 
 type MixedGalleryEntry =
   | { kind: "external"; item: ExternalPublicScript }
@@ -125,6 +126,27 @@ function mixedEntryTimestamp(entry: MixedGalleryEntry): number {
   if (entry.kind === "external") return toTimestamp(entry.item.mountedAt || entry.item.createdAt);
   if (entry.kind === "external-series") return toTimestamp(entry.entry.updatedAt);
   return galleryEntryTimestamp(entry.entry);
+}
+
+function hasGalleryTag(tags: readonly string[] | undefined, tagName: string): boolean {
+  const normalized = tagName.trim().toLocaleLowerCase();
+  return (tags ?? []).some((tag) => String(tag).trim().toLocaleLowerCase() === normalized);
+}
+
+function entryHasGalleryTag(entry: MixedGalleryEntry, tagName: string): boolean {
+  if (entry.kind === "external") {
+    return hasGalleryTag(entry.item.categories, tagName);
+  }
+
+  if (entry.kind === "external-series") {
+    return entry.entry.scripts.some((script) => hasGalleryTag(script.tags, tagName));
+  }
+
+  if (entry.entry.type === "series") {
+    return entry.entry.scripts.some((script) => hasGalleryTag(script.tags, tagName));
+  }
+
+  return hasGalleryTag(entry.entry.script.tags, tagName);
 }
 
 function sortMixedEntries(
@@ -286,6 +308,10 @@ export function GalleryScriptResults({
   const randomEntries = useMemo(
     () => seededShuffle(mergedEntries, randomSeed).slice(0, Math.min(8, mergedEntries.length)),
     [mergedEntries, randomSeed]
+  );
+  const featuredPracticeEntries = useMemo(
+    () => mergedEntries.filter((entry) => entryHasGalleryTag(entry, FEATURED_HOMEPAGE_TAG)),
+    [mergedEntries]
   );
   const allScripts = useMemo(
     () => sortAllScripts(model.filteredScripts, externalItems, allScriptsSort || "latest"),
@@ -470,6 +496,31 @@ export function GalleryScriptResults({
       {randomEntries.length > 0 && (
         <HorizontalScrollLane key="random" title="隨機推薦">
           {randomEntries.map((entry) => (
+            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
+              {entry.kind === "external"
+                ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
+                : entry.kind === "external-series"
+                  ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                  : renderGalleryEntry(entry.entry, cardRenderOptions)}
+            </div>
+          ))}
+        </HorizontalScrollLane>
+      )}
+      {featuredPracticeEntries.length > 0 && (
+        <HorizontalScrollLane
+          key="featured-student-practice"
+          title={(
+            <button
+              type="button"
+              onClick={() => onTagClick(FEATURED_HOMEPAGE_TAG)}
+              className="transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+              aria-label={`查看${FEATURED_HOMEPAGE_TAG}標籤`}
+            >
+              {FEATURED_HOMEPAGE_TAG}
+            </button>
+          )}
+        >
+          {featuredPracticeEntries.map((entry) => (
             <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
               {entry.kind === "external"
                 ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
