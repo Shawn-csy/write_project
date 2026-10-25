@@ -31,6 +31,9 @@ interface UseGalleryControllerOptions {
   initialUrlState: PublicHomepageUrlState;
 }
 
+/** Curated homepage classifications should stay visible before the tag list collapses. */
+const FEATURED_HOMEPAGE_TAGS = ["清淡校園練習"];
+
 function externalCategories(item: ExternalPublicScript): string[] {
   return Array.from(
     new Set(
@@ -199,7 +202,11 @@ export function useGalleryController({
         topViewedScripts: filterResult.topViewedScripts,
         latestScripts: filterResult.latestScripts,
         featuredSeries: filterResult.featuredSeries,
-        allTags: Array.from(new Set([...filterResult.allTags, ...externalTags])),
+        allTags: Array.from(new Set([
+          ...FEATURED_HOMEPAGE_TAGS,
+          ...filterResult.allTags,
+          ...externalTags,
+        ])),
         licenseTagShortcuts: filterResult.licenseTagShortcuts,
         filteredAuthors: filterResult.filteredAuthors,
         filteredOrgs: filterResult.filteredOrgs,
