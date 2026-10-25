@@ -7,6 +7,7 @@ import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { filterScriptsByTag } from "./filterScriptsByTag";
+import { filterExternalScriptsByTag } from "./filterScriptsByTag";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 
@@ -15,14 +16,24 @@ export const dynamicParams = true;
 
 interface BundleResponse {
   scripts?: PublicScript[];
+  externalPublicScripts?: import("@/lib/types").ExternalPublicScript[];
 }
 
-const fetchTagScripts = cache(async (tagName: string): Promise<PublicScript[]> => {
+const fetchTagScripts = cache(async (tagName: string): Promise<{
+  scripts: PublicScript[];
+  externalScripts: NonNullable<BundleResponse["externalPublicScripts"]>;
+}> => {
   try {
     const bundle = await apiFetch<BundleResponse>("/public-bundle");
-    return filterScriptsByTag(bundle.scripts ?? [], tagName);
+    return {
+      scripts: filterScriptsByTag(bundle.scripts ?? [], tagName),
+      externalScripts: filterExternalScriptsByTag(
+        (bundle.externalPublicScripts ?? []).filter((script) => script.status === "published"),
+        tagName,
+      ),
+    };
   } catch {
-    return [];
+    return { scripts: [], externalScripts: [] };
   }
 });
 
@@ -33,12 +44,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { name } = await params;
   const tagName = decodeURIComponent(name);
-  const scripts = await fetchTagScripts(tagName);
+  const { scripts, externalScripts } = await fetchTagScripts(tagName);
+  const totalCount = scripts.length + externalScripts.length;
 
-  if (scripts.length === 0) return { title: `找不到標籤｜${TITLE_SUFFIX}` };
+  if (totalCount === 0) return { title: `找不到標籤｜${TITLE_SUFFIX}` };
 
   const title = `#${tagName}｜${TITLE_SUFFIX}`;
-  const description = `標籤「${tagName}」共 ${scripts.length} 部台本，免費線上閱讀。`;
+  const description = `標籤「${tagName}」共 ${totalCount} 部台本，免費線上閱讀。`;
   const canonicalUrl = `${BASE_URL}/tag/${name}`;
 
   return {
@@ -70,9 +82,10 @@ export default async function TagPage({
 }) {
   const { name } = await params;
   const tagName = decodeURIComponent(name);
-  const scripts = await fetchTagScripts(tagName);
+  const { scripts, externalScripts } = await fetchTagScripts(tagName);
+  const totalCount = scripts.length + externalScripts.length;
 
-  if (scripts.length === 0) notFound();
+  if (totalCount === 0) notFound();
 
   const canonicalUrl = `${BASE_URL}/tag/${name}`;
   const structuredData = {
@@ -82,11 +95,18 @@ export default async function TagPage({
     url: canonicalUrl,
     inLanguage: "zh-Hant",
     description: `標籤「${tagName}」的公開台本列表`,
-    hasPart: scripts.map((s) => ({
-      "@type": "CreativeWork",
-      name: s.title,
-      url: `${BASE_URL}/read/${s.id}`,
-    })),
+    hasPart: [
+      ...scripts.map((s) => ({
+        "@type": "CreativeWork",
+        name: s.title,
+        url: `${BASE_URL}/read/${s.id}`,
+      })),
+      ...externalScripts.map((s) => ({
+        "@type": "CreativeWork",
+        name: s.title,
+        url: s.sourceUrl,
+      })),
+    ],
   };
 
   return (
@@ -105,7 +125,7 @@ export default async function TagPage({
           </ul>
         </article>
       </noscript>
-      <TagPageClient tagName={tagName} scripts={scripts} />
+      <TagPageClient tagName={tagName} scripts={scripts} externalScripts={externalScripts} />
     </>
   );
 }

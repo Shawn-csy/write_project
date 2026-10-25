@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterScriptsByTag, scriptHasTag } from "./filterScriptsByTag";
+import { filterExternalScriptsByTag, filterScriptsByTag, scriptHasTag } from "./filterScriptsByTag";
 
 describe("scriptHasTag", () => {
   it("matches object tag by name", () => {
@@ -45,5 +45,17 @@ describe("filterScriptsByTag", () => {
   it("matches mixed string/object tags", () => {
     const result = filterScriptsByTag(scripts, "comedy");
     expect(result.map((s) => s.id)).toEqual(["2"]);
+  });
+});
+
+describe("filterExternalScriptsByTag", () => {
+  it("matches external categories case-insensitively", () => {
+    const scripts = [
+      { id: "a", categories: ["校園", "清淡校園練習"] },
+      { id: "b", categories: ["療癒"] },
+    ];
+
+    expect(filterExternalScriptsByTag(scripts, "清淡校園練習").map((script) => script.id)).toEqual(["a"]);
+    expect(filterExternalScriptsByTag(scripts, "不存在")).toEqual([]);
   });
 });
