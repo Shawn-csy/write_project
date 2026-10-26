@@ -21,6 +21,15 @@ describe("parseBannerSlides", () => {
     expect(slides?.[0].imageUrl).toBe("/media/a.webp");
   });
 
+  it("preserves the editable eyebrow for the homepage brand slide", () => {
+    const slides = parseBannerSlides({
+      items: [{ id: "brand-intro", eyebrow: "站台介紹", title: "自訂首頁", content: "自訂內容" }],
+    });
+    expect(slides?.[0].eyebrow).toBe("站台介紹");
+    expect(slides?.[0].title).toBe("自訂首頁");
+    expect(slides?.[0].content).toBe("自訂內容");
+  });
+
   it("preserves imageCrop as image.crop", () => {
     const crop = { cx: 0.2, cy: -0.1, zoom: 1 };
     const slides = parseBannerSlides({

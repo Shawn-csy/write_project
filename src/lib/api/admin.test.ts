@@ -17,6 +17,7 @@ describe("updateHomepageBannerAdmin", () => {
       items: [
         {
           id: "a",
+          eyebrow: "品牌介紹",
           title: "A",
           content: "CA",
           link: "https://a",
@@ -39,6 +40,7 @@ describe("updateHomepageBannerAdmin", () => {
     expect(body.items).toHaveLength(2);
     expect(body.items[0].title).toBe("A");
     expect(body.items[0]).toMatchObject({
+      eyebrow: "品牌介紹",
       imageAlt: "Banner A",
       imageCrop: { cx: 0.1, cy: -0.2, zoom: 1.1 },
       imageMobileCrop: { cx: -0.3, cy: 0.2, zoom: 1.2 },

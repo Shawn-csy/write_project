@@ -4,6 +4,7 @@ def test_admin_homepage_banner_supports_multi_items(client):
         "items": [
             {
                 "id": "s1",
+                "eyebrow": "品牌介紹",
                 "title": "Banner 1",
                 "content": "Content 1",
                 "link": "https://example.com/1",
@@ -30,6 +31,7 @@ def test_admin_homepage_banner_supports_multi_items(client):
     get_admin_data = get_admin_res.json()
     assert len(get_admin_data.get("items", [])) == 2
     assert get_admin_data["items"][0]["title"] == "Banner 1"
+    assert get_admin_data["items"][0]["eyebrow"] == "品牌介紹"
     assert get_admin_data["items"][1]["title"] == "Banner 2"
 
     get_public_res = client.get("/api/public-homepage-banner")
@@ -37,6 +39,7 @@ def test_admin_homepage_banner_supports_multi_items(client):
     get_public_data = get_public_res.json()
     assert len(get_public_data.get("items", [])) == 2
     assert get_public_data["items"][0]["title"] == "Banner 1"
+    assert get_public_data["items"][0]["eyebrow"] == "品牌介紹"
 
 
 def test_non_admin_cannot_update_homepage_banner(client):

@@ -30,6 +30,22 @@ describe("buildHomepageHeroSlides", () => {
     expect((slides[0] as { title?: string }).title).toBeTruthy();
   });
 
+  it("uses the editable brand-intro item while keeping it first", () => {
+    const slides = buildHomepageHeroSlides([
+      { id: "b1", title: "Banner A" },
+      { id: "brand-intro", eyebrow: "自訂眉標", title: "自訂首頁標題", content: "自訂首頁內容" },
+    ]);
+    expect(slides).toHaveLength(2);
+    expect(slides[0]).toMatchObject({
+      type: "brand",
+      id: "brand-intro",
+      eyebrow: "自訂眉標",
+      title: "自訂首頁標題",
+      content: "自訂首頁內容",
+    });
+    expect(slides[1].id).toBe("b1");
+  });
+
   it("banner slides are appended after brand", () => {
     const slides = buildHomepageHeroSlides(banners);
     expect(slides).toHaveLength(3);

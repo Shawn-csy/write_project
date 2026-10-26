@@ -22,7 +22,7 @@ import { GalleryTopBar } from "./gallery/GalleryTopBar";
 import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
 import { GallerySearchField } from "./gallery/GallerySearchField";
 import { GalleryFilterSummary, type ActiveGalleryFilterChip } from "./gallery/GalleryFilterSummary";
-import { buildHomepageHeroSlides } from "./gallery/homepageHeroModel";
+import { buildHomepageHeroSlides, type BrandHeroSlide } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
@@ -38,7 +38,7 @@ interface Props {
 
 const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defaultContent) => {
   if ((slide as { type?: string }).type === "brand") {
-    return <GalleryBrandHeroSlide />;
+    return <GalleryBrandHeroSlide slide={slide as BrandHeroSlide} />;
   }
   return defaultContent;
 };

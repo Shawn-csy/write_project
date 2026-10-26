@@ -32,12 +32,23 @@ interface ErrorWithMessage {
 }
 
 interface HomepageBannerResponse {
+  eyebrow?: string;
   title?: string;
   content?: string;
   link?: string;
   imageUrl?: string;
   items?: HomepageBannerItem[];
 }
+
+const BRAND_BANNER_ID = "brand-intro";
+const DEFAULT_BRAND_BANNER: HomepageBannerItem = {
+  id: BRAND_BANNER_ID,
+  eyebrow: "公開台本平台",
+  title: "配音、閱讀、創作公開台本",
+  content: "僅收錄公開台本，如果有喜歡的歡迎委託台本師\n如果需要上架或下架作品請直接與我們聯繫。",
+  link: "",
+  imageUrl: "",
+};
 
 const VIEWPORT_CROP_FIELDS: Array<{
   viewport: HeroPreviewViewport;
@@ -54,6 +65,7 @@ function itemToHomepageBannerItem(item: HomepageBannerItem, idx: number): Homepa
   const storedBackgroundMode = item?.imageBackgroundMode;
   return {
     id: String(item?.id || `slide-${idx + 1}`),
+    eyebrow: String(item?.eyebrow || ""),
     title: String(item?.title || ""),
     content: String(item?.content || ""),
     link: String(item?.link || ""),
@@ -69,6 +81,15 @@ function itemToHomepageBannerItem(item: HomepageBannerItem, idx: number): Homepa
     // to cover explicitly.
     imageBackgroundMode: storedBackgroundMode ?? (imageUrl ? "blur-fill" : undefined),
   };
+}
+
+function ensureBrandBannerFirst(items: HomepageBannerItem[]): HomepageBannerItem[] {
+  const brand = items.find((item) => item.id === BRAND_BANNER_ID);
+  const otherItems = items.filter((item) => item.id !== BRAND_BANNER_ID);
+  return [
+    itemToHomepageBannerItem(brand ?? DEFAULT_BRAND_BANNER, 0),
+    ...otherItems.map((item, idx) => itemToHomepageBannerItem(item, idx + 1)),
+  ];
 }
 
 export function HomepageBannerSection() {
@@ -89,17 +110,18 @@ export function HomepageBannerSection() {
       const payload = await getHomepageBannerAdmin() as HomepageBannerResponse;
       const rows = Array.isArray(payload?.items) ? payload.items : [];
       if (rows.length > 0) {
-        setItems(rows.map((item, idx) => itemToHomepageBannerItem(item as HomepageBannerItem, idx)));
+        setItems(ensureBrandBannerFirst(rows as HomepageBannerItem[]));
       } else {
         const fallback: HomepageBannerItem = {
           id: "slide-1",
+          eyebrow: String(payload?.eyebrow || ""),
           title: String(payload?.title || ""),
           content: String(payload?.content || ""),
           link: String(payload?.link || ""),
           imageUrl: String(payload?.imageUrl || ""),
           imageBackgroundMode: payload?.imageUrl ? "blur-fill" : undefined,
         };
-        setItems((fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []);
+        setItems(ensureBrandBannerFirst((fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []));
       }
       setStatus("");
     } catch (err: unknown) {
@@ -120,6 +142,7 @@ export function HomepageBannerSection() {
         .map((item, idx) => ({
           ...item,
           id: String(item?.id || `slide-${idx + 1}`),
+          eyebrow: String(item?.eyebrow || "").trim(),
           title: String(item?.title || "").trim(),
           content: String(item?.content || "").trim(),
           link: String(item?.link || "").trim(),
@@ -129,6 +152,7 @@ export function HomepageBannerSection() {
         .filter((item) => item.title || item.content || item.link || item.imageUrl);
       // Block if any publishable slide has placement errors (missing imageUrl or backgroundMode).
       const blockingSlides = sanitized.filter((item) => {
+        if (item.id === BRAND_BANNER_ID) return false;
         const model = buildHomepageHeroPlacementModel(item);
         return validateHomepageHeroPlacement(model).some((i) => i.severity === "error");
       });
@@ -224,28 +248,40 @@ export function HomepageBannerSection() {
           </div>
         )}
         {items.map((item, idx) => {
+          const isBrandIntro = item.id === BRAND_BANNER_ID;
           const model = buildHomepageHeroPlacementModel(item);
-          const issues = validateHomepageHeroPlacement(model);
+          const issues = isBrandIntro ? [] : validateHomepageHeroPlacement(model);
           const hasError = issues.some((i) => i.severity === "error");
           const warnings = issues.filter((i) => i.severity === "warning");
           return (
             <div key={item.id || idx} className="rounded-md border p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-muted-foreground">第 {idx + 1} 張</div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => removeItem(idx)}
-                >
-                  刪除
-                </Button>
+                <div className="text-xs font-medium text-muted-foreground">
+                  {isBrandIntro ? "首頁第一頁｜品牌介紹" : `第 ${idx} 張 Banner`}
+                </div>
+                {!isBrandIntro && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => removeItem(idx)}
+                  >
+                    刪除
+                  </Button>
+                )}
               </div>
 
               {/* Identity fields */}
+              {isBrandIntro && (
+                <Input
+                  placeholder="眉標（如：公開台本平台）"
+                  value={item.eyebrow ?? ""}
+                  onChange={(e) => updateItem(idx, { eyebrow: e.target.value })}
+                />
+              )}
               <Input
-                placeholder="標題"
+                placeholder={isBrandIntro ? "主標題（如：配音、閱讀、創作公開台本）" : "標題"}
                 value={item.title ?? ""}
                 onChange={(e) => updateItem(idx, { title: e.target.value })}
               />
@@ -261,106 +297,114 @@ export function HomepageBannerSection() {
                 onChange={(e) => updateItem(idx, { link: e.target.value })}
               />
 
-              {/* Image URL */}
-              <Input
-                placeholder="圖片網址（可手動貼上）"
-                value={item.imageUrl ?? ""}
-                onChange={(e) => updateItem(idx, { imageUrl: e.target.value, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null })}
-              />
+              {isBrandIntro && (
+                <p className="text-[11px] text-muted-foreground">
+                  這一筆會套用首頁第一頁的固定版型；內容可用換行分成主要說明與補充說明。
+                </p>
+              )}
 
-              {/* Alt text */}
-              <Input
-                placeholder="圖片替代文字（無障礙，非裝飾圖必填）"
-                value={item.imageAlt ?? ""}
-                onChange={(e) => updateItem(idx, { imageAlt: e.target.value })}
-              />
-
-              {/* Background mode */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">顯示模式</span>
-                {(["cover", "blur-fill"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => updateItem(idx, { imageBackgroundMode: mode })}
-                    className={`rounded-md border px-3 py-1 text-xs transition-colors ${
-                      item.imageBackgroundMode === mode
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-input bg-background text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    {mode === "cover" ? "裁切填滿" : "模糊補邊"}
-                  </button>
-                ))}
-                {!item.imageBackgroundMode && (
-                  <span className="text-[11px] text-destructive">（必選）</span>
-                )}
-              </div>
-
-              {/* Image actions */}
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                  上傳圖片
-                  <input
-                    type="file"
-                    accept={MEDIA_FILE_ACCEPT}
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(idx, e)}
+              {!isBrandIntro && (
+                <>
+                  {/* Image URL */}
+                  <Input
+                    placeholder="圖片網址（可手動貼上）"
+                    value={item.imageUrl ?? ""}
+                    onChange={(e) => updateItem(idx, { imageUrl: e.target.value, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null })}
                   />
-                </label>
-                <Button type="button" variant="secondary" size="sm" onClick={() => setPickerIndex(idx)}>
-                  從媒體庫選擇
-                </Button>
-              </div>
 
-              {/* Per-viewport crop buttons */}
-              {canApplyPersistentCropRef(item.imageUrl ?? "") && (
-                <div className="space-y-1">
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openCrop(idx, "imageCrop")}
-                    >
-                      通用焦點
-                    </Button>
-                    {VIEWPORT_CROP_FIELDS.map(({ cropKey, label }) => (
-                      <Button
-                        key={cropKey}
+                  {/* Alt text */}
+                  <Input
+                    placeholder="圖片替代文字（無障礙，非裝飾圖必填）"
+                    value={item.imageAlt ?? ""}
+                    onChange={(e) => updateItem(idx, { imageAlt: e.target.value })}
+                  />
+
+                  {/* Background mode */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">顯示模式</span>
+                    {(["cover", "blur-fill"] as const).map((mode) => (
+                      <button
+                        key={mode}
                         type="button"
-                        variant={item[cropKey] ? "secondary" : "outline"}
-                        size="sm"
-                        onClick={() => openCrop(idx, cropKey)}
+                        onClick={() => updateItem(idx, { imageBackgroundMode: mode })}
+                        className={`rounded-md border px-3 py-1 text-xs transition-colors ${
+                          item.imageBackgroundMode === mode
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-input bg-background text-foreground hover:bg-muted"
+                        }`}
                       >
-                        {label}{item[cropKey] ? " ✓" : ""}
-                      </Button>
+                        {mode === "cover" ? "裁切填滿" : "模糊補邊"}
+                      </button>
                     ))}
+                    {!item.imageBackgroundMode && (
+                      <span className="text-[11px] text-destructive">（必選）</span>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    同一張圖片共用；各裝置按鈕只記錄焦點位置，不會重複上傳圖片。
-                  </p>
-                </div>
-              )}
 
-              <div className="space-y-0.5 text-[11px] text-muted-foreground">
-                <p>{guide.supported}</p>
-                <p>{guide.recommended}</p>
-              </div>
+                  {/* Image actions */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
+                      上傳圖片
+                      <input
+                        type="file"
+                        accept={MEDIA_FILE_ACCEPT}
+                        className="hidden"
+                        onChange={(e) => handleFileUpload(idx, e)}
+                      />
+                    </label>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => setPickerIndex(idx)}>
+                      從媒體庫選擇
+                    </Button>
+                  </div>
 
-              {/* Readiness panel */}
-              {issues.length > 0 && (
-                <div className={`rounded-md border p-2 space-y-1 text-[11px] ${hasError ? "border-destructive/50 bg-destructive/5" : "border-yellow-400/40 bg-yellow-50/10"}`}>
-                  {issues.map((issue) => (
-                    <p key={issue.code} className={issue.severity === "error" ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"}>
-                      {issue.severity === "error" ? "✗" : "!"} {issue.message}
-                    </p>
-                  ))}
-                </div>
-              )}
+                  {/* Per-viewport crop buttons */}
+                  {canApplyPersistentCropRef(item.imageUrl ?? "") && (
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openCrop(idx, "imageCrop")}
+                        >
+                          通用焦點
+                        </Button>
+                        {VIEWPORT_CROP_FIELDS.map(({ cropKey, label }) => (
+                          <Button
+                            key={cropKey}
+                            type="button"
+                            variant={item[cropKey] ? "secondary" : "outline"}
+                            size="sm"
+                            onClick={() => openCrop(idx, cropKey)}
+                          >
+                            {label}{item[cropKey] ? " ✓" : ""}
+                          </Button>
+                        ))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        同一張圖片共用；各裝置按鈕只記錄焦點位置，不會重複上傳圖片。
+                      </p>
+                    </div>
+                  )}
 
-              {/* Viewport preview panel */}
-              {item.imageUrl && (() => {
+                  <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                    <p>{guide.supported}</p>
+                    <p>{guide.recommended}</p>
+                  </div>
+
+                  {/* Readiness panel */}
+                  {issues.length > 0 && (
+                    <div className={`rounded-md border p-2 space-y-1 text-[11px] ${hasError ? "border-destructive/50 bg-destructive/5" : "border-yellow-400/40 bg-yellow-50/10"}`}>
+                      {issues.map((issue) => (
+                        <p key={issue.code} className={issue.severity === "error" ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"}>
+                          {issue.severity === "error" ? "✗" : "!"} {issue.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Viewport preview panel */}
+                  {item.imageUrl && (() => {
                 const frames = buildHomepageHeroPreviewFrames(model);
                 const activeVp: HeroPreviewViewport = previewViewports[idx] ?? "desktop";
                 const frame = frames.find((f) => f.viewport === activeVp)!;
@@ -424,7 +468,9 @@ export function HomepageBannerSection() {
                     </div>
                   </div>
                 );
-              })()}
+                  })()}
+                </>
+              )}
             </div>
           );
         })}

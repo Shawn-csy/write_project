@@ -172,6 +172,7 @@ export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): P
         const imageBackgroundMode = item?.imageBackgroundMode;
         return {
           id: String(item?.id || `slide-${idx + 1}`),
+          eyebrow: String(item?.eyebrow || "").trim(),
           title: String(item?.title || ""),
           content: String(item?.content || ""),
           link: String(item?.link || ""),
