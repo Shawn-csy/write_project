@@ -168,14 +168,24 @@ export const getHomepageBannerAdmin = async (): Promise<HomepageBanner> => {
 
 export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): Promise<HomepageBanner> => {
   const normalizedItems = Array.isArray(payload?.items)
-    ? payload.items.map((item, idx) => ({
-        id: String(item?.id || `slide-${idx + 1}`),
-        title: String(item?.title || ""),
-        content: String(item?.content || ""),
-        link: String(item?.link || ""),
-        imageUrl: String(item?.imageUrl || ""),
-        ...(item?.imageCrop != null ? { imageCrop: item.imageCrop } : {}),
-      }))
+    ? payload.items.map((item, idx) => {
+        const imageBackgroundMode = item?.imageBackgroundMode;
+        return {
+          id: String(item?.id || `slide-${idx + 1}`),
+          title: String(item?.title || ""),
+          content: String(item?.content || ""),
+          link: String(item?.link || ""),
+          imageUrl: String(item?.imageUrl || ""),
+          imageAlt: String(item?.imageAlt || "").trim(),
+          imageCrop: item?.imageCrop ?? null,
+          imageMobileCrop: item?.imageMobileCrop ?? null,
+          imageDesktopCrop: item?.imageDesktopCrop ?? null,
+          imageUltraWideCrop: item?.imageUltraWideCrop ?? null,
+          ...(imageBackgroundMode === "cover" || imageBackgroundMode === "blur-fill"
+            ? { imageBackgroundMode }
+            : { imageBackgroundMode: null }),
+        };
+      })
     : [];
   return fetchApi("/admin/homepage-banner", {
     method: "PUT",
