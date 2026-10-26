@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { ExternalPublicScript, PublicScript } from "@/lib/types";
 import { PublicImage } from "@/components/PublicImage";
 import { externalEntityHref } from "@/lib/externalEntity";
@@ -45,6 +46,38 @@ function chapterLabel(order: number | null | undefined): string {
   if (order == null) return "";
   if (order === 0) return "設定／背景";
   return `第 ${order} 部`;
+}
+
+function renderSummaryWithLinks(summary: string): ReactNode[] {
+  const urlPattern = /(https?:\/\/[^\s]+)/g;
+  const lines = summary.split("\n");
+  return lines.flatMap((line, lineIndex) => {
+    const parts: ReactNode[] = [];
+    let cursor = 0;
+    for (const match of line.matchAll(urlPattern)) {
+      const url = match[0];
+      const start = match.index ?? 0;
+      const trailing = url.match(/[.,，。；;、)）]+$/)?.[0] ?? "";
+      const cleanUrl = trailing ? url.slice(0, -trailing.length) : url;
+      if (start > cursor) parts.push(line.slice(cursor, start));
+      parts.push(
+        <a
+          key={`${lineIndex}-${start}`}
+          href={cleanUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline underline-offset-2 hover:text-primary/80"
+        >
+          {cleanUrl}
+        </a>,
+      );
+      if (trailing) parts.push(trailing);
+      cursor = start + url.length;
+    }
+    if (cursor < line.length) parts.push(line.slice(cursor));
+    if (lineIndex < lines.length - 1) parts.push(<br key={`br-${lineIndex}`} />);
+    return parts;
+  });
 }
 
 export function SeriesPageClient({ seriesName, scripts, externalItems = [], seriesMeta }: Props) {
@@ -128,7 +161,7 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
 
               {seriesMeta?.summary && (
                 <p className="text-foreground/80 leading-relaxed max-w-2xl">
-                  {seriesMeta.summary}
+                  {renderSummaryWithLinks(seriesMeta.summary)}
                 </p>
               )}
 
