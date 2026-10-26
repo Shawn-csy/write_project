@@ -60,7 +60,8 @@ export function ReaderActions({
                 <PenBox className="h-4 w-4" />
             </Button>
             )}
-            <DropdownMenu>
+            {/* Non-modal: items here open Dialogs. A modal menu plus a modal Dialog trap focus against each other, recurse until the stack overflows and freeze the page. */}
+            <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="ghost"

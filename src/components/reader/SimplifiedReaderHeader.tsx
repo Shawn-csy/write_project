@@ -161,7 +161,8 @@ export function SimplifiedReaderHeader({
                 <Share2 className="w-4 h-4" />
               </Button>
         )}
-        <DropdownMenu>
+        {/* Non-modal: items here open Dialogs. A modal menu plus a modal Dialog trap focus against each other, recurse until the stack overflows and freeze the page. */}
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
