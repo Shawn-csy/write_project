@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Request
 from typing import Any, List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -6,6 +6,8 @@ from sqlalchemy import orm
 import time
 import uuid
 import json
+import os
+import httpx
 import crud_ops as crud
 import models
 import schemas
@@ -15,6 +17,24 @@ from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
+_REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
+_REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
+
+
+def _send_homepage_revalidation() -> None:
+    """Expire the public homepage cache after an admin Banner update."""
+    if not _REVALIDATE_URL or not _REVALIDATE_SECRET:
+        return
+    try:
+        httpx.post(
+            _REVALIDATE_URL,
+            json={"secret": _REVALIDATE_SECRET, "paths": ["/"]},
+            timeout=5,
+        )
+    except Exception:
+        # The Banner write has already succeeded; cache invalidation can fail
+        # without turning a successful save into an error.
+        pass
 
 
 def _delete_scripts_owned_by(db: Session, owner_id: str):
@@ -329,6 +349,7 @@ def get_homepage_banner(
 
 @router.put("/homepage-banner", response_model=schemas.HomepageBannerSetting)
 def update_homepage_banner(
+    background_tasks: BackgroundTasks,
     payload: schemas.HomepageBannerSetting,
     db: Session = Depends(get_db),
     ownerId: str = Depends(get_current_user_id),
@@ -346,6 +367,9 @@ def update_homepage_banner(
             "link": str(getattr(item, "link", "") or "").strip(),
             "imageUrl": str(getattr(item, "imageUrl", "") or "").strip(),
         }
+        eyebrow = getattr(item, "eyebrow", None)
+        if isinstance(eyebrow, str) and eyebrow.strip():
+            normalized["eyebrow"] = eyebrow.strip()
         # Hero placement fields — preserve as-is.
         image_alt = getattr(item, "imageAlt", None)
         if isinstance(image_alt, str) and image_alt.strip():
@@ -397,6 +421,7 @@ def update_homepage_banner(
     _public_router._banner_cache = None
     import routers.public_bundle as _public_bundle_router
     _public_bundle_router._bundle_cache = None
+    background_tasks.add_task(_send_homepage_revalidation)
     return schemas.HomepageBannerSetting(**clean)
 
 

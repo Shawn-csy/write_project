@@ -222,6 +222,7 @@ export interface PublicTermsConfig {
 
 export interface HomepageBannerItem {
   id: string;
+  eyebrow?: string;
   title?: string;
   content?: string;
   link?: string;

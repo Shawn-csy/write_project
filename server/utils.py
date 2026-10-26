@@ -22,6 +22,9 @@ def normalize_homepage_banner_value(raw_value: str) -> dict:
                 "link": str(item.get("link") or "").strip(),
                 "imageUrl": str(item.get("imageUrl") or "").strip(),
             }
+            eyebrow = item.get("eyebrow")
+            if isinstance(eyebrow, str) and eyebrow.strip():
+                normalized["eyebrow"] = eyebrow.strip()
             # Hero placement fields — preserve as-is (None if absent).
             image_alt = item.get("imageAlt")
             if isinstance(image_alt, str) and image_alt.strip():
@@ -44,6 +47,9 @@ def normalize_homepage_banner_value(raw_value: str) -> dict:
             "link": str(parsed.get("link") or "").strip(),
             "imageUrl": str(parsed.get("imageUrl") or "").strip(),
         }
+        eyebrow = parsed.get("eyebrow")
+        if isinstance(eyebrow, str) and eyebrow.strip():
+            fallback["eyebrow"] = eyebrow.strip()
         image_alt = parsed.get("imageAlt")
         if isinstance(image_alt, str) and image_alt.strip():
             fallback["imageAlt"] = image_alt.strip()

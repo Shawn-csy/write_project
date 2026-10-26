@@ -697,6 +697,7 @@ class AdminUserRecord(BaseModel):
 
 class HomepageBannerItem(BaseModel):
     id: str = ""
+    eyebrow: Optional[str] = None
     title: str = ""
     content: str = ""
     link: str = ""

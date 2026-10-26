@@ -47,6 +47,8 @@ export type HeroSlideBackground = "default" | "none";
 
 export interface HeroSlide {
   id?: string | number;
+  /** Optional eyebrow used by the homepage's editable brand-intro slide. */
+  eyebrow?: string;
   title?: string;
   subtitle?: string;
   content?: string;
@@ -124,7 +126,9 @@ export function parseBannerSlides(banner: unknown): HeroSlide[] | undefined {
       const image = parseHeroImage(item);
       return {
         id: (item.id as string | undefined) ?? `banner-${idx + 1}`,
+        ...(item.eyebrow ? { eyebrow: item.eyebrow as string } : {}),
         title: item.title as string | undefined,
+        content: item.content as string | undefined,
         subtitle: item.content as string | undefined,
         link: item.link as string | undefined,
         imageUrl: item.imageUrl as string | undefined,
@@ -136,7 +140,9 @@ export function parseBannerSlides(banner: unknown): HeroSlide[] | undefined {
     const image = parseHeroImage(b);
     return [{
       id: "banner-0",
+      ...(b.eyebrow ? { eyebrow: b.eyebrow as string } : {}),
       title: b.title as string | undefined,
+      content: b.content as string | undefined,
       subtitle: b.content as string | undefined,
       link: b.link as string | undefined,
       imageUrl: b.imageUrl as string | undefined,

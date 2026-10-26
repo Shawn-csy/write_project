@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BrandScriptDesk } from "./BrandScriptDesk";
+import type { BrandHeroSlide } from "./homepageHeroModel";
 
 const DESKTOP_MQ = "(min-width: 640px)";
 
@@ -11,8 +12,13 @@ const DESKTOP_MQ = "(min-width: 640px)";
  * BrandScriptDesk is conditionally mounted only on desktop (min-width:640px)
  * so mobile does not pay the component + Anime.js cost at all.
  */
-export function GalleryBrandHeroSlide() {
+export function GalleryBrandHeroSlide({ slide }: { slide?: BrandHeroSlide }) {
   const [isDesktop, setIsDesktop] = useState(false);
+  const eyebrow = slide?.eyebrow || "公開台本平台";
+  const title = slide?.title || "配音、閱讀、創作公開台本";
+  const content = slide?.content || "僅收錄公開台本，如果有喜歡的歡迎委託台本師\n如果需要上架或下架作品請直接與我們聯繫。";
+  const contentLines = content.split(/\r?\n/).filter(Boolean);
+  const titleParts = title.split("公開台本");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -42,30 +48,38 @@ export function GalleryBrandHeroSlide() {
       <div className="relative z-10 h-full flex flex-col justify-center mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
         {/* Eyebrow */}
         <p className="hero-reveal editorial-eyebrow mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ animationDelay: "0ms" }}>
-          公開台本平台
+          {eyebrow}
         </p>
 
         {/* Main headline */}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
-          <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
-            配音、閱讀、創作
-          </span>
-          <span className="hero-reveal relative inline-block text-primary" style={{ animationDelay: "160ms" }}>
-            公開台本
-            <span className="absolute left-0 bottom-[0.08em] w-full editorial-accent-rule" aria-hidden />
-          </span>
+          {titleParts.length === 2 ? (
+            <>
+              <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
+                {titleParts[0]}
+              </span>
+              <span className="hero-reveal relative inline-block text-primary" style={{ animationDelay: "160ms" }}>
+                公開台本{titleParts[1]}
+                <span className="absolute left-0 bottom-[0.08em] w-full editorial-accent-rule" aria-hidden />
+              </span>
+            </>
+          ) : (
+            <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
+              {title}
+            </span>
+          )}
         </h1>
 
         {/* Sub-copy — hidden on mobile to keep hero compact */}
         <p className="hero-reveal hidden sm:block mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
-          僅收錄公開台本，如果有喜歡的歡迎委託台本師
+          {contentLines[0] || "僅收錄公開台本，如果有喜歡的歡迎委託台本師"}
         </p>
 
         {/* Decorative rule — hidden on mobile */}
         <div className="hero-reveal hidden sm:flex mt-6 items-center gap-5" style={{ animationDelay: "320ms" }}>
           <div className="h-px flex-1 max-w-[3rem] editorial-rule" aria-hidden />
           <span className="editorial-dim text-[11px] tracking-[0.15em] uppercase">
-            如果需要上架或下架作品請直接與我們聯繫。
+            {contentLines.slice(1).join(" ") || "如果需要上架或下架作品請直接與我們聯繫。"}
           </span>
         </div>
       </div>
