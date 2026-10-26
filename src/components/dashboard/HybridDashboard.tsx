@@ -95,7 +95,8 @@ export default function HybridDashboard({
                       <Plus className="w-4 h-4 sm:mr-1.5" />
                       <span className="hidden sm:inline">{t("scriptToolbar.newScriptLabel")}</span>
                     </Button>
-                    <DropdownMenu>
+                    {/* Non-modal: the folder item opens the create Dialog. A modal menu plus a modal Dialog trap focus against each other, recurse until the stack overflows and freeze the page. */}
+                    <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
                         <Button
                           size="sm"
