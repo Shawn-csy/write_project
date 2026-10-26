@@ -50,18 +50,24 @@ const VIEWPORT_CROP_FIELDS: Array<{
 ];
 
 function itemToHomepageBannerItem(item: HomepageBannerItem, idx: number): HomepageBannerItem {
+  const imageUrl = String(item?.imageUrl || "");
+  const storedBackgroundMode = item?.imageBackgroundMode;
   return {
     id: String(item?.id || `slide-${idx + 1}`),
     title: String(item?.title || ""),
     content: String(item?.content || ""),
     link: String(item?.link || ""),
-    imageUrl: String(item?.imageUrl || ""),
+    imageUrl,
     imageAlt: String(item?.imageAlt || ""),
     imageCrop: item?.imageCrop ?? null,
     imageMobileCrop: item?.imageMobileCrop ?? null,
     imageDesktopCrop: item?.imageDesktopCrop ?? null,
     imageUltraWideCrop: item?.imageUltraWideCrop ?? null,
-    imageBackgroundMode: item?.imageBackgroundMode ?? undefined,
+    // Rows saved before the placement fields were forwarded can have an image
+    // but no mode. Preserve those rows with the safer full-image presentation;
+    // the next save persists the repaired value and the user can still switch
+    // to cover explicitly.
+    imageBackgroundMode: storedBackgroundMode ?? (imageUrl ? "blur-fill" : undefined),
   };
 }
 
@@ -91,6 +97,7 @@ export function HomepageBannerSection() {
           content: String(payload?.content || ""),
           link: String(payload?.link || ""),
           imageUrl: String(payload?.imageUrl || ""),
+          imageBackgroundMode: payload?.imageUrl ? "blur-fill" : undefined,
         };
         setItems((fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []);
       }
@@ -308,26 +315,31 @@ export function HomepageBannerSection() {
 
               {/* Per-viewport crop buttons */}
               {canApplyPersistentCropRef(item.imageUrl ?? "") && (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openCrop(idx, "imageCrop")}
-                  >
-                    通用焦點
-                  </Button>
-                  {VIEWPORT_CROP_FIELDS.map(({ cropKey, label }) => (
+                <div className="space-y-1">
+                  <div className="flex flex-wrap gap-2">
                     <Button
-                      key={cropKey}
                       type="button"
-                      variant={item[cropKey] ? "secondary" : "outline"}
+                      variant="outline"
                       size="sm"
-                      onClick={() => openCrop(idx, cropKey)}
+                      onClick={() => openCrop(idx, "imageCrop")}
                     >
-                      {label}{item[cropKey] ? " ✓" : ""}
+                      通用焦點
                     </Button>
-                  ))}
+                    {VIEWPORT_CROP_FIELDS.map(({ cropKey, label }) => (
+                      <Button
+                        key={cropKey}
+                        type="button"
+                        variant={item[cropKey] ? "secondary" : "outline"}
+                        size="sm"
+                        onClick={() => openCrop(idx, cropKey)}
+                      >
+                        {label}{item[cropKey] ? " ✓" : ""}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    同一張圖片共用；各裝置按鈕只記錄焦點位置，不會重複上傳圖片。
+                  </p>
                 </div>
               )}
 
