@@ -46,6 +46,25 @@ describe("useGalleryUrlState", () => {
     expect(pushSpy).not.toHaveBeenCalled();
   });
 
+  it("re-syncs state on browser back/forward so the next click on that view is not a no-op", () => {
+    const { result } = renderHook(() => useGalleryUrlState(DEFAULT_URL_STATE));
+
+    act(() => result.current.actions.setView("authors"));
+    act(() => result.current.actions.setView("scripts"));
+    expect(result.current.state.view).toBe("scripts");
+
+    // Browser "back": the URL returns to the authors entry without calling nav().
+    act(() => {
+      window.history.replaceState(null, "", "/?view=authors");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(result.current.state.view).toBe("authors");
+
+    act(() => result.current.actions.setView("scripts"));
+    expect(result.current.state.view).toBe("scripts");
+    expect(window.location.search).toBe("");
+  });
+
   it("merges rapid consecutive updates against the latest intended URL", () => {
     const pushSpy = vi.spyOn(window.history, "pushState");
     const { result } = renderHook(() => useGalleryUrlState(DEFAULT_URL_STATE));

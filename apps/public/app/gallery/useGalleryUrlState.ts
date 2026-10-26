@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  parseGalleryUrlState,
   serializeGalleryUrlState,
   mergeGalleryUrlState,
   type PublicHomepageUrlState,
@@ -53,6 +54,19 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
       window.history.replaceState(null, "", canonicalUrl);
     }
   }, [state]);
+
+  // Back/forward changes the URL without going through nav(). Re-derive state
+  // from the address bar, otherwise the UI stays on the old view and nav()'s
+  // "URL already matches" guard turns the next click on that view into a no-op.
+  useEffect(() => {
+    const onPopState = () => {
+      const next = parseGalleryUrlState(window.location.search);
+      stateRef.current = next;
+      setClientState(next);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const nav = useCallback(
     (patch: Partial<PublicHomepageUrlState>, method: "push" | "replace" = "push") => {
