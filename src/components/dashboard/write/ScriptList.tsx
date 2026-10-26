@@ -205,7 +205,10 @@ const ScriptListRow = memo(function ScriptListRow({
                         {/* Actions Dropdown */}
                         <div className="w-10 flex justify-end items-center" onClick={e => e.stopPropagation()}>
                             {!readOnly && (
-                                <DropdownMenu>
+                                // Non-modal: items here open Dialogs (delete/move/rename). A modal menu
+                                // and a modal Dialog mounted together trap focus against each other and
+                                // recurse until the stack overflows, freezing the page.
+                                <DropdownMenu modal={false}>
                                     <DropdownMenuTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
                                             <MoreHorizontal className="w-4 h-4" />
