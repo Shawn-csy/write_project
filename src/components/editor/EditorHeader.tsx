@@ -247,7 +247,8 @@ export function EditorHeader({
         />
 
         {/* ⋯ 更多 */}
-        <DropdownMenu>
+        {/* Non-modal: items here open Dialogs. A modal menu plus a modal Dialog trap focus against each other, recurse until the stack overflows and freeze the page. */}
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
               ref={moreActionsRef}
