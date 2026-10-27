@@ -31,8 +31,9 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   state: PublicHomepageUrlState;
   actions: GalleryUrlStateActions;
 } {
-  // Initial state comes from server-parsed searchParams (page.tsx).
-  // Subsequent URL changes use history.pushState/replaceState; no useSearchParams() needed.
+  // The static Pages export has no request-time searchParams. Parse the real
+  // URL after hydration so filters still work on direct links. In the normal
+  // Next deployment this matches the server-parsed initial state.
   const [state, setClientState] = useState(initialState);
 
   // Always points to the latest effective state. It is updated optimistically
@@ -41,19 +42,21 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Canonicalize legacy URLs on first render as well as after future state
-  // changes. This removes conflicting duplicate license tags from the address
-  // bar, not just from the visible filter chips.
+  // Initialize from the address bar and canonicalize legacy URLs once. Filter
+  // actions below keep the URL in sync, so no state-driven rewrite is needed.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const params = serializeGalleryUrlState(state);
+    const initialUrlState = parseGalleryUrlState(window.location.search);
+    stateRef.current = initialUrlState;
+    setClientState(initialUrlState);
+    const params = serializeGalleryUrlState(initialUrlState);
     const qs = params.toString();
     const canonicalUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     if (currentUrl !== canonicalUrl) {
       window.history.replaceState(null, "", canonicalUrl);
     }
-  }, [state]);
+  }, []);
 
   // Back/forward changes the URL without going through nav(). Re-derive state
   // from the address bar, otherwise the UI stays on the old view and nav()'s

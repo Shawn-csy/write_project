@@ -27,10 +27,15 @@ function parseBackendPattern(): { protocol: "http" | "https"; hostname: string; 
 }
 
 const backendPattern = parseBackendPattern();
+const staticExport = process.env.CF_STATIC_EXPORT === "1";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingRoot: path.resolve(__dirname, "../.."),
+  ...(staticExport
+    ? { output: "export" as const }
+    : {
+        output: "standalone" as const,
+        outputFileTracingRoot: path.resolve(__dirname, "../.."),
+      }),
   // ISR 頁面的 Cache-Control 由 Next 依下列公式產生：
   //   s-maxage=<revalidate>, stale-while-revalidate=<expireTime - revalidate>
   // expireTime 預設是 31536000（一年），代表快取過期後 CDN 仍可供應舊版本將近一年。
@@ -38,8 +43,9 @@ const nextConfig: NextConfig = {
   // 源站修好後訪客仍持續看到錯誤頁。
   // 收斂為 7200：各路由 revalidate 皆為 3600，故 stale-while-revalidate 也是 3600，
   // 最壞情況的內容陳舊時間從一年降到約兩小時。
-  expireTime: 7200,
+  ...(!staticExport ? { expireTime: 7200 } : {}),
   transpilePackages: ["@write/browser-download", "@write/media-crop", "@write/public-ui", "@write/reader-export", "@write/script-engine", "@write/script-reader-renderer", "@write/script-reader-ui"],
+  ...(!staticExport ? {
   async rewrites() {
     return [
       {
@@ -100,7 +106,9 @@ const nextConfig: NextConfig = {
 
     return [...discoveryHeaders, ...edgeCacheHeaders];
   },
+  } : {}),
   images: {
+    ...(staticExport ? { unoptimized: true } : {}),
     // Backend runs on Docker-internal network (private IP). next/image blocks
     // private IPs by default; allow them since this is trusted infra.
     dangerouslyAllowLocalIP: true,

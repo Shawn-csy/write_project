@@ -20,8 +20,8 @@ import { BASE_URL } from "@/lib/seo";
 // The upstream fetches below are cached in Next's data cache instead, so crawler
 // hits do not each cost a backend round trip. /api/revalidate expires the
 // "public-scripts" and "public-bundle" tags these fetches carry.
-export const dynamic = "force-dynamic";
-const SITEMAP_DATA_REVALIDATE_SECONDS = 600;
+export const dynamic = process.env.CF_STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
+const SITEMAP_DATA_REVALIDATE_SECONDS = process.env.CF_STATIC_EXPORT === "1" ? false : 600;
 
 function sitemapDateTimestamp(value: string | Date | undefined): number {
   if (value instanceof Date) return value.getTime();
