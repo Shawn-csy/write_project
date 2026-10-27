@@ -9,6 +9,7 @@ import { PublicShellActions } from "@/components/PublicShellActions";
 import { PublicFeedbackDialog } from "@/components/PublicFeedbackDialog";
 import { AppearanceMenuContent } from "@/components/PublicAppearanceMenu";
 import { InfoMenuContent } from "@/components/PublicInfoMenu";
+import { studioUrl } from "@/lib/studioUrl";
 
 export type { GalleryView };
 
@@ -101,7 +102,7 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
         {/* Studio CTA */}
         <div className="px-5 pt-4 pb-3 shrink-0">
           <a
-            href="/dashboard"
+            href={studioUrl()}
             className="flex items-center justify-center h-11 w-full rounded-lg text-[0.8125rem] font-semibold text-primary-foreground hover:opacity-90 transition-opacity duration-150"
             style={{ background: "hsl(var(--primary))" }}
           >

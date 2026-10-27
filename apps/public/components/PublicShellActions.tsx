@@ -11,13 +11,14 @@ import { PublicInfoMenu } from "@/components/PublicInfoMenu";
 import { PublicFeedbackDialog } from "@/components/PublicFeedbackDialog";
 import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
 import { useAnimePrewarm } from "@/lib/motion/useAnimePrewarm";
+import { studioUrl } from "@/lib/studioUrl";
 
 function StudioLink() {
   const { ref, handlers } = useAnimePressFeedback<HTMLAnchorElement>();
   return (
     <a
       ref={ref}
-      href="/dashboard"
+      href={studioUrl()}
       className="inline-flex items-center rounded-lg px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground transition-all duration-150 hover:opacity-90"
       style={{
         background: "hsl(var(--primary))",

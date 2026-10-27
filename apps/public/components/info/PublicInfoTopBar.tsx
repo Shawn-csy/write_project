@@ -6,6 +6,7 @@
  */
 
 import { SITE_BRAND_NAME } from "@/lib/seo";
+import { studioUrl } from "@/lib/studioUrl";
 
 const INFO_TABS = [
   { key: "about", label: "關於", href: "/about" },
@@ -85,7 +86,7 @@ export function PublicInfoTopBar({ activeKey }: Props) {
         {/* Right: studio link */}
         <div className="ml-auto flex items-center gap-1 shrink-0">
           <a
-            href="/dashboard"
+            href={studioUrl()}
             className="hidden sm:inline-flex items-center rounded-lg px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground bg-primary hover:opacity-90 transition-opacity duration-150"
           >
             進入工作室
@@ -122,7 +123,7 @@ export function PublicInfoTopBar({ activeKey }: Props) {
           })}
           {/* Mobile studio link */}
           <a
-            href="/dashboard"
+            href={studioUrl()}
             className="ml-auto inline-flex items-center rounded-lg px-3 py-1.5 text-[0.8125rem] font-semibold text-primary-foreground bg-primary hover:opacity-90 transition-opacity duration-150 shrink-0"
           >
             工作室
