@@ -21,6 +21,7 @@ import {
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
+import { liveApi } from "@/lib/liveApi";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
 
@@ -111,8 +112,8 @@ export function useGalleryController({
 
   // ── Terms config (determines platform-wide gate policy) ──────────────────
   useEffect(() => {
-    fetch("/api/public-terms-config")
-      .then((r) => (r.ok ? r.json() : null))
+    liveApi.read("/api/public-terms-config")
+      .then(({ response: r }) => (r.ok ? r.json() : null))
       .then((cfg) => {
         if (cfg && typeof cfg === "object" && "version" in cfg) {
           setTermsRequired(true);
@@ -127,8 +128,8 @@ export function useGalleryController({
     if (peopleStatus !== "idle") return;
     setPeopleStatus("loading");
     Promise.all([
-      fetch("/api/public-personas").then((r) => (r.ok ? r.json() : Promise.reject(new Error(`personas ${r.status}`)))),
-      fetch("/api/public-organizations").then((r) => (r.ok ? r.json() : Promise.reject(new Error(`organizations ${r.status}`)))),
+      liveApi.read("/api/public-personas").then(({ response: r }) => (r.ok ? r.json() : Promise.reject(new Error(`personas ${r.status}`)))),
+      liveApi.read("/api/public-organizations").then(({ response: r }) => (r.ok ? r.json() : Promise.reject(new Error(`organizations ${r.status}`)))),
     ])
       .then(([personaData, orgData]) => {
         setAuthors(publicPersonasFromResponse(personaData));

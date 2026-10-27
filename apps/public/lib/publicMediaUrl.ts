@@ -12,13 +12,27 @@ export const PUBLIC_MEDIA_WIDTHS = [240, 360, 480, 720, 960] as const;
 
 const PROXY_PREFIX = "/api/public-media/";
 
+function parseProxyPath(src: string): { prefix: string; pathname: string; search: string } | null {
+  try {
+    const isAbsolute = /^https?:\/\//i.test(src);
+    const parsed = new URL(src, "https://local.invalid");
+    if (!parsed.pathname.startsWith(PROXY_PREFIX)) return null;
+    return {
+      prefix: isAbsolute ? parsed.origin : "",
+      pathname: parsed.pathname,
+      search: parsed.search,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Appends `.webp` to a proxy path (before any query string) unless present. */
 export function withMediaExtension(src: string): string {
-  if (!src.startsWith(PROXY_PREFIX)) return src;
-  const queryIndex = src.indexOf("?");
-  const path = queryIndex === -1 ? src : src.slice(0, queryIndex);
-  const query = queryIndex === -1 ? "" : src.slice(queryIndex);
-  return path.endsWith(".webp") ? src : `${path}.webp${query}`;
+  const parsed = parseProxyPath(src);
+  if (!parsed) return src;
+  const path = parsed.pathname.endsWith(".webp") ? parsed.pathname : `${parsed.pathname}.webp`;
+  return `${parsed.prefix}${path}${parsed.search}`;
 }
 
 /** Removes the cosmetic `.webp` suffix added by {@link withMediaExtension}. */
@@ -28,7 +42,7 @@ export function stripMediaExtension(segment: string): string {
 
 /** Builds a `srcSet` of resized proxy variants; empty string for other sources. */
 export function buildMediaSrcSet(src: string): string {
-  if (!src.startsWith(PROXY_PREFIX) || src.includes("?")) return "";
+  if (!parseProxyPath(src) || src.includes("?")) return "";
   const base = withMediaExtension(src);
   return PUBLIC_MEDIA_WIDTHS.map((width) => `${base}?w=${width} ${width}w`).join(", ");
 }

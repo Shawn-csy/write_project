@@ -19,11 +19,17 @@ import type { PublicImagePreset } from "@/lib/imagePresets";
 import { resolvePresetStyle, getPresetConfig } from "@/lib/imagePresets";
 import { isNextImageOptimizableSrc } from "@/lib/publicImageOrigins";
 import { buildMediaSrcSet, withMediaExtension } from "@/lib/publicMediaUrl";
+import { isPublicMediaProxySrc, publicApiUrl } from "@/lib/publicApiUrl";
+import { mediaOriginsFromEnv } from "@/lib/mediaSources";
 
 // Read once at module load — available during SSR (server process).
 // In client bundle this is undefined, but next/image src is already baked
 // into the SSR HTML as /_next/image?url=ABSOLUTE_URL by that point.
 const BACKEND_ORIGIN = (process.env.BACKEND_API_URL ?? "").replace(/\/+$/, "");
+
+// The static build has no server-side image proxy: /media/ files are read
+// straight from the media origin, with R2 as the fallback (MediaFallbackBridge).
+const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === "1";
 
 const RESIZABLE_PRESETS: ReadonlySet<PublicImagePreset> = new Set([
   "script-cover",
@@ -43,7 +49,7 @@ function resolvePublicMediaProxySrc(src: string): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
   const token = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  return `/api/public-media/${token}.webp`;
+  return publicApiUrl(`/api/public-media/${token}.webp`);
 }
 
 interface Props {
@@ -88,9 +94,23 @@ export function PublicImage({
   const style = objectFit ? { ...presetStyle, objectFit } : presetStyle;
   const config = getPresetConfig(preset);
   const isPublicMedia = cleanSrc.startsWith("/media/");
-  const isMediaProxy = cleanSrc.startsWith("/api/public-media/");
+  const isMediaProxy = isPublicMediaProxySrc(cleanSrc);
+  if (STATIC_EXPORT && isPublicMedia) {
+    return (
+      <img
+        src={`${mediaOriginsFromEnv().primary}${cleanSrc}`}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
+        decoding="async"
+        referrerPolicy="no-referrer"
+        style={style}
+        className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
+      />
+    );
+  }
   if (isMediaProxy || isPublicMedia) {
-    const proxySrc = isMediaProxy ? withMediaExtension(cleanSrc) : resolvePublicMediaProxySrc(cleanSrc);
+    const proxySrc = isMediaProxy ? publicApiUrl(withMediaExtension(cleanSrc)) : resolvePublicMediaProxySrc(cleanSrc);
     // Priority images keep a single src: a srcset could make the browser pick
     // a different URL than the one preloaded in <head>. Everything else gets
     // resized variants so cards do not download full-size originals.

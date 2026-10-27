@@ -4,6 +4,7 @@ import { ScriptGalleryCard, type CoverImageRenderer } from "@write/public-ui";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalEntityHref, socialAvatarUrl } from "@/lib/externalEntity";
 import { PublicImage } from "@/components/PublicImage";
+import { externalCoverSrc } from "@/lib/externalCover";
 
 const externalCoverImageRenderer: CoverImageRenderer = ({ src, crop, alt, className }) => (
   <PublicImage
@@ -106,7 +107,7 @@ export function ExternalPublicScriptCard({
         id: `external:${item.id}`,
         title,
         synopsis: summary,
-        coverUrl: item.coverUrl ? `/api/public-media/external/${item.id}` : undefined,
+        coverUrl: externalCoverSrc(item),
         tags: normalizeCategories(item.categories),
         seriesName,
         seriesOrder: item.seriesOrder,

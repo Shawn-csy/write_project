@@ -22,6 +22,7 @@ import { PublicImage } from "@/components/PublicImage";
 import { ExternalPublicScriptCard } from "@/components/ExternalPublicScriptSection";
 import { externalEntityHref } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
+import { externalCoverSrc } from "@/lib/externalCover";
 
 // The server HTML only needs enough cards to cover the first screens and give
 // crawlers real links; rendering every card there cost ~5 KB each. The rest
@@ -76,7 +77,7 @@ function externalGalleryInput(item: ExternalPublicScript) {
     id: `external:${item.id}`,
     title: item.title || item.remoteTitle || item.sourceDomain || "外部公開台本",
     synopsis: item.summary || item.remoteSummary || "",
-    coverUrl: item.coverUrl ? `/api/public-media/external/${item.id}` : undefined,
+    coverUrl: externalCoverSrc(item),
     tags: item.categories || [],
     series: item.seriesName ? { name: item.seriesName } : undefined,
     seriesName: item.seriesName,

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { liveApi } from "@/lib/liveApi";
 
 interface TermsCheck {
   id: string;
@@ -42,9 +43,9 @@ function storeAccepted(version: string): void {
 
 async function fetchTermsConfig(): Promise<TermsConfig | null> {
   try {
-    const res = await fetch("/api/public-terms-config");
-    if (!res.ok) return null;
-    return await res.json() as TermsConfig;
+    const { response } = await liveApi.read("/api/public-terms-config");
+    if (!response.ok) return null;
+    return await response.json() as TermsConfig;
   } catch {
     return null;
   }
@@ -57,7 +58,7 @@ async function postAcceptance(
   checkedIds: string[],
 ): Promise<void> {
   try {
-    await fetch("/api/public-terms-acceptances", {
+    await liveApi.write("/api/public-terms-acceptances", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

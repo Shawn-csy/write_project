@@ -7,6 +7,8 @@ import type { ExternalPublicScript } from "@/lib/types";
 import { ExternalPublicScriptCard } from "./ExternalPublicScriptSection";
 import { GalleryHoverPreviewProvider } from "@write/public-ui";
 import { LinkifiedText } from "./LinkifiedText";
+import { publicApiUrl } from "@/lib/publicApiUrl";
+import { externalCoverSrc } from "@/lib/externalCover";
 
 interface Props {
   kind: ExternalEntityKind;
@@ -81,7 +83,7 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
                 return (
                   <Link key={series.name} href={`/series/${encodeURIComponent(series.name)}`} className="group flex items-center gap-3 rounded-lg border border-border/60 bg-background/60 p-3 no-underline transition-colors hover:border-primary/50 hover:bg-background">
                     <div className="h-16 w-11 shrink-0 overflow-hidden rounded border bg-muted">
-                      {cover ? <img src={`/api/public-media/external/${cover.id}`} alt="" className="h-full w-full object-cover" loading="lazy" /> : <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-muted-foreground">{series.name}</div>}
+                      {cover ? <img src={publicApiUrl(externalCoverSrc(cover) ?? "")} alt="" className="h-full w-full object-cover" loading="lazy" /> : <div className="flex h-full items-center justify-center p-1 text-center text-[9px] text-muted-foreground">{series.name}</div>}
                     </div>
                     <div className="min-w-0">
                       <div className="line-clamp-2 text-sm font-medium group-hover:text-primary">{series.name}</div>
