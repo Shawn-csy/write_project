@@ -40,8 +40,15 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const deployEnvironment = process.env.NEXT_PUBLIC_DEPLOY_ENV ??
+    (process.env.NODE_ENV === "development" ? "development" : "production");
+
   return (
-    <html lang="zh-Hant" className="h-full antialiased">
+    <html
+      lang="zh-Hant"
+      className="h-full antialiased"
+      data-deploy-environment={deployEnvironment}
+    >
       <head>
         {/* Blocking script: apply dark class before first paint to prevent flash */}
         <script

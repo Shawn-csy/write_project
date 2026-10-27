@@ -11,19 +11,54 @@ const outputRoot = join(appRoot, "out");
 const preview = process.argv.includes("--preview");
 
 const origin = (name) => (process.env[name] || "").replace(/\/+$/, "");
+const deployEnvironment = process.env.NEXT_PUBLIC_DEPLOY_ENV || (preview ? "development" : "production");
+if (deployEnvironment !== "development" && deployEnvironment !== "production") {
+  throw new Error("NEXT_PUBLIC_DEPLOY_ENV must be either development or production.");
+}
+if (preview !== (deployEnvironment === "development")) {
+  throw new Error(`The ${preview ? "preview" : "production"} Pages build cannot use NEXT_PUBLIC_DEPLOY_ENV=${deployEnvironment}.`);
+}
 
-// Primary API: the local backend behind the tunnel (during preview, the API Worker).
+// Primary API: the environment's live backend, reached by the browser through its public origin.
 const apiOrigin = origin("NEXT_PUBLIC_API_ORIGIN");
 if (!apiOrigin) {
   throw new Error("Set NEXT_PUBLIC_API_ORIGIN to the primary API origin before building the static public site.");
+}
+const baseUrl = origin("NEXT_PUBLIC_BASE_URL") || (preview
+  ? "https://dev-open-scripts.shawnup.com"
+  : "https://open-scripts.shawnup.com");
+if (preview) {
+  if (new URL(apiOrigin).hostname !== "api-dev-open-scripts.shawnup.com") {
+    throw new Error("The development Pages build must use https://api-dev-open-scripts.shawnup.com as its primary API.");
+  }
+  if (new URL(baseUrl).hostname !== "dev-open-scripts.shawnup.com") {
+    throw new Error("The development Pages build must use https://dev-open-scripts.shawnup.com as its canonical base URL.");
+  }
+} else if (
+  new URL(apiOrigin).hostname === "api-dev-open-scripts.shawnup.com" ||
+  new URL(baseUrl).hostname === "dev-open-scripts.shawnup.com"
+) {
+  throw new Error("The production Pages build cannot use the Dev API or Dev canonical host.");
 }
 // Read-only fallback API (Worker + D1). Without it the site has no failover.
 const fallbackApiOrigin = origin("NEXT_PUBLIC_FALLBACK_API_ORIGIN");
 // Images: the local media origin first, the R2 public bucket when it is down.
 const mediaOrigin = origin("NEXT_PUBLIC_MEDIA_ORIGIN") || apiOrigin;
 const mediaFallbackOrigin = origin("NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN");
+if (preview && !fallbackApiOrigin) {
+  throw new Error("The development Pages build requires NEXT_PUBLIC_FALLBACK_API_ORIGIN for D1 failover.");
+}
+if (preview && !mediaFallbackOrigin) {
+  throw new Error("The development Pages build requires NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN for R2 failover.");
+}
 // The writing studio is not in this site; "進入工作室" links to wherever it is served.
 const studioOrigin = origin("NEXT_PUBLIC_STUDIO_ORIGIN");
+if (preview && new URL(studioOrigin || "https://invalid.local").hostname !== "studio-dev-open-scripts.shawnup.com") {
+  throw new Error("The development Pages build must link to https://studio-dev-open-scripts.shawnup.com.");
+}
+if (!preview && new URL(studioOrigin || "https://open-scripts.shawnup.com").hostname === "studio-dev-open-scripts.shawnup.com") {
+  throw new Error("The production Pages build cannot link to the Dev Studio.");
+}
 
 const ignoredNames = new Set([
   ".git", ".next", ".vinext", ".cloudflare", ".pages-build", "node_modules", "out", "dist",
@@ -72,13 +107,14 @@ const result = spawnSync(process.execPath, [nextBin, "build", stageRoot, "--webp
     ...process.env,
     CF_STATIC_EXPORT: "1",
     NEXT_PUBLIC_STATIC_EXPORT: "1",
-    BACKEND_API_URL: process.env.BACKEND_API_URL || "https://open-scripts.shawnup.com",
+    NEXT_PUBLIC_DEPLOY_ENV: deployEnvironment,
+    BACKEND_API_URL: process.env.BACKEND_API_URL || apiOrigin,
     NEXT_PUBLIC_API_ORIGIN: apiOrigin,
     NEXT_PUBLIC_FALLBACK_API_ORIGIN: fallbackApiOrigin,
     NEXT_PUBLIC_MEDIA_ORIGIN: mediaOrigin,
     NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN: mediaFallbackOrigin,
     NEXT_PUBLIC_STUDIO_ORIGIN: studioOrigin,
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || "https://open-scripts.shawnup.com",
+    NEXT_PUBLIC_BASE_URL: baseUrl,
   },
 });
 
@@ -110,4 +146,4 @@ if (preview) headers.push("/*", "  X-Robots-Tag: noindex, nofollow", "");
 writeFileSync(join(outputRoot, "_headers"), headers.join("\n"), "utf8");
 
 rmSync(stageRoot, { recursive: true, force: true });
-console.log(`Static Pages output is ready at ${relative(repositoryRoot, outputRoot)}.`);
+console.log(`Static Pages output (${deployEnvironment}) is ready at ${relative(repositoryRoot, outputRoot)}.`);

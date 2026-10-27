@@ -1,6 +1,6 @@
 # Cloudflare 公開站與本機工作室的部署方向
 
-狀態：混合架構的前端已實作並在本機驗證；D1／R2 同步、自動重新部署、正式切換尚未做  
+狀態：preview Pages 使用獨立 Dev API（Tunnel → 8891），Dev Postgres/媒體由正式資料複製；fallback Worker/D1、R2 和每 15 分鐘同步已啟用。preview 自訂網域已啟用；正式環境尚未切換，自動 Pages 重新部署（SEO）尚未設定
 最後更新：2026-10-27
 
 ## 目標
@@ -66,8 +66,8 @@ flowchart LR
   Pages -->|正常：圖片| Tunnel
   Tunnel --> Media[本機 /media]
   Pages -. 本機失聯後直接讀取 .-> R2[R2：已發布圖片副本]
-  DB -->|發布同步（待實作）| D1
-  Media -->|發布同步（待實作）| R2
+  DB -->|本機 launchd 定期同步| D1
+  Media -->|本機 launchd 定期同步| R2
 ```
 
 ### 資料讀取與切換（`lib/liveApi.ts`）
@@ -88,11 +88,12 @@ flowchart LR
 
 | 變數 | 用途 |
 |---|---|
-| `NEXT_PUBLIC_API_ORIGIN`（必填） | 主要 API 網域（正式：Tunnel 網域；預覽：API Worker） |
-| `NEXT_PUBLIC_FALLBACK_API_ORIGIN` | 備援 API（Worker＋D1）網域；未設定則沒有備援 |
+| `NEXT_PUBLIC_DEPLOY_ENV` | 靜態建置環境標記；`build:pages-preview` 固定為 `development`，`build:pages` 固定為 `production`，錯配時建置失敗 |
+| `NEXT_PUBLIC_API_ORIGIN`（必填） | 主要 API 網域（Dev：8891 API Tunnel；正式：正式 API 網域） |
+| `NEXT_PUBLIC_FALLBACK_API_ORIGIN` | 備援 API（Worker＋D1）網域；Dev build 必填 |
 | `NEXT_PUBLIC_MEDIA_ORIGIN` | 本機媒體網域；未設定時沿用主要 API 網域 |
-| `NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN` | R2 公開網域；未設定則圖片沒有備援 |
-| `NEXT_PUBLIC_STUDIO_ORIGIN` | 「進入工作室」連結的網域；靜態站本身沒有 `/dashboard`，不設定會連到 404。工作室走 Tunnel，本機離線時無法進入 |
+| `NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN` | R2 公開網域；Dev build 必填 |
+| `NEXT_PUBLIC_STUDIO_ORIGIN` | 「進入工作室」連結的網域（Dev：獨立 Dev Studio；正式：正式工作室） |
 | `BACKEND_API_URL` | 建置時抓資料的來源（見下方「建置來源」） |
 | `ALLOW_EMPTY_PUBLIC_BUILD=1` | 允許資料為空時仍建置；預設不允許 |
 
@@ -101,20 +102,34 @@ flowchart LR
 ## 建置來源與防空站
 
 - 靜態建置抓不到資料時一律讓建置失敗，不容錯成空頁：首頁在靜態建置下不再退回空清單，`generateStaticParams` 取得的作品數為 0 也會失敗。目的是避免把空站部署上線（對照 2026-08-20 的事故）。
-- 目前建置時抓資料的來源是 `BACKEND_API_URL`，即本機或現有站台。待 D1 同步完成後，建議改以 D1（經備援 Worker）作為建置來源：建置不依賴本機是否在線，資料也只含已發布內容。
+- 建置時抓資料的來源是 `BACKEND_API_URL`；未設定時沿用主要 API origin。Dev build 會由 8891 API Tunnel 取資料，不會回頭抓正式 API。
 
-## 發布與同步方向（待實作）
+## D1／R2 同步
 
-1. 工作室仍透過 Tunnel 寫入本機 PostgreSQL；本機資料庫是唯一完整主資料。
-2. 台本或其他內容正式發布後，只挑選公開且已發布的資料同步到 D1。草稿、帳號、認證資料、內部設定不進 D1。
-3. 先把該次發布引用的圖片上傳到 R2，再寫入 D1，避免資料已可讀但圖片尚未上傳。
-4. 已發布台本被**編輯**、改封面、改作者頭像、改系列名、改橫幅時也要同步，不只在首次發布。漏同步會讓備援資料與主要資料出現落差。
-5. 為資料和圖片保存同步時間，讓備援頁面能顯示資料新鮮度。
-6. 同步入口尚待選定：受保護的 Worker 端點，或由本機同步程式用 Cloudflare API 寫入。任何 Cloudflare 憑證都不能放在瀏覽器前端。
+preview 同步由本機 Wrangler 指令執行：
+
+```bash
+PUBLIC_SYNC_API_ORIGIN=http://127.0.0.1:8891 \
+PUBLIC_SYNC_MEDIA_ORIGIN=http://127.0.0.1:8891 \
+PUBLIC_SYNC_R2_PUBLIC_ORIGIN=https://pub-37c286fc2f9143a69bfbe1f784d95880.r2.dev \
+npm run sync:public-preview -w apps/public
+```
+
+同步會抓公開 bundle、作品、作者、組織、條款與主題路由，並收集這些回應引用的 `/media/` 檔案和外部作品封面。圖片先寫入 R2；D1 的新快照完整寫入後才切換作用中的 generation。舊 generation 在切換成功後清除，因此中斷同步不會讓 Worker 讀到半份資料。D1 內的回應以 gzip 編碼保存，Worker 回應時還原成原 API 的內容型別。
+
+macOS LaunchAgent `com.shawnup.write-project-public-sync` 已安裝，每 900 秒執行一次，登入時也會立即執行。它只讀取公開 API，不會把草稿、帳號、認證資料或內部設定送到 Cloudflare。Cloudflare 憑證只由本機 Wrangler 授權讀取，不放進瀏覽器。排程定期比對公開快照；內容未變時略過 D1/R2 寫入，只有瀏覽／按讚計數變動時更新 D1、不重傳圖片。
+
+需要立即同步時，執行上方的手動同步指令。
+
+LaunchAgent 設定檔在 `scripts/com.shawnup.write-project-public-sync.plist`；執行記錄寫入 `~/Library/Logs/write-project-public-sync/`。排程依賴這台 Mac 登入、網路可用、Wrangler 授權有效及本機 API 可連線；電腦休眠或登出期間不會即時同步，恢復登入與網路後的下一輪才會比對。`X-Data-Synced-At` 是 D1 快照最後更新時間；內容未變的檢查不會推進這個時間。
+
+同步順序固定為：先把公開媒體上傳 R2，再切換 D1 快照。已發布台本被編輯、改封面、改作者頭像、改系列名或改橫幅後，排程會在下一輪檢查並同步；如需立即更新，可手動執行上方指令。
+
+最近一次 preview D1 更新：2026-10-27 09:47:47 UTC，34 個 API 快照；當時 Dev bundle 有 9 個 scripts、4 個 personas、1 個 organization、110 個 external public scripts。後續排程檢查發現快照未變，因此略過 D1/R2 寫入。外部封面與已缺失的本機媒體引用有部分無法同步。
 
 ### D1 資料形狀
 
-D1 存的是「公開 API 的回答」，不是重新設計一套關聯式 schema（見 `apps/public/worker/schema.sql`）：每筆 `public_snapshot` 以請求路徑加查詢字串為 key（如 `/api/public-bundle`、`/api/public-scripts/<id>`），`body` 是本機後端對該請求回傳的 JSON。好處是備援回應與主要回應的格式完全一致，不會因為 schema 轉換而出現差異；代價是同步時要列舉所有需要的路徑（bundle、personas、organizations、terms-config、themes、每篇作品、每位作者的作品清單）。
+D1 存的是「公開 API 的回答」，不是重新設計一套關聯式 schema（見 `apps/public/worker/schema.sql`）：每筆 generation 的 `public_snapshot` 以請求路徑加查詢字串為 key，回應 gzip 後存放；Worker 解壓後仍回傳原 API 格式。同步要列舉公開站會用到的路徑，包括 bundle、personas、organizations、terms-config、themes、作品詳情/raw 與作者／組織作品清單。
 
 D1 是公開資料讀取副本，不是本機 PostgreSQL 的完整備份。D1 最多只能提供最後一次成功同步的公開內容；它不包含未發布草稿，也不能用來還原工作室。
 
@@ -136,41 +151,55 @@ D1 是公開資料讀取副本，不是本機 PostgreSQL 的完整備份。D1 �
 
 ## 後端整個離線時，原生台本會怎樣
 
-以現行測試站（尚無 D1、R2）模擬 Worker 與媒體網域全部連不上：
+preview 已配置 Dev API、API 備援 Worker／D1 和媒體 R2。下表為預期行為；已實際停止獨立的 Dev API 容器演練，正式服務沒有中斷：
 
 | 項目 | 結果 |
 |---|---|
-| 建置時已存在的原生台本閱讀頁 | **正常顯示全文**（內文隨快照 HTML 一起送出），條款閘門因抓不到設定而放行 |
-| 首頁、各實體頁 | 顯示建置時的清單 |
-| 圖片 | 全部壞掉（沒有 R2） |
-| 建置後才發布或修改的作品 | 看不到，新網址顯示「暫時無法載入」 |
-| 瀏覽次數、按讚、意見回饋 | 略過 |
-
-有了 D1 與 R2 之後，上表中「建置後才發布或修改」與「圖片」兩項也會恢復，顯示最後一次同步的內容。
+| 已建置的原生台本閱讀頁 | 顯示頁面 HTML 快照，瀏覽器再從 D1 備援 API 更新公開資料 |
+| 首頁、作者／組織等實體頁 | 從 D1 備援 API 取得最近一次同步的公開資料 |
+| 圖片 | 從 R2 讀取最近一次同步成功的圖片；有失效或無法取得的媒體引用時仍可能缺圖 |
+| 建置後才發布或修改的作品 | D1 有同步該資料時，404 外殼可由備援 API 載入 |
+| 瀏覽次數、按讚、意見回饋 | 略過，不送到 D1 |
 
 ## 目前的限制與待處理
 
 1. **實體頁的 `<title>`、描述、分享卡片是建置時的。** 內容會即時更新，但搜尋引擎與分享預覽看到的 metadata 要等重新部署。建置後才出現的作者、標籤、系列網址首次載入為 404 狀態，且沒有 metadata。
-2. **封面存放在其他網站的外部作品，在備援時會壞。** 外部作品的封面若已複製成本機媒體檔（`/media/...`），靜態站直接讀媒體網域，並有 R2 備援，不受影響。2026-10-27 的資料中 110 筆外部作品，69 筆是本機檔案、17 筆封面仍在別的網站（例如 `cxc.today`）、24 筆沒有封面。那 17 筆目前仍經 `/api/public-media/external/<id>` 由伺服器代抓，靜態建置沒有這個伺服器，主要 API 失聯時沒有 R2 副本可退。處理方向：新增外部作品時一律把封面複製成本機媒體檔，再同步到 R2。
+2. **少數媒體來源仍需整理。** Dev 媒體 volume 已複製正式媒體；同步日誌仍有缺失的本機路徑，部分外部封面代理路由也不在 FastAPI Dev API 上提供。可用媒體會同步到 R2，無法取得來源的項目在主站和備援都可能缺圖。
 3. **新作品首次載入為 404 狀態。** 見上文。若要讓新作品在重新部署前也能被搜尋引擎或預覽讀到，需要由 Worker 即時產生 HTML，會讓 Worker 進入一般讀取路徑，不建議。
-4. **D1 備援 Worker 尚未綁定 D1。** 程式與測試已完成，`wrangler.jsonc` 內的 D1 設定為註解，同步機制完成前不會有資料。
+4. **正式環境尚未接通 D1/R2 備援。** preview Worker `write-project-public-fallback` 綁定 D1；R2 preview 暫用 `r2.dev` 網址，尚未設定正式媒體自訂網域。
 5. **備援資料新鮮度尚未顯示在畫面上。** 前端已取得同步時間，缺少 UI。
 6. **Worker 的 CORS。** Worker 只接受 `ALLOWED_ORIGINS` 列出的完整網域，不再接受任何 `*.pages.dev`。新增測試網域時要手動加進 `wrangler.jsonc` 並重新部署 Worker。
 
-## 開發測試站（dev-open-scripts.shawnup.com）
+## Preview Pages（dev-open-scripts.shawnup.com）
 
-正式站 `open-scripts.shawnup.com` 不動。靜態站先掛在開發測試站，由人工測試。
+正式站 `open-scripts.shawnup.com` 不動。preview Pages 使用獨立的 `dev-open-scripts.shawnup.com` 網址；Cloudflare Pages 自訂網域狀態為 active，CNAME 指向 Pages 專案。預設 `pages.dev` 網址仍可使用。
 
 | 項目 | 設定 |
 |---|---|
 | Pages 專案 | `write-project-public-site-preview`（Production 分支 `main`） |
-| 測試網域 | `dev-open-scripts.shawnup.com`（在 Pages 專案的 Custom domains 加入；`shawnup.com` 在同一帳號，會自動建立 CNAME） |
-| API Worker | `write-project-public-preview`（`workers.dev` 網域），轉送到正式後端 |
-| 主要 API | API Worker |
-| 媒體網域 | `https://open-scripts.shawnup.com`（正式站的 `/media`） |
-| 工作室連結 | `https://open-scripts.shawnup.com/dashboard`（`NEXT_PUBLIC_STUDIO_ORIGIN`） |
-| 備援 API、R2 | 尚未建立，所以測試站沒有備援 |
+| Preview 網址 | `https://dev-open-scripts.shawnup.com`（canonical）；`https://write-project-public-site-preview.pages.dev` 仍可直接使用 |
+| 環境標記 | `NEXT_PUBLIC_DEPLOY_ENV=development`，建置時寫入靜態 HTML 的 `data-deploy-environment`；preview build 會拒絕 production 標記 |
+| Dev API | `https://api-dev-open-scripts.shawnup.com`，Cloudflare Tunnel 轉送到 `127.0.0.1:8891`；使用獨立 Postgres 與媒體 volume，初始資料從正式資料庫和媒體複製 |
+| Dev Studio | `https://studio-dev-open-scripts.shawnup.com/dashboard`，Tunnel 轉送至 `127.0.0.1:8890` 的獨立 Vite 靜態前端；`/api` 和 `/media` 經 Docker network 反向代理至 8891 Dev API |
+| 主要 API | Dev API Tunnel；本機服務失效時改讀 fallback Worker |
+| 媒體網域 | Dev API Tunnel 的 `/media`；本機媒體無法讀取時使用 R2 |
+| 工作室連結 | `https://studio-dev-open-scripts.shawnup.com/dashboard`，獨立 Dev Studio 前端反向代理到 Dev API |
+| 備援 API | `write-project-public-fallback` Worker，由 preview D1 快照回應 |
+| R2 媒體 | `write-project-public-preview-media` bucket，preview 使用 `r2.dev` 公開網址 |
 | 搜尋引擎 | 建置時加 `noindex`（`build:pages-preview`） |
+
+`NEXT_PUBLIC_DEPLOY_ENV` 是環境標記與建置防呆；實際目的地仍由 `NEXT_PUBLIC_API_ORIGIN`、`NEXT_PUBLIC_MEDIA_ORIGIN`、`NEXT_PUBLIC_STUDIO_ORIGIN` 和 `NEXT_PUBLIC_BASE_URL` 各自決定。靜態 Pages 會在本機 build 時把這些值編進輸出，之後在 Cloudflare Pages 專案設定環境變數不會改寫已上傳的 HTML/JavaScript。Preview build 會核對 Dev API、Dev Studio 與 canonical host，production build 會拒絕 Dev API/Studio host，Dev build 也要求 D1/R2 備援 origin。
+
+Dev API 的 Postgres 與媒體 volume 完全獨立於正式容器。Dev Studio 是另一份 Vite build，服務在 `127.0.0.1:8890`，並透過 Docker network 反向代理到 Dev API 的 8891 容器；不使用正式的 `dist`。`com.shawnup.write-project-public-sync` launchd job 每 15 分鐘從 `http://127.0.0.1:8891` 同步公開資料和媒體到 preview D1/R2。
+
+重新建置並啟動 Dev Studio：
+
+```bash
+npm run build:dev-studio
+docker compose --project-name write-project-dev-studio-8890 -f docker-compose.dev-studio-8890.yml up -d
+```
+
+Dev Studio 的 Google 登入沿用原 Firebase 專案，並已將 `studio-dev-open-scripts.shawnup.com` 加入該專案的 OAuth 授權網域；Dev bundle 關閉正式 GA measurement ID。
 
 重新部署：
 
@@ -180,8 +209,12 @@ npm run deploy:api-preview -w apps/public
 
 # 靜態站
 cd apps/public
-NEXT_PUBLIC_API_ORIGIN=https://write-project-public-preview.silence0603.workers.dev \
-NEXT_PUBLIC_MEDIA_ORIGIN=https://open-scripts.shawnup.com \
+BACKEND_API_URL=https://api-dev-open-scripts.shawnup.com \
+NEXT_PUBLIC_DEPLOY_ENV=development \
+NEXT_PUBLIC_API_ORIGIN=https://api-dev-open-scripts.shawnup.com \
+NEXT_PUBLIC_FALLBACK_API_ORIGIN=https://write-project-public-fallback.silence0603.workers.dev \
+NEXT_PUBLIC_MEDIA_ORIGIN=https://api-dev-open-scripts.shawnup.com \
+NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN=https://pub-37c286fc2f9143a69bfbe1f784d95880.r2.dev \
 NEXT_PUBLIC_STUDIO_ORIGIN=https://open-scripts.shawnup.com \
 NEXT_PUBLIC_BASE_URL=https://dev-open-scripts.shawnup.com \
 npm run build:pages-preview
@@ -190,9 +223,10 @@ npx wrangler pages deploy out --project-name write-project-public-site-preview -
 
 注意：
 
-- 測試站的 API Worker 轉送到**正式後端**，所以設了 `READ_ONLY=1`：瀏覽次數、按讚、意見回饋、條款同意的寫入一律回 503，避免測試弄髒正式資料。要測試寫入流程時，需改指向測試後端或暫時關掉這個設定。
-- 圖片不經過 Worker，媒體網域必須單獨設定。建置時寫進頁面的圖片網址使用媒體網域；曾因誤用 API 網域而讓圖片指向 Worker 而載入失敗，已修正。
-- 封面在其他網站的外部作品（目前 17 筆）在測試站仍經 Worker 轉送到正式站，這是限制 2 的暫時做法；其餘外部作品的封面直接讀媒體網域。
+- Pages 前端不會連 `127.0.0.1:8891`；那是本機服務與同步排程使用的端口。瀏覽器連 `api-dev-open-scripts.shawnup.com`，由 Tunnel 轉到該端口。
+- Preview 主 API 指向獨立 Dev 資料庫，因此 Dev 寫入不會修改正式資料；D1 Worker 仍是唯讀快照備援。
+- 圖片不經過 API Worker。主要媒體 origin 使用 Dev API Tunnel，R2 origin 供故障時載入。
+- 外部作品封面在同步時由公開媒體 API 抓取並存入 R2；preview 瀏覽器從 R2 網址直接載入，不經 Worker。
 
 ## 優點與風險
 
@@ -216,10 +250,10 @@ npx wrangler pages deploy out --project-name write-project-public-site-preview -
 
 ## 切換與驗收階段
 
-1. **預覽階段（進行中）**：靜態前端、重抓、404 外殼、主備切換已在本機驗證，並已部署到開發測試站（見下節）。已在 Pages 上確認未建置的 `/read/<id>` 回傳 `404.html`（狀態 404）。
-2. **媒體階段**：建立 R2 媒體路徑，遷移已發布圖片，確認正常時先讀本機、圖片失敗時可讀 R2；處理外部封面。
-3. **資料備援階段**：建立 D1，實作受保護的同步，只同步已發布資料；綁定 Worker 的 D1。
-4. **故障演練**：讓本機 API／Tunnel 暫時不可用，確認工作室如預期停止，公開站能切到 D1 和 R2；恢復本機後確認回到主讀取路徑。
+1. **預覽階段（已部署）**：靜態前端、重抓、404 外殼、主備切換已部署到 preview Pages。最新部署為 `aef2f8a1`；自訂網址首頁回 200 並帶 `X-Robots-Tag: noindex, nofollow`，canonical 與 sitemap 均使用 `https://dev-open-scripts.shawnup.com`。
+2. **媒體階段（preview 已完成）**：R2 已建立並載入公開媒體；抽查本地圖片與外部封面，遠端物件與 `r2.dev` 公開網址都可讀。每 15 分鐘排程會檢查有無需要同步的新媒體。
+3. **資料備援階段（preview 已完成）**：D1 已建立並載入 34 個公開 API 快照，綁定獨立備援 Worker；Worker 回應包含同步時間。macOS launchd 每 15 分鐘檢查內容變更並同步。
+4. **故障切換演練（preview 已完成）**：只停止獨立 Dev API 容器，瀏覽器主 API 失敗後成功改向 D1 備援 Worker 取得 200，首頁內容仍顯示。重啟 Dev API 後清除 sessionStorage 的 60 秒冷卻狀態，瀏覽器恢復只呼叫 Dev API。正式 API 沒有停止。
 5. **正式切換前**：驗證直接網址、搜尋引擎可讀 HTML／metadata、快取、CORS、瀏覽次數策略和備援額度；補上自動重新部署。通過後才評估正式站切換。
 
 ## 已驗證項目
@@ -236,6 +270,6 @@ npx wrangler pages deploy out --project-name write-project-public-site-preview -
 - 已建置的標籤頁載入後列出建置後才新增的作品（快照 HTML 沒有）；建置後才出現的新標籤、新系列、新外部作者頁由 `404.html` 載入並顯示；不存在的標籤仍顯示 404；主要 API 失聯時新標籤頁改由備援 API 載入。
 - 單元測試：`lib/liveApi.test.ts`、`lib/mediaSources.test.ts`、`lib/externalCover.test.ts`、`lib/entityModels.test.ts`、`lib/useLiveData.test.tsx`、`worker/index.test.ts`。
 
-尚未驗證：實際部署到 Cloudflare Pages 的行為、真實 Tunnel 的 CORS 與延遲、D1／R2 實際資料。
+2026-10-27 Dev API 直接連線與故障恢復檢查：Dev API health 200；Pages 預覽網域可直接取得 API 200 和 Dev `/media` 圖片；停掉 Dev API 時，請求改由 fallback Worker/D1 回 200 並保留首頁內容；重啟後清除冷卻狀態，請求恢復到 Dev API。R2 抽查媒體回 200。launchd 從 `127.0.0.1:8891` 執行，每 15 分鐘檢查，資料未變時略過寫入。
 
 目前 `codex/cloudflare-static-pages` 上的 Cloudflare 設定屬預覽試作；此文件記錄目標方向，不代表正式環境已切換。

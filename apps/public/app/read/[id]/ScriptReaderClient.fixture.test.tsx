@@ -30,15 +30,7 @@ import type { MarkerConfig, TocEntry } from "@write/script-engine";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 
 function makeFetch() {
-  return vi.fn().mockImplementation((url: string) => {
-    if (String(url).includes("like-status")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ liked: false, likes: 0 }),
-      });
-    }
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-  });
+  return vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 }
 
 function renderWith(

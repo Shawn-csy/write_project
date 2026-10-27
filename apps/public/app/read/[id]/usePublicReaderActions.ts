@@ -30,7 +30,7 @@ export function usePublicReaderActions(
   initialViews: number,
   initialLikes: number,
 ): PublicReaderActions {
-  const [views, setViews] = useState(initialViews);
+  const views = initialViews;
   const [likes, setLikes] = useState(initialLikes);
   const [liked, setLiked] = useState(false);
   const [likeInFlight, setLikeInFlight] = useState(false);
@@ -39,20 +39,6 @@ export function usePublicReaderActions(
 
   useEffect(() => {
     liveApi.write(`/api/scripts/${scriptId}/view`, { method: "POST" }).catch(() => {});
-  }, [scriptId]);
-
-  useEffect(() => {
-    const visitorId = getOrCreateVisitorId();
-    liveApi.readPrimary(`/api/public-scripts/${scriptId}/like-status?visitorId=${encodeURIComponent(visitorId)}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data) {
-          setLiked(Boolean(data.liked));
-          setLikes(Number(data.likes ?? 0));
-          setViews((v) => (data.views != null ? Number(data.views) : v));
-        }
-      })
-      .catch(() => {});
   }, [scriptId]);
 
   const handleLike = useCallback(async () => {

@@ -1,11 +1,4 @@
-/**
- * Address of the writing studio.
- *
- * The studio is not part of the static public site: it runs on the local
- * server and is reached through the tunnel, so it is gone whenever that server
- * is offline. A normal deployment serves both from one origin and leaves
- * NEXT_PUBLIC_STUDIO_ORIGIN empty, which keeps these links relative.
- */
+/** Address of the writing studio for the current deployment environment. */
 const STUDIO_ORIGIN = (process.env.NEXT_PUBLIC_STUDIO_ORIGIN ?? "").replace(/\/+$/, "");
 
 export function studioUrl(path = "/dashboard"): string {

@@ -5,6 +5,7 @@ node_modules
 
 # Production
 dist
+dist-dev-studio-8890/
 dist-analyze/
 build
 

@@ -64,7 +64,7 @@ def public_base_url() -> str:
 
 
 def _cors_allow_origins() -> list[str]:
-    return [
+    origins = [
         "http://localhost:5173",
         "http://localhost:1090",
         "http://localhost:8080",
@@ -73,6 +73,12 @@ def _cors_allow_origins() -> list[str]:
         "https://scripts-api.shawnup.com",
         "https://scripts-666540946249.asia-east1.run.app",
     ]
+    extra_origins = [
+        origin.strip().rstrip("/")
+        for origin in os.getenv("CORS_EXTRA_ORIGINS", "").split(",")
+        if origin.strip()
+    ]
+    return list(dict.fromkeys([*origins, *extra_origins]))
 
 
 def _connect_src_values(allow_origins: list[str]) -> str:

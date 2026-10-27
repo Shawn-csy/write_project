@@ -1,12 +1,21 @@
 -- D1 schema for the read-only public fallback.
---
--- One row per public API answer, keyed by the request path plus query string
--- exactly as the browser sends it (for example "/api/public-bundle" or
--- "/api/public-scripts/abc123"). `body` is the JSON the local backend returned
--- for that request; storing the answers as-is keeps the fallback's response
--- shape identical to the primary's.
+-- A generation is written completely before the active pointer is switched, so
+-- visitors never see a half-written snapshot if a sync is interrupted.
+CREATE TABLE IF NOT EXISTS public_snapshot_generation (
+  generation TEXT PRIMARY KEY,
+  synced_at  TEXT NOT NULL,
+  row_count  INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public_snapshot (
-  path      TEXT PRIMARY KEY,
-  body      TEXT NOT NULL,
-  synced_at TEXT NOT NULL
+  generation  TEXT NOT NULL,
+  path        TEXT NOT NULL,
+  content_type TEXT NOT NULL,
+  body_gzip   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (generation, path)
+);
+
+CREATE TABLE IF NOT EXISTS public_snapshot_state (
+  id                INTEGER PRIMARY KEY CHECK (id = 1),
+  active_generation TEXT NOT NULL
 );
