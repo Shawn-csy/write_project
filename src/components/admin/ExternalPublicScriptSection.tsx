@@ -126,6 +126,8 @@ function makeEmptyDraft(): Draft {
 interface DirectoryOption {
   name: string;
   url: string;
+  bio?: string;
+  avatarUrl?: string;
 }
 
 interface AuthorGroup {
@@ -241,11 +243,25 @@ export function ExternalPublicScriptSection() {
     const options = new Map<string, DirectoryOption>();
     for (const item of items) {
       const name = item.authorName?.trim();
-      if (name) options.set(`external:${name}`, { name, url: item.authorUrl?.trim() || "" });
+      if (!name) continue;
+      const existing = options.get(name);
+      options.set(name, {
+        name,
+        url: existing?.url || item.authorUrl?.trim() || "",
+        bio: existing?.bio || item.authorBio?.trim() || "",
+        avatarUrl: existing?.avatarUrl || item.authorAvatarUrl?.trim() || "",
+      });
     }
     for (const persona of personas) {
       const name = persona.displayName?.trim();
-      if (name) options.set(`persona:${persona.id}`, { name, url: firstPersonaLink(persona) });
+      if (!name) continue;
+      const existing = options.get(name);
+      options.set(name, {
+        name,
+        url: firstPersonaLink(persona) || existing?.url || "",
+        bio: persona.bio?.trim() || existing?.bio || "",
+        avatarUrl: persona.avatar?.trim() || existing?.avatarUrl || "",
+      });
     }
     return Array.from(options.values()).sort((a, b) => a.name.localeCompare(b.name, "zh-Hant"));
   }, [items, personas]);
@@ -530,7 +546,14 @@ export function ExternalPublicScriptSection() {
                   onChange={(event) => {
                     const value = event.target.value;
                     const selected = authorOptions.find((option) => option.name === value);
-                    updateDraft({ authorName: value, ...(selected ? { authorUrl: selected.url } : {}) });
+                    updateDraft({
+                      authorName: value,
+                      ...(selected ? {
+                        authorBio: selected.bio || "",
+                        authorUrl: selected.url,
+                        authorAvatarUrl: selected.avatarUrl || "",
+                      } : {}),
+                    });
                   }}
                   list="external-script-author-options"
                   placeholder="作者名稱（可從既有資料選擇）"
