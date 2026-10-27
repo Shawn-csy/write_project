@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { liveApi } from "@/lib/liveApi";
 
 function getOrCreateVisitorId(): string {
   try {
@@ -37,12 +38,12 @@ export function usePublicReaderActions(
   likeRef.current = liked;
 
   useEffect(() => {
-    fetch(`/api/scripts/${scriptId}/view`, { method: "POST" }).catch(() => {});
+    liveApi.write(`/api/scripts/${scriptId}/view`, { method: "POST" }).catch(() => {});
   }, [scriptId]);
 
   useEffect(() => {
     const visitorId = getOrCreateVisitorId();
-    fetch(`/api/public-scripts/${scriptId}/like-status?visitorId=${encodeURIComponent(visitorId)}`)
+    liveApi.readPrimary(`/api/public-scripts/${scriptId}/like-status?visitorId=${encodeURIComponent(visitorId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) {
@@ -62,7 +63,7 @@ export function usePublicReaderActions(
     setLikes((l) => (prev ? Math.max(0, l - 1) : l + 1));
     try {
       const visitorId = getOrCreateVisitorId();
-      const res = await fetch(`/api/public-scripts/${scriptId}/like`, {
+      const res = await liveApi.write(`/api/public-scripts/${scriptId}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId }),

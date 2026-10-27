@@ -4,6 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { CheckCircle2, Loader2, MessageSquarePlus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { liveApi } from "@/lib/liveApi";
 
 type FeedbackKind = "bug" | "listing";
 
@@ -64,7 +65,7 @@ export function PublicFeedbackDialog() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch("/api/public-feedback", {
+      const response = await liveApi.write("/api/public-feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

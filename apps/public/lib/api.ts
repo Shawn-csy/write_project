@@ -9,8 +9,24 @@
  * resolved inside PublicImage, never at the API data boundary.
  */
 
+import { mediaOriginsFromEnv } from "./mediaSources";
+
 const API_BASE = process.env.BACKEND_API_URL ?? "http://write_project-backend:1091";
 const DEFAULT_TIMEOUT_MS = 8000;
+// Where baked-in /media/ URLs point. In the static build this is the media
+// origin, which can differ from the API origin (the API Worker serves no images).
+const PUBLIC_MEDIA_ORIGIN = mediaOriginsFromEnv().primary;
+
+function resolvePublicMediaUrls(value: unknown): unknown {
+  if (typeof value === "string" && value.startsWith("/media/")) {
+    return `${PUBLIC_MEDIA_ORIGIN}${value}`;
+  }
+  if (Array.isArray(value)) return value.map(resolvePublicMediaUrls);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, resolvePublicMediaUrls(nested)]));
+  }
+  return value;
+}
 
 type ApiFetchInit = RequestInit & {
   next?: {
@@ -42,7 +58,8 @@ export async function apiFetch<T>(path: string, init?: ApiFetchInit): Promise<T>
     if (!res.ok) {
       throw new Error(`API ${path} failed: ${res.status} ${res.statusText}`);
     }
-    return res.json() as Promise<T>;
+    const data = await res.json();
+    return resolvePublicMediaUrls(data) as T;
   } finally {
     if (timeout) clearTimeout(timeout);
     if (!cacheControlledByNext) upstreamSignal?.removeEventListener("abort", abortFromUpstream);

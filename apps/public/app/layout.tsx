@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { MediaFallbackBridge } from "@/components/MediaFallbackBridge";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE } from "@/lib/seo";
 
 // 不要新增 loading.tsx —— 不論是這裡還是任何 [id] / [name] 路由底下。
@@ -51,6 +52,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>{children}</ThemeProvider>
+        {process.env.NEXT_PUBLIC_STATIC_EXPORT === "1" && <MediaFallbackBridge />}
       </body>
     </html>
   );

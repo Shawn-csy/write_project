@@ -5,6 +5,7 @@ import type {
 } from "@write/public-ui";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "./types";
 import { externalEntityHref, socialAvatarUrl } from "./externalEntity";
+import { externalCoverSrc } from "./externalCover";
 
 function toTimestamp(value?: number | string | null): number {
   if (value == null || value === "") return 0;
@@ -233,8 +234,9 @@ export function slimExternalScriptForHomepage(item: ExternalPublicScript): Exter
     // fold the fallback in so the second copy does not ship.
     title: item.title || item.remoteTitle || "",
     summary: clip(item.summary || item.remoteSummary, HOMEPAGE_EXTERNAL_SUMMARY_MAX),
-    // Only used as a truthy check: the card image goes through /api/public-media/external/:id.
-    coverUrl: item.coverUrl ? `/api/public-media/external/${item.id}` : undefined,
+    // Cards resolve the image from this with externalCoverSrc(): the stored file in the static
+    // build, otherwise the /api/public-media/external/:id proxy.
+    coverUrl: externalCoverSrc(item),
     categories: item.categories,
     views: item.views,
     status: item.status,
