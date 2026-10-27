@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { BASE_URL } from "@/lib/seo";
 
+export const dynamic = "force-static";
+
 const AI_BOTS = ["GPTBot", "ClaudeBot", "PerplexityBot", "Google-Extended"];
 
 const AI_BOT_RULES = {

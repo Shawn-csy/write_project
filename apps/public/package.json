@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
-    "start": "next start"
+    "start": "next start",
+    "build:pages-preview": "node ../../scripts/build-public-pages.mjs --preview",
+    "build:pages": "node ../../scripts/build-public-pages.mjs",
+    "deploy:api-preview": "wrangler deploy --config worker/wrangler.jsonc",
+    "deploy:pages-preview": "npm run build:pages-preview && wrangler pages deploy out --project-name write-project-public-site-preview --branch main"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.11",
@@ -41,6 +45,7 @@
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "4.153.0"
   }
 }

@@ -11,7 +11,7 @@ import { SITE_VERSION } from "@/lib/siteVersion";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
 
-export const revalidate = 3600;
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
 
 const webPageJsonLd = createPublicInfoWebPageJsonLd({
   path: "/about",
