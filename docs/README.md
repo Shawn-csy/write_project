@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-10-20（v0.7.1）
+最後更新：2026-10-27（v0.7.1）
 
 ## 目錄分工
 
@@ -60,6 +60,7 @@
 
 ## 進行中
 
+- `pending/cloudflare-pages-tunnel-d1-r2-direction.md`：公開站 Pages 靜態快照加瀏覽器即時資料的混合架構、本機 Tunnel 主讀，以及 D1／R2 雲端唯讀備援方向
 - `pending/production-security-hardening-plan.md`：正式環境資安基線（長期路線圖）
 
 ## 歷史紀錄
