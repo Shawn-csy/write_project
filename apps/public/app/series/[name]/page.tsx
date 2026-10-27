@@ -2,63 +2,27 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import type { ExternalPublicScript, PublicScript } from "@/lib/types";
-import { toGalleryInput } from "@/lib/galleryProjection";
-import { enrichScript } from "@write/public-ui/server";
-import {
-  groupScriptsIntoGalleryEntries,
-  findSeriesGroupByName,
-} from "@write/public-ui/server";
+import { buildSeriesData, type PublicBundleLike, type SeriesData } from "@/lib/entityModels";
 import { SeriesPageClient } from "./SeriesPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
+import { getStaticSeriesParams } from "@/lib/staticParams";
+import { LiveSeriesPage } from "@/components/LiveEntityPages";
 
-export const revalidate = 3600;
-export const dynamicParams = true;
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-interface BundleResponse {
-  scripts?: PublicScript[];
-  externalPublicScripts?: ExternalPublicScript[];
-}
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
 
-interface SeriesData {
-  scripts: PublicScript[];
-  externalItems: ExternalPublicScript[];
-  summary?: string;
-  coverUrl?: string;
-  latestScriptId?: string;
+export async function generateStaticParams() {
+  return getStaticSeriesParams();
 }
 
 const fetchSeriesData = cache(async (seriesName: string): Promise<SeriesData> => {
   try {
-    const bundle = await apiFetch<BundleResponse>("/public-bundle");
-    const rawScripts = bundle.scripts ?? [];
-    const allEnriched = rawScripts.map((s) => enrichScript(toGalleryInput(s)));
-    const entries = groupScriptsIntoGalleryEntries(allEnriched);
-    const group = findSeriesGroupByName(entries, seriesName);
-    const externalItems = (bundle.externalPublicScripts ?? [])
-      .filter((item) => item.status === "published" && item.seriesName?.trim().toLocaleLowerCase() === seriesName.trim().toLocaleLowerCase())
-      .sort((a, b) => {
-        const aOrder = a.seriesOrder == null ? Number.POSITIVE_INFINITY : a.seriesOrder;
-        const bOrder = b.seriesOrder == null ? Number.POSITIVE_INFINITY : b.seriesOrder;
-        return aOrder - bOrder || (a.mountedAt ?? a.createdAt ?? 0) - (b.mountedAt ?? b.createdAt ?? 0);
-      });
-    if (!group && externalItems.length === 0) return { scripts: [], externalItems: [] };
-    // Map sorted chapters back to PublicScript by id (preserving model order)
-    const byId = new Map(rawScripts.map((s) => [s.id, s]));
-    const scripts = (group?.scripts ?? [])
-      .map((s) => byId.get(s.id))
-      .filter((s): s is PublicScript => s != null);
-    const externalCoverItem = externalItems.find((item) => item.coverUrl);
-    return {
-      scripts,
-      externalItems,
-      summary: group?.summary || externalItems.find((item) => item.summary)?.summary,
-      coverUrl: group?.coverUrl || (externalCoverItem ? `/api/public-media/external/${externalCoverItem.id}` : undefined),
-      latestScriptId: group?.latestScript.id || externalItems.at(-1)?.id,
-    };
+    return buildSeriesData(await apiFetch<PublicBundleLike>("/public-bundle"), seriesName);
   } catch {
     return { scripts: [], externalItems: [] };
   }
@@ -167,7 +131,14 @@ export default async function SeriesPage({
           </ul>
         </article>
       </noscript>
-      <SeriesPageClient seriesName={seriesName} scripts={scripts} externalItems={externalItems} seriesMeta={seriesMeta} />
+      {STATIC_EXPORT ? (
+        <LiveSeriesPage
+          seriesName={seriesName}
+          initial={{ scripts, externalItems, summary, coverUrl, latestScriptId }}
+        />
+      ) : (
+        <SeriesPageClient seriesName={seriesName} scripts={scripts} externalItems={externalItems} seriesMeta={seriesMeta} />
+      )}
     </>
   );
 }

@@ -4,6 +4,10 @@
  *   1. Embedded markerTheme.configs (backend joins on /public-scripts/:id)
  *   2. /api/themes/public list match by markerThemeId
  *   3. Default marker rules
+ *
+ * The resolution order is shared by the server render and by the browser,
+ * which re-resolves it when a static page is refreshed with newer content.
+ * Only the way the theme list is loaded differs.
  */
 
 import { apiFetch } from "./api";
@@ -16,7 +20,12 @@ type ScriptWithTheme = PublicScript & {
   markerThemeId?: string;
 };
 
-export async function resolveMarkerConfigs(script: PublicScript): Promise<MarkerConfig[]> {
+export type PublicThemeLoader = () => Promise<Array<{ id?: string; configs?: unknown }>>;
+
+export async function resolveMarkerConfigsWith(
+  script: PublicScript,
+  loadThemes: PublicThemeLoader,
+): Promise<MarkerConfig[]> {
   const s = script as ScriptWithTheme;
 
   // 1. Prefer embedded theme (backend joins markerTheme on /public-scripts/:id)
@@ -29,10 +38,7 @@ export async function resolveMarkerConfigs(script: PublicScript): Promise<Marker
   const themeId = s.markerThemeId;
   if (themeId && themeId !== "default") {
     try {
-      const themes = await apiFetch<Array<{ id?: string; configs?: unknown }>>(
-        "/themes/public",
-        { next: { revalidate: 3600 } },
-      );
+      const themes = await loadThemes();
       const matched = themes.find((t) => String(t.id ?? "") === themeId);
       if (matched?.configs) {
         const normalized = normalizeMarkerConfigsSchema(matched.configs);
@@ -44,4 +50,10 @@ export async function resolveMarkerConfigs(script: PublicScript): Promise<Marker
   }
 
   return getDefaultMarkerRules();
+}
+
+export function resolveMarkerConfigs(script: PublicScript): Promise<MarkerConfig[]> {
+  return resolveMarkerConfigsWith(script, () =>
+    apiFetch<Array<{ id?: string; configs?: unknown }>>("/themes/public", { next: { revalidate: 3600 } }),
+  );
 }

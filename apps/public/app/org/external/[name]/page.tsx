@@ -7,9 +7,18 @@ import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/s
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { decodeRouteName, findExternalOrgModel } from "@/lib/entityModels";
+import { getStaticExternalOrgParams } from "@/lib/staticParams";
+import { LiveExternalOrgPage } from "@/components/LiveEntityPages";
 
-export const revalidate = 300;
-export const dynamicParams = true;
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
+
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 300;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+
+export async function generateStaticParams() {
+  return getStaticExternalOrgParams();
+}
 
 async function fetchExternalScripts(): Promise<ExternalPublicScript[]> {
   try {
@@ -21,29 +30,11 @@ async function fetchExternalScripts(): Promise<ExternalPublicScript[]> {
 }
 
 function decodeName(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
+  return decodeRouteName(value);
 }
 
 async function getModel(rawName: string) {
-  const name = decodeName(rawName);
-  const normalizedName = name.trim().toLocaleLowerCase();
-  const items = (await fetchExternalScripts()).filter((item) => {
-    const organizationName = item.organizationName?.trim() || "";
-    return organizationName.toLocaleLowerCase() === normalizedName
-      || externalEntitySlug(organizationName, item.organizationUrl).toLocaleLowerCase() === normalizedName;
-  });
-  if (items.length === 0) return null;
-  return {
-    name: items[0].organizationName?.trim() || name,
-    bio: items.find((item) => item.organizationBio?.trim())?.organizationBio?.trim() || "",
-    profileUrl: items.find((item) => item.organizationUrl)?.organizationUrl || "",
-    profileAvatarUrl: items.find((item) => item.organizationAvatarUrl)?.organizationAvatarUrl || "",
-    items,
-  };
+  return findExternalOrgModel(await fetchExternalScripts(), rawName);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
@@ -74,7 +65,11 @@ export default async function ExternalOrgPage({ params }: { params: Promise<{ na
   return (
     <>
       <PublicTopBar activeTab="orgs" trailing={<PublicShellActions />} />
-      <ExternalEntityPage kind="org" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} />
+      {STATIC_EXPORT ? (
+        <LiveExternalOrgPage rawName={rawName} initial={model} />
+      ) : (
+        <ExternalEntityPage kind="org" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} />
+      )}
     </>
   );
 }

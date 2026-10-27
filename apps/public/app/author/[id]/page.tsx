@@ -8,9 +8,17 @@ import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
+import { getStaticAuthorParams } from "@/lib/staticParams";
+import { LiveAuthorPage } from "@/components/LiveEntityPages";
 
-export const revalidate = 3600;
-export const dynamicParams = true;
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
+
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+
+export async function generateStaticParams() {
+  return getStaticAuthorParams();
+}
 
 const fetchPersona = cache(async (id: string): Promise<PublicPersona | null> => {
   try {
@@ -116,7 +124,11 @@ export default async function AuthorPage({
           )}
         </article>
       </noscript>
-      <AuthorPageClient persona={persona} scripts={scripts} />
+      {STATIC_EXPORT ? (
+        <LiveAuthorPage id={id} initial={{ persona, scripts }} />
+      ) : (
+        <AuthorPageClient persona={persona} scripts={scripts} />
+      )}
     </>
   );
 }

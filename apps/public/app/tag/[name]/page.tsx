@@ -2,36 +2,27 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import type { PublicScript } from "@/lib/types";
 import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
-import { filterScriptsByTag } from "./filterScriptsByTag";
-import { filterExternalScriptsByTag } from "./filterScriptsByTag";
+import { buildTagData, type PublicBundleLike, type TagData } from "@/lib/entityModels";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
+import { getStaticTagParams } from "@/lib/staticParams";
+import { LiveTagPage } from "@/components/LiveEntityPages";
 
-export const revalidate = 3600;
-export const dynamicParams = true;
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-interface BundleResponse {
-  scripts?: PublicScript[];
-  externalPublicScripts?: import("@/lib/types").ExternalPublicScript[];
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+
+export async function generateStaticParams() {
+  return getStaticTagParams();
 }
 
-const fetchTagScripts = cache(async (tagName: string): Promise<{
-  scripts: PublicScript[];
-  externalScripts: NonNullable<BundleResponse["externalPublicScripts"]>;
-}> => {
+const fetchTagScripts = cache(async (tagName: string): Promise<TagData> => {
   try {
-    const bundle = await apiFetch<BundleResponse>("/public-bundle");
-    return {
-      scripts: filterScriptsByTag(bundle.scripts ?? [], tagName),
-      externalScripts: filterExternalScriptsByTag(
-        (bundle.externalPublicScripts ?? []).filter((script) => script.status === "published"),
-        tagName,
-      ),
-    };
+    return buildTagData(await apiFetch<PublicBundleLike>("/public-bundle"), tagName);
   } catch {
     return { scripts: [], externalScripts: [] };
   }
@@ -125,7 +116,11 @@ export default async function TagPage({
           </ul>
         </article>
       </noscript>
-      <TagPageClient tagName={tagName} scripts={scripts} externalScripts={externalScripts} />
+      {STATIC_EXPORT ? (
+        <LiveTagPage tagName={tagName} initial={{ scripts, externalScripts }} />
+      ) : (
+        <TagPageClient tagName={tagName} scripts={scripts} externalScripts={externalScripts} />
+      )}
     </>
   );
 }

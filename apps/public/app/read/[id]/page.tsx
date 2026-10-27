@@ -5,6 +5,7 @@ import { apiFetch } from "@/lib/api";
 import type { PublicScript } from "@/lib/types";
 import { ScriptReaderClient } from "./ScriptReaderClient";
 import { ConsentGate } from "./ConsentGate";
+import { LiveReader } from "./LiveReader";
 import { parseScreenplay } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
 import { encodeCrawlSafePayload } from "@/lib/crawl-safe-payload";
@@ -23,6 +24,7 @@ import {
 } from "@/lib/readPageSeo";
 import { TITLE_SUFFIX } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
+import { getStaticReadParams } from "@/lib/staticParams";
 
 // ISR: hourly fallback; on-demand revalidation handles real-time updates.
 //
@@ -31,14 +33,20 @@ import { JsonLdScript } from "@/lib/jsonLd";
 // 搭配預設 expireTime（一年）等於告訴 Cloudflare「過期後仍可供應舊版最多一年」。
 // 2026-08-20 資料庫事故期間，三篇台本的 404 就是這樣被 CDN 鎖住的。
 // 改為 1 小時，並在 next.config.ts 收斂 expireTime。
-export const revalidate = 3600;
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
 
 // Keep unknown script IDs generated on first request, but make the generated
 // reader page cacheable by Next.js instead of treating every request as SSR.
 export const dynamic = "force-static";
 
 // Unknown script IDs are generated on first request, not blocked
-export const dynamicParams = true;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
+
+export async function generateStaticParams() {
+  return getStaticReadParams();
+}
 
 const fetchScript = cache(async (id: string): Promise<PublicScript | null> => {
   try {
@@ -117,6 +125,36 @@ export default async function ScriptReaderPage({
   // For age-gated (adult) works they must not leak into the public HTML.
   const showToc = toc.length > 0 && !isAdultScript(script);
 
+  const summary = (
+    <div data-seo-excerpt className="px-4 py-6 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-bold mb-2">{script.title}</h1>
+      {(excerpt.synopsis || description) && (
+        <p className="text-muted-foreground mb-3 whitespace-pre-line">{excerpt.synopsis || description}</p>
+      )}
+      {excerpt.outline && (
+        <section className="mb-3">
+          <h2 className="text-base font-semibold mb-1">大綱</h2>
+          <p className="text-sm text-muted-foreground whitespace-pre-line">{excerpt.outline}</p>
+        </section>
+      )}
+      {showToc && (
+        <nav aria-label="目錄" className="mb-3">
+          <h2 className="text-base font-semibold mb-1">目錄</h2>
+          <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-0.5">
+            {toc.slice(0, 40).map((entry, index) => (
+              <li key={`${entry.id}:${index}`}>{entry.label}</li>
+            ))}
+          </ol>
+        </nav>
+      )}
+      <dl className="text-sm text-muted-foreground space-y-1">
+        {authorName && <div><dt className="inline font-medium">作者：</dt><dd className="inline">{authorName}</dd></div>}
+        {script.organization?.name && <div><dt className="inline font-medium">組織：</dt><dd className="inline">{script.organization.name}</dd></div>}
+        {tags.length > 0 && <div><dt className="inline font-medium">標籤：</dt><dd className="inline">{tags.join("、")}</dd></div>}
+      </dl>
+    </div>
+  );
+
   return (
     <>
       <JsonLdScript data={[structuredData, breadcrumbData]} />
@@ -131,43 +169,15 @@ export default async function ScriptReaderPage({
         (ConsentGate SSR = loading state = summary is rendered). It is genuine
         visible content — not hidden text — consistent with the public API response.
       */}
-      <ConsentGate
-        scriptId={id}
-        summary={
-          <div data-seo-excerpt className="px-4 py-6 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-bold mb-2">{script.title}</h1>
-            {(excerpt.synopsis || description) && (
-              <p className="text-muted-foreground mb-3 whitespace-pre-line">{excerpt.synopsis || description}</p>
-            )}
-            {excerpt.outline && (
-              <section className="mb-3">
-                <h2 className="text-base font-semibold mb-1">大綱</h2>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{excerpt.outline}</p>
-              </section>
-            )}
-            {showToc && (
-              <nav aria-label="目錄" className="mb-3">
-                <h2 className="text-base font-semibold mb-1">目錄</h2>
-                <ol className="text-sm text-muted-foreground list-decimal pl-5 space-y-0.5">
-                  {toc.slice(0, 40).map((entry, index) => (
-                    <li key={`${entry.id}:${index}`}>{entry.label}</li>
-                  ))}
-                </ol>
-              </nav>
-            )}
-            <dl className="text-sm text-muted-foreground space-y-1">
-              {authorName && <div><dt className="inline font-medium">作者：</dt><dd className="inline">{authorName}</dd></div>}
-              {script.organization?.name && <div><dt className="inline font-medium">組織：</dt><dd className="inline">{script.organization.name}</dd></div>}
-              {tags.length > 0 && <div><dt className="inline font-medium">標籤：</dt><dd className="inline">{tags.join("、")}</dd></div>}
-            </dl>
-          </div>
-        }
-      >
-        <ScriptReaderClient
-          scriptId={id}
-          {...readerPayload}
-        />
-      </ConsentGate>
+      {STATIC_EXPORT ? (
+        // The build-time snapshot is shown at once and refreshed in the browser,
+        // so editing a published work needs no redeploy.
+        <LiveReader scriptId={id} initialPayload={readerPayload} summary={summary} />
+      ) : (
+        <ConsentGate scriptId={id} summary={summary}>
+          <ScriptReaderClient scriptId={id} {...readerPayload} />
+        </ConsentGate>
+      )}
     </>
   );
 }
