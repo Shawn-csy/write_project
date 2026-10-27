@@ -7,6 +7,7 @@ import { ScriptReaderClient } from "./ScriptReaderClient";
 import { ConsentGate } from "./ConsentGate";
 import { parseScreenplay } from "@write/script-engine";
 import { resolveMarkerConfigs } from "@/lib/markerThemeResolver";
+import { encodeCrawlSafePayload } from "@/lib/crawl-safe-payload";
 import type { AstNode, TocEntry } from "@write/script-engine";
 import {
   buildReadPageTitle,
@@ -106,6 +107,12 @@ export default async function ScriptReaderPage({
     : null;
   const scriptAst: AstNode = scriptDocument?.ast ?? { type: "root", children: [] };
   const toc: TocEntry[] = scriptDocument?.toc ?? [];
+  const readerPayload = encodeCrawlSafePayload({
+    initialScript: script,
+    scriptAst,
+    markerConfigs,
+    toc,
+  });
   // TOC labels come from the script body, which sits behind the consent gate.
   // For age-gated (adult) works they must not leak into the public HTML.
   const showToc = toc.length > 0 && !isAdultScript(script);
@@ -158,10 +165,7 @@ export default async function ScriptReaderPage({
       >
         <ScriptReaderClient
           scriptId={id}
-          initialScript={script}
-          scriptAst={scriptAst}
-          markerConfigs={markerConfigs}
-          toc={toc}
+          {...readerPayload}
         />
       </ConsentGate>
     </>

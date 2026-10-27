@@ -28,14 +28,38 @@ function decodeName(value: string): string {
   }
 }
 
+function normalizeAuthorAlias(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[\p{P}\p{S}\p{Z}\s]/gu, "");
+}
+
 async function getModel(rawName: string) {
   const name = decodeName(rawName);
   const normalizedName = name.trim().toLocaleLowerCase();
-  const items = (await fetchExternalScripts()).filter((item) => {
+  const publishedItems = await fetchExternalScripts();
+  const matchesNameOrSlug = (item: ExternalPublicScript) => {
     const authorName = item.authorName?.trim() || "";
     return authorName.toLocaleLowerCase() === normalizedName
       || externalEntitySlug(authorName, item.authorUrl).toLocaleLowerCase() === normalizedName;
-  });
+  };
+  let items = publishedItems.filter(matchesNameOrSlug);
+
+  // Older links used the external author's display name as the route token.
+  // If punctuation changed and the loose name uniquely maps to one canonical
+  // author slug, resolve that old URL and let the canonical redirect below fix it.
+  const aliasKey = normalizeAuthorAlias(name.trim());
+  if (items.length === 0 && aliasKey) {
+    const aliasItems = publishedItems.filter(
+      (item) => normalizeAuthorAlias(item.authorName?.trim() || "") === aliasKey,
+    );
+    const canonicalSlugs = new Set(
+      aliasItems.map((item) => externalEntitySlug(item.authorName?.trim() || "", item.authorUrl)),
+    );
+    if (canonicalSlugs.size === 1) items = aliasItems;
+  }
+
   if (items.length === 0) return null;
   return {
     name: items[0].authorName?.trim() || name,

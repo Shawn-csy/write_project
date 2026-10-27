@@ -23,6 +23,7 @@ import { usePublicExport } from "./usePublicExport";
 import { usePublicReaderShare } from "./usePublicReaderShare";
 import { createAppearanceReaderStorage } from "@/lib/createAppearanceReaderStorage";
 import { usePublicAppearance } from "@/components/PublicAppearanceContext";
+import { decodeCrawlSafePayload } from "@/lib/crawl-safe-payload";
 
 interface Props {
   scriptId: string;
@@ -34,11 +35,28 @@ interface Props {
 
 export function ScriptReaderClient({
   scriptId,
-  initialScript,
-  scriptAst,
-  markerConfigs,
-  toc,
+  initialScript: encodedInitialScript,
+  scriptAst: encodedScriptAst,
+  markerConfigs: encodedMarkerConfigs,
+  toc: encodedToc,
 }: Props) {
+  const initialScript = useMemo(
+    () => decodeCrawlSafePayload(encodedInitialScript),
+    [encodedInitialScript],
+  );
+  const scriptAst = useMemo(
+    () => decodeCrawlSafePayload(encodedScriptAst),
+    [encodedScriptAst],
+  );
+  const markerConfigs = useMemo(
+    () => decodeCrawlSafePayload(encodedMarkerConfigs),
+    [encodedMarkerConfigs],
+  );
+  const toc = useMemo(
+    () => decodeCrawlSafePayload(encodedToc),
+    [encodedToc],
+  );
+
   const actions = usePublicReaderActions(
     scriptId,
     initialScript.views ?? 0,
