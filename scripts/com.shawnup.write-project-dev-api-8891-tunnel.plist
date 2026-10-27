@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Dedicated Cloudflare Tunnel for the isolated Dev API (8891) and Studio (8890).
+
+  Install:
+    mkdir -p ~/Library/LaunchAgents ~/Library/Logs/write-project-dev-api-8891
+    cp scripts/com.shawnup.write-project-dev-api-8891-tunnel.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.shawnup.write-project-dev-api-8891-tunnel.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shawnup.write-project-dev-api-8891-tunnel</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/cloudflared</string>
+        <string>tunnel</string>
+        <string>--config</string>
+        <string>/Users/shanti/.cloudflared/write-project-dev-api-8891.yml</string>
+        <string>run</string>
+        <string>write-project-dev-api-8891</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/shanti/Desktop/write_project</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/shanti/Library/Logs/write-project-dev-api-8891/tunnel.stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/shanti/Library/Logs/write-project-dev-api-8891/tunnel.stderr.log</string>
+</dict>
+</plist>

@@ -1,0 +1,80 @@
+services:
+  dev-api-8891-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: write_project_dev
+      POSTGRES_USER: write_project_dev
+      POSTGRES_PASSWORD: write_project_dev_8891_local
+    volumes:
+      - dev-api-8891-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U write_project_dev -d write_project_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  dev-api-8891:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
+    ports:
+      - "127.0.0.1:8891:1091"
+    environment:
+      DATABASE_URL: postgresql+psycopg://write_project_dev:write_project_dev_8891_local@dev-api-8891-postgres:5432/write_project_dev
+      DB_PATH: /data/scripts.db
+      DB_AUTO_CREATE_TABLES: "1"
+      DB_RUN_LEGACY_MIGRATIONS: "1"
+      PORT: "1091"
+      ENVIRONMENT: development
+      ALLOW_X_USER_ID: "0"
+      PUBLIC_BASE_URL: https://dev-open-scripts.shawnup.com
+      MEDIA_STORAGE_ROOT: /data/media
+      CORS_EXTRA_ORIGINS: https://dev-open-scripts.shawnup.com,https://write-project-public-site-preview.pages.dev,https://studio-dev-open-scripts.shawnup.com
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_CREDENTIALS: /secrets/firebase-service-account.json
+      FIREBASE_CREDENTIALS_JSON: ""
+      ADMIN_USER_IDS: ${ADMIN_USER_IDS:-}
+      ADMIN_USER_EMAILS: ${ADMIN_USER_EMAILS:-}
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_FROM: ""
+      SMTP_USE_TLS: "0"
+      SMTP_USE_SSL: "0"
+      MCP_LOCAL_API_KEY: ""
+      MCP_OWNER_ID: ""
+    volumes:
+      - dev-api-8891-media:/data
+      - ./server/secrets:/secrets:ro
+    depends_on:
+      dev-api-8891-postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:1091/api/health/ready', timeout=3); raise SystemExit(0 if response.status == 200 else 1)
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+
+volumes:
+  dev-api-8891-postgres:
+    name: write-project-dev-api-8891-postgres
+  dev-api-8891-media:
+    name: write-project-dev-api-8891-media
+    external: true

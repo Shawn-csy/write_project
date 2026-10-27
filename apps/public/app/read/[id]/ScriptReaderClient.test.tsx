@@ -97,15 +97,7 @@ function buildProps() {
 }
 
 function makeFetchMock() {
-  return vi.fn().mockImplementation((url: string) => {
-    if (String(url).includes("like-status")) {
-      return Promise.resolve({
-        ok: true,
-        json: () => Promise.resolve({ liked: false, likes: 2 }),
-      });
-    }
-    return Promise.resolve({ ok: true, json: () => Promise.resolve({}) });
-  });
+  return vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
 }
 
 describe("ScriptReaderClient — Next host assembly", () => {

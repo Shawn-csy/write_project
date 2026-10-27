@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  D1/R2 preview snapshot sync (macOS launchd).
+
+  Install:
+    mkdir -p ~/Library/LaunchAgents ~/Library/Logs/write-project-public-sync
+    cp scripts/com.shawnup.write-project-public-sync.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.shawnup.write-project-public-sync.plist
+
+  Run now:
+    launchctl kickstart gui/$(id -u)/com.shawnup.write-project-public-sync
+
+  Check / stop:
+    launchctl list | grep write-project-public-sync
+    launchctl bootout gui/$(id -u)/com.shawnup.write-project-public-sync
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shawnup.write-project-public-sync</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>/Users/shanti/Desktop/write_project/scripts/sync-public-cloudflare.mjs</string>
+        <string>--preview</string>
+        <string>--scheduled</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/shanti/Desktop/write_project</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PUBLIC_SYNC_API_ORIGIN</key>
+        <string>http://127.0.0.1:8891</string>
+        <key>PUBLIC_SYNC_MEDIA_ORIGIN</key>
+        <string>http://127.0.0.1:8891</string>
+        <key>PUBLIC_SYNC_R2_PUBLIC_ORIGIN</key>
+        <string>https://pub-37c286fc2f9143a69bfbe1f784d95880.r2.dev</string>
+    </dict>
+
+    <key>StartInterval</key>
+    <integer>900</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/shanti/Library/Logs/write-project-public-sync/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/shanti/Library/Logs/write-project-public-sync/stderr.log</string>
+</dict>
+</plist>

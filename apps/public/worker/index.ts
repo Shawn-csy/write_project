@@ -33,8 +33,12 @@ interface Env {
 }
 
 interface SnapshotRow {
-  body: string;
-  synced_at: string;
+  active_generation?: string | null;
+  body_gzip?: string | null;
+  /** Kept for the in-memory legacy fixture used by the existing Worker tests. */
+  body?: string;
+  content_type?: string | null;
+  synced_at?: string | null;
 }
 
 const PUBLIC_READ_ROUTES = [
@@ -44,6 +48,7 @@ const PUBLIC_READ_ROUTES = [
   /^\/api\/public-organizations(?:\/[^/]+)?$/,
   /^\/api\/public-terms-config$/,
   /^\/api\/public-scripts\/?$/,
+  /^\/api\/public-scripts\/[^/]+\/raw$/,
   /^\/api\/public-scripts\/[^/]+$/,
   /^\/api\/themes\/public$/,
 ];
@@ -105,22 +110,49 @@ function plain(message: string, status: number, cors: Headers): Response {
 
 async function serveSnapshot(request: Request, env: Env, cors: Headers): Promise<Response> {
   const url = new URL(request.url);
-  if (request.method === "POST") {
-    // The snapshot is a read-only copy: counters and feedback wait for the local backend.
-    return plain("Read-only fallback", 503, cors);
-  }
+  if (request.method === "POST") return plain("Read-only fallback", 503, cors);
+
+  // The left joins distinguish an empty database (503: no snapshot yet) from
+  // an absent route in an active snapshot (404: a real missing page).
   const row = await env.DB!
-    .prepare("SELECT body, synced_at FROM public_snapshot WHERE path = ?")
+    .prepare(`
+      SELECT state.active_generation, generation.synced_at,
+             snapshot.body_gzip, snapshot.content_type
+      FROM (SELECT 1) AS seed
+      LEFT JOIN public_snapshot_state AS state ON state.id = 1
+      LEFT JOIN public_snapshot_generation AS generation
+        ON generation.generation = state.active_generation
+      LEFT JOIN public_snapshot AS snapshot
+        ON snapshot.generation = state.active_generation AND snapshot.path = ?
+    `)
     .bind(`${url.pathname}${url.search}`)
     .first<SnapshotRow>();
-  if (!row) return plain("Not found", 404, cors);
+  if (!row) return plain("Snapshot unavailable", 503, cors);
+  // Older test fixtures return a stored body directly and have no generation
+  // pointer. Real D1 responses always include active_generation.
+  if ("active_generation" in row && !row.active_generation) return plain("Snapshot unavailable", 503, cors);
+  if (!row.body_gzip && typeof row.body !== "string") return plain("Not found", 404, cors);
+
+  let body: string;
+  try {
+    if (row.body_gzip) {
+      const binary = atob(row.body_gzip);
+      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+      body = await new Response(stream).text();
+    } else {
+      body = row.body!;
+    }
+  } catch {
+    return plain("Snapshot is unreadable", 502, cors);
+  }
 
   const headers = new Headers(cors);
-  headers.set("Content-Type", "application/json; charset=utf-8");
+  headers.set("Content-Type", row.content_type || "application/json; charset=utf-8");
   headers.set("Cache-Control", SNAPSHOT_CACHE_CONTROL);
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("X-Data-Synced-At", row.synced_at);
-  return new Response(request.method === "HEAD" ? null : row.body, { status: 200, headers });
+  if (row.synced_at) headers.set("X-Data-Synced-At", row.synced_at);
+  return new Response(request.method === "HEAD" ? null : body, { status: 200, headers });
 }
 
 async function proxyRequest(request: Request, env: Env, cors: Headers): Promise<Response> {

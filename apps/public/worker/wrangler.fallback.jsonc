@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "write-project-public-fallback",
+  "main": "index.ts",
+  "compatibility_date": "2026-10-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://dev-open-scripts.shawnup.com,https://write-project-public-site-preview.pages.dev"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "write-project-public-preview",
+      "database_id": "d9597bb0-8da2-4070-8153-212673d656af"
+    }
+  ]
+}
