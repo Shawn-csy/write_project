@@ -7,9 +7,18 @@ import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/s
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { decodeRouteName, findExternalAuthorModel } from "@/lib/entityModels";
+import { getStaticExternalAuthorParams } from "@/lib/staticParams";
+import { LiveExternalAuthorPage } from "@/components/LiveEntityPages";
 
-export const revalidate = 300;
-export const dynamicParams = true;
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
+
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 300;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+
+export async function generateStaticParams() {
+  return getStaticExternalAuthorParams();
+}
 
 async function fetchExternalScripts(): Promise<ExternalPublicScript[]> {
   try {
@@ -21,53 +30,11 @@ async function fetchExternalScripts(): Promise<ExternalPublicScript[]> {
 }
 
 function decodeName(value: string): string {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-function normalizeAuthorAlias(value: string): string {
-  return value
-    .normalize("NFKC")
-    .toLocaleLowerCase()
-    .replace(/[\p{P}\p{S}\p{Z}\s]/gu, "");
+  return decodeRouteName(value);
 }
 
 async function getModel(rawName: string) {
-  const name = decodeName(rawName);
-  const normalizedName = name.trim().toLocaleLowerCase();
-  const publishedItems = await fetchExternalScripts();
-  const matchesNameOrSlug = (item: ExternalPublicScript) => {
-    const authorName = item.authorName?.trim() || "";
-    return authorName.toLocaleLowerCase() === normalizedName
-      || externalEntitySlug(authorName, item.authorUrl).toLocaleLowerCase() === normalizedName;
-  };
-  let items = publishedItems.filter(matchesNameOrSlug);
-
-  // Older links used the external author's display name as the route token.
-  // If punctuation changed and the loose name uniquely maps to one canonical
-  // author slug, resolve that old URL and let the canonical redirect below fix it.
-  const aliasKey = normalizeAuthorAlias(name.trim());
-  if (items.length === 0 && aliasKey) {
-    const aliasItems = publishedItems.filter(
-      (item) => normalizeAuthorAlias(item.authorName?.trim() || "") === aliasKey,
-    );
-    const canonicalSlugs = new Set(
-      aliasItems.map((item) => externalEntitySlug(item.authorName?.trim() || "", item.authorUrl)),
-    );
-    if (canonicalSlugs.size === 1) items = aliasItems;
-  }
-
-  if (items.length === 0) return null;
-  return {
-    name: items[0].authorName?.trim() || name,
-    bio: items.find((item) => item.authorBio?.trim())?.authorBio?.trim() || "",
-    profileUrl: items.find((item) => item.authorUrl)?.authorUrl || "",
-    profileAvatarUrl: items.find((item) => item.authorAvatarUrl)?.authorAvatarUrl || "",
-    items,
-  };
+  return findExternalAuthorModel(await fetchExternalScripts(), rawName);
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
@@ -98,7 +65,11 @@ export default async function ExternalAuthorPage({ params }: { params: Promise<{
   return (
     <>
       <PublicTopBar activeTab="authors" trailing={<PublicShellActions />} />
-      <ExternalEntityPage kind="author" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} />
+      {STATIC_EXPORT ? (
+        <LiveExternalAuthorPage rawName={rawName} initial={model} />
+      ) : (
+        <ExternalEntityPage kind="author" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} />
+      )}
     </>
   );
 }

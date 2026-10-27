@@ -8,9 +8,17 @@ import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
+import { getStaticOrgParams } from "@/lib/staticParams";
+import { LiveOrgPage } from "@/components/LiveEntityPages";
 
-export const revalidate = 3600;
-export const dynamicParams = true;
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
+
+export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+
+export async function generateStaticParams() {
+  return getStaticOrgParams();
+}
 
 const fetchOrg = cache(async (id: string): Promise<PublicOrg | null> => {
   try {
@@ -118,7 +126,11 @@ export default async function OrgPage({
           )}
         </article>
       </noscript>
-      <OrgPageClient org={org} scripts={scripts} />
+      {STATIC_EXPORT ? (
+        <LiveOrgPage id={id} initial={{ org, scripts }} />
+      ) : (
+        <OrgPageClient org={org} scripts={scripts} />
+      )}
     </>
   );
 }

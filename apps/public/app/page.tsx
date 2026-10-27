@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
-import type { PublicScript } from "@/lib/types";
-import type { ExternalPublicScript } from "@/lib/types";
 import { GalleryClient } from "./GalleryClient";
-import type { HeroSlide } from "@write/public-ui/server";
-import { parseBannerSlides, parseGalleryUrlState } from "@write/public-ui/server";
+import { LiveGalleryClient } from "./LiveGalleryClient";
+import { parseGalleryUrlState } from "@write/public-ui/server";
 import {
   BASE_URL,
   PRODUCT_NAME,
@@ -15,13 +13,15 @@ import {
   DEFAULT_OG_IMAGE_URL,
 } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
-import { slimExternalScriptForHomepage, slimScriptForHomepage } from "@/lib/galleryProjection";
+import { EMPTY_HOMEPAGE_BUNDLE, parseHomepageBundle, type HomepageBundle, type HomepageBundleResponse } from "@/lib/homepageBundle";
 
 // Phase 2: force-dynamic prevents build-time empty homepage when backend is unavailable.
 // The page reads `searchParams` (server-parsed filter state), so it cannot be ISR.
 // Instead the bundle fetch below goes through Next's data cache, and next.config.ts
 // gives the HTML a short edge lifetime (s-maxage) so most hits never reach this render.
-export const dynamic = "force-dynamic";
+export const dynamic = process.env.CF_STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
+
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
 // Tagged so /api/revalidate can expire it explicitly (revalidatePath alone is not
 // guaranteed to reach a fetch shared with the sitemap and media routes).
@@ -50,43 +50,18 @@ export const metadata: Metadata = {
   },
 };
 
-interface BundleResponse {
-  scripts?: PublicScript[];
-  externalPublicScripts?: ExternalPublicScript[];
-  banner?: unknown;
-  homepageConfig?: {
-    /** When false, suppresses the brand hero slide (e.g. if a full-bleed banner covers it). */
-    showBrandHero?: boolean;
-  };
-}
-
-async function fetchBundle(): Promise<{ scripts: PublicScript[]; externalPublicScripts: ExternalPublicScript[]; bannerSlides: HeroSlide[] | undefined; showBrandHero: boolean }> {
-  let bundle: BundleResponse;
+async function fetchBundle(): Promise<HomepageBundle> {
+  let bundle: HomepageBundleResponse;
   try {
-    bundle = await apiFetch<BundleResponse>("/public-bundle", { next: { revalidate: BUNDLE_REVALIDATE_SECONDS, tags: BUNDLE_FETCH_TAGS } });
-  } catch {
+    bundle = await apiFetch<HomepageBundleResponse>("/public-bundle", { next: { revalidate: BUNDLE_REVALIDATE_SECONDS, tags: BUNDLE_FETCH_TAGS } });
+  } catch (error) {
+    // A static build must never bake an empty homepage into the deployed site.
+    if (STATIC_EXPORT) throw error;
     // Network/backend failure: scripts unavailable. Log for production diagnosis.
     console.error("[homepage] fetchBundle: /public-bundle request failed — serving empty homepage");
-    return { scripts: [], externalPublicScripts: [], bannerSlides: undefined, showBrandHero: true };
+    return EMPTY_HOMEPAGE_BUNDLE;
   }
-
-  // Parse each field independently so a malformed banner cannot erase the script list.
-  // Slim before handing to the client component: everything passed as a prop is serialized into the HTML.
-  const scripts = (bundle.scripts ?? []).filter((s): s is PublicScript => Boolean(s?.id)).map(slimScriptForHomepage);
-  const externalPublicScripts = (bundle.externalPublicScripts ?? [])
-    .filter((item): item is ExternalPublicScript => Boolean(item?.id && item?.sourceUrl))
-    .map(slimExternalScriptForHomepage);
-
-  let bannerSlides: HeroSlide[] | undefined;
-  try {
-    bannerSlides = parseBannerSlides(bundle.banner);
-  } catch {
-    console.error("[homepage] fetchBundle: banner parse failed — omitting banners");
-  }
-
-  const showBrandHero = bundle.homepageConfig?.showBrandHero !== false;
-
-  return { scripts, externalPublicScripts, bannerSlides, showBrandHero };
+  return parseHomepageBundle(bundle);
 }
 
 export default async function HomePage({
@@ -94,17 +69,15 @@ export default async function HomePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ scripts: initialScripts, externalPublicScripts, bannerSlides, showBrandHero }, rawParams] = await Promise.all([
-    fetchBundle(),
-    searchParams,
-  ]);
+  const { scripts: initialScripts, externalPublicScripts, bannerSlides, showBrandHero } = await fetchBundle();
 
-  // Parse URL state server-side so GalleryClient never needs useSearchParams().
-  const qs = new URLSearchParams(
-    Object.entries(rawParams).flatMap(([k, v]) =>
-      v === undefined ? [] : Array.isArray(v) ? v.map((val) => [k, val]) : [[k, v]]
-    )
-  ).toString();
+  // A static Pages export cannot read request search params. The client hook
+  // reads the current URL after hydration; the normal Next deployment keeps
+  // its server-parsed initial state for a no-flash first render.
+  const rawParams = process.env.CF_STATIC_EXPORT === "1" ? {} : await searchParams;
+  const qs = new URLSearchParams(Object.entries(rawParams).flatMap(([k, v]) =>
+    v === undefined ? [] : Array.isArray(v) ? v.map((val) => [k, val]) : [[k, v]]
+  )).toString();
   const initialUrlState = parseGalleryUrlState(qs);
 
   const structuredData = {
@@ -123,13 +96,23 @@ export default async function HomePage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <GalleryClient
-        initialScripts={initialScripts}
-        initialExternalPublicScripts={externalPublicScripts}
-        initialBannerSlides={bannerSlides}
-        showBrandHero={showBrandHero}
-        initialUrlState={initialUrlState}
-      />
+      {STATIC_EXPORT ? (
+        <LiveGalleryClient
+          scripts={initialScripts}
+          externalPublicScripts={externalPublicScripts}
+          bannerSlides={bannerSlides}
+          showBrandHero={showBrandHero}
+          initialUrlState={initialUrlState}
+        />
+      ) : (
+        <GalleryClient
+          initialScripts={initialScripts}
+          initialExternalPublicScripts={externalPublicScripts}
+          initialBannerSlides={bannerSlides}
+          showBrandHero={showBrandHero}
+          initialUrlState={initialUrlState}
+        />
+      )}
     </>
   );
 }
