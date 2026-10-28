@@ -55,6 +55,42 @@ def _get_banner(db: Session) -> dict:
     return normalize_homepage_banner_value(row.value)
 
 
+def invalidate_public_bundle_cache() -> None:
+    global _bundle_cache
+    _bundle_cache = None
+
+
+def _get_approved_demo_submissions(db: Session) -> list[dict]:
+    rows = (
+        db.query(models.PublicDemoSubmission)
+        .filter(models.PublicDemoSubmission.status == "approved")
+        .order_by(models.PublicDemoSubmission.createdAt.desc())
+        .limit(1000)
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "scriptType": row.scriptType,
+            "scriptId": row.scriptId,
+            "externalScriptId": row.externalScriptId,
+            "scriptTitle": row.scriptTitle,
+            "scriptUrl": row.scriptUrl,
+            "demoName": row.demoName,
+            "demoUrl": row.demoUrl,
+            "coverUrl": row.coverUrl or "",
+            "cast": row.cast,
+            "voiceTypes": row.voiceTypes or [],
+            "voiceActorIds": row.voiceActorIds or [],
+            "manualVoiceActors": row.manualVoiceActors or [],
+            "description": row.description,
+            "displayName": row.displayName,
+            "createdAt": row.createdAt,
+        }
+        for row in rows
+    ]
+
+
 def _build_bundle(db: Session) -> dict:
     scripts = [public_router.sanitize_public_script(s) for s in crud.get_public_scripts(db)]
     serialized_scripts = [_serialize_bundle_script(s) for s in scripts]
@@ -77,6 +113,7 @@ def _build_bundle(db: Session) -> dict:
         "topTags": top_tags,
         "banner": _get_banner(db),
         "externalPublicScripts": get_published_external_public_scripts(db),
+        "demoSubmissions": _get_approved_demo_submissions(db),
     })
 
 

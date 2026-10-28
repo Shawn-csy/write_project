@@ -2,7 +2,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import type { PublicPersona, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicShellActions } from "@/components/PublicShellActions";
@@ -35,6 +36,18 @@ async function fetchScripts(personaId: string): Promise<PublicScript[]> {
     return [];
   }
 }
+
+const fetchPublicBundle = cache(async (): Promise<{
+  scripts?: PublicScript[];
+  externalPublicScripts?: ExternalPublicScript[];
+  demoSubmissions?: PublicDemoSubmission[];
+}> => {
+  try {
+    return await apiFetch("/public-bundle", { next: { revalidate: 300, tags: ["public-bundle"] } });
+  } catch {
+    return {};
+  }
+});
 
 export async function generateMetadata({
   params,
@@ -88,9 +101,15 @@ export default async function AuthorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [persona, scripts] = await Promise.all([fetchPersona(id), fetchScripts(id)]);
+  const [persona, scripts, bundle] = await Promise.all([fetchPersona(id), fetchScripts(id), fetchPublicBundle()]);
 
   if (!persona) notFound();
+
+  const performances = getPublicVoicePerformances(id, bundle);
+  const normalizedName = persona.displayName.trim().toLocaleLowerCase();
+  const externalScripts = (bundle.externalPublicScripts || []).filter((script) =>
+    script.status === "published" && script.authorName?.trim().toLocaleLowerCase() === normalizedName
+  );
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -125,9 +144,9 @@ export default async function AuthorPage({
         </article>
       </noscript>
       {STATIC_EXPORT ? (
-        <LiveAuthorPage id={id} initial={{ persona, scripts }} />
+        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts }} />
       ) : (
-        <AuthorPageClient persona={persona} scripts={scripts} />
+        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} />
       )}
     </>
   );

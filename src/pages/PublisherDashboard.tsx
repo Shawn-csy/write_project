@@ -1,8 +1,7 @@
 import React, { Suspense } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
-import { PanelLeftOpen, FileText, UserRound, Building2, Layers3 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
+import { PanelLeftOpen, FileText, Layers3 } from "lucide-react";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 import { TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
@@ -24,14 +23,6 @@ const ScriptMetadataDialogLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/ScriptMetadataDialog");
   return { default: mod.ScriptMetadataDialog };
 });
-const PublisherProfileTabLazy = React.lazy(async () => {
-  const mod = await import("../components/dashboard/publisher/PublisherProfileTab");
-  return { default: mod.PublisherProfileTab };
-});
-const PublisherOrgTabLazy = React.lazy(async () => {
-  const mod = await import("../components/dashboard/publisher/PublisherOrgTab");
-  return { default: mod.PublisherOrgTab };
-});
 const PublisherSeriesTabLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/publisher/PublisherSeriesTab");
   return { default: mod.PublisherSeriesTab };
@@ -46,7 +37,7 @@ interface PublisherDashboardProps {
 }
 
 export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMenu }: PublisherDashboardProps): React.JSX.Element {
-  const s = usePublisherDashboardState({ isSidebarOpen, setSidebarOpen, openMobileMenu });
+  const s = usePublisherDashboardState({ isSidebarOpen, setSidebarOpen, openMobileMenu, mode: "studio" });
 
   return (
     <div className="flex h-full flex-col bg-background">
@@ -71,9 +62,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 </span>
                 <h1 className="truncate font-serif text-lg font-semibold text-primary">{s.t("publisher.title")}</h1>
               </div>
-              <p className="mt-0.5 hidden truncate text-[11px] text-muted-foreground sm:block">
-                作品、作者、組織與系列的發佈資料集中管理
-              </p>
             </div>
             <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
               <StudioTopbarQuickActions
@@ -91,47 +79,15 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
       <div className={`flex-1 min-h-0 overflow-y-auto ${STUDIO_PAGE_PADDING_CLASS}`}>
         <div className={STUDIO_PAGE_CONTENT_CLASS}>
 
-          {/* Invites banner */}
-          {s.myInvites.length > 0 && (
-            <div className="border rounded-lg p-4 bg-muted/20 mb-6">
-              <div className="text-sm font-medium mb-2">{s.t("publisher.myOrgInvites")}</div>
-              <div className="space-y-2">
-                {s.myInvites.map(inv => (
-                  <div key={inv.id ?? ""} className="flex items-center justify-between text-sm">
-                    <span>{s.t("publisher.inviteJoinOrg").replace("{orgId}", inv.orgId || "")}</span>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => s.handleAcceptInvite(inv.id ?? "")}>{s.t("publisher.accept")}</Button>
-                      <Button size="sm" variant="ghost" onClick={() => s.handleDeclineInvite(inv.id ?? "")}>{s.t("publisher.decline")}</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Tabs */}
           <Tabs value={s.activeTab} onValueChange={s.handleTabChange} className="space-y-4">
             <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
-              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-4">
+              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-2">
                 <TabsTrigger value="works" style={s.tabTone.works} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
                   <span className="flex items-center gap-2 text-xs sm:text-sm">
                     <FileText className="h-4 w-4" />
                     <span>{s.t("publisher.myWorks")}</span>
                     {s.renderTabCount(s.tabCounts.works)}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="profile" style={s.tabTone.profile} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
-                  <span className="flex items-center gap-2 text-xs sm:text-sm">
-                    <UserRound className="h-4 w-4" />
-                    <span>{s.t("publisher.authorIdentity")}</span>
-                    {s.renderTabCount(s.tabCounts.profile)}
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="org" style={s.tabTone.org} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
-                  <span className="flex items-center gap-2 text-xs sm:text-sm">
-                    <Building2 className="h-4 w-4" />
-                    <span>{s.t("publisher.organization")}</span>
-                    {s.renderTabCount(s.tabCounts.org)}
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="series" style={s.tabTone.series} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
@@ -161,30 +117,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               />
             </TabsContent>
 
-            <TabsContent value="profile" style={s.tabTone.profile} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-profile-panel">
-              {s.activeTab === "profile" && (
-                <Suspense fallback={tabFallback}>
-                  <PublisherProfileTabLazy
-                    selectedPersonaId={s.selectedPersonaId} setSelectedPersonaId={s.setSelectedPersonaId}
-                    personas={s.personas}
-                    selectedPersona={s.personas.find(p => p.id === s.selectedPersonaId) ?? null}
-                    handleCreatePersona={s.handleCreatePersona} isCreatingPersona={s.isCreatingPersona}
-                    handleDeletePersona={() => s.setConfirmDeletePersonaOpen(true)}
-                    personaDraft={s.personaDraft} setPersonaDraft={s.setPersonaDraft}
-                    orgs={s.orgsForPersona}
-                    isLoading={s.isMetaLoading}
-                    personaTagInput={s.personaTagInput} setPersonaTagInput={s.setPersonaTagInput}
-                    handleSaveProfile={s.handleSaveProfile} isSavingProfile={s.isSavingProfile}
-                    parseTags={s.parseTags}
-                    addTags={s.addTags}
-                    getSuggestions={(input: string) => s.getSuggestions(input, s.personaDraft.tags || [])}
-                    getTagStyle={s.getTagStyle}
-                    tagOptions={s.availableTags}
-                  />
-                </Suspense>
-              )}
-            </TabsContent>
-
             {s.editingScript && (
               <Suspense fallback={null}>
                 <ScriptMetadataDialogLazy
@@ -209,48 +141,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 />
               </Suspense>
             )}
-
-            <TabsContent value="org" style={s.tabTone.org} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3" data-guide-id="studio-org-panel">
-              {s.activeTab === "org" && (
-                <Suspense fallback={tabFallback}>
-                  <PublisherOrgTabLazy
-                    orgs={s.orgsForPersona}
-                    selectedOrgId={s.selectedOrgId} setSelectedOrgId={s.setSelectedOrgId}
-                    handleCreateOrg={s.handleCreateOrg} isCreatingOrg={s.isCreatingOrg}
-                    handleDeleteOrg={() => s.setConfirmDeleteOrgOpen(true)}
-                    orgDraft={s.orgDraft} setOrgDraft={s.setOrgDraft}
-                    handleSaveOrg={s.handleSaveOrg} isSavingOrg={s.isSavingOrg}
-                    orgTagInput={s.orgTagInput} setOrgTagInput={s.setOrgTagInput}
-                    parseTags={s.parseTags}
-                    addTags={(next: string | string[]) => {
-                      const incoming = Array.isArray(next) ? next : s.parseTags(next);
-                      return s.addTags(s.orgDraft.tags || [], incoming);
-                    }}
-                    getSuggestions={(input: string) => s.getSuggestions(input, s.orgDraft.tags || [])}
-                    getTagStyle={s.getTagStyle}
-                    tagOptions={s.availableTags}
-                    isLoading={s.isMetaLoading || s.isOrgMembersLoading}
-                    orgMembers={s.orgMembers}
-                    orgInvites={s.orgInvites}
-                    orgRequests={s.orgRequests}
-                    canEditSelectedOrg={s.canManageOrgMembers}
-                    currentUserId={s.currentUserId}
-                    currentOrgRole={s.currentOrgRole}
-                    canManageOrgMembers={s.canManageOrgMembers}
-                    inviteSearchQuery={s.inviteSearchQuery}
-                    setInviteSearchQuery={s.setInviteSearchQuery}
-                    inviteSearchResults={s.inviteSearchResults}
-                    isInviteSearching={s.isInviteSearching}
-                    handleInviteMember={s.handleInviteMember}
-                    handleAcceptRequest={s.handleAcceptRequest}
-                    handleDeclineRequest={s.handleDeclineRequest}
-                    handleRemoveMember={s.handleRemoveMember}
-                    handleRemovePersonaMember={s.handleRemovePersonaMember}
-                    handleChangeMemberRole={s.handleChangeMemberRole}
-                  />
-                </Suspense>
-              )}
-            </TabsContent>
 
             <TabsContent value="series" style={s.tabTone.series} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
               {s.activeTab === "series" && (
@@ -278,34 +168,6 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
               )}
             </TabsContent>
           </Tabs>
-
-          {/* Delete persona dialog */}
-          <Dialog open={s.confirmDeletePersonaOpen} onOpenChange={s.setConfirmDeletePersonaOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{s.t("publisher.deletePersonaTitle")}</DialogTitle>
-                <DialogDescription>{s.t("publisher.deletePersonaDesc")}</DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => s.setConfirmDeletePersonaOpen(false)}>{s.t("publisher.cancel")}</Button>
-                <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={s.handleDeletePersona}>{s.t("publisher.confirmDelete")}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          {/* Delete org dialog */}
-          <Dialog open={s.confirmDeleteOrgOpen} onOpenChange={s.setConfirmDeleteOrgOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{s.t("publisher.deleteOrgTitle")}</DialogTitle>
-                <DialogDescription>{s.t("publisher.deleteOrgDesc")}</DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => s.setConfirmDeleteOrgOpen(false)}>{s.t("publisher.cancel")}</Button>
-                <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={s.handleDeleteOrg}>{s.t("publisher.confirmDelete")}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
 
           <SpotlightGuideOverlay
             open={s.showStudioGuide && Boolean(s.currentStudioGuide)}

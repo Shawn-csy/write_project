@@ -33,6 +33,7 @@ const PublisherDashboard = lazyWithRefreshRetry(
   "page-studio"
 );
 const SuperAdminPage = lazyWithRefreshRetry(() => import("../pages/SuperAdminPage"), "page-admin");
+const CommunityWorkbenchPage = lazyWithRefreshRetry(() => import("../pages/CommunityWorkbenchPage"), "page-community-workbench");
 const LoginPage = lazyWithRefreshRetry(() => import("../pages/LoginPage"), "page-login");
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
@@ -206,9 +207,29 @@ export function renderWorkspaceRoutes({
                     />
                     <Route
                       path="admin"
+                      element={<Navigate to="/superadmin" replace />}
+                    />
+                    <Route
+                      path="superadmin"
                       element={
                         <Suspense fallback={routeFallback}>
-                          <SuperAdminPage />
+                          <SuperAdminPage
+                            isSidebarOpen={nav.isDesktopSidebarOpen}
+                            setSidebarOpen={nav.setIsDesktopSidebarOpen}
+                            openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
+                          />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="community"
+                      element={
+                        <Suspense fallback={routeFallback}>
+                          <CommunityWorkbenchPage
+                            isSidebarOpen={nav.isDesktopSidebarOpen}
+                            setSidebarOpen={nav.setIsDesktopSidebarOpen}
+                            openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
+                          />
                         </Suspense>
                       }
                     />

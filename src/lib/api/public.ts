@@ -5,6 +5,8 @@ import type {
   OrgData,
   PersonaLike,
   PublicBundleResponse,
+  PublicFeedbackCreate,
+  PublicFeedbackResponse,
   PublicTermsAcceptancePayload,
   PublicTermsConfig,
 } from "../../types/api";
@@ -39,6 +41,14 @@ export const acceptPublicTerms = async (payload: PublicTermsAcceptancePayload): 
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload || {}),
+    noCache: true,
+  });
+
+export const createPublicFeedback = async (payload: PublicFeedbackCreate): Promise<PublicFeedbackResponse> =>
+  fetchPublic<PublicFeedbackResponse>("/public-feedback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
     noCache: true,
   });
 

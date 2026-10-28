@@ -32,8 +32,9 @@ import {
   type TagData,
 } from "@/lib/entityModels";
 import { LiveApiError, liveApi } from "@/lib/liveApi";
+import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
 import { TITLE_SUFFIX } from "@/lib/seo";
-import type { PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { useLiveData, type LiveData } from "@/lib/useLiveData";
 
 type Chrome = { activeTab: string; back?: boolean };
@@ -97,19 +98,27 @@ function useDocumentTitle(label: string | null): void {
 
 // ── Author / organization (profile plus their works) ────────────────────────
 
-interface AuthorData { persona: PublicPersona; scripts: PublicScript[] }
+interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[] }
 
 export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: AuthorData; chrome?: Chrome }) {
   const state = useLiveData<AuthorData>(initial, async (signal) => {
     const persona = await readOrNull<PublicPersona>(`/api/public-personas/${encodeURIComponent(id)}`, signal);
     if (!persona) return null;
-    const scripts = (await readOrNull<PublicScript[]>(`/api/public-scripts?personaId=${encodeURIComponent(id)}`, signal)) ?? [];
-    return { persona, scripts };
+    const [scripts, bundle] = await Promise.all([
+      readOrNull<PublicScript[]>(`/api/public-scripts?personaId=${encodeURIComponent(id)}`, signal),
+      readBundle(signal),
+    ]);
+    const performances = getPublicVoicePerformances(id, bundle || {});
+    const normalizedName = persona.displayName.trim().toLocaleLowerCase();
+    const externalScripts = (bundle?.externalPublicScripts || []).filter((script) =>
+      script.status === "published" && script.authorName?.trim().toLocaleLowerCase() === normalizedName
+    );
+    return { persona, scripts: scripts ?? [], performances, externalScripts };
   }, `author:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.persona.displayName : null);
   return (
     <Frame state={state} chrome={chrome}>
-      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} />}
+      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} />}
     </Frame>
   );
 }

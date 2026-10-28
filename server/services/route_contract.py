@@ -6,7 +6,7 @@ import re
 
 
 # These routes are rendered by the authenticated Vite workspace.
-WORKSPACE_EXACT_PATHS = frozenset({"login", "dashboard", "studio", "admin"})
+WORKSPACE_EXACT_PATHS = frozenset({"login", "dashboard", "studio", "admin", "community", "superadmin"})
 _WORKSPACE_EDIT_PATH = re.compile(r"^edit/[^/]+$")
 
 # These public HTML routes are retained only for direct backend compatibility.

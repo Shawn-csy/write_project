@@ -17,6 +17,7 @@ interface UseStudioGuideProps {
   activeTab: string;
   handleTabChange: (tab: string) => void;
   tabsGuideRef: React.RefObject<HTMLElement | null>;
+  mode?: "studio" | "community";
 }
 
 interface UseStudioGuideResult {
@@ -31,47 +32,20 @@ interface UseStudioGuideResult {
   handleStartStudioGuide: () => void;
 }
 
-export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef }: UseStudioGuideProps): UseStudioGuideResult {
+export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef, mode = "studio" }: UseStudioGuideProps): UseStudioGuideResult {
   const studioGuideSteps = useMemo(
-    (): StudioGuideStep[] => ([
-      {
-        title: t("publisher.guideTabsTitle"),
-        description: t("publisher.guideTabsDesc"),
-        target: "tabs",
-        tab: "works",
-      },
-      {
-        title: t("publisher.guideWorksTitle"),
-        description: t("publisher.guideWorksDesc"),
-        target: "works",
-        tab: "works",
-      },
-      {
-        title: t("publisher.guideWorksFiltersTitle"),
-        description: t("publisher.guideWorksFiltersDesc"),
-        target: "worksFilters",
-        tab: "works",
-      },
-      {
-        title: t("publisher.guideWorksEditInfoTitle"),
-        description: t("publisher.guideWorksEditInfoDesc"),
-        target: "worksEditInfo",
-        tab: "works",
-      },
-      {
-        title: t("publisher.guideProfileTitle"),
-        description: t("publisher.guideProfileDesc"),
-        target: "profile",
-        tab: "profile",
-      },
-      {
-        title: t("publisher.guideOrgTitle"),
-        description: t("publisher.guideOrgDesc"),
-        target: "org",
-        tab: "org",
-      },
-    ]),
-    [t]
+    (): StudioGuideStep[] => mode === "community"
+      ? [
+          { title: t("publisher.guideProfileTitle"), description: t("publisher.guideProfileDesc"), target: "profile", tab: "profile" },
+          { title: t("publisher.guideOrgTitle"), description: t("publisher.guideOrgDesc"), target: "org", tab: "org" },
+        ]
+      : [
+          { title: t("publisher.guideTabsTitle"), description: t("publisher.guideTabsDesc"), target: "tabs", tab: "works" },
+          { title: t("publisher.guideWorksTitle"), description: t("publisher.guideWorksDesc"), target: "works", tab: "works" },
+          { title: t("publisher.guideWorksFiltersTitle"), description: t("publisher.guideWorksFiltersDesc"), target: "worksFilters", tab: "works" },
+          { title: t("publisher.guideWorksEditInfoTitle"), description: t("publisher.guideWorksEditInfoDesc"), target: "worksEditInfo", tab: "works" },
+        ],
+    [mode, t]
   );
   const resolveStudioGuideTarget = useCallback(
     (step: StudioGuideStep | null) => {
@@ -98,7 +72,7 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
     startGuide: handleStartStudioGuide,
   } = usePersistentSpotlightGuide({
     steps: studioGuideSteps,
-    storageKey: STUDIO_GUIDE_STORAGE_KEY,
+    storageKey: mode === "community" ? "community-guide-seen-v1" : STUDIO_GUIDE_STORAGE_KEY,
     resolveTarget: resolveStudioGuideTarget,
     onStepEnter: (step: StudioGuideStep | null) => {
       if (step?.tab && activeTab !== step.tab) {
@@ -106,9 +80,9 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
       }
     },
     onFinish: () => {
-      handleTabChange("works");
+      handleTabChange(mode === "community" ? "profile" : "works");
     },
-    autoStartEnabled: Boolean(currentUser),
+    autoStartEnabled: Boolean(currentUser) && mode === "studio",
     refreshDeps: [activeTab],
   });
 

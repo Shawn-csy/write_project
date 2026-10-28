@@ -9,17 +9,16 @@ const messages = {
     "gallery": "公開台本",
     "workspace": "寫作工作室",
     "studio": "發布工作台",
-    "mediaLibrary": "媒體庫",
-    "transfer": "平台管理"
+    "community": "社群工作台",
+    "superAdmin": "超管工作台",
+    "mediaLibrary": "媒體庫"
   },
   "settings": {
     "title": "設定",
     "display": "外觀與閱讀",
-    "transfer": "平台管理",
     "media": "媒體庫",
     "markers": "自訂標記",
     "profile": "身份設定",
-    "transferDesc": "管理全站資料、劇本設定與權限操作。",
     "language": "語言",
     "languageZh": "繁體中文",
     "languageEn": "English",
@@ -451,6 +450,7 @@ const messages = {
     "backHome": "回首頁",
     "collapseList": "收合列表",
     "expandList": "展開列表",
+    "adminSection": "管理",
     "publicSection": "公開",
     "menuSection": "選單"
   },

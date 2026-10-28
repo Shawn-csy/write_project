@@ -251,7 +251,27 @@ export interface PublicBundleResponse {
   termsConfig?: PublicTermsConfig | null;
   banner?: HomepageBanner | null;
   externalPublicScripts?: ExternalPublicScript[];
+  demoSubmissions?: PublicDemoEntry[];
   [key: string]: unknown;
+}
+
+export interface PublicDemoEntry {
+  id: string;
+  scriptType: "internal" | "external";
+  scriptId?: string | null;
+  externalScriptId?: string | null;
+  scriptTitle: string;
+  scriptUrl: string;
+  demoName?: string;
+  demoUrl: string;
+  coverUrl?: string;
+  cast?: string;
+  voiceTypes?: Array<"male" | "female">;
+  voiceActorIds?: string[];
+  manualVoiceActors?: Array<{ name: string; socialUrl?: string; personaId?: string }>;
+  description?: string;
+  displayName?: string;
+  createdAt: number;
 }
 
 export interface ExternalPublicScript {
@@ -276,6 +296,7 @@ export interface ExternalPublicScript {
   coverUrlOverride?: string;
   seriesName?: string;
   seriesOrder?: number | null;
+  demoLinks?: Array<{ id?: string; name?: string; url: string; coverUrl?: string; cast?: string; description?: string }>;
   title: string;
   summary?: string;
   coverUrl?: string;
@@ -349,14 +370,57 @@ export interface PublicTermsAcceptanceRecord {
 
 export interface PublicFeedbackRecord {
   id: string;
-  kind: "bug" | "listing";
+  kind: "bug" | "listing" | "ad_application" | "demo_submission";
   contactName: string;
   contactEmail: string;
   content: string;
   pageUrl: string;
-  status: string;
+  status: "new" | "reviewed" | "closed";
   createdAt: number;
   updatedAt: number;
+}
+
+export interface PublicFeedbackCreate {
+  kind: "bug" | "listing" | "ad_application" | "demo_submission";
+  contactName?: string;
+  contactEmail?: string;
+  content: string;
+  pageUrl?: string;
+  website?: string;
+}
+
+export interface PublicDemoSubmissionRecord {
+  id: string;
+  scriptType: "internal" | "external";
+  scriptId?: string | null;
+  externalScriptId?: string | null;
+  scriptTitle: string;
+  scriptUrl: string;
+  demoName: string;
+  demoUrl: string;
+  coverUrl: string;
+  cast: string;
+  voiceTypes: Array<"male" | "female">;
+  voiceActorIds: string[];
+  manualVoiceActors: Array<{ name: string; socialUrl: string; personaId?: string | null }>;
+  voiceActorNames: string[];
+  description: string;
+  displayName: string;
+  contactEmail: string;
+  status: "pending" | "approved" | "rejected";
+  reviewedAt?: number | null;
+  createdAt: number;
+}
+
+export interface PublicDemoSubmissionListResponse {
+  total: number;
+  items: PublicDemoSubmissionRecord[];
+}
+
+export interface PublicFeedbackResponse {
+  success: boolean;
+  feedbackId: string;
+  createdAt: number;
 }
 
 export interface PublicFeedbackListResponse {

@@ -40,6 +40,8 @@ export interface PublicGalleryTopBarProps {
    * Use for studio link, login button, appearance menu, etc.
    */
   trailing?: React.ReactNode;
+  /** Optional desktop navigation link positioned between gallery tabs and actions. */
+  leadingTrailing?: React.ReactNode;
   /** Accessible label for mobile filter button. */
   mobileFilterLabel?: string;
   /** Mobile trailing action (e.g. "more" button opening a bottom sheet). */
@@ -54,6 +56,7 @@ export function PublicGalleryTopBar({
   brandName = "Screenplay Reader",
   brandSubtitle,
   trailing,
+  leadingTrailing,
   mobileFilterLabel = "開啟篩選",
   mobileTrailingAction,
 }: PublicGalleryTopBarProps): React.JSX.Element {
@@ -104,6 +107,7 @@ export function PublicGalleryTopBar({
       tabs={shellTabs}
       brandName={brandName}
       brandSubtitle={brandSubtitle}
+      leadingTrailing={leadingTrailing}
       mobileLeadingAction={filterButton}
       mobileTrailingAction={mobileTrailingAction}
       mobileTabSwitcher={mobileTabSwitcher}

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown, ExternalLink, ImageIcon, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, ExternalLink, ImageIcon, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
@@ -39,6 +39,8 @@ interface Draft {
   coverUrlOverride: string;
   seriesName: string;
   seriesOrder: string;
+  demoLinksText: string;
+  demoLinks: Array<{ id?: string; name?: string; url: string; coverUrl?: string; cast?: string; description?: string }>;
   refreshMetadata: boolean;
   categoriesText: string;
   mountedAt: string;
@@ -67,6 +69,8 @@ const EMPTY_DRAFT: Draft = {
   coverUrlOverride: "",
   seriesName: "",
   seriesOrder: "",
+  demoLinksText: "",
+  demoLinks: [],
   refreshMetadata: false,
   categoriesText: "",
   mountedAt: "",
@@ -97,6 +101,8 @@ function toDraft(item: ExternalPublicScript): Draft {
     coverUrlOverride: item.coverUrlOverride || "",
     seriesName: item.seriesName || "",
     seriesOrder: item.seriesOrder == null ? "" : String(item.seriesOrder),
+    demoLinksText: (item.demoLinks || []).map((link) => link.coverUrl ? `${link.url} | ${link.coverUrl}` : link.url).filter(Boolean).join("\n"),
+    demoLinks: item.demoLinks || [],
     refreshMetadata: false,
     categoriesText: (item.categories || []).join(", "),
     mountedAt: toDateTimeLocal(item.mountedAt || item.createdAt),
@@ -133,12 +139,28 @@ interface DirectoryOption {
 interface AuthorGroup {
   key: string;
   name: string;
-  url: string;
   items: ExternalPublicScript[];
 }
 
-const UNKNOWN_AUTHOR_KEY = "__unknown-author__";
 const UNKNOWN_AUTHOR_NAME = "未指定作者";
+const UNKNOWN_AUTHOR_KEY = "author:__unknown__";
+
+function getAuthorGroupDetails(item: ExternalPublicScript): { key: string; name: string } {
+  const name = item.authorName?.trim();
+  return name
+    ? { key: `author:${name.toLocaleLowerCase()}`, name }
+    : { key: UNKNOWN_AUTHOR_KEY, name: UNKNOWN_AUTHOR_NAME };
+}
+
+function getSourceLabel(item: ExternalPublicScript): string {
+  if (item.sourceName?.trim()) return item.sourceName.trim();
+  if (item.sourceDomain?.trim()) return item.sourceDomain.trim();
+  try {
+    return new URL(item.sourceUrl).hostname;
+  } catch {
+    return "外部來源";
+  }
+}
 
 function firstPersonaLink(persona: PersonaLike): string {
   if (persona.website?.trim()) return persona.website.trim();
@@ -159,6 +181,25 @@ function firstPersonaLink(persona: PersonaLike): string {
 
 function toCategories(value: string): string[] {
   return Array.from(new Set(value.split(/[,，、]/).map((item) => item.trim()).filter(Boolean)));
+}
+
+function toDemoLinks(value: string, existingLinks: Draft["demoLinks"]): Draft["demoLinks"] {
+  const existingByUrl = new Map(existingLinks.map((link) => [link.url, link]));
+  return Array.from(new Set(value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean)))
+    .map((line) => {
+      const hasCoverField = line.includes("|");
+      const [url = "", coverUrl = ""] = line.split("|", 2).map((part) => part.trim());
+      const existing = existingByUrl.get(url);
+      return {
+        ...existing,
+        name: existing?.name || "",
+        url,
+        coverUrl: hasCoverField ? coverUrl : existing?.coverUrl || "",
+        cast: existing?.cast || "",
+        description: existing?.description || "",
+      };
+    })
+    .filter((link) => Boolean(link.url));
 }
 
 function formatMountedAt(value?: number): string {
@@ -190,6 +231,7 @@ function toPayload(draft: Draft): ExternalPublicScriptPayload {
     coverUrlOverride: draft.coverUrlOverride.trim(),
     seriesName: draft.seriesName.trim(),
     seriesOrder: draft.seriesOrder.trim() ? Number(draft.seriesOrder) : null,
+    demoLinks: toDemoLinks(draft.demoLinksText, draft.demoLinks),
     refreshMetadata: draft.refreshMetadata,
     categories: toCategories(draft.categoriesText),
     mountedAt: fromDateTimeLocal(draft.mountedAt),
@@ -204,10 +246,12 @@ export function ExternalPublicScriptSection() {
   const [organizations, setOrganizations] = useState<OrgData[]>([]);
   const [draft, setDraft] = useState<Draft>(makeEmptyDraft);
   const [preview, setPreview] = useState<ExternalPublicScriptPreview | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isFetchingCover, setIsFetchingCover] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [expandedAuthors, setExpandedAuthors] = useState<Set<string>>(new Set());
@@ -286,17 +330,14 @@ export function ExternalPublicScriptSection() {
   const authorGroups = useMemo<AuthorGroup[]>(() => {
     const groups = new Map<string, AuthorGroup>();
     for (const item of items) {
-      const name = item.authorName?.trim() || UNKNOWN_AUTHOR_NAME;
-      const key = name === UNKNOWN_AUTHOR_NAME ? UNKNOWN_AUTHOR_KEY : `author:${name}`;
-      const existing = groups.get(key);
+      const author = getAuthorGroupDetails(item);
+      const existing = groups.get(author.key);
       if (existing) {
         existing.items.push(item);
-        if (!existing.url && item.authorUrl?.trim()) existing.url = item.authorUrl.trim();
       } else {
-        groups.set(key, {
-          key,
-          name,
-          url: item.authorUrl?.trim() || "",
+        groups.set(author.key, {
+          key: author.key,
+          name: author.name,
           items: [item],
         });
       }
@@ -307,6 +348,24 @@ export function ExternalPublicScriptSection() {
       return a.name.localeCompare(b.name, "zh-Hant");
     });
   }, [items]);
+
+  const filteredAuthorGroups = useMemo(() => {
+    const query = filterQuery.trim().toLocaleLowerCase();
+    if (!query) return authorGroups;
+    return authorGroups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) => [
+          item.title,
+          item.authorName,
+          item.sourceName,
+          item.sourceDomain,
+          item.sourceUrl,
+          ...(item.categories || []),
+        ].some((value) => String(value || "").toLocaleLowerCase().includes(query))),
+      }))
+      .filter((group) => group.items.length > 0);
+  }, [filterQuery, authorGroups]);
 
   const updateDraft = (patch: Partial<Draft>) => {
     setDraft((current) => ({ ...current, ...patch }));
@@ -417,6 +476,7 @@ export function ExternalPublicScriptSection() {
       await loadItems();
       setDraft(makeEmptyDraft());
       setPreview(null);
+      setIsFormOpen(false);
       setStatusMessage(draft.id ? "外部公開台本已更新。" : "外部公開台本已加入首頁。");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "儲存外部公開台本失敗");
@@ -426,14 +486,14 @@ export function ExternalPublicScriptSection() {
   };
 
   const handleEdit = (item: ExternalPublicScript) => {
-    const authorName = item.authorName?.trim() || UNKNOWN_AUTHOR_NAME;
-    const authorKey = authorName === UNKNOWN_AUTHOR_NAME ? UNKNOWN_AUTHOR_KEY : `author:${authorName}`;
+    const authorKey = getAuthorGroupDetails(item).key;
     setExpandedAuthors((current) => {
       const next = new Set(current);
       next.add(authorKey);
       return next;
     });
     setDraft(toDraft(item));
+    setIsFormOpen(true);
     setPreview({
       sourceUrl: item.sourceUrl,
       canonicalUrl: item.canonicalUrl,
@@ -465,6 +525,7 @@ export function ExternalPublicScriptSection() {
       if (draft.id === item.id) {
         setDraft(makeEmptyDraft());
         setPreview(null);
+        setIsFormOpen(false);
       }
       setStatusMessage("外部公開台本已移除。");
     } catch (err: unknown) {
@@ -475,6 +536,7 @@ export function ExternalPublicScriptSection() {
   const handleReset = () => {
     setDraft(makeEmptyDraft());
     setPreview(null);
+    setIsFormOpen(false);
     setError("");
     setStatusMessage("");
   };
@@ -495,14 +557,29 @@ export function ExternalPublicScriptSection() {
   const organizationAvatarPreview = draft.organizationAvatarUrl.trim();
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border bg-muted/20 p-4 space-y-3">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold">外部公開台本</h2>
+            <Badge variant="secondary">{items.length} 筆</Badge>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">依作者分組；台本內容由來源網站提供。</p>
+        </div>
+        <Button type="button" variant={isFormOpen ? "outline" : "default"} size="sm" onClick={() => setIsFormOpen((open) => !open)}>
+          {isFormOpen ? <ChevronDown className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+          <span className="ml-1">{isFormOpen ? "收合表單" : "新增台本來源"}</span>
+        </Button>
+      </div>
+
+      {isFormOpen && (
+      <div className="rounded-xl border bg-background/70 p-4 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="font-medium text-sm">加入外部公開台本</div>
-            <div className="text-xs text-muted-foreground mt-0.5">只儲存封面、標題與摘要，完整內容仍由原網站提供。</div>
+            <div className="font-medium text-sm">{draft.id ? "編輯外部台本" : "新增外部台本"}</div>
+            <div className="text-xs text-muted-foreground mt-0.5">貼上公開網址後取得資料，再確認顯示內容。</div>
           </div>
-          {draft.id && <Button type="button" variant="ghost" size="sm" onClick={handleReset}>新增一筆</Button>}
+          {draft.id && <Button type="button" variant="ghost" size="sm" onClick={() => { handleReset(); setIsFormOpen(true); }}>新增一筆</Button>}
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -614,6 +691,16 @@ export function ExternalPublicScriptSection() {
                 {seriesOptions.map((name) => <option key={name} value={name} />)}
               </datalist>
               <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                <span>範例／Demo 連結（可用「連結 | 封面連結」補封面）</span>
+                <Textarea
+                  value={draft.demoLinksText}
+                  onChange={(event) => updateDraft({ demoLinksText: event.target.value })}
+                  placeholder="Demo 連結 | 封面圖片連結（選填）"
+                  aria-label="外部台本範例連結"
+                  rows={3}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <span>掛載時間</span>
                 <Input type="datetime-local" value={draft.mountedAt} onChange={(event) => updateDraft({ mountedAt: event.target.value })} aria-label="掛載時間" />
               </label>
@@ -639,52 +726,63 @@ export function ExternalPublicScriptSection() {
           </div>
         )}
 
-        {error && <div className="text-xs text-destructive">{error}</div>}
-        {statusMessage && <div className="text-xs text-muted-foreground">{statusMessage}</div>}
       </div>
+      )}
 
-      <div className="flex items-center justify-between">
-        <div className="text-xs text-muted-foreground">目前 {items.length} 筆</div>
+      {error && <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>}
+      {statusMessage && <div className="rounded-md border border-border/70 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">{statusMessage}</div>}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input className="pl-9" value={filterQuery} onChange={(event) => setFilterQuery(event.target.value)} placeholder="搜尋來源、台本或作者" aria-label="搜尋外部台本" />
+        </div>
         <Button type="button" variant="ghost" size="sm" onClick={() => void loadItems()} disabled={isLoading}>
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "重新載入"}
         </Button>
+        <span className="shrink-0 text-xs text-muted-foreground">顯示 {filteredAuthorGroups.reduce((total, group) => total + group.items.length, 0)} / {items.length} 筆</span>
       </div>
 
-      {items.length === 0 ? (
-        <div className="rounded-md border border-dashed p-4 text-center text-xs text-muted-foreground">尚未加入外部公開台本。</div>
+      {isLoading ? (
+        <div className="flex min-h-32 items-center justify-center gap-2 rounded-xl border border-dashed text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />載入外部台本…
+        </div>
+      ) : filteredAuthorGroups.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">{items.length === 0 ? "目前沒有外部台本來源。" : "找不到符合條件的台本。"}</div>
       ) : (
-        <div className="space-y-2">
-          {authorGroups.map((group) => {
+        <div className="space-y-1.5">
+          {filteredAuthorGroups.map((group) => {
             const isExpanded = expandedAuthors.has(group.key);
+            const sourceCount = new Set(group.items.map(getSourceLabel)).size;
             return (
-              <section key={group.key} className="overflow-hidden rounded-md border">
+              <section key={group.key} className="overflow-hidden rounded-lg border border-border/70 bg-background/50">
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between gap-3 bg-muted/30 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                  className="flex w-full items-center justify-between gap-3 bg-muted/20 px-3 py-2 text-left transition-colors hover:bg-muted/40"
                   onClick={() => toggleAuthor(group.key)}
                   aria-expanded={isExpanded}
                 >
                   <span className="min-w-0">
                     <span className="flex items-center gap-2">
                       <span className="truncate text-sm font-semibold">{group.name}</span>
-                      {group.url && <ExternalLink className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="作者連結" />}
+                      <Badge variant="secondary" className="shrink-0 text-[10px]">{group.items.length} 部台本</Badge>
                     </span>
-                    <span className="mt-0.5 block text-xs text-muted-foreground">{group.items.length} 部外部台本</span>
+                    {sourceCount > 1 && <span className="mt-0.5 block text-xs text-muted-foreground">{sourceCount} 個來源網站</span>}
                   </span>
                   <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                 </button>
                 {isExpanded && (
                   <div className="divide-y">
                     {group.items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 p-3">
-                        <div className="h-16 w-11 shrink-0 overflow-hidden rounded border bg-muted">
+                      <div key={item.id} className="flex items-center gap-2.5 p-2.5 sm:px-3">
+                        <div className="h-14 w-10 shrink-0 overflow-hidden rounded border bg-muted">
                           {item.coverUrl ? <img src={item.coverUrl} alt="" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : null}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium">{item.title || "無標題"}</div>
                           <div className="truncate text-xs text-muted-foreground">
-                            {item.sourceName || item.sourceDomain || item.sourceUrl}
-                            {formatMountedAt(item.mountedAt || item.createdAt) && <span className="ml-2">· 掛載於 {formatMountedAt(item.mountedAt || item.createdAt)}</span>}
+                            {getSourceLabel(item)}
+                            {formatMountedAt(item.mountedAt || item.createdAt) && <span className="ml-2">· {formatMountedAt(item.mountedAt || item.createdAt)}</span>}
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {(item.categories || []).map((category) => <Badge key={category} variant="secondary" className="text-[10px]">{category}</Badge>)}
@@ -693,7 +791,7 @@ export function ExternalPublicScriptSection() {
                           </div>
                         </div>
                         <div className="flex shrink-0 items-center gap-1">
-                          <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label="開啟原始台本" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+                          <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer" aria-label="開啟原始台本" title="開啟來源" className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
                             <ExternalLink className="h-4 w-4" />
                           </a>
                           <Button type="button" variant="ghost" size="sm" onClick={() => handleEdit(item)} aria-label="編輯外部台本"><Pencil className="h-4 w-4" /></Button>

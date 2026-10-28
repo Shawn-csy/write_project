@@ -28,20 +28,26 @@ interface PublisherDashboardStateProps {
   isSidebarOpen?: boolean;
   setSidebarOpen?: (open: boolean) => void;
   openMobileMenu?: () => void;
+  mode?: "studio" | "community";
 }
 
 export function usePublisherDashboardState(props: PublisherDashboardStateProps) {
-  const { isSidebarOpen, setSidebarOpen, openMobileMenu } = props;
+  const { isSidebarOpen, setSidebarOpen, openMobileMenu, mode = "studio" } = props;
   const { t } = useI18n();
   const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
+  const defaultTab = mode === "community" ? "profile" : "works";
+  const allowedTabs = mode === "community"
+    ? ["profile", "org", "advertising"]
+    : ["works", "series"];
+
   const resolveTabFromSearch = useCallback((search: string) => {
     const raw = new URLSearchParams(search || "").get("tab");
-    return ["works", "profile", "org", "series"].includes(raw ?? "") ? (raw as string) : "works";
-  }, []);
+    return allowedTabs.includes(raw ?? "") ? (raw as string) : defaultTab;
+  }, [allowedTabs.join("|"), defaultTab]);
 
   const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search));
   const [editingScript, setEditingScript] = useState<Partial<BaseScriptApi> | null>(null);
@@ -283,11 +289,24 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   }, [currentUser, loadWorks, worksQuery]);
 
   useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search || "").get("tab");
+    if (mode === "studio" && (requestedTab === "profile" || requestedTab === "org")) {
+      navigate(`/community?tab=${requestedTab}`, { replace: true });
+      return;
+    }
+    if (
+      mode === "community" && currentProfile?.isAdmin &&
+      requestedTab && ["directory", "claims", "submissions", "campaigns"].includes(requestedTab)
+    ) {
+      navigate(`/superadmin?section=${requestedTab}`, { replace: true });
+      return;
+    }
     const nextTab = resolveTabFromSearch(location.search);
     setActiveTab(prev => prev === nextTab ? prev : nextTab);
-  }, [location.search, resolveTabFromSearch]);
+  }, [currentProfile?.isAdmin, location.search, mode, navigate, resolveTabFromSearch]);
 
   useEffect(() => {
+    if (mode !== "studio") return;
     const params = new URLSearchParams(location.search || "");
     const requestedScriptId = params.get("scriptId");
     const shouldOpenPublish = params.get("open") === "publish";
@@ -308,7 +327,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
       })
       .catch(e => console.error("Failed to load publish context", e));
     return () => { cancelled = true; };
-  }, [location.search, scripts]);
+  }, [location.search, mode, scripts]);
 
   const handleWorksQueryChange = useCallback((next: {
     filter: "all" | "needs_work" | "ready" | "published";
@@ -371,11 +390,12 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const handleTabChange = useCallback((nextTab: string) => {
     setActiveTab(nextTab);
     const params = new URLSearchParams(location.search || "");
-    if (!nextTab || nextTab === "works") params.delete("tab");
+    if (!nextTab || nextTab === defaultTab) params.delete("tab");
     else params.set("tab", nextTab);
     const query = params.toString();
-    navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
-  }, [location.search, navigate]);
+    const route = mode === "community" ? "/community" : "/studio";
+    navigate(`${route}${query ? `?${query}` : ""}`, { replace: true });
+  }, [defaultTab, location.search, mode, navigate]);
 
   const closePublishDialog = useCallback(() => {
     setEditingScript(null);
@@ -412,7 +432,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
 
   const { showStudioGuide, studioGuideIndex, studioGuideSteps, currentStudioGuide, studioSpotlightRect,
     finishStudioGuide, handleStudioGuideNext, handleStudioGuidePrev, handleStartStudioGuide } =
-    useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef });
+    useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef, mode });
 
   const renderTabCount = (count: number) =>
     count ? React.createElement("span", { className: "rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground" }, count) : null;

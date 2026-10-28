@@ -460,6 +460,19 @@ export function GalleryScriptResults({
   // Default lanes view — ordered by activeLaneMode (active lane first)
   return (
     <div className="space-y-12">
+      {randomEntries.length > 0 && (
+        <HorizontalScrollLane key="random" title="隨機推薦">
+          {randomEntries.map((entry) => (
+            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
+              {entry.kind === "external"
+                ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
+                : entry.kind === "external-series"
+                  ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                  : renderGalleryEntry(entry.entry, cardRenderOptions)}
+            </div>
+          ))}
+        </HorizontalScrollLane>
+      )}
       {lanes.ordered.map((lane, laneIndex) =>
         lane.entries.length > 0 || (laneIndex === 0 && externalItems.length > 0) ? (
           <HorizontalScrollLane
@@ -493,19 +506,6 @@ export function GalleryScriptResults({
               : renderLaneEntries(lane.entries, cardRenderOptions)}
           </HorizontalScrollLane>
         ) : null
-      )}
-      {randomEntries.length > 0 && (
-        <HorizontalScrollLane key="random" title="隨機推薦">
-          {randomEntries.map((entry) => (
-            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
-              {entry.kind === "external"
-                ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
-                : entry.kind === "external-series"
-                  ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
-                  : renderGalleryEntry(entry.entry, cardRenderOptions)}
-            </div>
-          ))}
-        </HorizontalScrollLane>
       )}
       {featuredPracticeEntries.length > 0 && (
         <HorizontalScrollLane

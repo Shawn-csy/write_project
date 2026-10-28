@@ -90,7 +90,10 @@ function makeRouteConfigStatic(directory) {
       .replace(/export const revalidate = process\.env\.CF_STATIC_EXPORT === "1" \? false : (?:300|3600);/g, "export const revalidate = false;")
       .replace(/export const dynamicParams = process\.env\.CF_STATIC_EXPORT !== "1";/g, "export const dynamicParams = false;")
       .replace(/export const dynamic = process\.env\.CF_STATIC_EXPORT === "1" \? "force-static" : "force-dynamic";/g, 'export const dynamic = "force-static";');
-    if (output !== source) writeFileSync(path, output, "utf8");
+    const routeConfigOutput = path.endsWith("/app/demos/page.tsx") || path.endsWith("/app/voice-actors/page.tsx")
+      ? output.replace('export const dynamic = "force-dynamic";', 'export const dynamic = "force-static";')
+      : output;
+    if (routeConfigOutput !== source) writeFileSync(path, routeConfigOutput, "utf8");
   }
 }
 

@@ -1,5 +1,6 @@
 import React from "react";
 import type { Nav } from "../../hooks/useAppNavigation";
+import { useAuth } from "../../contexts/AuthContext";
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "../ui/drawer";
 import Sidebar from "./Sidebar";
@@ -31,6 +32,8 @@ export function MainLayout({
   openHome,
   showSidebar = true,
 }: MainLayoutProps) {
+  const { profile } = useAuth();
+
   return (
     <div className="relative flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       {/* Mobile Drawer */}
@@ -50,6 +53,7 @@ export function MainLayout({
             openSettings={openSettings}
             openHome={openHome}
             setSidebarOpen={setIsMobileDrawerOpen}
+            isAdmin={Boolean(profile?.isAdmin)}
           />
         </DrawerContent>
       </Drawer>
@@ -71,6 +75,7 @@ export function MainLayout({
               openSettings={openSettings}
               openHome={openHome}
               setSidebarOpen={setIsDesktopSidebarOpen}
+              isAdmin={Boolean(profile?.isAdmin)}
             />
           </div>
         </div>

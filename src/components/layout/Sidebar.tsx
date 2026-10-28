@@ -9,7 +9,9 @@ import {
   Info,
   LayoutTemplate,
   Library,
-  PencilLine
+  PencilLine,
+  UsersRound,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import UserMenu from "../auth/UserMenu";
@@ -30,6 +32,7 @@ interface SidebarProps {
   accentStyle: AccentStyle;
   className?: string;
   collapsed?: boolean;
+  isAdmin?: boolean;
 }
 
 interface NavItemProps {
@@ -51,6 +54,7 @@ function Sidebar({
   accentStyle,
   className,
   collapsed = false,
+  isAdmin = false,
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -160,6 +164,17 @@ function Sidebar({
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
 
           <div className="flex-1 overflow-y-auto px-2 py-2 scrollbar-thin space-y-4">
+             {isAdmin && (
+               <div className="space-y-1 border-b border-border/40 pb-3 pt-1">
+                 {!collapsed && <div className="px-3 pb-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{t("sidebar.adminSection")}</span></div>}
+                 <NavItem
+                   icon={ShieldCheck}
+                   label={t("nav.superAdmin")}
+                   onClick={() => { navigate("/superadmin"); closeSidebarIfMobile(); }}
+                   isActive={location.pathname === "/superadmin"}
+                 />
+               </div>
+             )}
              {/* Highlighted Public Gallery */}
               <div className="space-y-2 pt-2">
                   {collapsed ? null : (
@@ -199,6 +214,13 @@ function Sidebar({
                       label={t("nav.studio")}
                       onClick={() => { navigate("/studio"); closeSidebarIfMobile(); }}
                       isActive={location.pathname === "/studio"}
+                  />
+
+                  <NavItem
+                      icon={UsersRound}
+                      label={t("nav.community")}
+                      onClick={() => { navigate("/community"); closeSidebarIfMobile(); }}
+                      isActive={location.pathname === "/community"}
                   />
 
               </div>

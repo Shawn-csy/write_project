@@ -223,7 +223,6 @@ export function PublisherOrgTab({
             header={(
                 <PublisherTabHeader
                     title={s.viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}
-                    description="管理組織資料、成員權限與邀請審核。"
                     actions={<div className="flex min-w-[260px] items-center justify-end gap-2">
                         <Button
                             type="button"
