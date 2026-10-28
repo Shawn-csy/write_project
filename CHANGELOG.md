@@ -5,7 +5,22 @@ All notable product-facing changes are documented here.
 For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/archive/release-version-map-after-v0.5.0.md`.
 The early `v0.1.0`–`v0.4.9` releases are summarized in the historical overview below.
 
-## [Unreleased]
+## [0.7.2] - 2026-10-29
+
+本版新增 Demo 專區與聲演名錄，改善投稿、創作者身份呈現與工作室管理流程。
+
+### Demo 與聲演
+
+- 新增密集、支援手機直向瀏覽的 Demo 專區；卡片優先使用 YouTube 封面，沒有時再使用台本封面。
+- 投稿可選擇男聲演、女聲演或兩者，資料會顯示在 Demo、聲演作品與管理審核畫面。
+- 新增公開聲演名錄；作者與聲演身份可合併呈現，並依個人標籤、投稿演出判定聲演身份。
+- 新增 Demo 投稿審核流程，作者頁可查看台本作品與公開演出。
+
+### 工作室與管理
+
+- 新增社群工作台與 Demo 投稿收件匣，並調整創作者與外部台本管理流程。
+- 改善工作室導覽、發布者頁面與公開站的 Demo／聲演入口。
+
 
 ### SEO
 
