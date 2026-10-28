@@ -6,6 +6,9 @@ import type {
   OrgData,
   PersonaLike,
   PublicFeedbackListResponse,
+  PublicFeedbackRecord,
+  PublicDemoSubmissionListResponse,
+  PublicDemoSubmissionRecord,
   PublicTermsAcceptanceRecord,
   PublicTermsAcceptancesQuery,
   ScriptMetadataUpdatePayload,
@@ -33,11 +36,13 @@ export const getPublicTermsAcceptances = async ({
 
 export const getPublicFeedbackAdmin = async ({
   q = "",
+  excludeKind,
   limit = 100,
   offset = 0,
-}: AdminPaginationQuery = {}): Promise<PublicFeedbackListResponse> => {
+}: AdminPaginationQuery & { excludeKind?: string } = {}): Promise<PublicFeedbackListResponse> => {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
+  if (excludeKind) params.set("excludeKind", excludeKind);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   return fetchApi(`/admin/public-feedback?${params.toString()}`) as Promise<PublicFeedbackListResponse>;
@@ -48,6 +53,35 @@ export const deletePublicFeedbackAdmin = async (feedbackId: string): Promise<Scr
     method: "DELETE",
   }) as Promise<ScriptMutationResponse>;
 };
+
+export const updatePublicFeedbackStatusAdmin = async (
+  feedbackId: string,
+  status: "new" | "reviewed" | "closed"
+): Promise<PublicFeedbackRecord> => {
+  return fetchApi(`/admin/public-feedback/${encodeURIComponent(feedbackId)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  }) as Promise<PublicFeedbackRecord>;
+};
+
+export const getPublicDemoSubmissionsAdmin = async ({
+  q = "",
+  status = "pending",
+  limit = 100,
+  offset = 0,
+}: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<PublicDemoSubmissionListResponse> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/public-demo-submissions?${params.toString()}`) as Promise<PublicDemoSubmissionListResponse>;
+};
+
+export const updatePublicDemoSubmissionStatusAdmin = async (
+  submissionId: string,
+  status: PublicDemoSubmissionRecord["status"],
+): Promise<PublicDemoSubmissionRecord> => fetchApi(`/admin/public-demo-submissions/${encodeURIComponent(submissionId)}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status }),
+}) as Promise<PublicDemoSubmissionRecord>;
 
 export const getAdminUsers = async (): Promise<SearchUser[]> => {
   return fetchApi("/admin/admin-users") as Promise<SearchUser[]>;
@@ -242,6 +276,7 @@ export interface ExternalPublicScriptPayload {
   coverUrlOverride?: string;
   seriesName?: string;
   seriesOrder?: number | null;
+  demoLinks?: Array<{ id?: string; name?: string; url: string; cast?: string; description?: string }>;
   categories?: string[];
   status?: "draft" | "published" | "hidden";
   sortOrder?: number;

@@ -9,7 +9,9 @@ import {
   Library,
   PencilLine,
   LayoutTemplate,
-  Images
+  Images,
+  UsersRound,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
@@ -31,6 +33,7 @@ interface MobileMenuProps {
   openHome?: () => void;
   onClose: () => void;
   accentStyle?: AccentStyle;
+  isAdmin?: boolean;
 }
 
 interface NavItemProps {
@@ -53,7 +56,8 @@ function MobileMenu({
   openSettings,
   openHome, // handleReturnHome
   onClose,
-  accentStyle
+  accentStyle,
+  isAdmin = false,
 }: MobileMenuProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -109,6 +113,15 @@ function MobileMenu({
                  <div className="space-y-1">
                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">{t("mobileMenu.quickNav")}</div>
 
+                     {isAdmin && (
+                       <NavItem
+                           icon={ShieldCheck}
+                           label={t("nav.superAdmin")}
+                           onClick={() => { navigate("/superadmin"); onClose(); }}
+                           isActive={location.pathname === "/superadmin"}
+                       />
+                     )}
+
                      <NavItem
                          icon={PencilLine}
                          label={t("nav.workspace")}
@@ -128,6 +141,12 @@ function MobileMenu({
                          label={t("nav.studio")}
                          onClick={() => { navigate("/studio"); onClose(); }}
                          isActive={location.pathname === "/studio"}
+                     />
+                     <NavItem
+                         icon={UsersRound}
+                         label={t("nav.community")}
+                         onClick={() => { navigate("/community"); onClose(); }}
+                         isActive={location.pathname === "/community"}
                      />
                      <NavItem
                          icon={Images}

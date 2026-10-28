@@ -61,6 +61,7 @@ const PROXY_ONLY_READ_ROUTES = [
 
 const PUBLIC_WRITE_ROUTES = [
   /^\/api\/public-feedback$/,
+  /^\/api\/public-demo-submissions$/,
   /^\/api\/public-terms-acceptances$/,
   /^\/api\/public-scripts\/[^/]+\/like$/,
   /^\/api\/public-external-scripts\/[^/]+\/view$/,

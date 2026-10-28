@@ -9,17 +9,16 @@ const messages = {
     "gallery": "公開台本",
     "workspace": "閲覧と執筆",
     "studio": "ワークスペース",
-    "mediaLibrary": "メディアライブラリ",
-    "transfer": "プラットフォーム管理"
+    "community": "コミュニティ管理",
+    "superAdmin": "管理者ワークスペース",
+    "mediaLibrary": "メディアライブラリ"
   },
   "settings": {
     "title": "設定",
     "display": "表示と閲覧",
-    "transfer": "プラットフォーム管理",
     "media": "メディアライブラリ",
     "markers": "カスタムマーカー",
     "profile": "プロフィール",
-    "transferDesc": "全体データ、台本設定、権限操作を管理します。",
     "language": "言語",
     "languageZh": "繁体字",
     "languageEn": "英語",
@@ -451,6 +450,7 @@ const messages = {
     "backHome": "ホームへ戻る",
     "collapseList": "一覧を閉じる",
     "expandList": "一覧を開く",
+    "adminSection": "管理",
     "publicSection": "公開",
     "menuSection": "メニュー"
   },

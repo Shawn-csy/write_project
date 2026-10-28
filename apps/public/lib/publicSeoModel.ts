@@ -63,14 +63,14 @@ export function toSitemapDate(value: string | number | undefined, fallback = new
 // ─── Static public pages ──────────────────────────────────────────────────────
 
 /** Static pages that are always indexed and included in the sitemap. */
-export const STATIC_PUBLIC_PAGES = ["/about", "/help", "/license", "/privacy", "/terms"] as const;
+export const STATIC_PUBLIC_PAGES = ["/about", "/demos", "/help", "/license", "/privacy", "/terms", "/voice-actors"] as const;
 
 /**
  * Last real edit of the static pages above (ISO-8601). Bump it when their copy
  * changes. It must NOT be derived from `new Date()`: a sitemap whose lastmod
  * changes on every request makes search engines distrust lastmod entirely.
  */
-export const STATIC_PAGES_LASTMOD = "2026-10-20T00:00:00.000Z";
+export const STATIC_PAGES_LASTMOD = "2026-10-28T00:00:00.000Z";
 
 // ─── Sitemap eligibility ──────────────────────────────────────────────────────
 

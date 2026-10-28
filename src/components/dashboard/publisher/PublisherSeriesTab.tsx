@@ -92,11 +92,6 @@ export function PublisherSeriesTab({
       header={(
         <PublisherTabHeader
           title={selected ? "編輯系列" : "建立系列"}
-          description={
-            selected
-              ? "設定封面與摘要，並整理每部作品的系列關聯。"
-              : "先建立系列基本資料，建立後可加入作品、排序章節並預覽公開頁。"
-          }
         />
       )}
     >

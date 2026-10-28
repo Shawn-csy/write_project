@@ -9,17 +9,16 @@ const messages = {
     "gallery": "Gallery",
     "workspace": "Workspace",
     "studio": "Workspace",
-    "mediaLibrary": "Media Library",
-    "transfer": "Platform Admin"
+    "community": "Community Workspace",
+    "superAdmin": "Admin Workspace",
+    "mediaLibrary": "Media Library"
   },
   "settings": {
     "title": "Settings",
     "display": "Display & Reading",
-    "transfer": "Platform Admin",
     "media": "Media Library",
     "markers": "Markers",
     "profile": "Identity",
-    "transferDesc": "Manage platform data, script settings, and privileged operations.",
     "language": "Language",
     "languageZh": "Traditional Chinese",
     "languageEn": "English",
@@ -451,6 +450,7 @@ const messages = {
     "backHome": "Back to home",
     "collapseList": "Collapse list",
     "expandList": "Expand list",
+    "adminSection": "Admin",
     "publicSection": "Public",
     "menuSection": "Menu"
   },

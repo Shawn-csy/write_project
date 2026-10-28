@@ -189,6 +189,7 @@ def list_public_terms_acceptances(
 @router.get("/public-feedback", response_model=schemas.PublicFeedbackListResponse)
 def list_public_feedback(
     q: Optional[str] = None,
+    excludeKind: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -201,6 +202,8 @@ def list_public_feedback(
     safe_offset = max(offset, 0)
     normalized_q = (q or "").strip()
     query = db.query(models.PublicFeedback)
+    if excludeKind:
+        query = query.filter(models.PublicFeedback.kind != excludeKind)
     if normalized_q:
         like_q = f"%{normalized_q}%"
         query = query.filter(
@@ -236,6 +239,179 @@ def delete_public_feedback(
     db.delete(row)
     db.commit()
     return {"success": True}
+
+
+@router.patch("/public-feedback/{feedback_id}/status", response_model=schemas.PublicFeedbackRecord)
+def update_public_feedback_status(
+    feedback_id: str,
+    payload: schemas.PublicFeedbackStatusUpdate,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    row = db.query(models.PublicFeedback).filter(models.PublicFeedback.id == feedback_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Public feedback not found")
+
+    row.status = payload.status
+    row.updatedAt = int(time.time() * 1000)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.get("/public-demo-submissions", response_model=schemas.PublicDemoSubmissionListResponse)
+def list_public_demo_submissions(
+    status: Optional[str] = "pending",
+    q: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if status not in {None, "all", "pending", "approved", "rejected"}:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    query = db.query(models.PublicDemoSubmission)
+    if status and status != "all":
+        query = query.filter(models.PublicDemoSubmission.status == status)
+    normalized_q = (q or "").strip()
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            models.PublicDemoSubmission.scriptTitle.ilike(like_q)
+            | models.PublicDemoSubmission.demoName.ilike(like_q)
+            | models.PublicDemoSubmission.demoUrl.ilike(like_q)
+            | models.PublicDemoSubmission.cast.ilike(like_q)
+            | models.PublicDemoSubmission.displayName.ilike(like_q)
+            | models.PublicDemoSubmission.contactEmail.ilike(like_q)
+        )
+    total = query.count()
+    rows = query.order_by(models.PublicDemoSubmission.createdAt.desc()).offset(max(offset, 0)).limit(max(1, min(limit, 200))).all()
+    return schemas.PublicDemoSubmissionListResponse(total=total, items=[_serialize_demo_submission(db, row) for row in rows])
+
+
+@router.patch("/public-demo-submissions/{submission_id}/status", response_model=schemas.PublicDemoSubmissionRecord)
+def update_public_demo_submission_status(
+    submission_id: str,
+    payload: schemas.PublicDemoSubmissionStatusUpdate,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.id == submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Demo submission not found")
+
+    if payload.status == "approved":
+        _ensure_manual_voice_actor_personas(db, row)
+    row.status = payload.status
+    row.reviewedAt = int(time.time() * 1000) if payload.status != "pending" else None
+    row.reviewedBy = ownerId if payload.status != "pending" else None
+    db.commit()
+    db.refresh(row)
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    return _serialize_demo_submission(db, row)
+
+
+def _ensure_manual_voice_actor_personas(db: Session, row: models.PublicDemoSubmission) -> None:
+    """Create unclaimed public voice-actor identities when a Demo is approved."""
+    raw_actors = row.manualVoiceActors if isinstance(row.manualVoiceActors, list) else []
+    normalized_actors = []
+    created_for_submission: dict[tuple[str, str], str] = {}
+
+    for raw_actor in raw_actors:
+        if not isinstance(raw_actor, dict):
+            continue
+        actor = dict(raw_actor)
+        name = str(actor.get("name") or "").strip()[:120]
+        social_url = str(actor.get("socialUrl") or "").strip()[:2000]
+        if not name:
+            continue
+
+        persona_id = str(actor.get("personaId") or "").strip()
+        persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first() if persona_id else None
+        if not persona:
+            dedupe_key = (name.casefold(), social_url.casefold())
+            persona_id = created_for_submission.get(dedupe_key, "")
+            persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first() if persona_id else None
+
+        if not persona and social_url:
+            # Reuse an existing public voice identity when the same social URL is provided.
+            candidates = db.query(models.Persona).filter(models.Persona.displayName == name).all()
+            for candidate in candidates:
+                tags = safe_json_list(candidate.tags)
+                if not any("聲演" in str(tag) or "配音" in str(tag) or "voice actor" in str(tag).casefold() for tag in tags):
+                    continue
+                links = safe_json_list(candidate.links)
+                urls = {str(link.get("url") or "").strip().casefold() for link in links if isinstance(link, dict)}
+                if social_url.casefold() in urls or str(candidate.website or "").strip().casefold() == social_url.casefold():
+                    persona = candidate
+                    break
+
+        if not persona:
+            links = [{"label": "社群", "url": social_url}] if social_url else []
+            persona = models.Persona(
+                id=str(uuid.uuid4()),
+                ownerId=None,
+                displayName=name,
+                avatar="",
+                bannerUrl="",
+                bio="",
+                website="",
+                links=links,
+                organizationIds=[],
+                tags=["聲演", "Demo 投稿建立", "待認領"],
+                defaultLicenseCommercial="",
+                defaultLicenseDerivative="",
+                defaultLicenseNotify="",
+                defaultLicenseSpecialTerms=[],
+                createdAt=int(time.time() * 1000),
+                updatedAt=int(time.time() * 1000),
+            )
+            db.add(persona)
+            db.flush()
+            created_for_submission[(name.casefold(), social_url.casefold())] = persona.id
+
+        actor["name"] = persona.displayName or name
+        actor["socialUrl"] = social_url
+        actor["personaId"] = persona.id
+        normalized_actors.append(actor)
+
+    row.manualVoiceActors = normalized_actors
+
+
+def _serialize_demo_submission(db: Session, row: models.PublicDemoSubmission) -> dict:
+    voice_actor_ids = row.voiceActorIds if isinstance(row.voiceActorIds, list) else []
+    personas = db.query(models.Persona).filter(models.Persona.id.in_(voice_actor_ids)).all() if voice_actor_ids else []
+    return {
+        "id": row.id,
+        "scriptType": row.scriptType,
+        "scriptId": row.scriptId,
+        "externalScriptId": row.externalScriptId,
+        "scriptTitle": row.scriptTitle,
+        "scriptUrl": row.scriptUrl,
+        "demoName": row.demoName,
+        "demoUrl": row.demoUrl,
+        "coverUrl": row.coverUrl or "",
+        "cast": row.cast,
+        "voiceTypes": row.voiceTypes if isinstance(row.voiceTypes, list) else [],
+        "voiceActorIds": voice_actor_ids,
+        "manualVoiceActors": row.manualVoiceActors if isinstance(row.manualVoiceActors, list) else [],
+        "voiceActorNames": [persona.displayName for persona in personas],
+        "description": row.description,
+        "displayName": row.displayName,
+        "contactEmail": row.contactEmail,
+        "status": row.status,
+        "reviewedAt": row.reviewedAt,
+        "createdAt": row.createdAt,
+    }
 
 
 @router.get("/admin-users", response_model=List[schemas.AdminUserRecord])

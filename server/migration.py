@@ -562,6 +562,7 @@ def _run_postgres_migrations():
             ("views", "INTEGER DEFAULT 0"),
             ("seriesName", "TEXT DEFAULT ''"),
             ("seriesOrder", "INTEGER DEFAULT NULL"),
+            ("demoLinks", "TEXT DEFAULT NULL"),
         ]
         for col, col_type in external_public_script_columns:
             result = conn.execute(text(
@@ -570,6 +571,34 @@ def _run_postgres_migrations():
             ), {"c": col}).fetchone()
             if not result:
                 conn.execute(text(f'ALTER TABLE external_public_scripts ADD COLUMN "{col}" {col_type}'))
+        demo_submissions_table = conn.execute(text(
+            "SELECT table_name FROM information_schema.tables WHERE table_name = 'public_demo_submissions'"
+        )).fetchone()
+        if demo_submissions_table:
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'public_demo_submissions' AND column_name = 'voiceActorIds'"
+            )).fetchone()
+            if not result:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"voiceActorIds\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'public_demo_submissions' AND column_name = 'coverUrl'"
+            )).fetchone()
+            if not result:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"coverUrl\" TEXT NOT NULL DEFAULT ''"))
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'public_demo_submissions' AND column_name = 'manualVoiceActors'"
+            )).fetchone()
+            if not result:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"manualVoiceActors\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
+            result = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'public_demo_submissions' AND column_name = 'voiceTypes'"
+            )).fetchone()
+            if not result:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"voiceTypes\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
         conn.execute(text('UPDATE external_public_scripts SET "mountedAt" = "createdAt" WHERE "mountedAt" IS NULL'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts("sortOrder")'))
@@ -1010,12 +1039,24 @@ def run_migrations():
                 ("views", "INTEGER DEFAULT 0"),
                 ("seriesName", "TEXT DEFAULT ''"),
                 ("seriesOrder", "INTEGER DEFAULT NULL"),
+                ("demoLinks", "TEXT DEFAULT NULL"),
             ]
             result = conn.execute(text("PRAGMA table_info(external_public_scripts)"))
             existing_external_columns = {row[1] for row in result.fetchall()}
             for col, col_type in external_public_script_columns:
                 if col not in existing_external_columns:
                     conn.execute(text(f'ALTER TABLE external_public_scripts ADD COLUMN "{col}" {col_type}'))
+            existing_demo_submission_columns = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(public_demo_submissions)")).fetchall()
+            }
+            if existing_demo_submission_columns and "voiceActorIds" not in existing_demo_submission_columns:
+                conn.execute(text('ALTER TABLE public_demo_submissions ADD COLUMN "voiceActorIds" TEXT DEFAULT \'[]\''))
+            if existing_demo_submission_columns and "coverUrl" not in existing_demo_submission_columns:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"coverUrl\" TEXT NOT NULL DEFAULT ''"))
+            if existing_demo_submission_columns and "manualVoiceActors" not in existing_demo_submission_columns:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"manualVoiceActors\" TEXT NOT NULL DEFAULT '[]'"))
+            if existing_demo_submission_columns and "voiceTypes" not in existing_demo_submission_columns:
+                conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"voiceTypes\" TEXT NOT NULL DEFAULT '[]'"))
             conn.execute(text('UPDATE external_public_scripts SET mountedAt = createdAt WHERE mountedAt IS NULL'))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts(sortOrder)"))

@@ -1,0 +1,125 @@
+import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+
+export interface PublicVoiceWorkBundle {
+  scripts?: PublicScript[];
+  externalPublicScripts?: ExternalPublicScript[];
+  demoSubmissions?: PublicDemoSubmission[];
+}
+
+function parseDemoEntries(value: unknown): Array<Record<string, unknown>> {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return [];
+    }
+  }
+  return Array.isArray(parsed)
+    ? parsed.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    : [];
+}
+
+function includesPersona(entry: Record<string, unknown>, personaId: string): boolean {
+  const actorIds = Array.isArray(entry.voiceActorIds) ? entry.voiceActorIds.map(String) : [];
+  const manualActors = Array.isArray(entry.manualVoiceActors) ? entry.manualVoiceActors : [];
+  return actorIds.includes(personaId) || manualActors.some((actor) =>
+    Boolean(actor) && typeof actor === "object" && String((actor as Record<string, unknown>).personaId || "") === personaId
+  );
+}
+
+function normalizeWork(input: {
+  id: string;
+  scriptType: "internal" | "external";
+  scriptId?: string;
+  externalScriptId?: string;
+  scriptTitle: string;
+  scriptUrl: string;
+  raw: Record<string, unknown>;
+  createdAt?: number;
+}): PublicDemoSubmission | null {
+  const demoUrl = String(input.raw.url || input.raw.demoUrl || "").trim();
+  if (!/^https?:\/\//i.test(demoUrl)) return null;
+  return {
+    id: input.id,
+    scriptType: input.scriptType,
+    scriptId: input.scriptId,
+    externalScriptId: input.externalScriptId,
+    scriptTitle: input.scriptTitle,
+    scriptUrl: input.scriptUrl,
+    demoName: String(input.raw.name || input.raw.demoName || "演出 Demo").trim(),
+    demoUrl,
+    coverUrl: String(input.raw.coverUrl || input.raw.thumbnailUrl || "").trim(),
+    cast: String(input.raw.cast || "").trim(),
+    voiceTypes: Array.isArray(input.raw.voiceTypes) ? input.raw.voiceTypes.filter((type): type is "male" | "female" => type === "male" || type === "female") : [],
+    voiceActorIds: Array.isArray(input.raw.voiceActorIds) ? input.raw.voiceActorIds.map(String) : [],
+    manualVoiceActors: Array.isArray(input.raw.manualVoiceActors)
+      ? input.raw.manualVoiceActors.flatMap((rawActor) => {
+        if (!rawActor || typeof rawActor !== "object") return [];
+        const actor = rawActor as Record<string, unknown>;
+        const name = String(actor.name || "").trim();
+        return name ? [{ name, socialUrl: String(actor.socialUrl || ""), personaId: String(actor.personaId || "") }] : [];
+      })
+      : [],
+    description: String(input.raw.description || input.raw.desc || "").trim(),
+    createdAt: input.createdAt || 0,
+  };
+}
+
+/** Public Demo links that explicitly identify a persona as a performer. */
+export function getPublicVoicePerformances(personaId: string, bundle: PublicVoiceWorkBundle): PublicDemoSubmission[] {
+  if (!personaId) return [];
+  const works: PublicDemoSubmission[] = [];
+
+  for (const demo of bundle.demoSubmissions || []) {
+    if ((demo.voiceActorIds || []).includes(personaId) || (demo.manualVoiceActors || []).some((actor) => actor.personaId === personaId)) {
+      works.push(demo);
+    }
+  }
+
+  for (const script of bundle.scripts || []) {
+    for (const [index, raw] of parseDemoEntries(script.activityDemoLinks).entries()) {
+      if (!includesPersona(raw, personaId)) continue;
+      const work = normalizeWork({
+        id: String(raw.id || `activity:${script.id}:${index}`),
+        scriptType: "internal",
+        scriptId: script.id,
+        scriptTitle: script.title || "未命名台本",
+        scriptUrl: `/read/${encodeURIComponent(script.id)}`,
+        raw,
+        createdAt: Number(script.updatedAt || script.lastModified || 0),
+      });
+      if (work) works.push(work);
+    }
+  }
+
+  for (const script of bundle.externalPublicScripts || []) {
+    if (script.status !== "published") continue;
+    for (const [index, raw] of parseDemoEntries(script.demoLinks).entries()) {
+      if (!includesPersona(raw, personaId)) continue;
+      const work = normalizeWork({
+        id: String(raw.id || `external:${script.id}:${index}`),
+        scriptType: "external",
+        externalScriptId: script.id,
+        scriptTitle: script.title || script.remoteTitle || "外部台本",
+        scriptUrl: script.sourceUrl,
+        raw,
+        createdAt: Number(script.updatedAt || script.mountedAt || 0),
+      });
+      if (work) works.push(work);
+    }
+  }
+
+  const seen = new Set<string>();
+  return works.filter((work) => {
+    if (seen.has(work.demoUrl)) return false;
+    seen.add(work.demoUrl);
+    return true;
+  });
+}
+
+const VOICE_ACTOR_TAG = /聲演|配音|voice[\s-]?actor/i;
+
+export function hasVoiceActorSelfTag(persona: PublicPersona): boolean {
+  return (persona.tags || []).some((tag) => VOICE_ACTOR_TAG.test(String(tag)));
+}

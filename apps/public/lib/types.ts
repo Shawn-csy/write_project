@@ -97,6 +97,17 @@ export interface ExternalPublicScript {
   coverUrlOverride?: string;
   seriesName?: string;
   seriesOrder?: number | null;
+  demoLinks?: Array<{
+    id?: string;
+    name?: string;
+    url: string;
+    coverUrl?: string;
+    cast?: string;
+    description?: string;
+    voiceTypes?: Array<"male" | "female">;
+    voiceActorIds?: string[];
+    manualVoiceActors?: Array<{ name: string; socialUrl?: string; personaId?: string }>;
+  }>;
   title: string;
   summary?: string;
   coverUrl?: string;
@@ -111,6 +122,25 @@ export interface ExternalPublicScript {
   createdAt?: number;
   mountedAt?: number;
   updatedAt?: number;
+}
+
+export interface PublicDemoSubmission {
+  id: string;
+  scriptType: "internal" | "external";
+  scriptId?: string | null;
+  externalScriptId?: string | null;
+  scriptTitle: string;
+  scriptUrl: string;
+  demoName?: string;
+  demoUrl: string;
+  coverUrl?: string;
+  cast?: string;
+  voiceTypes?: Array<"male" | "female">;
+  voiceActorIds?: string[];
+  manualVoiceActors?: Array<{ name: string; socialUrl?: string; personaId?: string }>;
+  description?: string;
+  displayName?: string;
+  createdAt: number;
 }
 
 export interface PublicOrg {

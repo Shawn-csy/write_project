@@ -230,6 +230,7 @@ export function slimExternalScriptForHomepage(item: ExternalPublicScript): Exter
     organizationAvatarUrl: item.organizationAvatarUrl,
     seriesName: item.seriesName,
     seriesOrder: item.seriesOrder,
+    demoLinks: item.demoLinks,
     // Consumers read `title || remoteTitle` and `summary || remoteSummary`;
     // fold the fallback in so the second copy does not ship.
     title: item.title || item.remoteTitle || "",

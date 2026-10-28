@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import httpx
+import json
 import os
 import re
 import time
@@ -73,6 +74,32 @@ def _safe_link_url(value: Any) -> str:
     if parsed.scheme in {"http", "https"} and parsed.hostname:
         return link[:2000]
     return ""
+
+
+def _demo_links(value: Any) -> list[dict[str, str]]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            return []
+    if not isinstance(value, list):
+        return []
+    result: list[dict[str, str]] = []
+    for index, raw in enumerate(value[:40]):
+        if not isinstance(raw, dict):
+            continue
+        url = _safe_link_url(raw.get("url"))
+        if not url:
+            continue
+        result.append({
+            "id": str(raw.get("id") or f"demo-{index + 1}")[:120],
+            "name": str(raw.get("name") or "").strip()[:160],
+            "url": url,
+            "coverUrl": _safe_link_url(raw.get("coverUrl"))[:2000],
+            "cast": str(raw.get("cast") or "").strip()[:300],
+            "description": str(raw.get("description") or "").strip()[:1000],
+        })
+    return result
 
 
 def _resolved_avatar_url(explicit: Any, metadata_value: Any, profile_url: Any, current: Any = "") -> str:
@@ -250,6 +277,7 @@ def serialize_external_public_script(item: models.ExternalPublicScript) -> dict[
         "coverUrlOverride": cover_override,
         "seriesName": str(item.seriesName or "").strip(),
         "seriesOrder": item.seriesOrder,
+        "demoLinks": _demo_links(item.demoLinks),
         "title": title_override or remote_title or str(item.sourceDomain or "外部公開台本"),
         "summary": summary_override or remote_summary,
         "coverUrl": cover_override or remote_cover,
@@ -573,6 +601,7 @@ def create_external_public_script(
         coverUrlOverride=_safe_image_url(payload.coverUrlOverride),
         seriesName=str(payload.seriesName or "").strip(),
         seriesOrder=payload.seriesOrder,
+        demoLinks=json.dumps(_demo_links([link.model_dump() for link in payload.demoLinks]), ensure_ascii=False),
         categories=_categories(payload.categories),
         status=payload.status,
         sortOrder=float(payload.sortOrder or 0),
@@ -735,6 +764,8 @@ def update_external_public_script(
         item.seriesName = str(payload.seriesName).strip()
     if payload.seriesOrder is not None or payload.seriesName is not None:
         item.seriesOrder = payload.seriesOrder
+    if payload.demoLinks is not None:
+        item.demoLinks = json.dumps(_demo_links([link.model_dump() for link in payload.demoLinks]), ensure_ascii=False)
     if payload.categories is not None:
         item.categories = _categories(payload.categories)
     if payload.status is not None:

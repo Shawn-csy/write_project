@@ -131,7 +131,6 @@ export function PublisherProfileTab(props: PublisherProfileTabProps): React.JSX.
       header={(
         <PublisherTabHeader
           title={viewMode === "create" ? t("publisherProfileTab.createIdentity") : t("publisherProfileTab.editIdentity")}
-          description="編輯作者名稱、個人簡介、圖片與作者頁展示內容。"
         />
       )}
       footer={(viewMode === "create" || selectedPersonaId) ? (

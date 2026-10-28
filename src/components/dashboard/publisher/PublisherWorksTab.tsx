@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { useI18n } from "../../../contexts/I18nContext";
 import { Edit, FilePenLine } from "lucide-react";
-import { PublisherTabHeader } from "./PublisherTabHeader";
 import { PublisherEmptyState } from "./PublisherEntityLayout";
 import { WorkScriptGridCard } from "./WorkScriptGridCard";
 import { WorkScriptListCard } from "./WorkScriptListCard";
@@ -83,10 +82,6 @@ export function PublisherWorksTab({
 
     return (
         <div className="flex flex-col gap-4">
-            <PublisherTabHeader
-                title="發布工作台"
-                description="依發布準備度檢視作品，快速補齊必要資料或檢查已公開內容。"
-            />
             <div className="space-y-4">
             {/* 工具列：篩選 pill + 搜尋 + 排序 + 檢視切換 */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" data-guide-id="studio-works-filters">

@@ -65,7 +65,11 @@ def send_public_feedback_notification(feedback: Mapping[str, str]) -> None:
         logger.error("Public feedback email skipped because SMTP_FROM is invalid")
         return
 
-    kind = "Bug 回報" if feedback.get("kind") == "bug" else "上架申請"
+    kind = {
+        "bug": "Bug 回報",
+        "listing": "上架申請",
+        "ad_application": "廣告申請",
+    }.get(str(feedback.get("kind") or ""), "公開頁回報")
     created_at = feedback.get("createdAt", "")
     try:
         created_label = datetime.fromtimestamp(

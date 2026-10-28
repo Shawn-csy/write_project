@@ -269,7 +269,7 @@ class PublicFeedback(Base):
     __tablename__ = "public_feedback"
 
     id = Column(String, primary_key=True, index=True)
-    kind = Column(String, default="bug", index=True)  # bug | listing
+    kind = Column(String, default="bug", index=True)  # bug | listing | ad_application
     contactName = Column(String, default="")
     contactEmail = Column(String, default="")
     content = Column(Text, nullable=False)
@@ -281,6 +281,33 @@ class PublicFeedback(Base):
     referer = Column(Text, default="")
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+
+class PublicDemoSubmission(Base):
+    """Public demo links submitted for moderation before they appear in the directory."""
+
+    __tablename__ = "public_demo_submissions"
+
+    id = Column(String, primary_key=True, index=True)
+    scriptType = Column(String, nullable=False, index=True)  # internal | external
+    scriptId = Column(String, ForeignKey("scripts.id", ondelete="SET NULL"), nullable=True, index=True)
+    externalScriptId = Column(String, ForeignKey("external_public_scripts.id", ondelete="SET NULL"), nullable=True, index=True)
+    scriptTitle = Column(Text, nullable=False, default="")
+    scriptUrl = Column(Text, nullable=False, default="")
+    demoName = Column(String, nullable=False, default="")
+    demoUrl = Column(Text, nullable=False)
+    coverUrl = Column(Text, nullable=False, default="")
+    cast = Column(Text, nullable=False, default="")
+    voiceTypes = Column(JSON, nullable=False, default=list)
+    voiceActorIds = Column(JSON, nullable=False, default=list)
+    manualVoiceActors = Column(JSON, nullable=False, default=list)
+    description = Column(Text, nullable=False, default="")
+    displayName = Column(String, nullable=False, default="")
+    contactEmail = Column(String, nullable=False, default="")
+    status = Column(String, nullable=False, default="pending", index=True)  # pending | approved | rejected
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
 
 
 class AdminUser(Base):
@@ -338,6 +365,7 @@ class ExternalPublicScript(Base):
     # each chapter back to its original public URL.
     seriesName = Column(String, default="", index=True)
     seriesOrder = Column(Integer, nullable=True)
+    demoLinks = Column(Text, nullable=True)  # JSON array of externally hosted samples
 
     categories = Column(JSON, default=list)
     views = Column(Integer, default=0)

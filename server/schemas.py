@@ -110,7 +110,7 @@ class PersonaCreate(PersonaBase):
     
 class Persona(PersonaBase):
     id: str
-    ownerId: str
+    ownerId: Optional[str] = None
     createdAt: int
     updatedAt: int
     organizationRole: Optional[str] = None
@@ -637,7 +637,7 @@ class PublicTermsAcceptanceListResponse(BaseModel):
 
 
 class PublicFeedbackCreate(BaseModel):
-    kind: Literal["bug", "listing"] = "bug"
+    kind: Literal["bug", "listing", "ad_application"] = "bug"
     contactName: Optional[str] = ""
     contactEmail: Optional[str] = ""
     content: str
@@ -657,7 +657,7 @@ class PublicFeedbackCreate(BaseModel):
 
 class PublicFeedbackRecord(BaseModel):
     id: str
-    kind: Literal["bug", "listing"]
+    kind: Literal["bug", "listing", "ad_application"]
     contactName: str = ""
     contactEmail: str = ""
     content: str
@@ -675,9 +675,163 @@ class PublicFeedbackResponse(BaseModel):
     createdAt: int
 
 
+class PublicFeedbackStatusUpdate(BaseModel):
+    status: Literal["new", "reviewed", "closed"]
+
+
 class PublicFeedbackListResponse(BaseModel):
     total: int
     items: List[PublicFeedbackRecord] = []
+
+
+class PublicManualVoiceActor(BaseModel):
+    name: str
+    socialUrl: str = ""
+    personaId: Optional[str] = None
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value: Any) -> str:
+        name = str(value or "").strip()
+        if not name:
+            raise ValueError("名單外聲演請填寫姓名")
+        return name[:120]
+
+    @field_validator("socialUrl", mode="before")
+    @classmethod
+    def validate_social_url(cls, value: Any) -> str:
+        import re
+        url = str(value or "").strip()
+        if not url:
+            return ""
+        if len(url) > 2000 or not re.fullmatch(r"https://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("社群連結需使用有效的 HTTPS 網址")
+        return url
+
+
+class PublicDemoSubmissionCreate(BaseModel):
+    scriptType: Literal["internal", "external"]
+    scriptId: Optional[str] = None
+    externalScriptId: Optional[str] = None
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    voiceActorIds: List[str] = []
+    manualVoiceActors: List[PublicManualVoiceActor] = []
+    description: str = ""
+    displayName: str = ""
+    contactEmail: str = ""
+    confirmPublic: bool = False
+    confirmVoiceActorProfiles: bool = False
+    website: str = ""  # Honeypot.
+
+    @field_validator("demoUrl", mode="before")
+    @classmethod
+    def validate_demo_url(cls, value: Any) -> str:
+        import re
+        url = str(value or "").strip()
+        if len(url) > 2000 or not re.fullmatch(r"https://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("請提供有效的 HTTPS Demo 連結")
+        return url
+
+    @field_validator("coverUrl", mode="before")
+    @classmethod
+    def validate_demo_cover_url(cls, value: Any) -> str:
+        import re
+        url = str(value or "").strip()
+        if not url:
+            return ""
+        if len(url) > 2000 or not re.fullmatch(r"https://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("封面圖片需使用有效的 HTTPS 連結")
+        return url
+
+    @field_validator("demoName", "cast", "description", "displayName", "contactEmail", mode="before")
+    @classmethod
+    def normalize_demo_text(cls, value: Any) -> str:
+        return str(value or "").strip()
+
+    @field_validator("voiceActorIds", mode="before")
+    @classmethod
+    def normalize_voice_actor_ids(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        return list(dict.fromkeys(str(item).strip() for item in value if str(item).strip()))[:20]
+
+    @field_validator("voiceTypes", mode="before")
+    @classmethod
+    def normalize_voice_types(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        allowed = {"male", "female"}
+        return list(dict.fromkeys(str(item).strip().lower() for item in value if str(item).strip().lower() in allowed))
+
+    @field_validator("manualVoiceActors", mode="before")
+    @classmethod
+    def limit_manual_voice_actors(cls, value: Any) -> List[Any]:
+        if not isinstance(value, list):
+            return []
+        return value[:20]
+
+
+class PublicDemoSubmissionRecord(BaseModel):
+    id: str
+    scriptType: Literal["internal", "external"]
+    scriptId: Optional[str] = None
+    externalScriptId: Optional[str] = None
+    scriptTitle: str = ""
+    scriptUrl: str = ""
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    voiceActorIds: List[str] = []
+    manualVoiceActors: List[PublicManualVoiceActor] = []
+    voiceActorNames: List[str] = []
+    description: str = ""
+    displayName: str = ""
+    contactEmail: str = ""
+    status: Literal["pending", "approved", "rejected"] = "pending"
+    reviewedAt: Optional[int] = None
+    createdAt: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PublicDemoSubmissionListResponse(BaseModel):
+    total: int
+    items: List[PublicDemoSubmissionRecord] = []
+
+
+class PublicDemoSubmissionStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected", "pending"]
+
+
+class PublicDemoSubmissionResponse(BaseModel):
+    success: bool = True
+    submissionId: str
+    createdAt: int
+
+
+class PublicDemoEntry(BaseModel):
+    id: str
+    scriptType: Literal["internal", "external"]
+    scriptId: Optional[str] = None
+    externalScriptId: Optional[str] = None
+    scriptTitle: str
+    scriptUrl: str
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    voiceActorIds: List[str] = []
+    manualVoiceActors: List[PublicManualVoiceActor] = []
+    description: str = ""
+    displayName: str = ""
+    createdAt: int
 
 
 class AdminUserCreate(BaseModel):
@@ -724,6 +878,15 @@ class ExternalPublicScriptPreviewRequest(BaseModel):
     organizationUrl: Optional[str] = None
 
 
+class ExternalPublicScriptDemoLink(BaseModel):
+    id: str = ""
+    name: str = ""
+    url: str
+    coverUrl: str = ""
+    cast: str = ""
+    description: str = ""
+
+
 class ExternalPublicScriptPayload(BaseModel):
     sourceUrl: str
     canonicalUrl: Optional[str] = None
@@ -745,6 +908,7 @@ class ExternalPublicScriptPayload(BaseModel):
     coverUrlOverride: str = ""
     seriesName: str = ""
     seriesOrder: Optional[int] = None
+    demoLinks: List[ExternalPublicScriptDemoLink] = []
     categories: List[str] = []
     status: Literal["draft", "published", "hidden"] = "draft"
     sortOrder: float = 0.0
@@ -774,6 +938,7 @@ class ExternalPublicScriptUpdate(BaseModel):
     coverUrlOverride: Optional[str] = None
     seriesName: Optional[str] = None
     seriesOrder: Optional[int] = None
+    demoLinks: Optional[List[ExternalPublicScriptDemoLink]] = None
     categories: Optional[List[str]] = None
     status: Optional[Literal["draft", "published", "hidden"]] = None
     sortOrder: Optional[float] = None
@@ -804,6 +969,7 @@ class ExternalPublicScriptResponse(BaseModel):
     coverUrlOverride: str = ""
     seriesName: str = ""
     seriesOrder: Optional[int] = None
+    demoLinks: List[ExternalPublicScriptDemoLink] = []
     title: str = ""
     summary: str = ""
     coverUrl: str = ""

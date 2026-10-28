@@ -24,11 +24,6 @@ const MediaLibrarySettings = lazyWithRefreshRetry(async () => {
   const mod = await import("../settings/MediaLibrarySettings");
   return { default: mod.MediaLibrarySettings };
 }, "settings-media");
-const SuperAdminPage = lazyWithRefreshRetry(
-  () => import("../../pages/SuperAdminPage"),
-  "settings-transfer"
-);
-
 function TabFallback(): React.JSX.Element {
   const { t } = useI18n();
   return (
@@ -44,10 +39,10 @@ interface SettingsPanelProps {
   onTabChange?: (tab: string) => void;
 }
 
-type SettingsTabKey = "display" | "transfer" | "media" | "markers" | "profile";
+type SettingsTabKey = "display" | "media" | "markers" | "profile";
 
 function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps): React.JSX.Element {
-  const { currentUser, profile } = useAuth();
+  const { currentUser } = useAuth();
   const { t } = useI18n();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [internalTab, setInternalTab] = useState<SettingsTabKey>("display");
@@ -58,19 +53,15 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
     else setInternalTab(nextTab);
   };
 
-  const isAdmin = Boolean(profile?.isAdmin);
-  const allTabs: Array<{ key: SettingsTabKey; label: string; authRequired?: boolean; adminOnly?: boolean }> = [
+  const allTabs: Array<{ key: SettingsTabKey; label: string; authRequired?: boolean }> = [
     { key: "display", label: t("settings.display") },
-    { key: "transfer", label: t("settings.transfer"), authRequired: true, adminOnly: true },
     { key: "media", label: t("settings.media"), authRequired: true },
     { key: "markers", label: t("settings.markers"), authRequired: true },
     { key: "profile", label: t("settings.profile"), authRequired: true },
   ];
 
   const tabs = allTabs.filter(
-    (tab) =>
-      (!tab.authRequired || currentUser) &&
-      (!tab.adminOnly || isAdmin)
+    (tab) => !tab.authRequired || currentUser
   );
 
   React.useEffect(() => {
@@ -140,17 +131,6 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
             ref={scrollContainerRef}
           >
             <Suspense fallback={<TabFallback />}>
-              {currentTab === "transfer" && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex items-center gap-2 pb-2 border-b border-border/40">
-                    <h3 className="text-lg font-semibold tracking-tight text-foreground/90">{t("settings.transfer")}</h3>
-                  </div>
-                  <div className="rounded-lg border bg-background/50">
-                    <SuperAdminPage />
-                  </div>
-                </div>
-              )}
-
               {currentTab === "display" && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                   <AppearanceSettings sectionRef={scrollContainerRef} />

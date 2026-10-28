@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { apiFetch } from "@/lib/api";
-import type { ExternalPublicScript, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
 import { externalEntityHref } from "@/lib/externalEntity";
 import {
   homeUrl,
@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     apiFetch<PublicScript[]>("/public-scripts", {
       next: { revalidate: SITEMAP_DATA_REVALIDATE_SECONDS, tags: ["public-scripts"] },
     }),
-    apiFetch<{ externalPublicScripts?: ExternalPublicScript[] }>("/public-bundle", {
+    apiFetch<{ externalPublicScripts?: ExternalPublicScript[]; personas?: PublicPersona[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle", {
       next: { revalidate: SITEMAP_DATA_REVALIDATE_SECONDS, tags: ["public-bundle"] },
     }),
   ]);
@@ -92,6 +92,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Keep the most-recent timestamp for this persona.
     if (!personaMap.has(personaId) || ts > personaMap.get(personaId)!) {
       personaMap.set(personaId, ts);
+    }
+  }
+  const demoVoiceActorIds = new Set<string>();
+  const demoVoiceActorDates = new Map<string, string>();
+  for (const demo of externalBundle?.demoSubmissions || []) {
+    for (const actor of demo.manualVoiceActors || []) {
+      if (!actor.personaId) continue;
+      demoVoiceActorIds.add(actor.personaId);
+      const timestamp = toSitemapDate(demo.createdAt, now);
+      if (!demoVoiceActorDates.has(actor.personaId) || timestamp > demoVoiceActorDates.get(actor.personaId)!) {
+        demoVoiceActorDates.set(actor.personaId, timestamp);
+      }
+    }
+  }
+  for (const persona of externalBundle?.personas || []) {
+    const isVoiceActor = (persona.tags || []).some((tag) => /聲演|配音|voice[\s-]?actor/i.test(String(tag)));
+    if (isVoiceActor && demoVoiceActorIds.has(persona.id) && !personaMap.has(persona.id)) {
+      personaMap.set(persona.id, demoVoiceActorDates.get(persona.id) || now);
     }
   }
   const authorEntries: MetadataRoute.Sitemap = Array.from(personaMap.entries()).map(([id, ts]) => ({

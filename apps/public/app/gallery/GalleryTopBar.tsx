@@ -100,6 +100,14 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Studio CTA */}
+        <section className="px-5 pt-3 shrink-0">
+          <p className={sheetSectionTitleClass}>公開專區</p>
+          <div className="grid grid-cols-3 gap-2">
+            <a href="/?view=authors" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">作者</a>
+            <a href="/voice-actors" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">聲演</a>
+            <a href="/demos" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">Demo 專區</a>
+          </div>
+        </section>
         <div className="px-5 pt-4 pb-3 shrink-0">
           <a
             href={studioUrl()}
@@ -162,8 +170,10 @@ export function GalleryTopBar({
       <PublicGalleryTopBar
         activeTab={activeTab}
         onTabChange={onTabChange}
+        tabs={[{ key: "authors", label: "作者" }]}
         brandName="公開台本"
         brandSubtitle="泛用型產品作坊"
+        leadingTrailing={<nav aria-label="公開專區" className="hidden sm:flex items-center gap-0.5"><a href="/voice-actors" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground">聲演</a><a href="/demos" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground">Demo 專區</a></nav>}
         trailing={<PublicShellActions />}
         mobileTrailingAction={
           <button

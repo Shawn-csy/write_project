@@ -69,7 +69,7 @@ export function PersonaProfileForm({
 
   return (
     <>
-      <PublisherFormRow label={t("publisherProfileTab.displayName")} required hint={t("publisherProfileTab.displayNameRequiredHint", "最重要欄位，建立身份前請先填寫。")}>
+      <PublisherFormRow label={t("publisherProfileTab.displayName")} required>
         <div className="space-y-1.5">
           <Input
             id="persona-display-name" name="personaDisplayName"

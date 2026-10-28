@@ -13,7 +13,6 @@ vi.mock("../../contexts/I18nContext", () => ({
     t: (key) => ({
       "settings.title": "設定",
       "settings.display": "外觀與閱讀",
-      "settings.transfer": "平台管理",
       "settings.media": "媒體庫",
       "settings.markers": "自訂標記",
       "settings.profile": "身份設定",
@@ -36,10 +35,6 @@ vi.mock("../settings/MarkerSettings", () => ({
 
 vi.mock("../settings/MediaLibrarySettings", () => ({
   MediaLibrarySettings: () => <div data-testid="media-library-settings">Media</div>,
-}));
-
-vi.mock("../../pages/SuperAdminPage", () => ({
-  default: () => <div data-testid="super-admin-page">SuperAdmin</div>,
 }));
 
 vi.mock("react-router-dom", async (importOriginal) => {
@@ -67,11 +62,11 @@ describe("SettingsPanel", () => {
     expect(await screen.findByTestId("appearance-settings")).toBeDefined();
   });
 
-  it("shows all tabs for authenticated users", () => {
+  it("keeps platform administration outside settings for authenticated users", () => {
     useAuth.mockReturnValue({ currentUser: { id: "u1" }, profile: { isAdmin: true } });
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
-    expect(screen.getAllByRole("button", { name: "平台管理" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "平台管理" })).toBeNull();
     expect(screen.getAllByRole("button", { name: "外觀與閱讀" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "媒體庫" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "自訂標記" }).length).toBeGreaterThan(0);

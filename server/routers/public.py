@@ -150,9 +150,111 @@ def create_public_feedback(
     return schemas.PublicFeedbackResponse(success=True, feedbackId=row.id, createdAt=now_ms)
 
 
+@router.post("/public-demo-submissions", response_model=schemas.PublicDemoSubmissionResponse)
+@limiter.limit("5/hour")
+def create_public_demo_submission(
+    request: Request,
+    payload: schemas.PublicDemoSubmissionCreate,
+    db: Session = Depends(get_db),
+):
+    """Accept public demo suggestions; submissions stay private until approved."""
+    now_ms = int(time.time() * 1000)
+    if payload.website:
+        return schemas.PublicDemoSubmissionResponse(success=True, submissionId="", createdAt=now_ms)
+    if not payload.voiceActorIds and not any(actor.name.strip() for actor in payload.manualVoiceActors):
+        raise HTTPException(status_code=400, detail="請至少加入一位聲演，才能送出 Demo")
+    if not payload.confirmPublic:
+        raise HTTPException(status_code=400, detail="請確認連結可公開瀏覽且您有權提供此連結")
+    if payload.manualVoiceActors and not payload.confirmVoiceActorProfiles:
+        raise HTTPException(status_code=400, detail="請確認已取得名單外聲演公開姓名與社群連結的同意")
+
+    display_name = payload.displayName[:120]
+    contact_email = payload.contactEmail[:320]
+    if contact_email and ("@" not in contact_email or " " in contact_email):
+        raise HTTPException(status_code=400, detail="Email 格式不正確")
+    demo_name = payload.demoName[:160]
+    cast = payload.cast[:500]
+    description = payload.description[:2000]
+    voice_actor_ids = payload.voiceActorIds
+    if voice_actor_ids:
+        personas = db.query(models.Persona).filter(models.Persona.id.in_(voice_actor_ids)).all()
+        valid_personas = {
+            persona.id: persona
+            for persona in personas
+            if _has_public_script_for_persona(db, persona.id)
+            and any(
+                marker in str(tag).casefold()
+                for tag in crud._ensure_list(persona.tags)
+                for marker in ("聲演", "配音", "voice actor", "voice-actor", "voiceactor")
+            )
+        }
+        if len(valid_personas) != len(voice_actor_ids):
+            raise HTTPException(status_code=400, detail="聲演名單已更新，請重新選擇名單中的公開聲演身份")
+        voice_actor_ids = [persona_id for persona_id in voice_actor_ids if persona_id in valid_personas]
+
+    script_id = None
+    external_script_id = None
+    if payload.scriptType == "internal":
+        if not payload.scriptId or payload.externalScriptId:
+            raise HTTPException(status_code=400, detail="請選擇本站公開台本")
+        script = db.query(models.Script).filter(models.Script.id == payload.scriptId).first()
+        if not script or not _is_publicly_visible_script(db, script):
+            raise HTTPException(status_code=404, detail="找不到可投稿的公開台本")
+        script_id = script.id
+        script_title = script.title or "未命名台本"
+        public_base = os.getenv("PUBLIC_BASE_URL", "https://open-scripts.shawnup.com").rstrip("/")
+        script_url = f"{public_base}/read/{script.id}"
+    else:
+        if not payload.externalScriptId or payload.scriptId:
+            raise HTTPException(status_code=400, detail="請選擇已收錄的外部台本")
+        external_script = db.query(models.ExternalPublicScript).filter(
+            models.ExternalPublicScript.id == payload.externalScriptId,
+            models.ExternalPublicScript.status == "published",
+        ).first()
+        if not external_script:
+            raise HTTPException(status_code=404, detail="找不到可投稿的外部台本")
+        external_script_id = external_script.id
+        script_title = external_script.titleOverride or external_script.remoteTitle or "外部台本"
+        script_url = external_script.sourceUrl
+
+    row = models.PublicDemoSubmission(
+        id=str(uuid.uuid4()),
+        scriptType=payload.scriptType,
+        scriptId=script_id,
+        externalScriptId=external_script_id,
+        scriptTitle=script_title[:500],
+        scriptUrl=script_url[:2000],
+        demoName=demo_name,
+        demoUrl=payload.demoUrl,
+        coverUrl=payload.coverUrl,
+        cast=cast,
+        voiceTypes=payload.voiceTypes,
+        voiceActorIds=voice_actor_ids,
+        # Profile IDs are assigned by the moderator on approval; never trust one from a public submitter.
+        manualVoiceActors=[{"name": actor.name, "socialUrl": actor.socialUrl} for actor in payload.manualVoiceActors],
+        description=description,
+        displayName=display_name,
+        contactEmail=contact_email,
+        status="pending",
+        createdAt=now_ms,
+    )
+    db.add(row)
+    db.commit()
+    return schemas.PublicDemoSubmissionResponse(submissionId=row.id, createdAt=now_ms)
+
+
 def _has_public_script_for_persona(db: Session, persona_id: str) -> bool:
     scripts = db.query(models.Script).filter(models.Script.personaId == persona_id).all()
     return any(_is_publicly_visible_script(db, script) for script in scripts)
+
+
+def _has_approved_demo_for_persona(db: Session, persona_id: str) -> bool:
+    rows = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.status == "approved").all()
+    for row in rows:
+        actors = crud._ensure_list(row.manualVoiceActors)
+        if any(isinstance(actor, dict) and str(actor.get("personaId") or "") == persona_id for actor in actors):
+            return True
+    return False
 
 
 def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
@@ -368,7 +470,7 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
     # 1. Try Persona
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
     if persona:
-        if not _has_public_script_for_persona(db, persona.id):
+        if not _has_public_script_for_persona(db, persona.id) and not _has_approved_demo_for_persona(db, persona.id):
             raise HTTPException(status_code=404, detail="Author not found")
         persona.organizationIds = crud.get_persona_org_ids(db, persona)
         persona.tags = crud._ensure_list(persona.tags)
@@ -387,12 +489,21 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
 
 @router.get("/public-personas", response_model=List[schemas.PersonaPublic])
 def list_public_personas(db: Session = Depends(get_db)):
-    # Return personas that have at least one publicly visible script
+    # Return author personas with public works and voice identities linked to approved Demos.
     persona_ids = []
     for row in db.query(models.Script.personaId).filter(models.Script.personaId.isnot(None)).distinct().all():
         persona_id = row[0]
         if persona_id and _has_public_script_for_persona(db, persona_id):
             persona_ids.append(persona_id)
+
+    approved_demos = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.status == "approved").all()
+    for demo in approved_demos:
+        for actor in crud._ensure_list(demo.manualVoiceActors):
+            persona_id = str(actor.get("personaId") or "").strip() if isinstance(actor, dict) else ""
+            if persona_id:
+                persona_ids.append(persona_id)
+
+    persona_ids = list(dict.fromkeys(persona_ids))
 
     if not persona_ids:
         return []
