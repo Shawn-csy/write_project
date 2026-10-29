@@ -28,6 +28,7 @@ const WorkManagePage = lazyWithRefreshRetry(() => import("../pages/WorkManagePag
 const ExternalWorksPage = lazyWithRefreshRetry(() => import("../pages/ExternalWorksPage"), "page-external-works");
 const SeriesPage = lazyWithRefreshRetry(() => import("../pages/SeriesPage"), "page-series");
 const SettingsPage = lazyWithRefreshRetry(() => import("../pages/SettingsPage"), "page-settings");
+const MarkerSettingsPage = lazyWithRefreshRetry(() => import("../pages/MarkerSettingsPage"), "page-marker-settings");
 const CloudEditorPage = lazyWithRefreshRetry(() => import("../pages/CloudEditorPage"), "page-cloud-editor");
 const SuperAdminPage = lazyWithRefreshRetry(() => import("../pages/SuperAdminPage"), "page-admin");
 const CommunityWorkbenchPage = lazyWithRefreshRetry(() => import("../pages/CommunityWorkbenchPage"), "page-community-workbench");
@@ -250,6 +251,14 @@ export function renderWorkspaceRoutes({
                       element={
                         <Suspense fallback={routeFallback}>
                           <SettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="settings/markers"
+                      element={
+                        <Suspense fallback={routeFallback}>
+                          <MarkerSettingsPage />
                         </Suspense>
                       }
                     />

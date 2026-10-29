@@ -1,12 +1,17 @@
 import React, { Suspense } from "react";
 import { Menu } from "lucide-react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
 import { useStudioShell } from "../components/studio/StudioShellContext";
 
 const SettingsPanel = lazyWithRefreshRetry(() => import("../components/panels/SettingsPanel"), "settings-panel");
 
 const SETTINGS_TABS = ["display", "media", "markers", "profile"];
+
+const tabPath = (tab: string): string => {
+  if (tab === "markers") return "/settings/markers";
+  return tab === "display" ? "/settings" : `/settings?tab=${tab}`;
+};
 
 export default function SettingsPage(): React.JSX.Element {
   const location = useLocation();
@@ -19,11 +24,14 @@ export default function SettingsPage(): React.JSX.Element {
     document.title = "設定｜Screenplay 工作室";
   }, []);
 
+  // Custom markers has its own full-width page.
+  if (requested === "markers") return <Navigate to="/settings/markers" replace />;
+
   return (
     <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">載入中…</div>}>
       <SettingsPanel
         activeTab={activeTab}
-        onTabChange={(tab) => navigate(tab === "display" ? "/settings" : `/settings?tab=${tab}`, { replace: true })}
+        onTabChange={(tab) => navigate(tabPath(tab), { replace: tab !== "markers" })}
         headerLeading={(
           <button
             type="button"

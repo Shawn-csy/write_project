@@ -77,7 +77,7 @@ export function MarkerList({
                 items={entries.map(({ config, idx }) => config.id || `marker-${idx}`)}
                 strategy={verticalListSortingStrategy}
             >
-                <div className="space-y-2">
+                <div className="space-y-0.5">
                     {entries.map(({ config, idx }) => (
                         <SortableMarkerItem 
                             key={config.id || `marker-${idx}`}
