@@ -25,11 +25,11 @@ export function ScriptMetadataActivitySection({
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabActivity", "活動宣傳")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">活動名稱</div>
           </div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Input
               value={activityName}
               onChange={(e) => setActivityName(e.target.value)}
@@ -37,11 +37,11 @@ export function ScriptMetadataActivitySection({
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">活動 Banner</div>
           </div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Input
               value={activityBannerUrl}
               onChange={(e) => setActivityBannerUrl(e.target.value)}
@@ -77,11 +77,11 @@ export function ScriptMetadataActivitySection({
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">活動內容</div>
           </div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Textarea
               value={activityContent}
               onChange={(e) => setActivityContent(e.target.value)}
@@ -90,11 +90,11 @@ export function ScriptMetadataActivitySection({
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">成品連結</div>
           </div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Input
               value={activityWorkUrl}
               onChange={(e) => setActivityWorkUrl(e.target.value)}

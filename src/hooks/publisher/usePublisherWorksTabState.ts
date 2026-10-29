@@ -113,8 +113,8 @@ export function usePublisherWorksTabState({
     meta: Record<string, string>,
     tagNames: string[]
   ): PublishReadiness => {
-    const hasAudience = tagNames.some((tag) => AUDIENCE_TAG_GROUP.includes(tag));
-    const hasRating = tagNames.some((tag) => RATING_TAG_GROUP.includes(tag));
+    const hasAudience = Boolean(script.targetAudience?.trim()) || tagNames.some((tag) => AUDIENCE_TAG_GROUP.includes(tag));
+    const hasRating = Boolean(script.contentRating?.trim()) || tagNames.some((tag) => RATING_TAG_GROUP.includes(tag));
     const hasIdentity = Boolean(script.personaId || script.hasPublishIdentity || String(meta.publishas || meta.publishAs || "").startsWith("persona:"));
     const hasSynopsis = Boolean(String(script.synopsis || "").trim());
     const missingRequired: string[] = [];
@@ -139,11 +139,13 @@ export function usePublisherWorksTabState({
         missingRecommended,
       };
     }
-    if (missingRequired.length > 0) {
+    // Studio pagination and counts use this server projection. Keep the badge
+    // on that same contract instead of reclassifying each loaded page locally.
+    if (script.publishReadiness === "needs_work" || (!script.publishReadiness && missingRequired.length > 0)) {
       return {
         status: "needs_work",
-        label: "待處理",
-        primaryActionLabel: "補齊發布資料",
+        label: "草稿",
+        primaryActionLabel: "發布資料",
         missingRequired,
         missingRecommended,
       };

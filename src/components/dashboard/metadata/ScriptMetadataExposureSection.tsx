@@ -76,9 +76,9 @@ export function ScriptMetadataExposureSection({
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabExposure", "展示與分類")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>顯示作者</div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
               <Button
                 type="button"
@@ -107,11 +107,11 @@ export function ScriptMetadataExposureSection({
             )}
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">封面</div>
           </div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Input id="metadata-cover-url" value={coverUrl} onChange={(e) => { setCoverUrl(e.target.value); setCoverCrop(null); }} placeholder="https://..." />
             <div className="flex flex-wrap items-center gap-2">
               <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
@@ -181,11 +181,11 @@ export function ScriptMetadataExposureSection({
           isCreatingSeries={isCreatingSeries}
           seriesOptions={seriesOptions || []}
         />
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">標籤</div>
           </div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <div className="flex gap-2">
               <Input
                 id="metadata-new-tag"

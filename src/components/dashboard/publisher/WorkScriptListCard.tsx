@@ -42,9 +42,9 @@ export function WorkScriptListCard({
   const cropCover = getMediaCropStyle(String(script.coverUrl || ""));
 
   return (
-    <Card className="group flex flex-col overflow-hidden border border-border/60 bg-card transition-all duration-200 hover:-translate-y-px hover:border-border hover:shadow-md sm:flex-row">
+    <Card className="group grid min-w-0 grid-cols-[4rem_minmax(0,1fr)] gap-x-3 overflow-hidden border border-border/60 bg-card p-3 transition-colors hover:border-border sm:flex sm:gap-0 sm:p-0">
       {/* 封面：書脊比例 */}
-      <div className="relative h-28 w-full shrink-0 overflow-hidden bg-muted/40 sm:h-auto sm:w-24">
+      <div className="relative h-24 w-16 shrink-0 overflow-hidden rounded bg-muted/40 sm:h-auto sm:w-16 sm:rounded-none">
         {hasCover(script.coverUrl) && !failedCover ? (
           <img
             src={cropCover.src || undefined}
@@ -62,15 +62,15 @@ export function WorkScriptListCard({
           <CoverPlaceholder title={script.title || t("publisherWorksTab.noCover")} compact />
         )}
         {/* 狀態色條 */}
-        <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${readiness.status === "needs_work" ? "bg-destructive/70" : readiness.status === "ready" ? "bg-primary/70" : "bg-foreground/20"}`} />
+        <div className={`absolute bottom-0 left-0 right-0 h-0.5 ${readiness.status === "ready" ? "bg-primary/70" : "bg-foreground/20"}`} />
       </div>
 
-      <div className="flex flex-1 flex-col justify-between px-4 py-3">
-        <div className="flex items-start justify-between gap-3">
+      <div className="contents sm:flex sm:min-w-0 sm:flex-1 sm:flex-col sm:justify-between sm:px-4 sm:py-2">
+        <div className="flex min-w-0 items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             {/* 標題行 */}
-            <div className="flex items-center gap-2">
-              <h3 className="truncate font-serif text-base font-semibold leading-snug">{script.title}</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="min-w-0 basis-full break-words text-sm font-semibold leading-snug sm:basis-auto sm:line-clamp-2">{script.title}</h3>
               <Badge
                 variant="outline"
                 className={`shrink-0 h-5 text-[10px] font-semibold ${statusBadgeClass(script)}`}
@@ -81,12 +81,7 @@ export function WorkScriptListCard({
             {/* 元資料行 */}
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground/70">
               <span>{formatDate(script.lastModified)}</span>
-              {readiness.missingRequired.length > 0 && (
-                <span className="text-destructive/80">
-                  缺：{readiness.missingRequired.slice(0, 3).join("、")}
-                </span>
-              )}
-              {readiness.missingRequired.length === 0 && readiness.missingRecommended.length > 0 && (
+              {readiness.status === "ready" && readiness.missingRecommended.length > 0 && (
                 <span className="text-[color:var(--license-term-fg)]/80">
                   建議補：{readiness.missingRecommended.slice(0, 2).join("、")}
                 </span>
@@ -102,21 +97,22 @@ export function WorkScriptListCard({
         </div>
 
         {/* 操作列 */}
-        <div className="mt-3 flex items-center gap-1.5">
-          <Button size="sm" className="h-7 px-3 text-xs" onClick={() => onContinueEdit?.(script)}>
+        <div className="col-span-2 mt-2 flex flex-wrap items-center gap-1.5">
+          <Button size="sm" className="h-11 px-3 text-xs sm:h-8" onClick={() => onContinueEdit?.(script)}>
             <FilePenLine className="mr-1 h-3 w-3" /> {t("publisherWorksTab.continueWriting")}
           </Button>
-          <Button variant="outline" size="sm" className="h-7 px-3 text-xs" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
+          <Button variant="outline" size="sm" className="h-11 px-3 text-xs sm:h-8" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
             <Edit className="mr-1 h-3 w-3" /> {readiness.primaryActionLabel}
           </Button>
           {readiness.status === "published" && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground/60 hover:text-foreground"
+              className="h-11 w-11 px-2 text-xs text-muted-foreground hover:text-foreground sm:h-8 sm:w-auto"
+              title={t("publisherWorksTab.viewPublicPage")}
               onClick={() => openPublicPath(`/read/${script.id}`)}
             >
-              <Eye className="mr-1 h-3 w-3" /> {t("publisherWorksTab.viewPublicPage")}
+              <Eye className="h-4 w-4 sm:mr-1 sm:h-3 sm:w-3" /><span className="sr-only sm:not-sr-only">{t("publisherWorksTab.viewPublicPage")}</span>
             </Button>
           )}
         </div>

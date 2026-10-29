@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Tuple
 from sqlalchemy.orm import Session
 
 import models
+from publish_rules import AUDIENCE_TAG_GROUP, RATING_TAG_GROUP, classification_complete
 
 
 # ---------------------------------------------------------------------------
@@ -41,8 +42,6 @@ def is_publicly_visible(db: Session, script: models.Script) -> bool:
     return has_public_parent_folder(db, script)
 
 
-AUDIENCE_TAG_GROUP = {"全年齡", "青少年", "成人", "親子", "一般向", "男性向", "女性向", "兒童"}
-RATING_TAG_GROUP = {"普遍級", "保護級", "輔導級", "限制級", "G", "PG", "PG-13", "R", "NC-17"}
 PUBLISH_READINESS_VALUES = {"needs_work", "ready", "published"}
 
 
@@ -86,12 +85,12 @@ def compute_publish_readiness(
 ) -> str:
     if script.status == "Public" or bool(script.isPublic):
         return "published"
-    tag_name_set = {str(name or "") for name in tag_names}
+    has_audience, has_rating = classification_complete(script.targetAudience, script.contentRating, tag_names)
     missing_required = [
         not str(script.title or "").strip(),
         not has_publish_identity(script),
-        not bool(tag_name_set.intersection(AUDIENCE_TAG_GROUP)),
-        not bool(tag_name_set.intersection(RATING_TAG_GROUP)),
+        not has_audience,
+        not has_rating,
         not has_complete_license(script, persona_license_by_id),
     ]
     return "needs_work" if any(missing_required) else "ready"

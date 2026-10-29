@@ -60,6 +60,7 @@
 
 ## 進行中
 
+- `pending/studio-uiux-redesign-strategy.md`：工作室 UI／UX 問題盤點、目標架構、分階段修改策略與 Dev 驗收條件
 - `pending/cloudflare-pages-tunnel-d1-r2-direction.md`：公開站 Pages 靜態快照加瀏覽器即時資料的混合架構、本機 Tunnel 主讀，以及 D1／R2 雲端唯讀備援方向
 - `pending/production-security-hardening-plan.md`：正式環境資安基線（長期路線圖）
 

@@ -42,7 +42,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const defaultTab = mode === "community" ? "profile" : "works";
   const allowedTabs = mode === "community"
     ? ["profile", "org", "advertising"]
-    : ["works", "series"];
+    : ["works", "series", "external"];
 
   const resolveTabFromSearch = useCallback((search: string) => {
     const raw = new URLSearchParams(search || "").get("tab");
@@ -177,9 +177,9 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   const canManageOrgMembers = currentOrgRole === "owner" || currentOrgRole === "admin";
 
   const tabCounts = useMemo(() => ({
-    works: scripts.length, profile: personas.length,
+    works: scriptCounts?.all ?? scripts.length, profile: personas.length,
     org: orgsForPersona.length, series: seriesList.length,
-  }), [scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
+  }), [scriptCounts, scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
 
   const tabTone = MORANDI_STUDIO_TONE_VARS;
 

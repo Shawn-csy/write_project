@@ -2,7 +2,7 @@ import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
-import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useFormContext, useUIContext } from "./metadata/ScriptMetadataDialogContext";
+import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useFormContext, useUIContext, useStatusContext } from "./metadata/ScriptMetadataDialogContext";
 import { ScriptMetadataDialogHeader } from "./metadata/ScriptMetadataDialogHeader";
 import { ScriptMetadataDialogBody } from "./metadata/ScriptMetadataDialogBody";
 import { ScriptMetadataDialogOverlays } from "./metadata/ScriptMetadataDialogOverlays";
@@ -323,12 +323,13 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
 function ScriptMetadataDialogInner() {
     const { open, onOpenChange, showGuide, isSaving, handleSave, t } = useUIContext();
     const [previewOpen, setPreviewOpen] = React.useState(false);
+    const { status } = useStatusContext();
 
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
-                    className="flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 rounded-lg bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]"
+                    className="studio-density flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 rounded-lg bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]"
                     onInteractOutside={(e) => {
                         if (showGuide) e.preventDefault();
                     }}
@@ -338,7 +339,7 @@ function ScriptMetadataDialogInner() {
                 >
                     <ScriptMetadataDialogHeader />
                     <ScriptMetadataDialogBody />
-                    <DialogFooter className="border-t bg-background px-4 py-3 sm:px-6">
+                    <DialogFooter className="flex-row flex-wrap gap-2 space-x-0 border-t bg-background px-4 py-2 sm:px-6">
                         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                             {t("common.cancel")}
                         </Button>
@@ -347,7 +348,7 @@ function ScriptMetadataDialogInner() {
                         </Button>
                         <Button type="button" onClick={handleSave} disabled={isSaving} className="min-w-[120px]">
                             {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            {t("scriptMetadataDialog.confirmSave")}
+                            {status === "Public" ? "儲存並更新公開頁" : "儲存為私人"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

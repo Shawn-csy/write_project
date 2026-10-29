@@ -10,7 +10,7 @@ interface PublisherFormRowProps {
 
 export function PublisherFormRow({ label, required = false, hint = "", className = "", children }: PublisherFormRowProps) {
   return (
-    <div className={`grid gap-1.5 md:grid-cols-[150px_minmax(0,1fr)] md:gap-3 md:items-start ${className}`}>
+    <div className={`grid gap-1.5 md:grid-cols-[128px_minmax(0,1fr)] md:gap-3 md:items-start ${className}`}>
       <div className="pt-1">
         <div className="text-[13px] font-medium text-foreground">
           {label}

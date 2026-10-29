@@ -28,8 +28,8 @@ export function EntityScriptGrid({ scripts }: Props) {
   return (
     <GalleryHoverPreviewProvider>
       <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}
+        className="grid gap-3 sm:gap-4"
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
       >
         {scripts.map((s) => {
           const enriched = enrichScript(toGalleryInput(s));

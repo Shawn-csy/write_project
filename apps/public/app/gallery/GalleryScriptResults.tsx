@@ -459,7 +459,7 @@ export function GalleryScriptResults({
 
   // Default lanes view — ordered by activeLaneMode (active lane first)
   return (
-    <div className="space-y-12">
+    <div className="space-y-8 sm:space-y-9">
       {randomEntries.length > 0 && (
         <HorizontalScrollLane key="random" title="隨機推薦">
           {randomEntries.map((entry) => (

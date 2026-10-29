@@ -127,7 +127,7 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
     return (
       <>
         {summary}
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="min-h-[40vh] flex items-center justify-center px-4">
           <span className="text-sm text-muted-foreground">載入中…</span>
         </div>
       </>
@@ -162,9 +162,9 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
   return (
     <>
       {summary}
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-xl rounded-xl border border-border bg-card shadow-sm">
-        <div className="p-6 sm:p-8">
+    <div className="flex justify-center px-4 py-6 sm:py-8">
+      <div className="w-full max-w-3xl rounded-xl border border-border bg-card shadow-sm">
+        <div className="p-4 sm:p-6">
           <h1 className="text-lg font-semibold leading-snug mb-2">{config.title}</h1>
           {config.intro && (
             <p className="text-sm text-muted-foreground mb-5 leading-relaxed">{config.intro}</p>

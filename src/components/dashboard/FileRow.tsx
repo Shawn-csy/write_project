@@ -106,7 +106,7 @@ export const FileRow = memo(function FileRow({ icon, title, meta, actions, onCli
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         style={style}
-        className={`group flex cursor-pointer items-center justify-between rounded-md border border-transparent bg-[hsl(var(--surface-1))] p-3 transition-colors hover:border-border/50 hover:bg-[hsl(var(--surface-2))] ${className}`}
+        className={`group flex cursor-pointer items-center justify-between rounded-md border border-transparent bg-[hsl(var(--surface-1))] px-3 py-2 transition-colors hover:border-border/50 hover:bg-[hsl(var(--surface-2))] ${className}`}
     >
         {/* Drag Handle */}
         {dragListeners && (
@@ -120,7 +120,7 @@ export const FileRow = memo(function FileRow({ icon, title, meta, actions, onCli
         )}
 
         <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className={`rounded-md p-2 ${isFolder ? 'bg-primary/10 text-primary' : 'bg-muted/80 text-muted-foreground'} transition-colors group-hover:bg-primary/10 group-hover:text-primary`}>
+            <div className={`rounded-md p-1.5 ${isFolder ? 'bg-primary/10 text-primary' : 'bg-muted/80 text-muted-foreground'} transition-colors group-hover:bg-primary/10 group-hover:text-primary`}>
                 {icon}
             </div>
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">

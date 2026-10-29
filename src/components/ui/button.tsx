@@ -42,6 +42,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        data-studio-control="button"
+        data-studio-size={size || "default"}
         {...props}
       />
     )

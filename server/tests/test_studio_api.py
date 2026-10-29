@@ -108,3 +108,30 @@ def test_studio_publish_context_loads_single_script(client):
 
     not_owner = client.get(f"/api/studio/scripts/{created['id']}/publish-context", headers={"X-User-ID": "u2"})
     assert not_owner.status_code == 404
+
+
+def test_studio_readiness_supports_current_ui_tags_and_canonical_fields(client, db_session):
+    from migration import _backfill_publish_state
+
+    headers = {"X-User-ID": "u1"}
+    persona = client.post("/api/personas", json={
+        "displayName": "Writer", "defaultLicenseCommercial": "allow",
+        "defaultLicenseDerivative": "allow", "defaultLicenseNotify": "required",
+    }, headers=headers).json()
+    canonical = _create_script(client, headers, "Canonical", personaId=persona["id"],
+                               targetAudience="全性向", contentRating="全年齡向")
+    tagged = _create_script(client, headers, "Current UI Tags", personaId=persona["id"])
+    for name in ("全性向", "全年齡向"):
+        tag = client.post("/api/tags", json={"name": name, "color": "blue"}, headers=headers).json()
+        assert client.post(f"/api/scripts/{tagged['id']}/tags", json={"tagId": tag["id"]}, headers=headers).status_code == 200
+
+    # Startup backfill and live tag updates must produce the same persisted projection.
+    _backfill_publish_state(db_session.connection())
+    db_session.flush()
+    page = client.get("/api/studio/scripts?status=ready&limit=1", headers=headers).json()
+    assert page["total"] == page["counts"]["ready"] == 2
+    assert page["nextOffset"] == 1
+    assert page["items"][0]["publishReadiness"] == "ready"
+    context = client.get(f"/api/studio/scripts/{canonical['id']}/publish-context", headers=headers).json()
+    assert context["targetAudience"] == "全性向"
+    assert context["contentRating"] == "全年齡向"

@@ -82,15 +82,15 @@ export function MetadataBasicTab({
     const { t } = useI18n();
     const isRowLayout = layout === "rows";
     const panelClass = "grid gap-3 rounded-xl border border-border/70 bg-background p-4 shadow-sm";
-    const rowLabelBaseClass = "p-4 text-sm font-medium text-foreground";
+    const rowLabelBaseClass = "px-3 py-2 text-xs font-medium text-foreground";
     const rowLabelToneClass = {
-        required: "border-l-[5px] border-primary bg-primary/12 text-primary dark:bg-primary/20 dark:text-foreground",
-        recommended: "border-l-[5px] border-[color:var(--license-term-border)] bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)]",
-        advanced: "border-l-[5px] border-muted-foreground/50 bg-muted/35 text-foreground dark:bg-muted/45 dark:text-foreground",
+        required: "bg-muted/30",
+        recommended: "bg-muted/20",
+        advanced: "bg-muted/20",
     };
     const getRowLabelClass = (tone: RowTone = "recommended", missing = false) =>
         `${rowLabelBaseClass} ${rowLabelToneClass[tone] || rowLabelToneClass.recommended} ${
-            missing ? "border-l-[6px] border-destructive bg-destructive/20 ring-2 ring-inset ring-destructive/55 dark:bg-destructive/30" : ""
+            missing ? "border-l-2 border-destructive bg-destructive/5" : ""
         }`;
     const renderRowLabel = (label: string, tone: RowTone = "recommended", missing = false) => (
         <div className={getRowLabelClass(tone, missing)}>
@@ -188,30 +188,30 @@ export function MetadataBasicTab({
 
     return (
         <div className="space-y-5 h-full">
-            <div>
+            {!isRowLayout && <div>
                 <div className="text-sm font-semibold text-foreground">公開頁主資訊</div>
                 <p className="mt-1 text-xs text-muted-foreground">這些內容會影響公開頁標題、作者身分、簡介與發布狀態。</p>
-            </div>
+            </div>}
             {isRowLayout ? (
                 <div className="rounded-xl border border-border/70 bg-background shadow-sm">
-                    <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+                    <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.title"), rowLabelTones.title || "required", Boolean(requiredHighlights.title))}
-                        <div className="space-y-2 p-4">
+                        <div className="space-y-2 p-3 md:py-2">
                             <Input id="metadata-title" name="metadataTitle" value={title} onChange={e => setTitle(e.target.value)} placeholder={t("metadataBasic.titlePlaceholder")} />
                             {requiredErrors.title && <p className="text-xs text-destructive">{t("metadataBasic.errTitle")}</p>}
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+                    <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.identity"), rowLabelTones.identity || "required", Boolean(requiredHighlights.identity))}
-                        <div className="space-y-2 p-4">
+                        <div className="space-y-2 p-3 md:py-2">
                             {identitySelect}
                             {requiredErrors.identity && <p className="text-xs text-destructive">{t("metadataBasic.errIdentity")}</p>}
                             {orgSelect}
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+                    <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.status"), rowLabelTones.status || "required", Boolean(requiredHighlights.status))}
-                        <div className="grid gap-2 p-4 sm:grid-cols-2">
+                        <div className="grid gap-2 p-3 md:py-2 sm:grid-cols-2">
                             <div className="space-y-2">
                                 {statusButtons}
                                 {statusHint}
@@ -225,10 +225,10 @@ export function MetadataBasicTab({
                             </div>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+                    <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
                         {renderRowLabel(t("metadataBasic.synopsis"), rowLabelTones.synopsis || "recommended", Boolean(requiredHighlights.synopsis))}
-                        <div className="space-y-2 p-4">
-                            <Textarea id="metadata-synopsis" name="metadataSynopsis" value={synopsis} onChange={(e) => setSynopsis(e.target.value)} placeholder={t("metadataBasic.synopsisPlaceholder")} className="h-32" />
+                        <div className="space-y-2 p-3 md:py-2">
+                            <Textarea id="metadata-synopsis" name="metadataSynopsis" value={synopsis} onChange={(e) => setSynopsis(e.target.value)} placeholder={t("metadataBasic.synopsisPlaceholder")} className="h-24" />
                             {recommendedErrors.synopsis && <p className="text-xs text-[color:var(--license-term-fg)]">{t("metadataBasic.tipSynopsis")}</p>}
                         </div>
                     </div>

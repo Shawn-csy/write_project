@@ -37,7 +37,7 @@ export function ScriptMetadataDialogBody() {
             ref={contentScrollRef}
             className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-muted/10 px-4 py-4 sm:px-6 sm:py-5"
         >
-            <div className="rounded-xl border border-border/70 bg-background p-4 shadow-sm sm:p-5">
+            <div>
                 {isInitializing ? (
                     <div className="flex min-h-[320px] items-center justify-center">
                         <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">

@@ -35,7 +35,7 @@ export function MainLayout({
   const { profile } = useAuth();
 
   return (
-    <div className="relative flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
+    <div className="studio-density relative flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
       {/* Mobile Drawer */}
       <Drawer
         open={isMobileDrawerOpen}

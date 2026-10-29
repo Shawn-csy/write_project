@@ -9,7 +9,7 @@ const messages = {
     "gallery": "公開台本",
     "workspace": "閲覧と執筆",
     "studio": "ワークスペース",
-    "community": "コミュニティ管理",
+    "community": "プロフィール・組織",
     "superAdmin": "管理者ワークスペース",
     "mediaLibrary": "メディアライブラリ"
   },
@@ -1444,7 +1444,7 @@ const messages = {
     "checkTags": "タグを追加"
   },
   "publisherProfileTab": {
-    "authorList": "作者一覧",
+    "authorList": "プロフィール一覧",
     "noPersona": "作者プロフィールはまだありません",
     "createNow": "今すぐ作成",
     "createIdentity": "プロフィールを作成",
@@ -1546,7 +1546,7 @@ const messages = {
     "accept": "承認",
     "decline": "辞退",
     "myWorks": "自分の作品",
-    "authorIdentity": "作者プロフィール",
+    "authorIdentity": "公開プロフィール",
     "organization": "組織",
     "guide": "ガイド",
     "guideSkip": "スキップ",

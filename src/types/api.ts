@@ -373,6 +373,16 @@ export interface PublicFeedbackRecord {
   kind: "bug" | "listing" | "ad_application" | "demo_submission";
   contactName: string;
   contactEmail: string;
+  scriptTitle: string;
+  scriptSummary: string;
+  authorName: string;
+  authorBio: string;
+  authorSocialUrl: string;
+  documentUrl: string;
+  coverUrl: string;
+  categories: string[];
+  seriesName: string;
+  notes: string;
   content: string;
   pageUrl: string;
   status: "new" | "reviewed" | "closed";
@@ -384,7 +394,17 @@ export interface PublicFeedbackCreate {
   kind: "bug" | "listing" | "ad_application" | "demo_submission";
   contactName?: string;
   contactEmail?: string;
-  content: string;
+  scriptTitle?: string;
+  scriptSummary?: string;
+  authorName?: string;
+  authorBio?: string;
+  authorSocialUrl?: string;
+  documentUrl?: string;
+  coverUrl?: string;
+  categories?: string[];
+  seriesName?: string;
+  notes?: string;
+  content?: string;
   pageUrl?: string;
   website?: string;
 }

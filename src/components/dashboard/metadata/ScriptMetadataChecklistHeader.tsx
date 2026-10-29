@@ -40,7 +40,7 @@ export function ScriptMetadataChecklistHeader({
   focusSection,
 }: ScriptMetadataChecklistHeaderProps) {
   return (
-    <div id="metadata-guide-checklist" className="rounded-lg border border-border/70 bg-background p-2.5 shadow-sm">
+    <div id="metadata-guide-checklist" className="space-y-1">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="text-[11px] font-medium text-muted-foreground">{t("scriptMetadataDialog.publishChecklist")}</div>
         <div className="text-xs font-semibold text-foreground">
@@ -94,38 +94,7 @@ export function ScriptMetadataChecklistHeader({
           </span>
         )}
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-1 rounded-md border border-border/70 bg-background p-1 sm:grid-cols-3">
-        {[
-          { key: "basic", label: t("scriptMetadataDialog.tabBasic", "基本資料") },
-          { key: "publish", label: t("scriptMetadataDialog.tabPublish", "發布設定") },
-          { key: "exposure", label: t("scriptMetadataDialog.tabExposure", "展示與分類") },
-          { key: "activity", label: t("scriptMetadataDialog.tabActivity", "活動宣傳") },
-          { key: "demo", label: "試聽範例" },
-          { key: "advanced", label: t("scriptMetadataDialog.tabAdvanced", "進階設定") },
-        ].map((item, idx) => (
-          <button
-            key={item.key}
-            type="button"
-            className={`flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-left text-xs sm:text-sm transition ${
-              activeTab === item.key
-                ? "border-primary bg-primary/15 text-primary shadow-sm ring-2 ring-primary/35"
-                : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
-            }`}
-            onClick={() => focusSection(item.key)}
-          >
-            <span
-              className={`inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] ${
-                activeTab === item.key
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border/70 bg-background text-muted-foreground"
-              }`}
-            >
-              {idx + 1}
-            </span>
-            {item.label}
-          </button>
-        ))}
-      </div>
+
     </div>
   );
 }

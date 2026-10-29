@@ -50,6 +50,7 @@ interface ScriptListRowProps {
     formatDate: (ts?: string | number) => string;
     onClickRow: (item: ScriptListItem, e: React.MouseEvent<HTMLDivElement>) => void;
     onDoubleClickRow: (item: ScriptListItem, e: React.MouseEvent<HTMLDivElement>) => void;
+    onOpenScript: (item: ScriptListItem) => void;
     onStatusClick: (e: React.MouseEvent<HTMLElement>, item: ScriptListItem) => void;
     onThemeChange: (scriptId: string, newVal: string, prevValRaw?: string) => Promise<void>;
     onRequestMove?: (item: ScriptListItem) => void;
@@ -94,6 +95,7 @@ const ScriptListRow = memo(function ScriptListRow({
     formatDate,
     onClickRow,
     onDoubleClickRow,
+    onOpenScript,
     onStatusClick,
     onThemeChange,
     onRequestMove,
@@ -203,6 +205,11 @@ const ScriptListRow = memo(function ScriptListRow({
                         </div>
 
                         {/* Actions Dropdown */}
+                        {item.type !== 'folder' && (
+                            <Button variant="ghost" size="sm" className="h-11 shrink-0 px-2 text-xs sm:h-8" onClick={(e) => { e.stopPropagation(); onOpenScript(item); }}>
+                                {readOnly ? "檢視" : "編輯"}
+                            </Button>
+                        )}
                         <div className="w-10 flex justify-end items-center" onClick={e => e.stopPropagation()}>
                             {!readOnly && (
                                 // Non-modal: items here open Dialogs (delete/move/rename). A modal menu
@@ -488,6 +495,7 @@ export const ScriptList = memo(function ScriptList({
                             formatDate={formatDate}
                             onClickRow={handleClickRow}
                             onDoubleClickRow={handleDoubleClickRow}
+                            onOpenScript={onSelectScript}
                             onStatusClick={handleStatusClick}
                             onThemeChange={handleThemeChange}
                             onRequestMove={onRequestMove}

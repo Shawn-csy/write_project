@@ -32,9 +32,9 @@ export function ScriptMetadataPublishSection({
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabPublish", "發布設定")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
-        <div className="grid grid-cols-1 divide-y md:grid-cols-[220px_minmax(0,1fr)] md:divide-y-0 md:divide-x">
+        <div className="grid grid-cols-1 divide-y md:grid-cols-[160px_minmax(0,1fr)] md:divide-y-0 md:divide-x">
           {renderRowLabel("觀眾取向", "required", Boolean(missingRequiredMap.audience))}
-          <div id="metadata-audience" className="space-y-2 p-4">
+          <div id="metadata-audience" className="space-y-2 p-3 md:py-2">
             <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
               {["男性向", "女性向", "全性向"].map((opt) => (
                 <Button
@@ -53,9 +53,9 @@ export function ScriptMetadataPublishSection({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           {renderRowLabel("內容分級", "required", Boolean(missingRequiredMap.rating))}
-          <div id="metadata-rating" className="space-y-2 p-4">
+          <div id="metadata-rating" className="space-y-2 p-3 md:py-2">
             <div className="inline-flex flex-wrap gap-1.5 rounded-md border bg-background p-1">
               {["全年齡向", "成人向"].map((opt) => (
                 <Button
@@ -74,9 +74,9 @@ export function ScriptMetadataPublishSection({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           {renderRowLabel("授權條款", "required", Boolean(missingRequiredMap.license), "商業使用 / 改作 / 修改通知")}
-          <div className="space-y-3 p-4">
+          <div className="space-y-3 p-3 md:py-2">
             <div className="grid gap-2 sm:grid-cols-3">
               <div className={licenseGroupClass(missingCommercial)}>
                 <div className="mb-1 flex items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -141,9 +141,9 @@ export function ScriptMetadataPublishSection({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           {renderRowLabel("附加條款")}
-          <div className="space-y-3 p-4">
+          <div className="space-y-3 p-3 md:py-2">
             <div className="flex gap-2 rounded-md border border-border/50 bg-background/50 p-2">
               <Input
                 value={publishNewTerm}

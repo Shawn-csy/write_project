@@ -471,6 +471,8 @@ class ScriptStudioSummary(BaseModel):
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[Series] = None
+    targetAudience: Optional[str] = None
+    contentRating: Optional[str] = None
     synopsis: Optional[str] = None
     hasPublishIdentity: bool = False
     metadataSeriesName: Optional[str] = ""
@@ -510,6 +512,8 @@ class StudioScriptSummary(BaseModel):
     seriesId: Optional[str] = None
     seriesOrder: Optional[int] = None
     series: Optional[StudioSeriesSummary] = None
+    targetAudience: Optional[str] = None
+    contentRating: Optional[str] = None
     synopsis: Optional[str] = None
     hasPublishIdentity: bool = False
     metadataSeriesName: str = ""
@@ -640,11 +644,21 @@ class PublicFeedbackCreate(BaseModel):
     kind: Literal["bug", "listing", "ad_application"] = "bug"
     contactName: Optional[str] = ""
     contactEmail: Optional[str] = ""
-    content: str
+    scriptTitle: Optional[str] = ""
+    scriptSummary: Optional[str] = ""
+    authorName: Optional[str] = ""
+    authorBio: Optional[str] = ""
+    authorSocialUrl: Optional[str] = ""
+    documentUrl: Optional[str] = ""
+    coverUrl: Optional[str] = ""
+    categories: List[str] = []
+    seriesName: Optional[str] = ""
+    notes: Optional[str] = ""
+    content: str = ""
     pageUrl: Optional[str] = ""
     website: Optional[str] = ""  # Honeypot; real visitors should leave this empty.
 
-    @field_validator("contactName", "contactEmail", "pageUrl", mode="before")
+    @field_validator("contactName", "contactEmail", "scriptTitle", "scriptSummary", "authorName", "authorBio", "authorSocialUrl", "documentUrl", "coverUrl", "seriesName", "notes", "pageUrl", mode="before")
     @classmethod
     def normalize_optional_text(cls, value: Any) -> str:
         return str(value or "").strip()
@@ -654,12 +668,37 @@ class PublicFeedbackCreate(BaseModel):
     def normalize_content(cls, value: Any) -> str:
         return str(value or "").strip()
 
+    @field_validator("categories", mode="before")
+    @classmethod
+    def normalize_categories(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        result: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            for raw in str(item or "").replace("，", ",").replace("、", ",").split(","):
+                category = raw.strip()[:80]
+                if category and category not in seen:
+                    result.append(category)
+                    seen.add(category)
+        return result[:30]
+
 
 class PublicFeedbackRecord(BaseModel):
     id: str
     kind: Literal["bug", "listing", "ad_application"]
     contactName: str = ""
     contactEmail: str = ""
+    scriptTitle: str = ""
+    scriptSummary: str = ""
+    authorName: str = ""
+    authorBio: str = ""
+    authorSocialUrl: str = ""
+    documentUrl: str = ""
+    coverUrl: str = ""
+    categories: List[str] = []
+    seriesName: str = ""
+    notes: str = ""
     content: str
     pageUrl: str = ""
     status: str = "new"
@@ -889,6 +928,7 @@ class ExternalPublicScriptDemoLink(BaseModel):
 
 class ExternalPublicScriptPayload(BaseModel):
     sourceUrl: str
+    authorPersonaId: Optional[str] = None
     canonicalUrl: Optional[str] = None
     sourceDomain: Optional[str] = None
     sourceName: Optional[str] = None

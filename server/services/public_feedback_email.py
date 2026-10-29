@@ -13,7 +13,7 @@ import logging
 import os
 import smtplib
 import ssl
-from typing import Mapping
+from typing import Any, Mapping
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +40,7 @@ def _configured_recipients() -> list[str]:
     ]
 
 
-def send_public_feedback_notification(feedback: Mapping[str, str]) -> None:
+def send_public_feedback_notification(feedback: Mapping[str, Any]) -> None:
     """Send one notification email, or log why delivery was skipped/failed."""
 
     host = os.getenv("SMTP_HOST", "").strip()
@@ -67,7 +67,7 @@ def send_public_feedback_notification(feedback: Mapping[str, str]) -> None:
 
     kind = {
         "bug": "Bug 回報",
-        "listing": "上架申請",
+        "listing": "台本投稿",
         "ad_application": "廣告申請",
     }.get(str(feedback.get("kind") or ""), "公開頁回報")
     created_at = feedback.get("createdAt", "")
@@ -86,21 +86,36 @@ def send_public_feedback_notification(feedback: Mapping[str, str]) -> None:
     contact_email = str(feedback.get("contactEmail", "") or "").strip()
     if contact_email and "\r" not in contact_email and "\n" not in contact_email:
         message["Reply-To"] = contact_email
-    message.set_content(
-        "\n".join(
-            [
-                f"類型：{kind}",
-                f"聯絡名稱：{feedback.get('contactName', '') or '未提供'}",
-                f"聯絡 Email：{contact_email or '未提供'}",
-                f"來源頁面：{feedback.get('pageUrl', '') or '未提供'}",
-                f"提交時間：{created_label}",
-                f"回報編號：{feedback.get('id', '')}",
-                "",
-                "內容：",
-                str(feedback.get("content", "") or ""),
-            ]
-        )
-    )
+    details = [
+        f"類型：{kind}",
+        f"聯絡名稱：{feedback.get('contactName', '') or '未提供'}",
+        f"聯絡 Email：{contact_email or '未提供'}",
+    ]
+    if feedback.get("kind") == "listing":
+        categories = feedback.get("categories") or []
+        categories_label = "、".join(str(item) for item in categories) if isinstance(categories, list) else str(categories)
+        details.extend([
+            f"台本名稱：{feedback.get('scriptTitle', '') or '未提供'}",
+            f"台本介紹：{feedback.get('scriptSummary', '') or '未提供'}",
+            f"作者名稱：{feedback.get('authorName', '') or '未提供'}",
+            f"作者介紹：{feedback.get('authorBio', '') or '未提供'}",
+            f"作者社群：{feedback.get('authorSocialUrl', '') or '未提供'}",
+            f"台本文件：{feedback.get('documentUrl', '') or '未提供'}",
+            f"封面連結：{feedback.get('coverUrl', '') or '未提供'}",
+            f"標籤：{categories_label or '未提供'}",
+            f"系列：{feedback.get('seriesName', '') or '未提供'}",
+            "",
+            "備註：",
+            str(feedback.get("notes", "") or "未提供"),
+        ])
+    else:
+        details.extend(["", "內容：", str(feedback.get("content", "") or "")])
+    details.extend([
+        f"來源頁面：{feedback.get('pageUrl', '') or '未提供'}",
+        f"提交時間：{created_label}",
+        f"回報編號：{feedback.get('id', '')}",
+    ])
+    message.set_content("\n".join(details))
 
     use_ssl = _env_bool("SMTP_USE_SSL", False)
     use_tls = _env_bool("SMTP_USE_TLS", True) and not use_ssl

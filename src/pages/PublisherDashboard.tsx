@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { Button } from "../components/ui/button";
-import { PanelLeftOpen, FileText, Layers3 } from "lucide-react";
+import { PanelLeftOpen, FileText, Layers3, ExternalLink } from "lucide-react";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 import { TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
@@ -26,6 +26,10 @@ const ScriptMetadataDialogLazy = React.lazy(async () => {
 const PublisherSeriesTabLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/publisher/PublisherSeriesTab");
   return { default: mod.PublisherSeriesTab };
+});
+const StudioExternalScriptsTabLazy = React.lazy(async () => {
+  const mod = await import("../components/dashboard/publisher/StudioExternalScriptsTab");
+  return { default: mod.StudioExternalScriptsTab };
 });
 
 const tabFallback = <div className="p-6 text-sm text-muted-foreground">Loading...</div>;
@@ -55,12 +59,12 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                 <PanelLeftOpen className="w-5 h-5 text-muted-foreground" />
               </Button>
             </div>
-            <div className={`hidden sm:block ${STUDIO_TOPBAR_TITLE_WRAP_CLASS}`}>
+            <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
               <div className="flex items-center gap-2">
                 <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">
                   Studio
                 </span>
-                <h1 className="truncate font-serif text-lg font-semibold text-primary">{s.t("publisher.title")}</h1>
+                <h1 className="truncate text-sm font-semibold text-foreground sm:text-lg">{s.t("publisher.title")}</h1>
               </div>
             </div>
             <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
@@ -81,20 +85,26 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
 
           {/* Tabs */}
           <Tabs value={s.activeTab} onValueChange={s.handleTabChange} className="space-y-4">
-            <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
-              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-2">
-                <TabsTrigger value="works" style={s.tabTone.works} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+            <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-1.5 backdrop-blur">
+              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-3 gap-1.5 bg-transparent p-0">
+                <TabsTrigger value="works" style={s.tabTone.works} className="h-10 sm:h-8 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
                   <span className="flex items-center gap-2 text-xs sm:text-sm">
                     <FileText className="h-4 w-4" />
-                    <span>{s.t("publisher.myWorks")}</span>
+                    <span className="sm:hidden">作品</span><span className="hidden sm:inline">{s.t("publisher.myWorks")}</span>
                     {s.renderTabCount(s.tabCounts.works)}
                   </span>
                 </TabsTrigger>
-                <TabsTrigger value="series" style={s.tabTone.series} className="h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+                <TabsTrigger value="series" style={s.tabTone.series} className="h-10 sm:h-8 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
                   <span className="flex items-center gap-2 text-xs sm:text-sm">
                     <Layers3 className="h-4 w-4" />
-                    <span>系列管理</span>
+                    <span className="sm:hidden">系列</span><span className="hidden sm:inline">系列管理</span>
                     {s.renderTabCount(s.tabCounts.series)}
+                  </span>
+                </TabsTrigger>
+                <TabsTrigger value="external" style={s.tabTone.works} className="h-10 sm:h-8 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]">
+                  <span className="flex items-center gap-2 text-xs sm:text-sm">
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="sm:hidden">外部發布</span><span className="hidden sm:inline">外部連結發布</span>
                   </span>
                 </TabsTrigger>
               </TabsList>
@@ -164,6 +174,14 @@ export function PublisherDashboard({ isSidebarOpen, setSidebarOpen, openMobileMe
                     onDeleteSeries={s.handleDeleteSeries}
                     isSaving={s.isSavingSeries}
                   />
+                </Suspense>
+              )}
+            </TabsContent>
+
+            <TabsContent value="external" style={s.tabTone.works} className="rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+              {s.activeTab === "external" && (
+                <Suspense fallback={tabFallback}>
+                  <StudioExternalScriptsTabLazy personas={s.personas} />
                 </Suspense>
               )}
             </TabsContent>

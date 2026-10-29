@@ -31,11 +31,11 @@ export function ScriptMetadataDemoSection({
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">試聽範例</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("recommended")}>
             <div className="text-sm font-medium text-foreground">試聽項目</div>
           </div>
-          <div className="space-y-3 p-4">
+          <div className="space-y-3 p-3 md:py-2">
             {(activityDemoLinks || []).map((link, idx) => (
               <div key={link.id || `demo-${idx + 1}`} className="space-y-2 rounded-md border border-border/70 p-3">
                 <div className="flex items-center justify-between">

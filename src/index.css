@@ -5,6 +5,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Compact desktop controls only inside Studio. Touch devices retain their
+   existing target sizes; dialogs opt in because Radix renders them in a portal. */
+@media (min-width: 768px) and (pointer: fine) {
+  .studio-density [data-studio-control="input"],
+  .studio-density [data-studio-control="select"] {
+    max-height: 2rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+  .studio-density [data-studio-control="button"] {
+    max-height: 2rem;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  .studio-density [data-studio-size="sm"] {
+    max-height: 1.75rem;
+  }
+  .studio-density [data-studio-size="icon"] {
+    max-width: 2rem;
+  }
+}
+
 @layer base {
   :root {
     --background: 250 40% 98%;
