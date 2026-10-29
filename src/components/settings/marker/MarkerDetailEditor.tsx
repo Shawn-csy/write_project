@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { MarkerStyleSettings } from "./configs/MarkerStyleSettings";
 import { MarkerAnalysisSettings } from "./configs/MarkerAnalysisSettings";
-import { MarkerPreview } from "./configs/MarkerPreview";
-import { AlertCircle, Maximize2, ChevronDown, Check } from "lucide-react";
+import { AlertCircle, Check, Maximize2, Trash2 } from "lucide-react";
 import { Input } from "../../ui/input";
+import { Button } from "../../ui/button";
+import { Switch } from "../../ui/switch";
 import { cn } from "../../../lib/utils";
 import { useI18n } from "../../../contexts/I18nContext";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "./types";
@@ -16,52 +17,86 @@ interface MarkerDetailEditorProps {
     readOnly?: boolean;
     tracks?: TrackConfig[];
     layoutConfig?: LayoutConfig;
+    onLayoutChange?: (config: LayoutConfig) => void;
     onOpenFullLayoutEditor?: () => void;
-}
-
-/** Compact label-value row used throughout the editor */
-function Row({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
-    return (
-        <div className="flex items-start gap-3 py-2 border-b border-border/20 last:border-0">
-            <span className="w-20 shrink-0 pt-1.5 text-xs text-muted-foreground leading-none">{label}</span>
-            <div className="flex-1 min-w-0">
-                {children}
-                {hint && <p className="mt-1 text-[11px] text-muted-foreground/70 leading-relaxed">{hint}</p>}
-            </div>
-        </div>
-    );
-}
-
-/** Divider with section label */
-function SectionLabel({ label }: { label: string }) {
-    return (
-        <div className="pt-3 pb-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{label}</span>
-        </div>
-    );
+    onDelete?: () => void;
 }
 
 const TYPE_OPTIONS = ["inline", "block"] as const;
 
 const MATCH_MODES = [
-    { id: "enclosure", descKey: "enclosureDesc" },
-    { id: "prefix",    descKey: "prefixDesc" },
-    { id: "range",     descKey: "rangeDesc" },
-    { id: "regex",     descKey: "regexDesc" },
+    { id: "enclosure", descKey: "enclosureDesc", example: "（小聲）" },
+    { id: "prefix",    descKey: "prefixDesc",    example: "#SE 敲門聲" },
+    { id: "range",     descKey: "rangeDesc",     example: ">>SE … <<SE" },
+    { id: "regex",     descKey: "regexDesc",     example: "/^第\\d+話/" },
 ] as const;
 
-export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false, tracks = [], layoutConfig, onOpenFullLayoutEditor }: MarkerDetailEditorProps): React.JSX.Element {
+function Step({ number, title, description, children }: { number: number; title: string; description?: string; children: React.ReactNode }) {
+    return (
+        <section className="space-y-4 border-t border-border/70 py-6 first:border-t-0 first:pt-2">
+            <div>
+                <h3 className="flex items-center gap-2 text-[15px] font-semibold">
+                    <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary" aria-hidden="true">{number}</span>
+                    {title}
+                </h3>
+                {description ? <p className="mt-1 pl-[30px] text-xs text-muted-foreground">{description}</p> : null}
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function FieldRow({ label, children, hint }: { label: string; children: React.ReactNode; hint?: React.ReactNode }) {
+    return (
+        <div className="grid gap-2 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:items-start">
+            <span className="pt-2 text-[13px] font-medium text-foreground/85">{label}</span>
+            <div className="min-w-0">
+                {children}
+                {hint ? <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{hint}</p> : null}
+            </div>
+        </div>
+    );
+}
+
+function SymbolInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
+    return (
+        <label className="flex flex-col gap-1.5">
+            <span className="text-xs text-muted-foreground">{label}</span>
+            <Input
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                className={cn("h-9 text-center font-mono text-sm", !value && "border-destructive")}
+                placeholder={placeholder}
+                aria-invalid={!value}
+            />
+        </label>
+    );
+}
+
+function ToggleRow({ checked, onChange, label, description }: { checked: boolean; onChange: (checked: boolean) => void; label: string; description?: string }) {
+    const id = React.useId();
+    return (
+        <div className="flex items-start gap-3">
+            <Switch id={id} checked={checked} onCheckedChange={onChange} className="mt-0.5" />
+            <label htmlFor={id} className="flex cursor-pointer flex-col gap-0.5">
+                <span className="text-[13px]">{label}</span>
+                {description ? <span className="text-xs leading-relaxed text-muted-foreground">{description}</span> : null}
+            </label>
+        </div>
+    );
+}
+
+export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false, tracks = [], layoutConfig, onLayoutChange, onOpenFullLayoutEditor, onDelete }: MarkerDetailEditorProps): React.JSX.Element {
     const { t } = useI18n();
     if (!config) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/20 rounded-lg border border-dashed border-border/50 p-8">
-                <AlertCircle className="w-10 h-10 mb-2 opacity-20" />
+            <div className="flex h-full flex-col items-center justify-center p-8 text-muted-foreground">
+                <AlertCircle className="mb-2 h-10 w-10 opacity-20" />
                 <p className="text-sm">{t("markerDetailEditor.selectRuleHint")}</p>
             </div>
         );
     }
 
-    const [previewOpen, setPreviewOpen] = useState(false);
     const rawType = config.type === "block" || config.isBlock ? "block" : "inline";
     const matchMode = config.matchMode || "enclosure";
     const currentType = matchMode === "prefix" ? "inline" : rawType;
@@ -72,7 +107,9 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
         : TYPE_OPTIONS;
     const groupingEnabled = Boolean((config.v2SyncRows || config.enableColumnGrouping) && config.matchMode === "range");
     const isMarkerDialogueGrouping = layoutConfig?.rowGrouping === "marker_dialogue";
-
+    const typeLabel = (opt: typeof TYPE_OPTIONS[number]) => (opt === "block"
+        ? t("markerStudio.displayBlock", "獨立一行")
+        : t("markerStudio.displayInline", "嵌在句子裡"));
 
     const updateMatchMode = (mode: typeof MATCH_MODES[number]["id"]) => {
         if (mode === "prefix") {
@@ -88,398 +125,249 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
     };
 
     return (
-        <div className="h-full flex flex-col overflow-hidden">
-            {/* Compact header: name + badge + live preview inline, click to expand */}
-            <button
-                type="button"
-                onClick={() => setPreviewOpen((o) => !o)}
-                className="w-full px-4 py-2.5 border-b flex items-center gap-3 bg-muted/20 shrink-0 min-w-0 hover:bg-muted/30 transition-colors text-left"
-            >
-                <span className="text-sm font-semibold text-foreground truncate shrink-0 max-w-[120px]">{config.label || t("markerDetailEditor.unnamedMarker")}</span>
-                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary shrink-0">
-                    {matchMode === "range"
-                        ? t("markerDetailEditor.badgeRange")
-                        : isBlock
-                            ? t("markerDetailEditor.badgeBlock")
-                            : t("markerDetailEditor.badgeInline")}
-                </span>
-                <div className="flex-1 min-w-0">
-                    <MarkerPreview config={config} compact />
-                </div>
-                <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-transform", previewOpen && "rotate-180")} />
-            </button>
-
-            {/* Expanded preview panel */}
-            {previewOpen && (
-                <div className="border-b bg-background/60 px-4 py-3 shrink-0 space-y-3">
-                    <MarkerPreview config={config} expanded />
-                    {/* Column placement if tracks available */}
-                    {enabledTracks.length > 0 && (
-                        <div>
-                            <div className="text-[11px] text-muted-foreground/40 mb-1">{t("markerDetailEditor.trackPreview")}</div>
-                            <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${enabledTracks.length}, minmax(0, 1fr))` }}>
-                                {enabledTracks.map((track) => {
-                                    const isTarget = config.v2TrackId ? config.v2TrackId === track.id : false;
-                                    return (
-                                        <div key={track.id} className={cn(
-                                            "rounded border px-2 py-1 text-[9px] text-center",
-                                            isTarget ? "border-primary/50 bg-primary/10 text-primary font-semibold" : "border-border/30 bg-muted/20 text-muted-foreground/40"
-                                        )}>
-                                            {track.name}
-                                            {isTarget && <div className="mt-0.5 font-mono opacity-70">{config.label}</div>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
+        <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
+            <div className="mb-2 flex flex-wrap items-center gap-3">
+                <span
+                    className="h-4 w-4 shrink-0 rounded border border-border"
+                    style={{ backgroundColor: String(config.style?.color || "hsl(var(--foreground))") }}
+                    aria-hidden="true"
+                />
+                <Input
+                    value={config.label || ""}
+                    onChange={(e) => updateMarker(idx, "label", e.target.value)}
+                    aria-label={t("markerGeneral.name")}
+                    placeholder={t("markerDetailEditor.unnamedMarker")}
+                    className={cn(
+                        "h-10 min-w-0 flex-1 border-transparent px-2 text-lg font-bold shadow-none hover:border-input focus:border-input",
+                        !config.label && "border-destructive"
                     )}
+                />
+                {onDelete && !readOnly ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                        {t("markerStudio.deleteRule", "刪除規則")}
+                    </Button>
+                ) : null}
+            </div>
+
+            <Step number={1} title={t("markerStudio.stepSyntax", "原稿裡怎麼寫")} description={t("markerStudio.stepSyntaxDesc", "決定在原稿中用什麼符號標出這種內容。")}>
+                <div role="radiogroup" aria-label={t("markerLogic.matchMode")} className="grid max-w-2xl grid-cols-2 gap-2">
+                    {MATCH_MODES.map((mode) => {
+                        const isActive = matchMode === mode.id;
+                        return (
+                            <button
+                                key={mode.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={isActive}
+                                onClick={() => updateMatchMode(mode.id)}
+                                className={cn(
+                                    "flex flex-col items-start gap-1.5 rounded-[10px] border p-3 text-left transition-colors",
+                                    isActive ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-foreground/25 hover:bg-muted/40"
+                                )}
+                            >
+                                <span className="flex w-full items-center justify-between gap-2">
+                                    <span className="text-[13px] font-semibold">{t(`modeSelector.${mode.id}`)}</span>
+                                    {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                                </span>
+                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{mode.example}</code>
+                                <span className="text-xs leading-snug text-muted-foreground">{t(`modeSelector.${mode.descKey}`)}</span>
+                            </button>
+                        );
+                    })}
                 </div>
-            )}
 
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-2">
+                {matchMode === "regex" ? (
+                    <FieldRow label={t("markerLogic.regexLabel")} hint={t("markerStudio.regexHint", "每一行分別比對；右側試寫區會標出比對到的行。")}>
+                        <Input
+                            value={config.regex || ""}
+                            onChange={(e) => updateMarker(idx, "regex", e.target.value)}
+                            className={cn("h-9 font-mono text-sm", !config.regex && "border-destructive")}
+                            placeholder={t("markerLogic.regexPlaceholder")}
+                        />
+                    </FieldRow>
+                ) : matchMode === "range" ? (
+                    <FieldRow label={t("markerLogic.rangeSymbolPair")} hint={t("markerLogic.rangeBlockHint")}>
+                        <div className="grid max-w-md grid-cols-2 gap-3">
+                            <SymbolInput label={t("markerLogic.rangeStartLabel")} value={config.start || ""} onChange={(value) => updateMarker(idx, "start", value)} placeholder=">>SE" />
+                            <SymbolInput label={t("markerLogic.rangeEndLabel")} value={config.end || ""} onChange={(value) => updateMarker(idx, "end", value)} placeholder="<<SE" />
+                        </div>
+                    </FieldRow>
+                ) : matchMode === "prefix" ? (
+                    <FieldRow label={t("markerLogic.prefixSymbolLabel")} hint={t("markerStudio.prefixHint", "一行以這個符號開頭就會觸發，後面的文字是內容。")}>
+                        <div className="max-w-[12rem]">
+                            <SymbolInput label={t("markerLogic.prefixSymbolLabel")} value={config.start || ""} onChange={(value) => updateMarker(idx, "start", value)} placeholder="#SE" />
+                        </div>
+                    </FieldRow>
+                ) : (
+                    <FieldRow label={t("markerLogic.symbolPair")} hint={t("markerLogic.enclosedContentHint")}>
+                        <div className="grid max-w-md grid-cols-2 gap-3">
+                            <SymbolInput label={t("markerLogic.startLabel")} value={config.start || ""} onChange={(value) => updateMarker(idx, "start", value)} placeholder="(" />
+                            <SymbolInput label={t("markerLogic.endLabel")} value={config.end || ""} onChange={(value) => updateMarker(idx, "end", value)} placeholder=")" />
+                        </div>
+                    </FieldRow>
+                )}
+            </Step>
 
-                {/* ── 基本資訊 ── */}
-                <Row label={t("markerGeneral.name")}>
-                    <Input
-                        value={config.label || ""}
-                        onChange={(e) => updateMarker(idx, "label", e.target.value)}
-                        className={cn("h-7 text-sm", !config.label && "border-destructive")}
-                    />
-                </Row>
-
-                <Row label={t("markerGeneral.type")}>
-                    <div className="flex gap-1.5">
+            <Step number={2} title={t("markerStudio.stepDisplay", "閱讀時怎麼顯示")} description={t("markerStudio.stepDisplayDesc", "讀者在作品頁看到的樣子；右側預覽會即時更新。")}>
+                <FieldRow label={t("markerStudio.position", "位置")} hint={matchMode === "prefix" ? t("markerLogic.prefixNoBlockHint") : undefined}>
+                    <div role="radiogroup" aria-label={t("markerStudio.position", "位置")} className="inline-flex gap-0.5 rounded-lg bg-muted p-[3px]">
                         {availableTypeOptions.map((opt) => {
                             const isActive = currentType === opt;
                             return (
                                 <button
                                     key={opt}
                                     type="button"
+                                    role="radio"
+                                    aria-checked={isActive}
                                     onClick={() => updateMarker(idx, { type: opt, isBlock: opt === "block" })}
                                     className={cn(
-                                        "rounded-md border px-2.5 py-1.5 text-left transition-all",
-                                        isActive
-                                            ? "border-primary bg-primary/8 text-primary ring-1 ring-primary/30"
-                                            : "border-border/50 text-foreground/70 hover:border-border hover:bg-muted/20"
+                                        "h-9 rounded-md px-3 text-[13px] transition-colors sm:h-[30px]",
+                                        isActive ? "bg-background font-semibold text-foreground shadow-[0_0_0_1px_hsl(var(--border))]" : "text-muted-foreground hover:text-foreground"
                                     )}
                                 >
-                                    <span className="block text-xs font-medium">{t(`markerGeneral.${opt}`)}</span>
-                                    <span className="mt-0.5 block text-[11px] text-muted-foreground">{t(`markerGeneral.${opt}Desc`)}</span>
+                                    {typeLabel(opt)}
                                 </button>
                             );
                         })}
                     </div>
-                    {matchMode === "prefix" && (
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
-                            {t("markerLogic.prefixNoBlockHint")}
-                        </p>
-                    )}
-                </Row>
+                </FieldRow>
 
-                {/* ── 觸發方式 ── */}
-                <SectionLabel label={t("markerDetailEditor.sectionTrigger")} />
+                <FieldRow label={t("markerStudio.style", "樣式")}>
+                    <MarkerStyleSettings config={config} idx={idx} updateMarker={updateMarker} />
+                </FieldRow>
 
-                <Row label={t("markerLogic.matchMode")}>
-                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                        {MATCH_MODES.map((mode) => {
-                            const isActive = matchMode === mode.id;
-                            return (
-                                <button
-                                    key={mode.id}
-                                    type="button"
-                                    onClick={() => updateMatchMode(mode.id)}
-                                    className={cn(
-                                        "rounded-md border p-2 text-left transition-colors",
-                                        isActive
-                                            ? "border-primary/60 bg-primary/10 text-primary"
-                                            : "border-border/50 bg-background/60 text-foreground/75 hover:border-border hover:bg-muted/25"
-                                    )}
-                                >
-                                    <span className="flex items-center justify-between gap-2">
-                                        <span className="text-xs font-semibold">{t(`modeSelector.${mode.id}`)}</span>
-                                        {isActive && <Check className="h-3.5 w-3.5 shrink-0" />}
-                                    </span>
-                                    <span className="mt-1 block text-[11px] leading-snug text-muted-foreground/80">{t(`modeSelector.${mode.descKey}`)}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                    {matchMode === "range" && (
-                        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground/70">
-                            {t("markerLogic.rangeBlockHint")}
-                        </p>
-                    )}
-                </Row>
-
-                {/* 符號輸入：依 matchMode 顯示不同欄位 */}
-                {matchMode === "regex" ? (
-                    <Row label={t("markerLogic.regexLabel")}>
-                        <Input
-                            value={config.regex || ""}
-                            onChange={(e) => updateMarker(idx, "regex", e.target.value)}
-                            className={cn("h-7 font-mono text-xs", !config.regex && "border-destructive")}
-                            placeholder={t("markerLogic.regexPlaceholder")}
-                        />
-                    </Row>
-                ) : matchMode === "range" ? (
-                    <>
-                        <Row label={t("markerLogic.rangeSymbolPair")}>
-                            <div className="rounded-md border border-border/50 bg-muted/15 p-2">
-                                <div className="grid grid-cols-2 gap-1.5">
-                                    <div>
-                                        <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.rangeStartLabel")}</div>
-                                        <Input
-                                            value={config.start || ""}
-                                            onChange={(e) => updateMarker(idx, "start", e.target.value)}
-                                            className={cn("h-8 font-mono text-xs text-center", !config.start && "border-destructive")}
-                                            placeholder=">>SE"
-                                        />
-                                    </div>
-                                    <div>
-                                        <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.rangeEndLabel")}</div>
-                                        <Input
-                                            value={config.end || ""}
-                                            onChange={(e) => updateMarker(idx, "end", e.target.value)}
-                                            className={cn("h-8 font-mono text-xs text-center", !config.end && "border-destructive")}
-                                            placeholder="<<SE"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="mt-2 rounded bg-background/70 px-2 py-1.5 font-mono text-[11px] leading-5 text-muted-foreground">
-                                    <div><span className="text-primary">{config.start || ">>SE"}</span> <span>{t("markerLogic.rangePreviewStart")}</span></div>
-                                    <div className="border-l border-primary/30 pl-2 text-foreground/70">{t("markerLogic.rangeContentHint")}</div>
-                                    <div><span className="text-primary">{config.end || "<<SE"}</span> <span>{t("markerLogic.rangePreviewEnd")}</span></div>
-                                </div>
-                            </div>
-                        </Row>
-                        <Row label={t("markerLogic.v2SyncRows")}>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={!!(config.v2SyncRows || config.enableColumnGrouping)}
-                                    onChange={(e) => {
-                                        updateMarker(idx, "v2SyncRows", e.target.checked || undefined);
-                                        updateMarker(idx, "enableColumnGrouping", undefined);
-                                    }}
-                                    className="h-3.5 w-3.5 rounded border-input text-primary"
-                                />
-                                <span className="text-xs text-muted-foreground">{t("markerLogic.v2SyncRowsDesc")}</span>
-                            </label>
-                        </Row>
-                        <Row label={t("markerLogic.v2RangeOwnsContent")}>
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={!!config.v2RangeOwnsContent}
-                                    onChange={(e) => updateMarker(idx, "v2RangeOwnsContent", e.target.checked || undefined)}
-                                    className="h-3.5 w-3.5 rounded border-input text-primary"
-                                />
-                                <span className="text-xs text-muted-foreground">{t("markerLogic.v2RangeOwnsContentDesc")}</span>
-                            </label>
-                        </Row>
-                    </>
-                ) : (
-                    <>
-                        <Row label={matchMode === "prefix" ? t("markerLogic.prefixSymbolLabel") : t("markerLogic.symbolPair")}>
-                            <div className="rounded-md border border-border/50 bg-muted/15 p-2">
-                                {matchMode === "prefix" ? (
-                                    <>
-                                        <div className="grid grid-cols-[minmax(90px,0.8fr)_minmax(120px,1fr)] items-end gap-1.5">
-                                            <div>
-                                                <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.prefixSymbolLabel")}</div>
-                                                <Input
-                                                    value={config.start || ""}
-                                                    onChange={(e) => updateMarker(idx, "start", e.target.value)}
-                                                    className={cn("h-8 font-mono text-xs text-center", !config.start && "border-destructive")}
-                                                    placeholder="#SE"
-                                                />
-                                            </div>
-                                            <div className="rounded bg-background/70 px-2 py-2 font-mono text-[11px] text-muted-foreground">
-                                                <span className="text-primary">{config.start || "#SE"}</span>
-                                                <span> {t("markerLogic.prefixPreviewContent")}</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        <div className="grid grid-cols-[minmax(70px,0.8fr)_minmax(90px,1fr)_minmax(70px,0.8fr)] items-center gap-1.5">
-                                            <div>
-                                                <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.startLabel")}</div>
-                                                <Input
-                                                    value={config.start || ""}
-                                                    onChange={(e) => updateMarker(idx, "start", e.target.value)}
-                                                    className={cn("h-8 font-mono text-xs text-center", !config.start && "border-destructive")}
-                                                    placeholder="("
-                                                />
-                                            </div>
-                                            <div className="pt-5 text-center text-[11px] text-muted-foreground/70">
-                                                {t("markerLogic.enclosedContentHint")}
-                                            </div>
-                                            <div>
-                                                <div className="mb-1 text-[11px] text-muted-foreground">{t("markerLogic.endLabel")}</div>
-                                                <Input
-                                                    value={config.end || ""}
-                                                    onChange={(e) => updateMarker(idx, "end", e.target.value)}
-                                                    className={cn("h-8 font-mono text-xs text-center", !config.end && "border-destructive")}
-                                                    placeholder=")"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="mt-2 rounded bg-background/70 px-2 py-1.5 font-mono text-[11px] text-muted-foreground">
-                                            <span>{t("markerLogic.enclosurePreviewPrefix")}</span>
-                                            <span className="text-primary">{config.start || "("}</span>
-                                            <span>{t("markerLogic.enclosedPreviewContent")}</span>
-                                            <span className="text-primary">{config.end || ")"}</span>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </Row>
-                    </>
-                )}
-
-                {/* 顯示樣板（非 regex） */}
                 {matchMode !== "regex" && (
-                    <Row label={t("markerLogic.template")}>
+                    <FieldRow
+                        label={t("markerStudio.displayText", "顯示文字")}
+                        hint={<>{t("markerStudio.templateHint", "留空就照原文顯示；")}<code className="rounded bg-muted px-1 font-mono">{"{{content}}"}</code>{t("markerStudio.templateHintTail", " 代表原稿內容。")}</>}
+                    >
                         <Input
                             value={config.renderer?.template || ""}
                             onChange={(e) => {
                                 const renderer = config.renderer || {};
                                 updateMarker(idx, "renderer", { ...renderer, template: e.target.value });
                             }}
-                            className="h-7 text-xs font-mono"
+                            className="h-9 max-w-md font-mono text-sm"
                             placeholder={t("markerLogic.templatePlaceholder")}
                         />
-                    </Row>
+                    </FieldRow>
                 )}
 
-                {/* ── 輸出位置（V2 欄位設定）── */}
-                <SectionLabel label={t("markerDetailEditor.sectionOutput")} />
+                <div className="space-y-3 sm:pl-[7.5rem]">
+                    {matchMode !== "regex" && (
+                        <ToggleRow
+                            checked={!!config.showDelimiters}
+                            onChange={(checked) => updateMarker(idx, "showDelimiters", checked)}
+                            label={t("markerStudio.showDelimiters", "閱讀時也顯示原本的符號")}
+                        />
+                    )}
+                    {isBlock && matchMode !== "prefix" && (
+                        <ToggleRow
+                            checked={config.showEndLabel !== false}
+                            onChange={(checked) => updateMarker(idx, "showEndLabel", checked)}
+                            label={t("markerStudio.showEndLabel", "顯示結束標示")}
+                        />
+                    )}
+                </div>
+            </Step>
 
-                {groupingEnabled && !isMarkerDialogueGrouping && (
-                    <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-xs leading-relaxed text-destructive">
-                        <div>{t("markerLogic.groupingMismatchWarning")}</div>
-                        {onOpenFullLayoutEditor && (
-                            <button
-                                type="button"
-                                onClick={onOpenFullLayoutEditor}
-                                className="mt-1 inline-flex items-center gap-1 underline decoration-destructive/60 underline-offset-2 hover:decoration-destructive"
-                            >
-                                {t("markerLogic.goFixLayout")}
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                <div className="py-2 border-b border-border/20">
-                    {enabledTracks.length > 0 ? (
-                        <>
-                        <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[11px] text-muted-foreground/50">{t("markerDetailEditor.trackPreview")}</span>
-                            {onOpenFullLayoutEditor && (
-                                <button
-                                    type="button"
-                                    onClick={onOpenFullLayoutEditor}
-                                    className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    <Maximize2 className="h-2.5 w-2.5" />
-                                    {t("markerDetailEditor.editLayout")}
-                                </button>
-                            )}
-                        </div>
-                        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${enabledTracks.length + 1}, minmax(0, 1fr))` }}>
-                            <button
-                                type="button"
-                                onClick={() => updateMarker(idx, "v2TrackId", undefined)}
-                                className={cn(
-                                    "flex items-center justify-between gap-1 rounded border px-2 py-1.5 text-left text-[11px] transition-colors",
-                                    !config.v2TrackId
-                                        ? "border-primary/50 bg-primary/10 text-primary"
-                                        : "border-border/30 bg-background/50 text-muted-foreground/60 hover:border-border hover:text-foreground"
-                                )}
-                                title={t("markerDetailEditor.trackAutoHint")}
-                            >
-                                <span className="font-semibold truncate">{t("markerLogic.trackAuto")}</span>
-                                {!config.v2TrackId && <Check className="h-3 w-3 shrink-0" />}
-                            </button>
-                            {enabledTracks.map((track) => {
-                                const isTarget = config.v2TrackId ? config.v2TrackId === track.id : false;
+            <Step number={3} title={t("markerStudio.stepColumn", "多欄模式放在哪一欄")} description={t("markerStudio.stepColumnDesc", "開啟多欄模式時，這種內容要出現在哪一欄。")}>
+                {enabledTracks.length > 0 ? (
+                    <div>
+                        <div role="radiogroup" aria-label={t("markerStudio.stepColumn", "多欄模式放在哪一欄")} className="grid max-w-2xl gap-2" style={{ gridTemplateColumns: `repeat(${enabledTracks.length + 1}, minmax(0, 1fr))` }}>
+                            {[{ id: "", name: t("markerLogic.trackAuto") }, ...enabledTracks].map((track) => {
+                                const isTarget = track.id ? config.v2TrackId === track.id : !config.v2TrackId;
                                 return (
                                     <button
-                                        key={track.id}
+                                        key={track.id || "auto"}
                                         type="button"
-                                        onClick={() => updateMarker(idx, "v2TrackId", track.id)}
+                                        role="radio"
+                                        aria-checked={isTarget}
+                                        onClick={() => updateMarker(idx, "v2TrackId", track.id || undefined)}
+                                        title={track.id ? track.id : t("markerDetailEditor.trackAutoHint")}
                                         className={cn(
-                                            "flex items-center justify-between gap-1 rounded border px-2 py-1.5 text-left text-[11px] transition-colors",
-                                            isTarget
-                                                ? "border-primary/50 bg-primary/10 text-primary"
-                                                : "border-border/30 bg-background/50 text-muted-foreground/60 hover:border-border hover:text-foreground"
+                                            "flex h-11 items-center justify-center gap-1 truncate rounded-lg border px-2 text-[13px] transition-colors",
+                                            isTarget ? "border-primary bg-primary/5 font-semibold text-foreground ring-1 ring-primary" : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground"
                                         )}
-                                        title={track.id}
                                     >
-                                        <span className="font-semibold truncate">{track.name}</span>
-                                        {isTarget && <Check className="h-3 w-3 shrink-0" />}
+                                        {isTarget && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
+                                        <span className="truncate">{track.name}</span>
                                     </button>
                                 );
                             })}
                         </div>
-                        </>
-                    ) : (
+                        {onOpenFullLayoutEditor && (
+                            <button type="button" onClick={onOpenFullLayoutEditor} className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                <Maximize2 className="h-3 w-3" />
+                                {t("markerDetailEditor.editLayout")}
+                            </button>
+                        )}
+                    </div>
+                ) : (
+                    <FieldRow label={t("markerStudio.columnId", "欄位代號")}>
                         <Input
                             value={String(config.v2TrackId || "")}
                             onChange={(e) => updateMarker(idx, "v2TrackId", e.target.value || undefined)}
-                            className="h-7 text-xs font-mono"
+                            className="h-9 max-w-xs font-mono text-sm"
                             placeholder="main / sfx / secondary"
                         />
-                    )}
-                </div>
+                    </FieldRow>
+                )}
 
-                {/* ── 外觀樣式 ── */}
-                <SectionLabel label={t("markerDetailEditor.sectionStyle")} />
-                <MarkerStyleSettings config={config} idx={idx} updateMarker={updateMarker} />
-
-                {/* ── 進階（折疊）── */}
-                <details className="group mt-2">
-                    <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors select-none">
-                        <span>{t("markerDetailEditor.sectionAdvanced")}</span>
-                        <span className="font-normal normal-case group-open:hidden">{t("markerDetailEditor.expand")}</span>
-                        <span className="font-normal normal-case hidden group-open:inline">{t("markerDetailEditor.collapse")}</span>
-                    </summary>
-                    <div className="border-t border-border/20 pt-2 space-y-0">
-                        <Row label={t("markerGeneral.priority")}>
-                            <Input
-                                type="number"
-                                value={config.priority || 0}
-                                onChange={(e) => updateMarker(idx, "priority", parseInt(e.target.value) || 0)}
-                                className="h-7 max-w-[100px] text-xs text-center font-mono"
-                            />
-                        </Row>
-                        {isBlock && matchMode !== "prefix" && (
-                            <Row label={t("markerLogic.showEnd")}>
-                                <input
-                                    type="checkbox"
-                                    checked={config.showEndLabel !== false}
-                                    onChange={(e) => updateMarker(idx, "showEndLabel", e.target.checked)}
-                                    className="h-3.5 w-3.5 rounded border-input text-primary"
-                                />
-                            </Row>
-                        )}
-                        {matchMode !== "regex" && (
-                            <Row label={t("markerLogic.showDelimiters")}>
-                                <input
-                                    type="checkbox"
-                                    checked={!!config.showDelimiters}
-                                    onChange={(e) => updateMarker(idx, "showDelimiters", e.target.checked)}
-                                    className="h-3.5 w-3.5 rounded border-input text-primary"
-                                />
-                            </Row>
-                        )}
-                        <MarkerAnalysisSettings config={config} idx={idx} updateMarker={updateMarker} />
+                {matchMode === "range" && (
+                    <div className="space-y-3">
+                        <ToggleRow
+                            checked={!!(config.v2SyncRows || config.enableColumnGrouping)}
+                            onChange={(checked) => {
+                                updateMarker(idx, "v2SyncRows", checked || undefined);
+                                updateMarker(idx, "enableColumnGrouping", undefined);
+                            }}
+                            label={t("markerStudio.syncRows", "區間內的各欄內容對齊同一列")}
+                            description={t("markerLogic.v2SyncRowsDesc")}
+                        />
+                        <ToggleRow
+                            checked={!!config.v2RangeOwnsContent}
+                            onChange={(checked) => updateMarker(idx, "v2RangeOwnsContent", checked || undefined)}
+                            label={t("markerStudio.rangeOwnsContent", "區間內的內容都放進這一欄")}
+                            description={t("markerLogic.v2RangeOwnsContentDesc")}
+                        />
                     </div>
-                </details>
+                )}
 
-                <div className="pb-4" />
-            </div>
+                {groupingEnabled && !isMarkerDialogueGrouping && (
+                    <div className="flex flex-wrap items-center gap-3 rounded-[10px] border border-[hsl(var(--status-ready-fg))]/25 bg-[hsl(var(--status-ready-bg))] px-4 py-3 text-[13px] text-[hsl(var(--status-ready-fg))]" role="alert">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <span className="min-w-[14rem] flex-1">{t("markerStudio.groupingMismatch", "目前的欄位版面不是「依標記並排」，對齊不會生效。")}</span>
+                        {layoutConfig && onLayoutChange ? (
+                            <Button type="button" size="sm" variant="outline" onClick={() => onLayoutChange({ ...layoutConfig, rowGrouping: "marker_dialogue" })}>
+                                {t("markerStudio.fixGrouping", "改成依標記並排")}
+                            </Button>
+                        ) : onOpenFullLayoutEditor ? (
+                            <Button type="button" size="sm" variant="outline" onClick={onOpenFullLayoutEditor}>{t("markerLogic.goFixLayout")}</Button>
+                        ) : null}
+                    </div>
+                )}
+            </Step>
+
+            <details className="group border-t border-border/70 pt-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-muted-foreground hover:text-foreground">
+                    <span>{t("markerStudio.advanced", "進階：比對優先順序與統計")}</span>
+                    <span className="text-xs font-normal group-open:hidden">{t("markerDetailEditor.expand")}</span>
+                    <span className="hidden text-xs font-normal group-open:inline">{t("markerDetailEditor.collapse")}</span>
+                </summary>
+                <div className="space-y-4 pt-4">
+                    <FieldRow label={t("markerGeneral.priority")} hint={t("markerStudio.priorityHint", "數字越大越先比對；拖曳左側清單也會自動調整。")}>
+                        <Input
+                            type="number"
+                            value={config.priority || 0}
+                            onChange={(e) => updateMarker(idx, "priority", parseInt(e.target.value) || 0)}
+                            className="h-9 max-w-[7rem] text-center font-mono text-sm"
+                        />
+                    </FieldRow>
+                    <MarkerAnalysisSettings config={config} idx={idx} updateMarker={updateMarker} />
+                </div>
+            </details>
         </div>
     );
 }

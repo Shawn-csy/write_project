@@ -165,7 +165,7 @@ function Sidebar({
         </nav>
 
         <div className={cn("shrink-0 space-y-0.5 border-t border-border/70 px-3 pb-3 pt-3", collapsed && "px-2")}>
-          <NavItem collapsed={collapsed} icon={Settings} label={t("app.settings")} onClick={() => go("/settings")} isActive={path === "/settings" && !isMedia} />
+          <NavItem collapsed={collapsed} icon={Settings} label={t("app.settings")} onClick={() => go("/settings")} isActive={path.startsWith("/settings") && !isMedia} />
           <NavItem
             collapsed={collapsed}
             icon={BookOpen}

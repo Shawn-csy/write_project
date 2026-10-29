@@ -29,6 +29,7 @@ interface MarkerSettingsModeContentProps {
   layoutConfig?: LayoutConfig;
   onLayoutChange?: (config: LayoutConfig) => void;
   onOpenFullLayoutEditor?: () => void;
+  usePresentationRenderer?: boolean;
 }
 
 export function MarkerSettingsModeContent({
@@ -54,10 +55,11 @@ export function MarkerSettingsModeContent({
   layoutConfig,
   onLayoutChange,
   onOpenFullLayoutEditor,
+  usePresentationRenderer = false,
 }: MarkerSettingsModeContentProps): React.JSX.Element {
   if (viewMode === "guide") {
     return (
-      <div className="h-full overflow-hidden p-6 text-sm">
+      <div className="h-full overflow-hidden px-4 py-5 text-sm sm:px-6 lg:px-8">
         <MarkerUsageGuide markerConfigs={localConfigs} />
       </div>
     );
@@ -65,7 +67,7 @@ export function MarkerSettingsModeContent({
 
   if (viewMode === "json") {
     return (
-      <fieldset disabled={readOnly} className="h-full min-h-0 p-4">
+      <fieldset disabled={readOnly} className="h-full min-h-0 px-4 py-5 sm:px-6 lg:px-8">
         <MarkerJsonEditor
           jsonText={jsonText}
           setJsonText={setJsonText}
@@ -97,6 +99,7 @@ export function MarkerSettingsModeContent({
         layoutConfig={layoutConfig}
         onLayoutChange={onLayoutChange}
         onOpenFullLayoutEditor={onOpenFullLayoutEditor}
+        usePresentationRenderer={usePresentationRenderer}
       />
     </fieldset>
   );

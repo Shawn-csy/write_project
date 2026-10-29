@@ -1,17 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Columns3, Plus, Settings2, Share2, Trash2 } from "lucide-react";
-import { Card } from "../ui/card";
+import { AlertCircle } from "lucide-react";
+import { Button } from "../ui/button";
 import { useSettings } from "../../contexts/SettingsContext";
 import { useMarkerSettingsState } from "../../hooks/settings/useMarkerSettingsState";
 
 import { MarkerThemeHeader } from "./marker/MarkerThemeHeader";
-import { MarkerSettingsHeader } from "./marker/layout/MarkerSettingsHeader";
+import { MarkerSettingsHeader, type MarkerViewMode } from "./marker/layout/MarkerSettingsHeader";
 import { MarkerSettingsModeContent } from "./marker/layout/MarkerSettingsModeContent";
 import { lazyWithRefreshRetry } from "../../lib/lazyWithRefreshRetry";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "../ui/sheet";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { cn } from "../../lib/utils";
 import type { MarkerConfig } from "../../types/script";
 import type { LayoutConfig } from "../../lib/v2";
 
@@ -47,9 +46,13 @@ function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }: For
 
 interface MarkerSettingsProps {
   sectionRef?: React.Ref<HTMLDivElement>;
+  /** Leading header control, e.g. the mobile navigation button on the standalone page. */
+  headerLeading?: React.ReactNode;
+  /** Breadcrumb above the title on the standalone page. */
+  breadcrumb?: React.ReactNode;
 }
 
-export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.Element {
+export function MarkerSettings({ sectionRef, headerLeading, breadcrumb }: MarkerSettingsProps): React.JSX.Element {
   const { t } = useI18n();
   const { profile } = useAuth();
   const isAdmin = Boolean(profile?.isAdmin);
@@ -73,7 +76,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
   } = useSettings();
   const readOnly = !isAdmin && currentThemeId === "default";
 
-  const [viewMode, setViewMode] = useState<"ui" | "json" | "guide">("ui");
+  const [viewMode, setViewMode] = useState<MarkerViewMode>("ui");
   const markerState = useMarkerSettingsState({
     markerConfigs,
     setMarkerConfigs,
@@ -166,83 +169,38 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
   const [themeMoreOpen, setThemeMoreOpen] = useState(false);
   const [layoutEditorOpen, setLayoutEditorOpen] = useState(false);
 
+  const themeBadge = readOnly
+    ? t("markerStudio.badgeReadOnly", "系統預設 · 唯讀")
+    : currentThemeId === "default"
+      ? t("markerThemeHeader.systemDefault")
+      : currentTheme?.isPublic
+        ? t("markerThemeHeader.publicOn")
+        : t("markerStudio.badgePrivate", "私人主題");
+
   return (
-    <div ref={sectionRef} className="h-full flex flex-col">
-      <Card className="flex-1 min-h-0 border border-border/60 bg-card/50 shadow-sm overflow-hidden flex flex-col">
+    <div ref={sectionRef} className="flex h-full min-h-0 flex-col bg-background">
         <MarkerSettingsHeader
+          leading={headerLeading}
+          breadcrumb={breadcrumb}
           viewMode={viewMode}
           setViewMode={setViewMode}
           statusText={statusText}
-          isDirty={canSave}
+          canSave={canSave}
           onSave={handleSave}
           isSaving={isSaving}
-          controls={
-            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-muted-foreground">{t("markerThemeHeader.currentTheme")}</span>
-              <select
-                className="h-7 min-w-[150px] max-w-[220px] rounded-md border border-input bg-background px-2 text-xs"
-                value={currentThemeId}
-                onChange={(event) => switchTheme(event.target.value)}
-              >
-                {markerThemes.map((theme) => (
-                  <option key={theme.id} value={theme.id}>{themeLabel(theme)}</option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={() => setThemeCreateOpen(true)}
-                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                title={t("markerThemeHeader.newTheme")}
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-              {currentUser && currentTheme && (
-                <button
-                  type="button"
-                  onClick={() => setThemePublicityOpen(true)}
-                  className={cn(
-                    "grid h-7 w-7 place-items-center rounded-md hover:bg-muted/70",
-                    currentTheme.isPublic ? "text-sky-500" : "text-muted-foreground hover:text-foreground"
-                  )}
-                  title={currentTheme.isPublic ? t("markerThemeHeader.publicTitleOn") : t("markerThemeHeader.publicTitleOff")}
-                >
-                  <Share2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setThemeMoreOpen(true)}
-                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-muted/70 hover:text-foreground"
-                title={t("markerThemeHeader.moreSettings")}
-              >
-                <Settings2 className="h-3.5 w-3.5" />
-              </button>
-              {canDeleteTheme && (
-                <button
-                  type="button"
-                  onClick={() => setThemeDeleteOpen(true)}
-                  className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
-                  title={t("markerThemeHeader.delete")}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => setUsePresentationRenderer(!usePresentationRenderer)}
-                className={cn(
-                  "ml-1 flex h-7 items-center gap-1.5 rounded-md border px-2 text-xs transition-colors",
-                  usePresentationRenderer
-                    ? "border-primary/40 bg-primary/5 text-primary"
-                    : "border-border/60 bg-background text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-                )}
-                title={t("appearance.multiTrackRenderer")}
-              >
-                <Columns3 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{t("appearance.multiTrackRenderer")}</span>
-              </button>
-            </div>
-          }
+          themes={markerThemes.map((theme) => ({ id: String(theme.id), label: themeLabel(theme) }))}
+          currentThemeId={currentThemeId}
+          currentThemeLabel={themeLabel(currentTheme)}
+          themeBadge={themeBadge}
+          onSwitchTheme={switchTheme}
+          onCreateTheme={() => setThemeCreateOpen(true)}
+          onOpenThemeDetails={() => setThemeMoreOpen(true)}
+          onOpenPublicity={currentUser && currentTheme ? () => setThemePublicityOpen(true) : undefined}
+          publicityLabel={currentTheme?.isPublic ? t("markerThemeHeader.setPrivateTitle") : t("markerThemeHeader.setPublicTitle")}
+          onDeleteTheme={canDeleteTheme ? () => setThemeDeleteOpen(true) : undefined}
+          onOpenLayout={() => setLayoutEditorOpen(true)}
+          multiColumn={usePresentationRenderer}
+          onToggleMultiColumn={setUsePresentationRenderer}
         />
 
         <MarkerThemeHeader
@@ -269,25 +227,23 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
         />
 
         {readOnly && (
-          <div className="mx-3 mb-2 rounded-md border border-border/60 bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            {t("markerSettings.readOnlyThemeNotice")}
+          <div className="mx-4 mt-3 flex flex-wrap items-center gap-3 rounded-[10px] bg-muted px-4 py-3 text-[13px] sm:mx-6 lg:mx-8">
+            <span className="min-w-[14rem] flex-1">{t("markerStudio.readOnlyNotice", "系統預設主題無法直接修改。複製一份成為自己的主題就能編輯，原本的作品不受影響。")}</span>
+            <Button size="sm" onClick={() => setThemeCreateOpen(true)}>{t("markerStudio.copyToEdit", "複製成我的主題")}</Button>
           </div>
         )}
 
         {hasMultiTrackMarkers && !usePresentationRenderer && (
-          <div className="mx-3 mb-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            <div>{t("markerSettings.presentationRendererOffWarning")}</div>
-            <button
-              type="button"
-              onClick={() => setUsePresentationRenderer(true)}
-              className="mt-1 font-medium underline decoration-destructive/70 underline-offset-2 hover:decoration-destructive"
-            >
+          <div className="mx-4 mt-3 flex flex-wrap items-center gap-3 rounded-[10px] border border-[hsl(var(--status-ready-fg))]/25 bg-[hsl(var(--status-ready-bg))] px-4 py-3 text-[13px] text-[hsl(var(--status-ready-fg))] sm:mx-6 lg:mx-8" role="alert">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span className="min-w-[14rem] flex-1">{t("markerSettings.presentationRendererOffWarning")}</span>
+            <Button size="sm" variant="outline" onClick={() => setUsePresentationRenderer(true)}>
               {t("markerSettings.enablePresentationRendererNow")}
-            </button>
+            </Button>
           </div>
         )}
 
-        <div className="flex-1 min-h-0 bg-background/40">
+        <div className="min-h-0 flex-1">
           <MarkerSettingsModeContent
             viewMode={viewMode}
             localConfigs={localConfigs}
@@ -311,9 +267,9 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
             layoutConfig={localLayoutConfig}
             onLayoutChange={handleLayoutChange}
             onOpenFullLayoutEditor={() => setLayoutEditorOpen(true)}
+            usePresentationRenderer={usePresentationRenderer}
           />
         </div>
-      </Card>
 
       <Sheet open={layoutEditorOpen} onOpenChange={setLayoutEditorOpen}>
         <SheetContent side="right" className="flex w-[min(96vw,1040px)] flex-col p-0 sm:max-w-none">

@@ -55,6 +55,9 @@ vi.mock("../pages/SeriesPage", () => ({
 vi.mock("../pages/SettingsPage", () => ({
   default: () => <div data-testid="settings-page" />,
 }));
+vi.mock("../pages/MarkerSettingsPage", () => ({
+  default: () => <div data-testid="marker-settings-page" />,
+}));
 vi.mock("../pages/CommunityWorkbenchPage", () => ({
   default: () => <div data-testid="identity-page" />,
 }));
@@ -216,6 +219,7 @@ describe("renderWorkspaceRoutes", () => {
     ["/community?tab=org", "identity-page"],
     ["/works/external", "external-works-page"],
     ["/works/abc", "work-manage-page"],
+    ["/settings/markers", "marker-settings-page"],
     ["/unknown", "works-page"],
   ])("routes %s to the redesigned page", async (path, testId) => {
     renderRoutes(makeProps(), { path });
