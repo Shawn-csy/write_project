@@ -11,14 +11,19 @@ const messages = {
     "studio": "發布工作台",
     "community": "身份與組織",
     "superAdmin": "超管工作台",
-    "mediaLibrary": "媒體庫"
+    "mediaLibrary": "媒體庫",
+    "works": "作品",
+    "series": "系列",
+    "identity": "公開身份",
+    "adminConsole": "超管後台",
+    "studioName": "工作室"
   },
   "settings": {
     "title": "設定",
     "display": "外觀與閱讀",
     "media": "媒體庫",
     "markers": "自訂標記",
-    "profile": "身份設定",
+    "profile": "帳號",
     "language": "語言",
     "languageZh": "繁體中文",
     "languageEn": "English",
@@ -156,10 +161,10 @@ const messages = {
     "saveLabelError": "同步失敗",
     "saveLabelSyncedAt": "已同步",
     "saveLabelSynced": "已同步",
-    "backToDashboard": "返回儀表板",
+    "backToDashboard": "回到作品",
     "doubleClickRename": "雙擊即可重新命名",
     "public": "公開",
-    "private": "私有",
+    "private": "私人",
     "markerPrefix": "標記",
     "markerTheme": "標記主題",
     "unknownTheme": "未命名主題",
@@ -171,7 +176,8 @@ const messages = {
     "editAndPreview": "編輯 + 預覽",
     "editOnly": "純編輯",
     "moreActions": "更多操作",
-    "guide": "教學"
+    "guide": "教學",
+    "publishSettings": "發布設定"
   },
   "publicAbout": {
     "topbarTitle": "回到首頁",
@@ -510,7 +516,7 @@ const messages = {
     "updatedAt": "更新",
     "statusPublic": "公開",
     "statusPrivate": "私人",
-    "continueWriting": "繼續寫作",
+    "continueWriting": "編輯",
     "editInfo": "編輯資訊",
     "viewPublicPage": "查看公開頁",
     "loadMore": "載入更多"
@@ -1664,7 +1670,7 @@ const messages = {
     "orgPlaceholder": "不選擇",
     "status": "發布狀態",
     "statusPlaceholder": "選擇狀態",
-    "private": "私有",
+    "private": "私人",
     "public": "公開",
     "date": "日期",
     "datePlaceholder": "例如：2024-01-01 或初稿",

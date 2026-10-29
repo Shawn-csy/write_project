@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Loader2, Save, PanelRight, PanelRightClose, ChartNoAxesColumn, CircleHelp, Globe, Lock, Ellipsis } from "lucide-react";
+import { Loader2, Save, PanelRight, PanelRightClose, ChartNoAxesColumn, CircleHelp, Ellipsis, Check, AlertCircle, Settings2 } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
-import { Badge } from "../ui/badge";
+import { StatusPill } from "../studio/StatusPill";
 import { ScriptMetadataDialog } from "../dashboard/ScriptMetadataDialog";
 import { LanguageSwitcher } from "../common/LanguageSwitcher";
 import { Button } from "../ui/button";
@@ -124,15 +124,15 @@ export function EditorHeader({
   const enabledDownloadOptions = (downloadOptions || []).filter((opt) => !opt?.hidden);
 
   return (
-    <div className="flex flex-row items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card shrink-0 min-w-0">
+    <div className="flex min-w-0 shrink-0 flex-row items-center justify-between gap-2 border-b border-border bg-background px-2 py-2 sm:px-3">
       <HeaderTitleBlock
         onBack={onBack}
-        backButtonClassName="p-2 hover:bg-muted rounded-full transition-colors"
+        backButtonClassName="inline-flex h-10 w-10 items-center justify-center rounded-md hover:bg-muted transition-colors"
         backIconClassName="w-5 h-5 text-muted-foreground"
         backTitle={t("editorHeader.backToDashboard")}
         backAriaLabel={t("editorHeader.backToDashboard")}
         onOpenSidebar={() => onSetSidebarOpen?.(true)}
-        sidebarButtonClassName="p-2 hover:bg-muted rounded-full transition-colors lg:hidden"
+        sidebarButtonClassName="inline-flex h-10 w-10 items-center justify-center rounded-md hover:bg-muted transition-colors lg:hidden"
         sidebarIconClassName="w-5 h-5 text-muted-foreground"
         sidebarTitle={t("editorHeader.backToDashboard")}
         sidebarAriaLabel={t("editorHeader.backToDashboard")}
@@ -147,26 +147,27 @@ export function EditorHeader({
                 editTitle={editTitle}
                 setEditTitle={(val: string) => setEditTitle(val)}
                 onSubmit={submitTitle}
-                inputClassName="font-semibold text-sm border border-primary/50 rounded px-1 py-0.5 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[80px] w-[30vw] max-w-[200px]"
+                inputClassName="font-semibold text-[15px] border border-primary/50 rounded-md px-1.5 py-1 bg-background focus:outline-none focus:ring-1 focus:ring-primary min-w-[80px] w-[30vw] max-w-[240px]"
                 inputProps={{}}
                 renderDisplay={() => (
                   <div className="flex items-center gap-1.5 min-w-0">
                     <h2
-                        className="font-semibold text-sm cursor-text hover:bg-muted/50 rounded px-1 -ml-1 transition-colors truncate max-w-[20vw] sm:max-w-[180px] md:max-w-[240px]"
+                        className="font-semibold text-[15px] cursor-text hover:bg-muted/60 rounded-md px-1.5 py-1 -ml-1 transition-colors truncate max-w-[34vw] sm:max-w-[200px] md:max-w-[280px]"
                         onDoubleClick={startEditing}
                         title={t("editorHeader.doubleClickRename")}
                     >
                         {title}
                     </h2>
-                    {/* Status Badge */}
-                    <Badge
-                        variant={script?.status === 'Public' ? "default" : "outline"}
-                        className="h-5 px-1.5 text-[10px] cursor-pointer hover:opacity-80 flex items-center gap-1 shrink-0"
+                    <button
+                        type="button"
+                        className="hidden shrink-0 rounded-full sm:inline-flex"
                         onClick={() => setShowMetadataDialog(true)}
+                        title={t("editorHeader.publishSettings", "發布設定")}
                     >
-                        {script?.status === 'Public' ? <Globe className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
-                        <span className="hidden md:inline">{script?.status === 'Public' ? t("editorHeader.public") : t("editorHeader.private")}</span>
-                    </Badge>
+                        <StatusPill status={script?.status === "Public" ? "live" : "draft"}>
+                            {script?.status === "Public" ? t("editorHeader.public") : t("editorHeader.private")}
+                        </StatusPill>
+                    </button>
                   </div>
                 )}
               />
@@ -182,20 +183,23 @@ export function EditorHeader({
                 }}
               />
               <div
-                className={`p-1 px-1.5 rounded flex items-center gap-1 text-[10px] border shrink-0 ${
-                    saveStatus === "error" ? "bg-destructive/10 text-destructive border-destructive/30" :
-                    saveStatus === "local-saved" ? "bg-[color:var(--license-term-bg)] text-[color:var(--license-term-fg)] border-[color:var(--license-term-border)]" :
-                    saveStatus === "unsaved" ? "bg-muted text-muted-foreground border-border" :
-                    saveStatus === "saving" ? "bg-primary/10 text-primary border-primary/30" :
-                    "bg-primary/10 text-primary border-primary/30"
+                className={`flex shrink-0 items-center gap-1.5 text-xs ${
+                    saveStatus === "error" ? "text-destructive" :
+                    saveStatus === "local-saved" ? "text-[hsl(var(--status-ready-fg))]" :
+                    "text-muted-foreground"
                 }`}
                 title={saveStatusTitle}
                 aria-label={saveStatusTitle}
+                role="status"
               >
-                {saveStatus === 'saving' ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                {saveStatus === "saving" ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : saveStatus === "error" ? (
+                  <AlertCircle className="h-3.5 w-3.5" />
+                ) : saveStatus === "saved" ? (
+                  <Check className="h-3.5 w-3.5 text-[hsl(var(--status-live-fg))]" />
                 ) : (
-                  <Save className="w-3 h-3" />
+                  <Save className="h-3.5 w-3.5" />
                 )}
                 <span className="hidden lg:inline">{saveStatusLabel}</span>
               </div>
@@ -205,13 +209,12 @@ export function EditorHeader({
       />
       <div className="flex items-center gap-1 shrink-0">
 
-        {/* 儲存：icon only */}
         <Button
-          variant="default"
+          variant="ghost"
           size="icon"
           onClick={onManualSave}
           disabled={saveStatus === "saving"}
-          className="h-8 w-8 rounded-md shrink-0"
+          className="hidden h-9 w-9 shrink-0 rounded-md text-muted-foreground hover:text-foreground sm:inline-flex"
           title={t("editorHeader.manualSave")}
           aria-label={t("editorHeader.manualSave")}
         >
@@ -223,8 +226,8 @@ export function EditorHeader({
           variant="ghost"
           size="icon"
           onClick={onTogglePreview}
-          className={`h-8 w-8 rounded-md transition-colors ${
-            showPreview ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          className={`h-9 w-9 rounded-md transition-colors ${
+            showPreview ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"
           }`}
           title={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
           aria-label={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
@@ -241,7 +244,7 @@ export function EditorHeader({
           currentThemeId={currentThemeId}
           onSwitchMarkerTheme={onSwitchMarkerTheme}
           className="shrink-0"
-          visibilityTriggerClassName="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          visibilityTriggerClassName="h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           contentAlign="end"
           titlePrefix={t("editorHeader.markerPrefix")}
         />
@@ -254,7 +257,7 @@ export function EditorHeader({
               ref={moreActionsRef}
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-md text-muted-foreground hover:text-foreground"
+              className="h-9 w-9 rounded-md text-muted-foreground hover:text-foreground"
               title={t("editorHeader.moreActions")}
               aria-label={t("editorHeader.moreActions")}
             >
@@ -306,6 +309,16 @@ export function EditorHeader({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button
+          type="button"
+          size="sm"
+          className="ml-1 h-9 shrink-0"
+          onClick={() => setShowMetadataDialog(true)}
+          aria-label={t("editorHeader.publishSettings", "發布設定")}
+        >
+          <Settings2 className="h-4 w-4" />
+          <span className="hidden md:inline">{t("editorHeader.publishSettings", "發布設定")}</span>
+        </Button>
         {enabledDownloadOptions.map((opt) => (
           <React.Fragment key={`${opt.id}-dialog`}>{opt.renderDialog?.()}</React.Fragment>
         ))}

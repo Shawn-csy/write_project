@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { Globe, SlidersHorizontal } from "lucide-react";
 import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
 
@@ -23,20 +23,51 @@ const StatisticsPanel = lazyWithRefreshRetry(
   "stats-panel"
 );
 const AboutPanelLazy = lazyWithRefreshRetry(() => import("../components/panels/AboutPanel"), "about-panel");
-const DashboardPage = lazyWithRefreshRetry(() => import("../pages/DashboardPage"), "page-dashboard");
+const WorksPage = lazyWithRefreshRetry(() => import("../pages/WorksPage"), "page-works");
+const WorkManagePage = lazyWithRefreshRetry(() => import("../pages/WorkManagePage"), "page-work-manage");
+const ExternalWorksPage = lazyWithRefreshRetry(() => import("../pages/ExternalWorksPage"), "page-external-works");
+const SeriesPage = lazyWithRefreshRetry(() => import("../pages/SeriesPage"), "page-series");
+const SettingsPage = lazyWithRefreshRetry(() => import("../pages/SettingsPage"), "page-settings");
 const CloudEditorPage = lazyWithRefreshRetry(() => import("../pages/CloudEditorPage"), "page-cloud-editor");
-const PublisherDashboard = lazyWithRefreshRetry(
-  async () => {
-    const mod = await import("../pages/PublisherDashboard");
-    return { default: mod.PublisherDashboard };
-  },
-  "page-studio"
-);
 const SuperAdminPage = lazyWithRefreshRetry(() => import("../pages/SuperAdminPage"), "page-admin");
 const CommunityWorkbenchPage = lazyWithRefreshRetry(() => import("../pages/CommunityWorkbenchPage"), "page-community-workbench");
 const LoginPage = lazyWithRefreshRetry(() => import("../pages/LoginPage"), "page-login");
 
 const routeFallback = <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+
+/** `/dashboard` was the folder-based writing list; it now lives under Works. */
+function LegacyDashboardRedirect() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  const folder = params.get("folder");
+  const next = new URLSearchParams({ view: "folders" });
+  if (folder) next.set("folder", folder);
+  return <Navigate to={`/works?${next.toString()}`} replace />;
+}
+
+/** `/studio?tab=…` (publishing workbench) is split into Works, Series and External works. */
+function LegacyStudioRedirect() {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  const tab = params.get("tab");
+  const scriptId = params.get("scriptId");
+  if (scriptId && params.get("open") === "publish") return <Navigate to={`/works/${encodeURIComponent(scriptId)}`} replace />;
+  if (tab === "series") return <Navigate to="/series" replace />;
+  if (tab === "external") return <Navigate to="/works/external" replace />;
+  if (tab === "profile" || tab === "org") return <Navigate to={`/identity?tab=${tab}`} replace />;
+  return <Navigate to="/works" replace />;
+}
+
+function LegacyCommunityRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/identity${search}`} replace />;
+}
+
+function WorkManageRoute() {
+  const { id = "" } = useParams<{ id: string }>();
+  // Remount per work so the form never shows the previous work's fields.
+  return <WorkManagePage key={id} />;
+}
 
 export function renderWorkspaceRoutes({
   scriptManager,
@@ -100,13 +131,10 @@ export function renderWorkspaceRoutes({
             setIsDesktopSidebarOpen={nav.setIsDesktopSidebarOpen}
             isMobileDrawerOpen={nav.isMobileDrawerOpen}
             setIsMobileDrawerOpen={nav.setIsMobileDrawerOpen}
-            accentStyle={accentStyle}
             openAbout={nav.openAbout}
-            openSettings={nav.openSettings}
-            closeAbout={() => nav.setAboutOpen(false)}
-            openHome={() => {
-              nav.openHome();
-              navigate("/dashboard");
+            closeOverlays={() => {
+              nav.setAboutOpen(false);
+              nav.setSettingsOpen(false);
             }}
           >
             <main className="flex-1 overflow-hidden flex flex-row h-full relative">
@@ -186,25 +214,48 @@ export function renderWorkspaceRoutes({
                 ) : (
                   <Routes>
                     <Route
-                      path="studio"
+                      path="works"
                       element={
                         <Suspense fallback={routeFallback}>
-                          <PublisherDashboard
-                            isSidebarOpen={nav.isDesktopSidebarOpen}
-                            setSidebarOpen={nav.setIsDesktopSidebarOpen}
-                            openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
-                          />
+                          <WorksPage scriptManager={scriptManager} />
                         </Suspense>
                       }
                     />
                     <Route
-                      path="dashboard"
+                      path="works/external"
                       element={
                         <Suspense fallback={routeFallback}>
-                          <DashboardPage scriptManager={scriptManager} navProps={navProps} />
+                          <ExternalWorksPage />
                         </Suspense>
                       }
                     />
+                    <Route
+                      path="works/:id"
+                      element={
+                        <Suspense fallback={routeFallback}>
+                          <WorkManageRoute />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="series"
+                      element={
+                        <Suspense fallback={routeFallback}>
+                          <SeriesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="settings"
+                      element={
+                        <Suspense fallback={routeFallback}>
+                          <SettingsPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route path="dashboard" element={<LegacyDashboardRedirect />} />
+                    <Route path="studio" element={<LegacyStudioRedirect />} />
+                    <Route path="community" element={<LegacyCommunityRedirect />} />
                     <Route
                       path="admin"
                       element={<Navigate to="/superadmin" replace />}
@@ -213,23 +264,15 @@ export function renderWorkspaceRoutes({
                       path="superadmin"
                       element={
                         <Suspense fallback={routeFallback}>
-                          <SuperAdminPage
-                            isSidebarOpen={nav.isDesktopSidebarOpen}
-                            setSidebarOpen={nav.setIsDesktopSidebarOpen}
-                            openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
-                          />
+                          <SuperAdminPage />
                         </Suspense>
                       }
                     />
                     <Route
-                      path="community"
+                      path="identity"
                       element={
                         <Suspense fallback={routeFallback}>
-                          <CommunityWorkbenchPage
-                            isSidebarOpen={nav.isDesktopSidebarOpen}
-                            setSidebarOpen={nav.setIsDesktopSidebarOpen}
-                            openMobileMenu={() => nav.setIsMobileDrawerOpen(true)}
-                          />
+                          <CommunityWorkbenchPage />
                         </Suspense>
                       }
                     />
@@ -241,7 +284,7 @@ export function renderWorkspaceRoutes({
                         </Suspense>
                       }
                     />
-                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="*" element={<Navigate to="/works" replace />} />
                   </Routes>
                 )}
               </div>

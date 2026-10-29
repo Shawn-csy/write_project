@@ -1,7 +1,6 @@
 import React from "react";
 import { Inbox } from "lucide-react";
 import { Button } from "../ui/button";
-import { Card } from "../ui/card";
 
 interface StudioEmptyStateCardProps {
   icon?: React.ComponentType<{ className?: string }> | null;
@@ -22,23 +21,17 @@ export function StudioEmptyStateCard({
 }: StudioEmptyStateCardProps): React.JSX.Element {
   const Icon = icon || Inbox;
   return (
-    <Card className={`border-dashed bg-muted/20 p-5 ${className}`}>
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 bg-background/70 text-muted-foreground">
-          <Icon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 space-y-1">
-          <h4 className="text-base font-semibold">{title}</h4>
-          {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
-        </div>
+    <div className={`flex flex-col items-center rounded-[10px] border border-dashed border-border px-6 py-10 text-center ${className}`}>
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <Icon className="h-5 w-5" />
       </div>
+      <h4 className="mt-3 text-[15px] font-semibold">{title}</h4>
+      {description ? <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p> : null}
       {actionLabel && onAction ? (
-        <div className="mt-4">
-          <Button variant="outline" size="sm" onClick={onAction}>
-            {actionLabel}
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="mt-4" onClick={onAction}>
+          {actionLabel}
+        </Button>
       ) : null}
-    </Card>
+    </div>
   );
 }

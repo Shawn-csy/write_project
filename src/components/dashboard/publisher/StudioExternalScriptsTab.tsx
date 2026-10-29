@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Loader2, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Badge } from "../../ui/badge";
 import { Button } from "../../ui/button";
-import { Card } from "../../ui/card";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import type { PersonaLike } from "../../../types/persona";
@@ -135,12 +134,8 @@ export function StudioExternalScriptsTab({ personas }: Props): React.JSX.Element
   };
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-      <Card className="space-y-4 p-4 sm:p-5">
-        <div>
-          <h2 className="text-base font-semibold">外部連結發布</h2>
-          <p className="mt-1 text-sm text-muted-foreground">貼上已公開的台本連結，選擇工作室作者並確認資料後即可直接上架，不需送審。</p>
-        </div>
+    <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.75fr)]">
+      <section className="max-w-2xl space-y-5" aria-label="外部作品資料">
         <div className="space-y-1.5">
           <label htmlFor="studio-external-url" className="text-sm font-medium">台本公開連結</label>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -158,11 +153,11 @@ export function StudioExternalScriptsTab({ personas }: Props): React.JSX.Element
             {personas.map((persona) => <option key={persona.id} value={persona.id}>{persona.displayName || "未命名作者"}</option>)}
           </select>
           {selectedPersona && <p className="text-xs text-muted-foreground">發布時會使用「{selectedPersona.displayName}」的作者名稱與介紹。</p>}
-          {personas.length === 0 && <p className="text-xs text-amber-700">請先在工作室建立作者身份，再發布外部台本。</p>}
+          {personas.length === 0 && <p className="text-xs text-[hsl(var(--status-ready-fg))]">請先在工作室建立作者身份，再發布外部台本。</p>}
         </div>
-        <div className="space-y-3 border-t border-border/60 pt-3">
+        <div className="space-y-4 border-t border-border/70 pt-6">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-semibold">作品資料</h3>
+            <h2 className="text-[15px] font-semibold">作品資料</h2>
             {preview && <span className="text-xs text-muted-foreground">已讀取來源資料，可自行補充或修改</span>}
           </div>
           <div className="space-y-1.5"><label htmlFor="studio-external-title" className="text-sm">台本名稱</label><Input id="studio-external-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={300} placeholder="讀取連結後自動帶入，也可以自行填寫" /></div>
@@ -181,12 +176,12 @@ export function StudioExternalScriptsTab({ personas }: Props): React.JSX.Element
           </div>
         </div>
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-        {message && <p role="status" className="text-sm text-emerald-700">{message}</p>}
-      </Card>
+        {message && <p role="status" className="text-sm text-[hsl(var(--status-live-fg))]">{message}</p>}
+      </section>
 
-      <div className="space-y-4">
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-border/60 p-4"><h2 className="text-base font-semibold">公開頁預覽</h2><p className="mt-1 text-sm text-muted-foreground">欄位會即時反映到這張卡片。</p></div>
+      <div className="space-y-8">
+      <section className="overflow-hidden rounded-[10px] border border-border">
+        <div className="border-b border-border p-4"><h2 className="text-[15px] font-semibold">公開頁預覽</h2><p className="mt-1 text-sm text-muted-foreground">欄位會即時反映到這張卡片。</p></div>
         {coverUrl.trim() ? <div className="relative aspect-[16/7] bg-muted"><img src={coverUrl.trim()} alt="台本封面預覽" className="h-full w-full object-cover" /></div> : <div className="flex aspect-[16/7] items-center justify-center bg-muted/40 text-xs text-muted-foreground">尚未設定封面</div>}
         <div className="space-y-2.5 p-4">
           <div className="flex flex-wrap gap-1">{categoriesText.split(/[,，、]/).map((tag) => tag.trim()).filter(Boolean).map((tag) => <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>)}</div>
@@ -195,9 +190,9 @@ export function StudioExternalScriptsTab({ personas }: Props): React.JSX.Element
           <p className="line-clamp-4 whitespace-pre-wrap text-sm text-muted-foreground">{summary.trim() || "台本摘要或介紹會顯示在這裡。"}</p>
           {preview && <a href={preview.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">開啟來源<ExternalLink className="h-3 w-3" /></a>}
         </div>
-      </Card>
-      <Card className="p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold">我的外部台本</h2><p className="mt-1 text-sm text-muted-foreground">由這個工作室直接發布的外部作品。</p></div><Badge variant="outline">{items.length}</Badge></div>
+      </section>
+      <section>
+        <div className="mb-3 flex items-center justify-between gap-3"><div><h2 className="text-[15px] font-semibold">我的外部台本</h2><p className="mt-1 text-sm text-muted-foreground">由這個工作室直接發布的外部作品。</p></div><Badge variant="outline">{items.length}</Badge></div>
         {isLoading ? <div className="flex justify-center p-6"><Loader2 className="animate-spin" /></div> : items.length === 0 ? <p className="rounded-lg border border-dashed p-5 text-center text-sm text-muted-foreground">目前沒有外部台本。</p> : <div className="space-y-2">
           {items.map((item) => <div key={item.id} className="flex items-start justify-between gap-3 rounded-lg border border-border/60 p-3">
             <div className="min-w-0"><p className="truncate text-sm font-medium">{item.title || item.remoteTitle || "未命名台本"}</p><p className="mt-1 truncate text-xs text-muted-foreground">{item.authorName} · {item.sourceDomain || item.sourceName}</p><div className="mt-2 flex flex-wrap gap-1">{(item.categories || []).slice(0, 4).map((tag) => <Badge key={tag} variant="secondary" className="text-[10px]">{tag}</Badge>)}</div></div>
@@ -207,7 +202,7 @@ export function StudioExternalScriptsTab({ personas }: Props): React.JSX.Element
             </div>
           </div>)}
         </div>}
-      </Card>
+      </section>
       </div>
     </div>
   );

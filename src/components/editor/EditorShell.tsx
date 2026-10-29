@@ -157,14 +157,14 @@ export function EditorShell() {
       } else {
         // Editor Mode
         if (script.folder) {
-          navigate(`/dashboard?tab=write&folder=${encodeURIComponent(script.folder)}`);
+          navigate(`/works?view=folders&folder=${encodeURIComponent(script.folder)}`);
           return;
         }
       }
     }
     // Default Fallback
     nav.openHome();
-    navigate("/dashboard");
+    navigate("/works");
   }, [location.pathname, navigate, nav]);
 
   const navProps: NavProps = useMemo(() => ({
@@ -218,7 +218,7 @@ export function EditorShell() {
   const isIndexableRoute = isPublicGallery || isPublicReader || isPublicAuthor || isPublicOrg;
   const canonicalPath = isIndexableRoute ? location.pathname : "/";
   const isReaderWorkspaceRoute =
-    location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/edit/");
+    location.pathname.startsWith("/works") || location.pathname.startsWith("/dashboard") || location.pathname.startsWith("/edit/");
   const showReaderHeader =
     !nav.homeOpen &&
     !nav.aboutOpen &&

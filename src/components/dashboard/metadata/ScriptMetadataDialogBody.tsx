@@ -28,14 +28,14 @@ function SectionBlock({ sectionKey, title, sectionId, children }: {
     );
 }
 
-export function ScriptMetadataDialogBody() {
+export function ScriptMetadataDialogBody({ className }: { className?: string } = {}) {
     const { t } = useUIContext();
     const { isInitializing, contentScrollRef, status } = useStatusContext();
 
     return (
         <div
             ref={contentScrollRef}
-            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-muted/10 px-4 py-4 sm:px-6 sm:py-5"
+            className={className || "min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide bg-muted/10 px-4 py-4 sm:px-6 sm:py-5"}
         >
             <div>
                 {isInitializing ? (

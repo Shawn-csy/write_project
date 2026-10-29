@@ -34,14 +34,17 @@ function TabFallback(): React.JSX.Element {
 }
 
 interface SettingsPanelProps {
-  onClose: () => void;
+  /** Omit on the standalone /settings page, which has no close action. */
+  onClose?: () => void;
   activeTab?: string;
   onTabChange?: (tab: string) => void;
+  /** Leading control for the page header (e.g. the mobile navigation button). */
+  headerLeading?: React.ReactNode;
 }
 
 type SettingsTabKey = "display" | "media" | "markers" | "profile";
 
-function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps): React.JSX.Element {
+function SettingsPanel({ onClose, activeTab, onTabChange, headerLeading }: SettingsPanelProps): React.JSX.Element {
   const { currentUser } = useAuth();
   const { t } = useI18n();
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
@@ -71,31 +74,36 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
   }, [tabs, currentTab, setTab]);
 
   return (
-    <div className="w-full h-full overflow-hidden border border-border/40 bg-background/60 backdrop-blur-xl shadow-sm flex flex-col">
-        <div className="flex items-center gap-4 px-6 py-4 border-b border-border/50 bg-background/80 backdrop-blur-md shrink-0">
-            <button
-                onClick={onClose}
-                className="p-2 -ml-2 rounded-full hover:bg-muted/80 transition-colors text-muted-foreground hover:text-foreground"
-                title={t("common.close")}
-            >
-                <X className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-bold tracking-tight flex-1">{t("settings.title")}</h2>
+    <div className="studio-density flex h-full w-full flex-col overflow-hidden bg-background">
+        <div className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3 sm:px-6 lg:px-10 lg:py-5">
+            {onClose ? (
+              <button
+                  onClick={onClose}
+                  className="-ml-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title={t("common.close")}
+                  aria-label={t("common.close")}
+              >
+                  <X className="h-5 w-5" />
+              </button>
+            ) : headerLeading}
+            <h1 className="flex-1 text-2xl font-bold tracking-tight">{t("settings.title")}</h1>
             <LanguageSwitcher />
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden flex flex-col sm:flex-row">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
           {/* Mobile: horizontal category bar */}
-          <div className="flex items-center gap-1 overflow-x-auto border-b border-border/50 bg-background/60 px-3 py-1.5 scrollbar-hide shrink-0 sm:hidden">
+          <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-border px-3 py-2 scrollbar-hide sm:hidden" role="tablist" aria-label={t("settings.title")}>
             {tabs.map((item) => (
               <button
                 key={item.key}
+                role="tab"
+                aria-selected={currentTab === item.key}
                 onClick={() => setTab(item.key)}
                 className={cn(
-                  "px-3 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap",
+                  "h-10 whitespace-nowrap rounded-full px-4 text-sm transition-colors",
                   currentTab === item.key
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "bg-foreground font-semibold text-background"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -104,16 +112,17 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
           </div>
 
           {/* Desktop: left sidebar nav */}
-          <nav className="hidden sm:flex w-48 shrink-0 flex-col gap-0.5 border-r border-border/50 bg-background/40 p-3 overflow-y-auto">
+          <nav className="hidden w-56 shrink-0 flex-col gap-0.5 overflow-y-auto px-4 py-6 sm:flex lg:pl-10" aria-label={t("settings.title")}>
             {tabs.map((item) => (
               <button
                 key={item.key}
                 onClick={() => setTab(item.key)}
+                aria-current={currentTab === item.key ? "page" : undefined}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "w-full rounded-md px-3 py-2 text-left text-sm transition-colors",
                   currentTab === item.key
-                    ? "bg-muted text-foreground"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "bg-muted font-semibold text-foreground"
+                    : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                 )}
               >
                 {item.label}
@@ -126,7 +135,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange }: SettingsPanelProps):
               "flex-1 min-h-0",
               currentTab === "markers"
                 ? "h-full"
-                : "overflow-y-auto p-4 sm:p-6 scrollbar-hide"
+                : "overflow-y-auto px-4 py-6 sm:px-6 lg:pr-10"
             )}
             ref={scrollContainerRef}
           >

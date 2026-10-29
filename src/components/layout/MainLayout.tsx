@@ -4,6 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "../ui/drawer";
 import Sidebar from "./Sidebar";
+import { StudioShellProvider } from "../studio/StudioShellContext";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -11,11 +12,8 @@ interface MainLayoutProps {
   setIsDesktopSidebarOpen: (open: boolean) => void;
   isMobileDrawerOpen: boolean;
   setIsMobileDrawerOpen: (open: boolean) => void;
-  accentStyle: { label?: string; [key: string]: string | undefined };
   openAbout: Nav["openAbout"];
-  closeAbout: () => void;
-  openSettings: Nav["openSettings"];
-  openHome: () => void;
+  closeOverlays: () => void;
   showSidebar?: boolean;
 }
 
@@ -25,66 +23,49 @@ export function MainLayout({
   setIsDesktopSidebarOpen,
   isMobileDrawerOpen,
   setIsMobileDrawerOpen,
-  accentStyle,
   openAbout,
-  closeAbout,
-  openSettings,
-  openHome,
+  closeOverlays,
   showSidebar = true,
 }: MainLayoutProps) {
   const { profile } = useAuth();
+  const shellValue = React.useMemo(() => ({ openMobileMenu: () => setIsMobileDrawerOpen(true) }), [setIsMobileDrawerOpen]);
 
   return (
-    <div className="studio-density relative flex h-[100dvh] w-full bg-background text-foreground overflow-hidden">
-      {/* Mobile Drawer */}
-      <Drawer
-        open={isMobileDrawerOpen}
-        onOpenChange={setIsMobileDrawerOpen}
-        direction="left"
-      >
-        <DrawerContent side="left" showHandle={false} className="outline-none z-[100] p-0">
-          <DrawerTitle className="sr-only">Menu</DrawerTitle>
-          <DrawerDescription className="sr-only">Script Navigation</DrawerDescription>
-          <Sidebar
-            className="h-full bg-background border-r-0"
-            accentStyle={accentStyle}
-            openAbout={openAbout}
-            closeAbout={closeAbout}
-            openSettings={openSettings}
-            openHome={openHome}
-            setSidebarOpen={setIsMobileDrawerOpen}
-            isAdmin={Boolean(profile?.isAdmin)}
-          />
-        </DrawerContent>
-      </Drawer>
-
-      {/* --- Desktop Sidebar (Docked Mode) --- */}
-      {showSidebar && (
-        <div
-          className={`hidden lg:block shrink-0 border-r border-border bg-muted/30 transition-[width] duration-300 ease-in-out overflow-hidden ${
-            isDesktopSidebarOpen ? "w-64" : "w-16"
-          }`}
-        >
-          <div className="h-full flex flex-col">
+    <StudioShellProvider value={shellValue}>
+      <div className="studio-density relative flex h-[100dvh] w-full overflow-hidden bg-background text-foreground">
+        <Drawer open={isMobileDrawerOpen} onOpenChange={setIsMobileDrawerOpen} direction="left">
+          <DrawerContent side="left" showHandle={false} className="z-[100] w-72 p-0 outline-none">
+            <DrawerTitle className="sr-only">Menu</DrawerTitle>
+            <DrawerDescription className="sr-only">Studio navigation</DrawerDescription>
             <Sidebar
-              className="bg-transparent"
-              collapsed={!isDesktopSidebarOpen}
-              accentStyle={accentStyle}
+              className="h-full"
               openAbout={openAbout}
-              closeAbout={closeAbout}
-              openSettings={openSettings}
-              openHome={openHome}
+              closeOverlays={closeOverlays}
+              setSidebarOpen={setIsMobileDrawerOpen}
+              isAdmin={Boolean(profile?.isAdmin)}
+            />
+          </DrawerContent>
+        </Drawer>
+
+        {showSidebar && (
+          <div
+            className={`hidden shrink-0 overflow-hidden border-r border-border transition-[width] duration-300 ease-in-out lg:block ${
+              isDesktopSidebarOpen ? "w-60" : "w-16"
+            }`}
+          >
+            <Sidebar
+              className="h-full"
+              collapsed={!isDesktopSidebarOpen}
+              openAbout={openAbout}
+              closeOverlays={closeOverlays}
               setSidebarOpen={setIsDesktopSidebarOpen}
               isAdmin={Boolean(profile?.isAdmin)}
             />
           </div>
-        </div>
-      )}
+        )}
 
-      {/* --- Main Content Area --- */}
-      <div className="flex-1 flex flex-col min-w-0 h-full relative">
-        {children}
+        <div className="relative flex h-full min-w-0 flex-1 flex-col">{children}</div>
       </div>
-    </div>
+    </StudioShellProvider>
   );
 }

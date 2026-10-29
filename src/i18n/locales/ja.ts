@@ -11,7 +11,12 @@ const messages = {
     "studio": "ワークスペース",
     "community": "プロフィール・組織",
     "superAdmin": "管理者ワークスペース",
-    "mediaLibrary": "メディアライブラリ"
+    "mediaLibrary": "メディアライブラリ",
+    "works": "作品",
+    "series": "シリーズ",
+    "identity": "公開プロフィール",
+    "adminConsole": "管理コンソール",
+    "studioName": "スタジオ"
   },
   "settings": {
     "title": "設定",
@@ -171,7 +176,8 @@ const messages = {
     "editAndPreview": "編集 + プレビュー",
     "editOnly": "編集のみ",
     "moreActions": "その他の操作",
-    "guide": "ガイド"
+    "guide": "ガイド",
+    "publishSettings": "公開設定"
   },
   "publicAbout": {
     "topbarTitle": "台本リーダー",
@@ -510,7 +516,7 @@ const messages = {
     "updatedAt": "更新",
     "statusPublic": "公開",
     "statusPrivate": "非公開",
-    "continueWriting": "執筆を続ける",
+    "continueWriting": "編集",
     "editInfo": "情報を編集",
     "viewPublicPage": "公開ページを見る",
     "loadMore": "さらに読み込む"

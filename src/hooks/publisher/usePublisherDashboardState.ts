@@ -7,7 +7,6 @@ import { getOrganizations, getOrganization } from "../../lib/api/organizations";
 import { getUserProfile } from "../../lib/api/user";
 import { getStudioBootstrap, getStudioPublishContext, getStudioScriptsPage } from "../../lib/api/studio";
 import { getMorandiTagStyle } from "../../lib/tagColors";
-import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 import { normalizeOrgIds } from "../dashboard/scriptMetadataUtils";
 import { useStudioGuide } from "./useStudioGuide";
 import { usePublisherSeriesEditor } from "./usePublisherSeriesEditor";
@@ -21,6 +20,19 @@ import type { BaseScriptApi, StudioScriptCounts } from "../../types/api";
 interface TagData { id: string; name: string; }
 interface SeriesData { id: string; name?: string; summary?: string; coverUrl?: string; coverCrop?: { cx?: number; cy?: number; zoom?: number } | null; }
 const STUDIO_PAGE_LIMIT = 24;
+
+/** Studio tabs now live on their own routes; community tabs stay as `?tab=` on /identity. */
+export const STUDIO_TAB_PATHS: Record<string, string> = {
+  works: "/works",
+  series: "/series",
+  external: "/works/external",
+};
+
+const studioTabFromPath = (pathname: string): string => {
+  if (pathname.startsWith("/series")) return "series";
+  if (pathname.startsWith("/works/external")) return "external";
+  return "works";
+};
 
 export type { SeriesData };
 
@@ -44,12 +56,13 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     ? ["profile", "org", "advertising"]
     : ["works", "series", "external"];
 
-  const resolveTabFromSearch = useCallback((search: string) => {
+  const resolveTabFromLocation = useCallback((pathname: string, search: string) => {
+    if (mode === "studio") return studioTabFromPath(pathname);
     const raw = new URLSearchParams(search || "").get("tab");
     return allowedTabs.includes(raw ?? "") ? (raw as string) : defaultTab;
-  }, [allowedTabs.join("|"), defaultTab]);
+  }, [allowedTabs.join("|"), defaultTab, mode]);
 
-  const [activeTab, setActiveTab] = useState(() => resolveTabFromSearch(location.search));
+  const [activeTab, setActiveTab] = useState(() => resolveTabFromLocation(location.pathname, location.search));
   const [editingScript, setEditingScript] = useState<Partial<BaseScriptApi> | null>(null);
   const [confirmDeletePersonaOpen, setConfirmDeletePersonaOpen] = useState(false);
   const [confirmDeleteOrgOpen, setConfirmDeleteOrgOpen] = useState(false);
@@ -181,7 +194,6 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     org: orgsForPersona.length, series: seriesList.length,
   }), [scriptCounts, scripts.length, personas.length, orgsForPersona.length, seriesList.length]);
 
-  const tabTone = MORANDI_STUDIO_TONE_VARS;
 
   const allTagNames = Array.from(new Set([
     ...(availableTags || []).map(t => t.name).filter((n): n is string => Boolean(n)),
@@ -291,7 +303,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   useEffect(() => {
     const requestedTab = new URLSearchParams(location.search || "").get("tab");
     if (mode === "studio" && (requestedTab === "profile" || requestedTab === "org")) {
-      navigate(`/community?tab=${requestedTab}`, { replace: true });
+      navigate(`/identity?tab=${requestedTab}`, { replace: true });
       return;
     }
     if (
@@ -301,9 +313,9 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
       navigate(`/superadmin?section=${requestedTab}`, { replace: true });
       return;
     }
-    const nextTab = resolveTabFromSearch(location.search);
+    const nextTab = resolveTabFromLocation(location.pathname, location.search);
     setActiveTab(prev => prev === nextTab ? prev : nextTab);
-  }, [currentProfile?.isAdmin, location.search, mode, navigate, resolveTabFromSearch]);
+  }, [currentProfile?.isAdmin, location.pathname, location.search, mode, navigate, resolveTabFromLocation]);
 
   useEffect(() => {
     if (mode !== "studio") return;
@@ -389,21 +401,25 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
 
   const handleTabChange = useCallback((nextTab: string) => {
     setActiveTab(nextTab);
+    if (mode === "studio") {
+      const target = STUDIO_TAB_PATHS[nextTab] || STUDIO_TAB_PATHS.works;
+      if (location.pathname !== target) navigate(target);
+      return;
+    }
     const params = new URLSearchParams(location.search || "");
     if (!nextTab || nextTab === defaultTab) params.delete("tab");
     else params.set("tab", nextTab);
     const query = params.toString();
-    const route = mode === "community" ? "/community" : "/studio";
-    navigate(`${route}${query ? `?${query}` : ""}`, { replace: true });
-  }, [defaultTab, location.search, mode, navigate]);
+    navigate(`/identity${query ? `?${query}` : ""}`, { replace: true });
+  }, [defaultTab, location.pathname, location.search, mode, navigate]);
 
   const closePublishDialog = useCallback(() => {
     setEditingScript(null);
     const params = new URLSearchParams(location.search || "");
     params.delete("scriptId"); params.delete("open");
     const query = params.toString();
-    navigate(`/studio${query ? `?${query}` : ""}`, { replace: true });
-  }, [location.search, navigate]);
+    navigate(`${location.pathname}${query ? `?${query}` : ""}`, { replace: true });
+  }, [location.pathname, location.search, navigate]);
 
   const refreshOrgChoices = async () => {
     if (!currentUser) return;
@@ -435,7 +451,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef, mode });
 
   const renderTabCount = (count: number) =>
-    count ? React.createElement("span", { className: "rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground" }, count) : null;
+    count ? React.createElement("span", { className: "text-xs tabular-nums text-muted-foreground" }, count) : null;
 
   return {
     t, navigate, currentUser, isSidebarOpen, setSidebarOpen, openMobileMenu,
@@ -460,7 +476,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     inviteSearchQuery, setInviteSearchQuery,
     inviteSearchResults, isInviteSearching,
     canManageOrgMembers, currentUserId, currentOrgRole,
-    tabCounts, tabTone, renderTabCount, tabsGuideRef,
+    tabCounts, renderTabCount, tabsGuideRef,
     parseTags, addTags, getSuggestions, getTagStyle, formatDate,
     handleWorksQueryChange, handleLoadMoreWorks,
     // CRUD
