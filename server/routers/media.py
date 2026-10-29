@@ -1,3 +1,4 @@
+import json
 import os
 import uuid
 from pathlib import Path
@@ -5,6 +6,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from dependencies import get_current_user_id, get_db, is_admin_user
+import models
 
 router = APIRouter(prefix="/api/media", tags=["media"])
 
@@ -89,6 +91,77 @@ def _resolve_url_to_path(owner_id: str, url: str) -> str:
 
 class DeleteMediaPayload(BaseModel):
     url: str
+
+
+class MediaOrganizationPayload(BaseModel):
+    folders: list[dict]
+    assignments: dict[str, str]
+
+
+def _user_settings(user: models.User) -> dict:
+    try:
+        parsed = user.settings if isinstance(user.settings, dict) else json.loads(user.settings or "{}")
+    except (TypeError, ValueError):
+        parsed = {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+@router.get("/organization")
+def get_media_organization(
+    owner_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == owner_id).first()
+    if not user:
+        return {"folders": [], "assignments": {}}
+    organization = _user_settings(user).get("mediaLibraryOrganization", {})
+    if not isinstance(organization, dict):
+        return {"folders": [], "assignments": {}}
+    folders = organization.get("folders", [])
+    assignments = organization.get("assignments", {})
+    return {
+        "folders": folders if isinstance(folders, list) else [],
+        "assignments": assignments if isinstance(assignments, dict) else {},
+    }
+
+
+@router.put("/organization")
+def update_media_organization(
+    payload: MediaOrganizationPayload,
+    owner_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    user = db.query(models.User).filter(models.User.id == owner_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User profile not found")
+
+    folders = []
+    seen_ids: set[str] = set()
+    if len(payload.folders) > 100:
+        raise HTTPException(status_code=400, detail="Too many media folders")
+    for folder in payload.folders:
+        folder_id = str(folder.get("id", "")).strip()
+        name = str(folder.get("name", "")).strip()[:60]
+        if not folder_id or len(folder_id) > 80 or not name or folder_id in seen_ids:
+            raise HTTPException(status_code=400, detail="Invalid media folder")
+        seen_ids.add(folder_id)
+        folders.append({"id": folder_id, "name": name})
+
+    owner_prefix = f"/media/{_safe_segment(owner_id, 'anon')}/"
+    assignments = {}
+    for url, folder_id in list(payload.assignments.items())[:5000]:
+        media_url = str(url or "").strip()
+        target_folder = str(folder_id or "").strip()
+        if not media_url.startswith(owner_prefix) or target_folder not in seen_ids:
+            continue
+        assignments[media_url] = target_folder
+
+    settings = _user_settings(user)
+    settings["mediaLibraryOrganization"] = {"folders": folders, "assignments": assignments}
+    user.settings = json.dumps(settings, ensure_ascii=False)
+    db.add(user)
+    db.commit()
+    return {"folders": folders, "assignments": assignments}
 
 
 @router.post("/upload")

@@ -1,5 +1,6 @@
 import React from "react";
-import { deleteMediaObject, getMediaObjects, uploadMediaObject } from "../lib/api/media";
+import { deleteMediaObject, getMediaObjects, getMediaOrganization, saveMediaOrganization, uploadMediaObject } from "../lib/api/media";
+import type { MediaLibraryOrganization } from "../lib/api/media";
 import { optimizeImageForUpload } from "../lib/mediaLibrary";
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
@@ -27,6 +28,7 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
   const [isLoading, setIsLoading] = React.useState(false);
   const [isUploading, setIsUploading] = React.useState(false);
   const [deletingUrl, setDeletingUrl] = React.useState("");
+  const [organization, setOrganization] = React.useState<MediaLibraryOrganization>({ folders: [], assignments: {} });
 
   const recalcStats = React.useCallback((nextItems: CloudMediaItem[]) => {
     const usedBytes = nextItems.reduce((sum, it) => sum + Number(it?.sizeBytes || 0), 0);
@@ -42,9 +44,13 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
     setIsLoading(true);
     setError("");
     try {
-      const res = await getMediaObjects() as { items?: CloudMediaItem[] } | null;
+      const [res, organizationResult] = await Promise.all([
+        getMediaObjects() as Promise<{ items?: CloudMediaItem[] } | null>,
+        getMediaOrganization().catch(() => ({ folders: [], assignments: {} })),
+      ]);
       const nextItems = Array.isArray(res?.items) ? res.items : [];
       setItems(nextItems);
+      setOrganization(organizationResult);
       recalcStats(nextItems);
     } catch (e: unknown) {
       setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.uploadFailed", "載入失敗")));
@@ -52,6 +58,18 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
       setIsLoading(false);
     }
   }, [recalcStats, t]);
+
+  const updateOrganization = React.useCallback(async (next: MediaLibraryOrganization) => {
+    setError("");
+    setOrganization(next);
+    try {
+      const saved = await saveMediaOrganization(next);
+      setOrganization(saved);
+    } catch (e: unknown) {
+      setError(String(e instanceof Error ? e.message : t?.("mediaLibrary.organizationSaveFailed", "資料夾儲存失敗")));
+      await refresh();
+    }
+  }, [refresh, t]);
 
   React.useEffect(() => {
     if (autoLoad) {
@@ -133,6 +151,7 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
 
   return {
     items,
+    organization,
     stats,
     error,
     isLoading,
@@ -144,5 +163,6 @@ export function useMediaLibrary({ t, maxBytes = DEFAULT_MAX_BYTES, autoLoad = fa
     uploadFromInput,
     deleteByUrl,
     clearAll,
+    updateOrganization,
   };
 }
