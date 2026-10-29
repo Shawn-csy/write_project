@@ -9,12 +9,12 @@ interface PublisherTabHeaderProps {
 
 export function PublisherTabHeader({ title, description, actions = null, className = "" }: PublisherTabHeaderProps): React.JSX.Element {
     return (
-        <div className={`flex items-start justify-between gap-2 py-1 ${className}`}>
+        <div className={`flex flex-wrap items-center justify-between gap-3 ${className}`}>
             <div className="min-w-0">
-                <h3 className="text-sm font-semibold tracking-tight text-[color:var(--morandi-tone-helper-fg)]">{title}</h3>
-                {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+                {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
             </div>
-            {actions ? <div className="shrink-0">{actions}</div> : null}
+            {actions ? <div className="flex shrink-0 flex-wrap gap-2">{actions}</div> : null}
         </div>
     );
 }

@@ -376,7 +376,7 @@ export const ScriptList = memo(function ScriptList({
     const handleStatusClick = useCallback((e: React.MouseEvent<HTMLElement>, item: ScriptListItem) => {
         if (readOnly) return;
         e.stopPropagation();
-        navigate(`/studio?tab=works&scriptId=${encodeURIComponent(item.id)}&open=publish`);
+        navigate(`/works/${encodeURIComponent(item.id)}`);
     }, [readOnly, navigate]);
 
     const handleThemeChange = useCallback(async (scriptId: string, newVal: string, prevValRaw?: string) => {

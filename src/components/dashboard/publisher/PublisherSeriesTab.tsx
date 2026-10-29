@@ -1,5 +1,5 @@
 import React from "react";
-import { PublisherSplitPanel, PUBLISHER_CONTENT_STACK_CLASS } from "./PublisherEntityLayout";
+import { PublisherEmptyState, PublisherSplitPanel, PUBLISHER_CONTENT_STACK_CLASS } from "./PublisherEntityLayout";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { SeriesListPane } from "./SeriesListPane";
 import { SeriesMetadataForm } from "./SeriesMetadataForm";
@@ -72,9 +72,18 @@ export function PublisherSeriesTab({
   const selected = seriesList.find((s) => s.id === selectedSeriesId) || null;
   const conflicts = React.useMemo(() => detectOrderConflicts(seriesScripts), [seriesScripts]);
 
+  // Only show the create form when the user asked for it (or has no series yet),
+  // instead of treating "nothing selected" as "create a new one".
+  const [isCreating, setIsCreating] = React.useState(false);
+  React.useEffect(() => {
+    if (selectedSeriesId) setIsCreating(false);
+  }, [selectedSeriesId]);
+  const showCreate = !selected && (isCreating || seriesList.length === 0);
+
   const onStartCreate = React.useCallback(() => {
     setSelectedSeriesId("");
     setSeriesDraft({ name: "", summary: "", coverUrl: "", coverCrop: null });
+    setIsCreating(true);
   }, [setSelectedSeriesId, setSeriesDraft]);
 
   return (
@@ -91,11 +100,18 @@ export function PublisherSeriesTab({
       )}
       header={(
         <PublisherTabHeader
-          title={selected ? "編輯系列" : "建立系列"}
+          title={selected ? (seriesDraft.name || "未命名系列") : showCreate ? "新增系列" : "系列"}
         />
       )}
     >
-      {!selected ? (
+      {!selected && !showCreate ? (
+        <PublisherEmptyState
+          title="選擇一個系列"
+          description="從左側選擇要編輯的系列，或建立新的系列來整理章節順序。"
+          actionLabel="新增系列"
+          onAction={onStartCreate}
+        />
+      ) : !selected ? (
         <SeriesCreateWorkspace
           seriesDraft={seriesDraft}
           setSeriesDraft={setSeriesDraft}
@@ -132,10 +148,8 @@ export function PublisherSeriesTab({
               onBatchReorderScripts={onBatchReorderScripts}
             />
 
-            <div className="border-t pt-4">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                公開預覽
-              </p>
+            <div className="border-t border-border/70 pt-6">
+              <h3 className="mb-3 text-[15px] font-semibold">公開預覽</h3>
               <SeriesPublicPreview
                 seriesId={selected.id}
                 name={seriesDraft.name}

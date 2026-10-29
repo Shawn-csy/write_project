@@ -12,7 +12,6 @@ import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { WritePreviewContent } from "./write/WritePreviewPanel";
-import { MORANDI_STUDIO_TONE_VARS } from "../../constants/morandiPanelTones";
 import { useWriteTabState } from "../../hooks/useWriteTabState";
 import type { WriteScriptItem } from "../../types/write";
 
@@ -24,33 +23,29 @@ interface WriteTabProps {
 
 export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 }: WriteTabProps): React.JSX.Element {
   const s = useWriteTabState({ onSelectScript, readOnly, refreshTrigger });
-  const writeTone = MORANDI_STUDIO_TONE_VARS.works;
-  const controlClassName = "h-8 rounded-md border border-[color:var(--morandi-tone-panel-border)] bg-background/90 text-foreground";
+  const controlClassName = "h-10 rounded-md border border-input bg-background text-foreground sm:h-8";
 
   return (
     <div className="flex h-full flex-col gap-3 overflow-hidden">
       {s.manager.currentPath !== "/" && (
-        <div style={writeTone as React.CSSProperties} className="rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)] via-card to-card px-3 py-2 sm:px-4">
+        <div className="px-1">
           <ScriptToolbar currentPath={s.manager.currentPath} breadcrumbs={s.breadcrumbs} goUp={s.manager.goUp} navigateTo={s.manager.navigateTo} />
         </div>
       )}
 
       <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${s.isPreviewCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_22rem]"}`}>
         <section
-          style={writeTone as React.CSSProperties}
-          className="min-h-0 flex flex-col overflow-hidden rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] shadow-sm"
+          className="min-h-0 flex flex-col overflow-hidden rounded-[10px] border border-border bg-card"
           data-guide-id="write-list-panel"
+          aria-label={s.t("writeTab.listTitle", "檔案清單")}
         >
-          <div className="border-b bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/80 via-[var(--morandi-tone-helper-bg)]/35 to-transparent px-4 py-3 text-xs" data-guide-id="write-middle-controls">
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-tight text-[color:var(--morandi-tone-helper-fg)]">{s.t("writeTab.listTitle", "檔案清單")}</h3>
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-48 sm:min-w-[220px] sm:flex-1 items-center gap-1 shrink-0" title={s.t("writeTab.searchTitle")}>
-                <Search className="w-3.5 h-3.5 text-muted-foreground" />
+          <div className="border-b border-border px-3 py-2.5 text-xs" data-guide-id="write-middle-controls">
+            <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="relative flex min-w-[11rem] flex-1 items-center shrink-0 sm:max-w-sm" title={s.t("writeTab.searchTitle")}>
+                <Search className="pointer-events-none absolute left-2.5 h-4 w-4 text-muted-foreground" />
                 <input
-                  type="text"
-                  className={`${controlClassName} w-full px-2`}
+                  type="search"
+                  className={`${controlClassName} w-full pl-8 pr-2 text-sm`}
                   placeholder={s.t("writeTab.searchPlaceholder")}
                   value={s.filterQuery}
                   onChange={e => s.setFilterQuery(e.target.value)}
@@ -89,10 +84,10 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto bg-[hsl(var(--surface-1))]/35 px-2 py-2" onScroll={s.handleListScroll}>
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2" onScroll={s.handleListScroll}>
             {s.showGuide && s.totalItems === 0 && (
-              <div className="m-4 rounded-lg border border-dashed border-[color:var(--morandi-tone-helper-border)] bg-[color:var(--morandi-tone-helper-bg)]/45 p-4">
-                <h4 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{s.t("writeTab.guideDemoTitle")}</h4>
+              <div className="m-4 rounded-[10px] border border-dashed border-border p-4">
+                <h4 className="text-sm font-semibold">{s.t("writeTab.guideDemoTitle")}</h4>
                 <p className="mt-1 text-xs text-muted-foreground">{s.t("writeTab.guideDemoDesc")}</p>
               </div>
             )}
@@ -123,17 +118,18 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
             />
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t bg-[color:var(--morandi-tone-helper-bg)]/55 px-4 py-2 text-sm text-muted-foreground">
-            {s.hasMoreItems && <Button variant="outline" size="sm" onClick={s.loadMore}>{s.t("writeTab.loadMore")}</Button>}
-          </div>
+          {s.hasMoreItems && (
+            <div className="flex justify-center border-t border-border px-4 py-2">
+              <Button variant="outline" size="sm" onClick={s.loadMore}>{s.t("writeTab.loadMore")}</Button>
+            </div>
+          )}
         </section>
 
         <aside
-          style={writeTone as React.CSSProperties}
-          className={`${s.isPreviewCollapsed ? "hidden" : "hidden xl:flex"} flex-col gap-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-b from-[var(--morandi-tone-helper-bg)]/45 to-card p-4`}
+          className={`${s.isPreviewCollapsed ? "hidden" : "hidden xl:flex"} flex-col gap-3 overflow-y-auto rounded-[10px] border border-border bg-card p-4`}
           data-guide-id="write-preview-panel"
         >
-          <h3 className="text-sm font-semibold text-[color:var(--morandi-tone-helper-fg)]">{s.t("writeTab.previewInfo")}</h3>
+          <h3 className="text-sm font-semibold">{s.t("writeTab.previewInfo")}</h3>
           <WritePreviewContent
             previewItem={s.previewItem}
             previewPath={s.previewPath}
@@ -171,8 +167,7 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
       </Drawer>
 
       <footer
-        style={writeTone as React.CSSProperties}
-        className="hidden md:block shrink-0 rounded-lg border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/50 via-card to-card px-3 py-2 text-xs text-muted-foreground"
+        className="hidden md:block shrink-0 px-1 text-xs text-muted-foreground"
         title={s.footerQuote ? `${s.footerQuote.anime || "-"}-${s.footerQuote.character || "-"}` : undefined}
       >
         <p className="truncate">{s.footerQuote?.quote || s.footerTip}</p>

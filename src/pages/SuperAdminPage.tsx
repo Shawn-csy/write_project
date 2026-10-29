@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../co
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
-import { FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2, Trash2, ChevronDown, ChevronUp, Database, Settings2, PanelLeftOpen, BookOpen, Globe2, ClipboardCheck, Megaphone } from "lucide-react";
+import { FileText, ArrowRightLeft, Building2, Plus, Search, UserCircle, Loader2, Trash2, ChevronDown, ChevronUp, Menu, Database, Settings2 } from "lucide-react";
 import { ScriptMetadataDialog } from "../components/dashboard/ScriptMetadataDialog";
 import { AdminUserManagementCard } from "../components/admin/AdminUserManagementCard";
 import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
@@ -16,28 +16,10 @@ import { PublicDemoSubmissionInbox } from "../components/admin/PublicDemoSubmiss
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
-import { LanguageSwitcher } from "../components/common/LanguageSwitcher";
-import { openPublicPath } from "../lib/publicNavigation";
-import { TOPBAR_OUTER_CLASS } from "../components/layout/topbarLayout";
-import {
-  STUDIO_PAGE_CONTENT_CLASS,
-  STUDIO_PAGE_PADDING_CLASS,
-  STUDIO_TOPBAR_ACTIONS_CLASS,
-  STUDIO_TOPBAR_ICON_BUTTON_CLASS,
-  STUDIO_TOPBAR_INNER_CLASS,
-  STUDIO_TOPBAR_ROW_CLASS,
-  STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS,
-  STUDIO_TOPBAR_SURFACE_CLASS,
-  STUDIO_TOPBAR_TITLE_WRAP_CLASS,
-} from "../components/layout/studioTopbarTokens";
+import { useStudioShell } from "../components/studio/StudioShellContext";
 
-const workbenchTabClass = "h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]";
-
-interface SuperAdminPageProps {
-  isSidebarOpen?: boolean;
-  setSidebarOpen?: (open: boolean) => void;
-  openMobileMenu?: () => void;
-}
+/** Sub-section triggers stay mounted for Radix state but the side nav replaces them visually. */
+const workbenchTabClass = "";
 
 interface CollapsibleSectionProps {
   title: React.ReactNode;
@@ -49,10 +31,11 @@ interface CollapsibleSectionProps {
 function CollapsibleSection({ title, description, defaultOpen = false, children }: CollapsibleSectionProps): React.JSX.Element {
   const [open, setOpen] = useState<boolean>(defaultOpen);
   return (
-    <div className="rounded-xl border border-border/70 bg-background shadow-sm">
+    <div className="rounded-[10px] border border-border bg-background">
       <button
         type="button"
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors rounded-xl"
+        aria-expanded={open}
+        className="flex w-full items-center justify-between rounded-[10px] px-4 py-3 text-left transition-colors hover:bg-muted/40"
         onClick={() => setOpen((v) => !v)}
       >
         <div>
@@ -68,7 +51,7 @@ function CollapsibleSection({ title, description, defaultOpen = false, children 
 
 function AdminWorkflowPlaceholder({ title }: { title: string }): React.JSX.Element {
   return (
-    <div className="flex min-h-40 items-center justify-center rounded-xl border border-dashed border-border/70 bg-background/60 p-6 text-center">
+    <div className="flex min-h-40 items-center justify-center rounded-[10px] border border-dashed border-border p-6 text-center">
       <div className="flex items-center gap-2">
         <h2 className="font-medium">{title}</h2>
         <Badge variant="outline">尚未啟用</Badge>
@@ -77,8 +60,9 @@ function AdminWorkflowPlaceholder({ title }: { title: string }): React.JSX.Eleme
   );
 }
 
-export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobileMenu }: SuperAdminPageProps): React.JSX.Element {
+export default function SuperAdminPage(): React.JSX.Element {
   const s = useAdminPageState();
+  const { openMobileMenu } = useStudioShell();
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
@@ -166,75 +150,87 @@ export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobi
     );
   }
 
+  const navGroups: Array<{ name: string; items: Array<{ key: string; label: string; active: boolean; go: () => void }> }> = [
+    {
+      name: "審核",
+      items: [
+        { key: "applications", label: "申請與回報", active: activeArea === "review" && reviewTab === "applications", go: () => goToSection("applications") },
+        { key: "submissions", label: "Demo 投稿", active: activeArea === "review" && reviewTab === "submissions", go: () => goToSection("submissions") },
+        { key: "claims", label: "身份認領", active: activeArea === "review" && reviewTab === "claims", go: () => goToSection("claims") },
+        { key: "activity-submissions", label: "活動頁面審核", active: activeArea === "activity-review" && activityReviewTab === "activity-submissions", go: () => goToSection("activity-submissions") },
+        { key: "campaigns", label: "活動徵件審核", active: activeArea === "activity-review" && activityReviewTab === "campaigns", go: () => goToSection("campaigns") },
+      ],
+    },
+    {
+      name: "內容與行銷",
+      items: [
+        { key: "homepage", label: "首頁 Banner", active: activeArea === "marketing" && marketingTab === "homepage", go: () => goToMarketingTab("homepage") },
+        { key: "activities", label: "活動頁面", active: activeArea === "marketing" && marketingTab === "activities", go: () => goToMarketingTab("activities") },
+        { key: "external-scripts", label: "外部台本", active: activeArea === "external" && resourceTab === "scripts", go: () => goToResourceTab("scripts") },
+        { key: "external-author-pages", label: "外部作者頁", active: activeArea === "external" && resourceTab === "author-pages", go: () => goToResourceTab("author-pages") },
+        { key: "external-studios", label: "外部錄音室", active: activeArea === "external" && resourceTab === "studios", go: () => goToResourceTab("studios") },
+      ],
+    },
+    {
+      name: "全站名錄",
+      items: [
+        { key: "catalog-scripts", label: s.t("transferAdmin.scriptTab"), active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "scripts", go: () => goToCatalogTab("scripts") },
+        { key: "catalog-personas", label: s.t("transferAdmin.personaTab"), active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "personas", go: () => goToCatalogTab("personas") },
+        { key: "catalog-orgs", label: s.t("transferAdmin.orgTab"), active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "orgs", go: () => goToCatalogTab("orgs") },
+        { key: "catalog-users", label: "使用者", active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "users", go: () => goToCatalogTab("users") },
+      ],
+    },
+    {
+      name: "平台",
+      items: [
+        { key: "admins", label: "超管帳號", active: activeArea === "settings" && settingsTab === "settings", go: () => goToSettingsTab("settings") },
+        { key: "signatures", label: "授權簽署紀錄", active: activeArea === "review" && reviewTab === "signatures", go: () => goToSection("signatures") },
+      ],
+    },
+  ];
+  const activeNavItem = navGroups.flatMap((group) => group.items).find((item) => item.active);
+
   return (
-    <div className="flex h-full flex-col bg-background">
-      <div className={`${TOPBAR_OUTER_CLASS} ${STUDIO_TOPBAR_SURFACE_CLASS}`}>
-        <div className={STUDIO_TOPBAR_INNER_CLASS}>
-          <div className={STUDIO_TOPBAR_ROW_CLASS}>
-            <div className="lg:hidden">
-              <Button variant="ghost" size="icon" onClick={() => openMobileMenu?.()} title="展開選單">
-                <PanelLeftOpen className="h-5 w-5 text-muted-foreground" />
-              </Button>
-            </div>
-            <div className={`hidden lg:block ${isSidebarOpen ? "lg:hidden" : ""}`}>
-              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen?.(true)} title="展開側欄">
-                <PanelLeftOpen className="h-5 w-5 text-muted-foreground" />
-              </Button>
-            </div>
-            <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">Superadmin</span>
-                <h1 className="truncate font-serif text-lg font-semibold text-primary">超管工作台</h1>
-              </div>
-            </div>
-            <div className={STUDIO_TOPBAR_ACTIONS_CLASS}>
-              <Badge variant="outline" className="hidden max-w-40 truncate text-xs md:inline-flex">管理員 · {s.currentUser?.displayName || "Admin"}</Badge>
-              <LanguageSwitcher compact buttonClassName={STUDIO_TOPBAR_ICON_BUTTON_CLASS} ariaLabel={s.t("settings.language")} />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className={`${STUDIO_TOPBAR_SECONDARY_BUTTON_CLASS} w-10 px-0 sm:w-auto sm:px-3`}
-                onClick={() => openPublicPath("/")}
-                title="公開台本"
-                aria-label="公開台本"
-              >
-                <BookOpen className="h-4 w-4 sm:mr-1.5" />
-                <span className="hidden sm:inline">公開台本</span>
-              </Button>
-            </div>
-          </div>
+    <div className="studio-density flex h-full min-h-0 flex-col bg-background lg:flex-row">
+      <nav aria-label="後台分類" className="shrink-0 border-b border-border lg:w-60 lg:overflow-y-auto lg:border-b-0 lg:border-r lg:py-6">
+        <div className="flex items-center gap-1 px-4 pt-3 lg:px-5 lg:pt-0">
+          <button type="button" onClick={openMobileMenu} className="-ml-2 inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted lg:hidden" aria-label="開啟選單">
+            <Menu className="h-5 w-5" />
+          </button>
+          <h1 className="text-lg font-bold tracking-tight">超管後台</h1>
         </div>
+        <div className="flex gap-1 overflow-x-auto px-4 pb-3 pt-2 lg:block lg:space-y-0.5 lg:overflow-visible lg:px-3 lg:pb-0">
+          {navGroups.map((group) => (
+            <div key={group.name} className="contents lg:block lg:pb-2">
+              <div className="hidden px-2.5 pb-1 pt-3 text-xs font-semibold text-muted-foreground lg:block">{group.name}</div>
+              {group.items.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={item.go}
+                  aria-current={item.active ? "page" : undefined}
+                  className={`shrink-0 whitespace-nowrap rounded-md px-3 text-left text-sm transition-colors max-lg:h-10 lg:flex lg:w-full lg:py-2 ${
+                    item.active ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full max-w-6xl px-4 pb-12 pt-5 sm:px-6 lg:px-8 lg:pt-7">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <h2 className="text-2xl font-bold tracking-tight">{activeNavItem?.label || "超管後台"}</h2>
+        <span className="text-xs text-muted-foreground">管理員 · {s.currentUser?.displayName || "Admin"}</span>
       </div>
-
-      <div className={`flex-1 min-h-0 overflow-y-auto ${STUDIO_PAGE_PADDING_CLASS}`}>
-        <div className={STUDIO_PAGE_CONTENT_CLASS}>
-      <Tabs value={activeArea} onValueChange={goToSection} className="space-y-3">
-        <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
-        <div className="flex items-center gap-1.5">
-        <TabsList className="grid h-auto min-w-0 flex-1 grid-cols-2 gap-1.5 bg-transparent p-0 sm:grid-cols-3 lg:grid-cols-5">
-          <TabsTrigger value="review" className={workbenchTabClass}>
-            <span className="flex items-center gap-2 text-xs sm:text-sm"><ClipboardCheck className="h-4 w-4 shrink-0" /><span>一般審核</span></span>
-          </TabsTrigger>
-          <TabsTrigger value="activity-review" className={workbenchTabClass}>
-            <span className="flex items-center gap-2 text-xs sm:text-sm"><ClipboardCheck className="h-4 w-4 shrink-0" /><span>活動審核</span></span>
-          </TabsTrigger>
-          <TabsTrigger value="marketing" className={workbenchTabClass}>
-            <span className="flex items-center gap-2 text-xs sm:text-sm"><Megaphone className="h-4 w-4 shrink-0" /><span>行銷</span></span>
-          </TabsTrigger>
-          <TabsTrigger value="external" className={workbenchTabClass}>
-            <span className="flex items-center gap-2 text-xs sm:text-sm"><Globe2 className="h-4 w-4 shrink-0" /><span>外部資源</span></span>
-          </TabsTrigger>
-          <TabsTrigger value="settings" className={workbenchTabClass}>
-            <span className="flex items-center gap-2 text-xs sm:text-sm"><Settings2 className="h-4 w-4 shrink-0" /><span>平台設定</span></span>
-          </TabsTrigger>
-        </TabsList>
-        </div>
-        </div>
-
-        <TabsContent value="settings" className="space-y-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+      <Tabs value={activeArea} onValueChange={goToSection} className="space-y-4">
+        <TabsContent value="settings" className="mt-0 space-y-4">
           <Tabs value={settingsTab} onValueChange={goToSettingsTab} className="space-y-3">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0">
+            <TabsList className="hidden">
               <TabsTrigger value="settings" className={workbenchTabClass}>
                 <span className="flex items-center gap-2 text-xs sm:text-sm"><Settings2 className="h-4 w-4 shrink-0" /><span>平台設定</span></span>
               </TabsTrigger>
@@ -276,7 +272,7 @@ export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobi
             </Button>
           </div>
           <Tabs value={catalogTab} onValueChange={goToCatalogTab} className="space-y-3">
-          <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 sm:grid-cols-4">
+          <TabsList className="hidden">
             <TabsTrigger value="scripts" className={workbenchTabClass}>
               {s.t("transferAdmin.scriptTab")}
               <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.scripts.filter((sc) => sc.type !== "folder").length}</Badge>
@@ -497,9 +493,9 @@ export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobi
           </Tabs>
         </TabsContent>
 
-        <TabsContent value="review" className="space-y-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+        <TabsContent value="review" className="mt-0 space-y-4">
           <Tabs value={reviewTab} onValueChange={goToSection} className="space-y-3">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 sm:grid-cols-4">
+            <TabsList className="hidden">
               <TabsTrigger value="applications" className={workbenchTabClass}>申請與回報</TabsTrigger>
               <TabsTrigger value="signatures" className={workbenchTabClass}>簽署紀錄</TabsTrigger>
               <TabsTrigger value="submissions" className={workbenchTabClass}>Demo 投稿</TabsTrigger>
@@ -521,9 +517,9 @@ export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobi
           </Tabs>
         </TabsContent>
 
-        <TabsContent value="activity-review" className="space-y-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+        <TabsContent value="activity-review" className="mt-0 space-y-4">
           <Tabs value={activityReviewTab} onValueChange={goToActivityReviewTab} className="space-y-3">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0">
+            <TabsList className="hidden">
               <TabsTrigger value="activity-submissions" className={workbenchTabClass}>活動頁面審核</TabsTrigger>
               <TabsTrigger value="campaigns" className={workbenchTabClass}>活動徵件審核</TabsTrigger>
             </TabsList>
@@ -532,9 +528,9 @@ export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobi
           </Tabs>
         </TabsContent>
 
-        <TabsContent value="marketing" className="space-y-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+        <TabsContent value="marketing" className="mt-0 space-y-4">
           <Tabs value={marketingTab} onValueChange={goToMarketingTab} className="space-y-3">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0">
+            <TabsList className="hidden">
               <TabsTrigger value="homepage" className={workbenchTabClass}>首頁 Banner</TabsTrigger>
               <TabsTrigger value="activities" className={workbenchTabClass}>活動頁面</TabsTrigger>
             </TabsList>
@@ -547,9 +543,9 @@ export default function SuperAdminPage({ isSidebarOpen, setSidebarOpen, openMobi
           </Tabs>
         </TabsContent>
 
-        <TabsContent value="external" className="space-y-3 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-[color:var(--morandi-tone-panel-bg)] p-2 shadow-sm sm:p-3">
+        <TabsContent value="external" className="mt-0 space-y-4">
           <Tabs value={resourceTab} onValueChange={goToResourceTab} className="space-y-3">
-            <TabsList className="grid h-auto w-full grid-cols-3 gap-1.5 bg-transparent p-0">
+            <TabsList className="hidden">
               <TabsTrigger value="scripts" className={workbenchTabClass}>
                 <span className="flex items-center gap-2 text-xs sm:text-sm"><FileText className="h-4 w-4 shrink-0" /><span>台本</span></span>
               </TabsTrigger>

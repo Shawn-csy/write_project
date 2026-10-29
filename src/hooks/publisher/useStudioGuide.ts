@@ -82,7 +82,7 @@ export function useStudioGuide({ t, currentUser, activeTab, handleTabChange, tab
     onFinish: () => {
       handleTabChange(mode === "community" ? "profile" : "works");
     },
-    autoStartEnabled: Boolean(currentUser) && mode === "studio",
+    autoStartEnabled: Boolean(currentUser) && mode === "studio" && activeTab === "works",
     refreshDeps: [activeTab],
   });
 

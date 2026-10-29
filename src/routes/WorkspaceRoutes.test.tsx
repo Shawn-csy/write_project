@@ -40,14 +40,26 @@ vi.mock("../components/panels/SettingsPanel", () => ({
 vi.mock("../components/panels/AboutPanel", () => ({
   default: () => <div data-testid="about-panel" />,
 }));
-vi.mock("../pages/DashboardPage", () => ({
-  default: () => <div data-testid="dashboard-page" />,
+vi.mock("../pages/WorksPage", () => ({
+  default: () => <div data-testid="works-page" />,
+}));
+vi.mock("../pages/WorkManagePage", () => ({
+  default: () => <div data-testid="work-manage-page" />,
+}));
+vi.mock("../pages/ExternalWorksPage", () => ({
+  default: () => <div data-testid="external-works-page" />,
+}));
+vi.mock("../pages/SeriesPage", () => ({
+  default: () => <div data-testid="series-page" />,
+}));
+vi.mock("../pages/SettingsPage", () => ({
+  default: () => <div data-testid="settings-page" />,
+}));
+vi.mock("../pages/CommunityWorkbenchPage", () => ({
+  default: () => <div data-testid="identity-page" />,
 }));
 vi.mock("../pages/CloudEditorPage", () => ({
   default: () => <div data-testid="cloud-editor-page" />,
-}));
-vi.mock("../pages/PublisherDashboard", () => ({
-  PublisherDashboard: () => <div data-testid="publisher-dashboard" />,
 }));
 vi.mock("../pages/SuperAdminPage", () => ({
   default: () => <div data-testid="super-admin-page" />,
@@ -186,13 +198,28 @@ describe("renderWorkspaceRoutes", () => {
     expect(screen.queryByTestId("stats-panel")).not.toBeInTheDocument();
   });
 
-  it("MainLayout.openHome calls nav.openHome and navigates to /dashboard", () => {
-    const navigate = vi.fn();
-    const openHome = vi.fn();
-    renderRoutes(makeProps({ navigate, nav: { ...makeProps().nav, openHome } }));
-    capturedMainLayoutProps.openHome();
-    expect(openHome).toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith("/dashboard");
+  it("MainLayout.closeOverlays closes the about and settings overlays", () => {
+    const setAboutOpen = vi.fn();
+    const setSettingsOpen = vi.fn();
+    renderRoutes(makeProps({ nav: { ...makeProps().nav, setAboutOpen, setSettingsOpen } }));
+    capturedMainLayoutProps.closeOverlays();
+    expect(setAboutOpen).toHaveBeenCalledWith(false);
+    expect(setSettingsOpen).toHaveBeenCalledWith(false);
+  });
+
+  it.each([
+    ["/dashboard", "works-page"],
+    ["/studio", "works-page"],
+    ["/studio?tab=series", "series-page"],
+    ["/studio?tab=external", "external-works-page"],
+    ["/studio?tab=works&scriptId=abc&open=publish", "work-manage-page"],
+    ["/community?tab=org", "identity-page"],
+    ["/works/external", "external-works-page"],
+    ["/works/abc", "work-manage-page"],
+    ["/unknown", "works-page"],
+  ])("routes %s to the redesigned page", async (path, testId) => {
+    renderRoutes(makeProps(), { path });
+    expect(await screen.findByTestId(testId)).toBeInTheDocument();
   });
 
   it("setShowStats is called when stats close button is clicked", () => {

@@ -171,7 +171,7 @@ describe("PublisherWorksTab", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /可公開\s*1/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /可公開\s*1/i }));
 
     expect(screen.getAllByText("Ready Script").length).toBeGreaterThan(0);
     expect(screen.queryByText("Blocked Draft")).not.toBeInTheDocument();

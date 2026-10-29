@@ -11,7 +11,7 @@ export default function LoginPage() {
   } | null)?.from;
   const from = fromLocation?.pathname
     ? `${fromLocation.pathname}${fromLocation.search ?? ""}${fromLocation.hash ?? ""}`
-    : "/dashboard";
+    : "/works";
   const [error, setError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 

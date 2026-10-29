@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import Sidebar from './Sidebar';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 
 // Mock Lucide icons to avoid SVGs
 vi.mock("lucide-react", async (importOriginal) => {
@@ -25,8 +25,12 @@ vi.mock("../../contexts/I18nContext", () => ({
     t: (key) => ({
       "app.settings": "設定",
       "app.about": "關於",
-      "nav.workspace": "寫作工作室",
-      "nav.studio": "發布工作台",
+      "nav.works": "作品",
+      "nav.series": "系列",
+      "nav.identity": "公開身份",
+      "nav.mediaLibrary": "媒體庫",
+      "nav.adminConsole": "超管後台",
+      "sidebar.adminSection": "管理",
       "nav.gallery": "公開台本",
       "sidebar.backHome": "回首頁",
       "sidebar.collapseList": "收合列表",
@@ -52,44 +56,66 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname + location.search}</div>;
+}
+
 describe('Sidebar Component', () => {
   const mockProps = {
-    sceneList: [],
-    currentSceneId: null,
-    onSelectScene: vi.fn(),
     openAbout: vi.fn(),
-    openSettings: vi.fn(),
-    closeAbout: vi.fn(),
+    closeOverlays: vi.fn(),
     setSidebarOpen: vi.fn(),
-    openHome: vi.fn(),
-    accentStyle: { label: 'text-red-500' },
     className: ''
   };
 
-  it('renders current sidebar nav labels and hides 移轉管理 from sidebar', () => {
+  it('renders the work-centred navigation', () => {
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/works']}>
         <Sidebar {...mockProps} />
       </MemoryRouter>
     );
 
-    expect(screen.getByText('設定')).toBeDefined();
-    expect(screen.getByText('關於')).toBeDefined();
-    expect(screen.getByText('寫作工作室')).toBeDefined();
-    expect(screen.getByText('發布工作台')).toBeDefined();
+    for (const label of ['作品', '系列', '公開身份', '媒體庫', '設定', '關於', '公開台本']) {
+      expect(screen.getByText(label)).toBeDefined();
+    }
+    expect(screen.getByRole('button', { name: '作品' }).getAttribute('aria-current')).toBe('page');
     expect(screen.queryByText('移轉管理')).toBeNull();
+    expect(screen.queryByText('超管後台')).toBeNull();
   });
 
-  it('clicking Settings in footer calls openSettings', () => {
+  it('shows the admin console entry only for admins', () => {
     render(
       <MemoryRouter>
+        <Sidebar {...mockProps} isAdmin />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('超管後台')).toBeDefined();
+  });
+
+  it('clicking Settings closes overlays and opens the settings page', () => {
+    render(
+      <MemoryRouter initialEntries={['/works']}>
         <Sidebar {...mockProps} />
+        <LocationProbe />
       </MemoryRouter>
     );
 
-    const settingsBtn = screen.getByText('設定');
-    fireEvent.click(settingsBtn);
-    expect(mockProps.openSettings).toHaveBeenCalled();
+    fireEvent.click(screen.getByText('設定'));
+    expect(mockProps.closeOverlays).toHaveBeenCalled();
+    expect(screen.getByTestId('location').textContent).toBe('/settings');
+  });
+
+  it('media library opens the media tab of settings', () => {
+    render(
+      <MemoryRouter initialEntries={['/works']}>
+        <Sidebar {...mockProps} />
+        <LocationProbe />
+      </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByText('媒體庫'));
+    expect(screen.getByTestId('location').textContent).toBe('/settings?tab=media');
   });
 
   it('clicking About in footer calls openAbout', () => {
@@ -99,8 +125,7 @@ describe('Sidebar Component', () => {
       </MemoryRouter>
     );
 
-    const aboutBtn = screen.getByText('關於');
-    fireEvent.click(aboutBtn);
+    fireEvent.click(screen.getByText('關於'));
     expect(mockProps.openAbout).toHaveBeenCalled();
   });
 
@@ -111,9 +136,8 @@ describe('Sidebar Component', () => {
       </MemoryRouter>
     );
 
-    expect(screen.queryByText('寫作工作室')).toBeNull();
-    expect(screen.queryByText('發布工作台')).toBeNull();
-    expect(screen.getByLabelText('寫作工作室')).toBeDefined();
-    expect(screen.getByLabelText('發布工作台')).toBeDefined();
+    expect(screen.queryByText('作品')).toBeNull();
+    expect(screen.getByLabelText('作品')).toBeDefined();
+    expect(screen.getByLabelText('系列')).toBeDefined();
   });
 });

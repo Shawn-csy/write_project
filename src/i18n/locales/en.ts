@@ -11,7 +11,12 @@ const messages = {
     "studio": "Workspace",
     "community": "Profiles & Organizations",
     "superAdmin": "Admin Workspace",
-    "mediaLibrary": "Media Library"
+    "mediaLibrary": "Media Library",
+    "works": "Works",
+    "series": "Series",
+    "identity": "Public profiles",
+    "adminConsole": "Admin console",
+    "studioName": "Studio"
   },
   "settings": {
     "title": "Settings",
@@ -171,7 +176,8 @@ const messages = {
     "editAndPreview": "Edit + Preview",
     "editOnly": "Edit Only",
     "moreActions": "More Actions",
-    "guide": "Guide"
+    "guide": "Guide",
+    "publishSettings": "Publish settings"
   },
   "publicAbout": {
     "topbarTitle": "Screenplay Reader",
@@ -510,7 +516,7 @@ const messages = {
     "updatedAt": "Updated",
     "statusPublic": "Public",
     "statusPrivate": "Private",
-    "continueWriting": "Continue Writing",
+    "continueWriting": "Edit",
     "editInfo": "Edit Info",
     "viewPublicPage": "View Public Page",
     "loadMore": "Load More"

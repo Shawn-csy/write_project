@@ -74,39 +74,16 @@
 
     /* Marker color tokens: see @write/script-theme/marker-colors.css (imported above) */
 
-    /* Morandi Panel Tokens (Light Mode, derived from global semantic tokens) */
-    --morandi-tone-works-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--card)) 70%);
-    --morandi-tone-works-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 52%, hsl(var(--foreground)) 48%);
-    --morandi-tone-works-helper-border: color-mix(in srgb, hsl(var(--accent)) 38%, hsl(var(--border)) 62%);
-    --morandi-tone-works-helper-bg: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--background)) 80%);
-    --morandi-tone-works-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 44%, hsl(var(--foreground)) 56%);
-    --morandi-tone-works-panel-border: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--border)) 70%);
-    --morandi-tone-works-panel-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--card)) 84%);
-
-    --morandi-tone-profile-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 25%, hsl(var(--card)) 75%);
-    --morandi-tone-profile-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 48%, hsl(var(--foreground)) 52%);
-    --morandi-tone-profile-helper-border: color-mix(in srgb, hsl(var(--accent)) 34%, hsl(var(--border)) 66%);
-    --morandi-tone-profile-helper-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
-    --morandi-tone-profile-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 40%, hsl(var(--foreground)) 60%);
-    --morandi-tone-profile-panel-border: color-mix(in srgb, hsl(var(--accent)) 26%, hsl(var(--border)) 74%);
-    --morandi-tone-profile-panel-bg: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--card)) 88%);
-
-    --morandi-tone-org-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 27%, hsl(var(--card)) 73%);
-    --morandi-tone-org-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 50%, hsl(var(--foreground)) 50%);
-    --morandi-tone-org-helper-border: color-mix(in srgb, hsl(var(--accent)) 36%, hsl(var(--border)) 64%);
-    --morandi-tone-org-helper-bg: color-mix(in srgb, hsl(var(--accent)) 17%, hsl(var(--background)) 83%);
-    --morandi-tone-org-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 42%, hsl(var(--foreground)) 58%);
-    --morandi-tone-org-panel-border: color-mix(in srgb, hsl(var(--accent)) 28%, hsl(var(--border)) 72%);
-    --morandi-tone-org-panel-bg: color-mix(in srgb, hsl(var(--accent)) 13%, hsl(var(--card)) 87%);
-
-    --morandi-tone-series-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 33%, hsl(var(--card)) 67%);
-    --morandi-tone-series-trigger-fg: color-mix(in srgb, hsl(var(--accent-strong)) 55%, hsl(var(--foreground)) 45%);
-    --morandi-tone-series-helper-border: color-mix(in srgb, hsl(var(--accent)) 40%, hsl(var(--border)) 60%);
-    --morandi-tone-series-helper-bg: color-mix(in srgb, hsl(var(--accent)) 22%, hsl(var(--background)) 78%);
-    --morandi-tone-series-helper-fg: color-mix(in srgb, hsl(var(--accent-strong)) 46%, hsl(var(--foreground)) 54%);
-    --morandi-tone-series-panel-border: color-mix(in srgb, hsl(var(--accent)) 32%, hsl(var(--border)) 68%);
-    --morandi-tone-series-panel-bg: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--card)) 82%);
     --desktop-ui-scale: 1;
+
+    /* Studio status tones: draft / ready to publish / published */
+    --status-draft-bg: 220 14% 94%;
+    --status-draft-fg: 220 13% 34%;
+    --status-ready-bg: 38 88% 93%;
+    --status-ready-fg: 32 100% 27%;
+    --status-live-bg: 156 50% 92%;
+    --status-live-fg: 160 79% 24%;
+    --studio-nav-bg: 225 20% 96%;
   }
 
   @media (min-width: 1024px) {
@@ -158,38 +135,13 @@
 
     /* Marker color tokens (dark): see @write/script-theme/marker-colors.css */
 
-    /* Morandi Panel Tokens (Dark Mode, derived from global semantic tokens) */
-    --morandi-tone-works-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 24%, hsl(var(--card)) 76%);
-    --morandi-tone-works-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 62%, hsl(var(--foreground)) 38%);
-    --morandi-tone-works-helper-border: color-mix(in srgb, hsl(var(--accent)) 36%, hsl(var(--border)) 64%);
-    --morandi-tone-works-helper-bg: color-mix(in srgb, hsl(var(--accent)) 16%, hsl(var(--background)) 84%);
-    --morandi-tone-works-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 56%, hsl(var(--foreground)) 44%);
-    --morandi-tone-works-panel-border: color-mix(in srgb, hsl(var(--accent)) 28%, hsl(var(--border)) 72%);
-    --morandi-tone-works-panel-bg: color-mix(in srgb, hsl(var(--accent)) 12%, hsl(var(--card)) 88%);
-
-    --morandi-tone-profile-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 20%, hsl(var(--card)) 80%);
-    --morandi-tone-profile-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 56%, hsl(var(--foreground)) 44%);
-    --morandi-tone-profile-helper-border: color-mix(in srgb, hsl(var(--accent)) 31%, hsl(var(--border)) 69%);
-    --morandi-tone-profile-helper-bg: color-mix(in srgb, hsl(var(--accent)) 13%, hsl(var(--background)) 87%);
-    --morandi-tone-profile-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 52%, hsl(var(--foreground)) 48%);
-    --morandi-tone-profile-panel-border: color-mix(in srgb, hsl(var(--accent)) 24%, hsl(var(--border)) 76%);
-    --morandi-tone-profile-panel-bg: color-mix(in srgb, hsl(var(--accent)) 10%, hsl(var(--card)) 90%);
-
-    --morandi-tone-org-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 22%, hsl(var(--card)) 78%);
-    --morandi-tone-org-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 58%, hsl(var(--foreground)) 42%);
-    --morandi-tone-org-helper-border: color-mix(in srgb, hsl(var(--accent)) 33%, hsl(var(--border)) 67%);
-    --morandi-tone-org-helper-bg: color-mix(in srgb, hsl(var(--accent)) 14%, hsl(var(--background)) 86%);
-    --morandi-tone-org-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 54%, hsl(var(--foreground)) 46%);
-    --morandi-tone-org-panel-border: color-mix(in srgb, hsl(var(--accent)) 26%, hsl(var(--border)) 74%);
-    --morandi-tone-org-panel-bg: color-mix(in srgb, hsl(var(--accent)) 11%, hsl(var(--card)) 89%);
-
-    --morandi-tone-series-trigger-bg: color-mix(in srgb, hsl(var(--accent)) 26%, hsl(var(--card)) 74%);
-    --morandi-tone-series-trigger-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 64%, hsl(var(--foreground)) 36%);
-    --morandi-tone-series-helper-border: color-mix(in srgb, hsl(var(--accent)) 38%, hsl(var(--border)) 62%);
-    --morandi-tone-series-helper-bg: color-mix(in srgb, hsl(var(--accent)) 18%, hsl(var(--background)) 82%);
-    --morandi-tone-series-helper-fg: color-mix(in srgb, hsl(var(--accent-foreground)) 58%, hsl(var(--foreground)) 42%);
-    --morandi-tone-series-panel-border: color-mix(in srgb, hsl(var(--accent)) 30%, hsl(var(--border)) 70%);
-    --morandi-tone-series-panel-bg: color-mix(in srgb, hsl(var(--accent)) 13%, hsl(var(--card)) 87%);
+    --status-draft-bg: 220 6% 22%;
+    --status-draft-fg: 220 10% 78%;
+    --status-ready-bg: 36 40% 18%;
+    --status-ready-fg: 38 85% 72%;
+    --status-live-bg: 160 35% 16%;
+    --status-live-fg: 156 60% 66%;
+    --studio-nav-bg: 220 8% 12%;
   }
 
   :root[data-accent="indigo"] {
@@ -357,7 +309,6 @@
   display: inline-flex;
 }
 
-
 .bg-background {
   background-color: hsl(var(--background));
 }
@@ -488,7 +439,6 @@
 .whitespace-gap-long {
   height: 20px;
 }
-
 
 /* Hide Whitespace Toggle */
 .hide-whitespace .whitespace-block {

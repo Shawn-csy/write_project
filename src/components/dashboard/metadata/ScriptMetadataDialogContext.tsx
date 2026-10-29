@@ -427,7 +427,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const handleGoToAuthorProfile = () => {
         setShowPersonaSetupDialog(false);
         onOpenChange(false);
-        navigate("/studio?tab=profile");
+        navigate("/identity");
     };
 
     const handlePersonaSetupDialogOpenChange = (nextOpen: boolean) => {

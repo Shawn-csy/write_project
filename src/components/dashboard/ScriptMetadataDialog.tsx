@@ -1,8 +1,12 @@
 import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Loader2 } from "lucide-react";
-import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useFormContext, useUIContext, useStatusContext } from "./metadata/ScriptMetadataDialogContext";
+import { AlertCircle, ArrowLeft, CheckCircle2, CircleHelp, Circle, Eye, FilePenLine, Loader2, Menu } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useFormContext, useUIContext, useStatusContext, useChecklistContext } from "./metadata/ScriptMetadataDialogContext";
+import { StatusPill } from "../studio/StatusPill";
+import { useStudioShell } from "../studio/StudioShellContext";
+import { cn } from "../../lib/utils";
 import { ScriptMetadataDialogHeader } from "./metadata/ScriptMetadataDialogHeader";
 import { ScriptMetadataDialogBody } from "./metadata/ScriptMetadataDialogBody";
 import { ScriptMetadataDialogOverlays } from "./metadata/ScriptMetadataDialogOverlays";
@@ -363,6 +367,191 @@ export function ScriptMetadataDialog(props: ScriptMetadataDialogProps) {
     return (
         <ScriptMetadataDialogProvider {...props}>
             <ScriptMetadataDialogInner />
+        </ScriptMetadataDialogProvider>
+    );
+}
+
+
+const PAGE_SECTIONS = [
+    { key: "basic", label: "基本資料" },
+    { key: "publish", label: "發布設定" },
+    { key: "exposure", label: "展示與分類" },
+    { key: "activity", label: "活動宣傳" },
+    { key: "demo", label: "試聽範例" },
+    { key: "advanced", label: "進階設定" },
+] as const;
+
+interface ScriptMetadataPageExtraProps {
+    /** Whether the work is currently live on the public site (saved state, not the pending choice). */
+    isPublished: boolean;
+    backTo: string;
+    editHref?: string | null;
+}
+
+function PublishChecklistPanel({ compact = false }: { compact?: boolean }) {
+    const { status } = useStatusContext();
+    const { checklistChipItems, completedChecklistItems, totalChecklistItems, completionPercent, handleJumpToChecklistItem } = useChecklistContext();
+    const required = checklistChipItems.filter((item) => item.type === "required");
+    const recommended = checklistChipItems.filter((item) => item.type !== "required");
+    const heading = required.length > 0 ? `還差 ${required.length} 項必填` : status === "Public" ? "資料完整，儲存後公開" : "必填資料已完成";
+
+    if (compact) {
+        if (required.length === 0) return null;
+        return (
+            <button
+                type="button"
+                onClick={() => handleJumpToChecklistItem(required[0].key)}
+                className="flex w-full items-center gap-2.5 rounded-[10px] border border-[hsl(var(--status-ready-fg))]/25 bg-[hsl(var(--status-ready-bg))] px-3.5 py-3 text-left text-sm text-[hsl(var(--status-ready-fg))]"
+            >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span className="flex-1">還差 {required.length} 項必填：{required.map((item) => item.label).join("、")}</span>
+                <span className="font-semibold">前往</span>
+            </button>
+        );
+    }
+
+    return (
+        <div id="metadata-guide-checklist" className="rounded-[10px] border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-2">
+                <strong className="text-[15px]">{heading}</strong>
+                <span className="text-xs tabular-nums text-muted-foreground">{completedChecklistItems} / {totalChecklistItems}</span>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${completionPercent}%` }} />
+            </div>
+            {required.length > 0 ? (
+                <div className="mt-3">
+                    <div className="px-2 text-xs font-semibold text-[hsl(var(--status-ready-fg))]">必填</div>
+                    {required.map((item) => (
+                        <button key={item.key} type="button" onClick={() => handleJumpToChecklistItem(item.key)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] hover:bg-muted">
+                            <AlertCircle className="h-4 w-4 shrink-0 text-[hsl(var(--status-ready-fg))]" />
+                            <span className="flex-1">{item.label}</span>
+                            <span className="text-primary">前往</span>
+                        </button>
+                    ))}
+                </div>
+            ) : null}
+            {recommended.length > 0 ? (
+                <div className="mt-2">
+                    <div className="px-2 text-xs font-semibold text-muted-foreground">建議</div>
+                    {recommended.map((item) => (
+                        <button key={item.key} type="button" onClick={() => handleJumpToChecklistItem(item.key)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] hover:bg-muted">
+                            <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <span className="flex-1">{item.label}</span>
+                            <span className="text-primary">前往</span>
+                        </button>
+                    ))}
+                </div>
+            ) : null}
+            {checklistChipItems.length === 0 ? (
+                <p className="mt-3 flex items-center gap-2 text-[13px] text-[hsl(var(--status-live-fg))]">
+                    <CheckCircle2 className="h-4 w-4" />所有檢查項目已完成
+                </p>
+            ) : null}
+            <p className="mt-3 text-xs text-muted-foreground">
+                {status === "Public" ? "儲存後會立即更新公開頁。" : "目前設定為私人，儲存後不會出現在公開站。"}
+            </p>
+        </div>
+    );
+}
+
+function ScriptMetadataPageInner({ isPublished, backTo, editHref }: ScriptMetadataPageExtraProps) {
+    const { isSaving, handleSave } = useUIContext();
+    const { status, activeTab } = useStatusContext();
+    const { title } = useFormContext();
+    const { handleFocusSection, startGuide } = useChecklistContext();
+    const { openMobileMenu } = useStudioShell();
+    const [previewOpen, setPreviewOpen] = React.useState(false);
+
+    return (
+        <div className="studio-density flex h-full min-h-0 flex-col bg-background">
+            <header className="shrink-0 border-b border-border px-4 pb-4 pt-3 sm:px-6 lg:px-10 lg:pt-5">
+                <div className="flex items-center gap-1">
+                    <button type="button" onClick={openMobileMenu} className="-ml-2 inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted lg:hidden" aria-label="開啟選單">
+                        <Menu className="h-5 w-5" />
+                    </button>
+                    <Link to={backTo} className="inline-flex h-11 items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground lg:h-auto">
+                        <ArrowLeft className="h-4 w-4" />作品
+                    </Link>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-3">
+                        <h1 className="min-w-0 break-words text-2xl font-bold tracking-tight">{title || "未命名作品"}</h1>
+                        <StatusPill status={isPublished ? "live" : "draft"}>{isPublished ? "已公開" : "未公開"}</StatusPill>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button type="button" variant="ghost" size="icon" onClick={startGuide} aria-label="使用教學" title="使用教學">
+                            <CircleHelp className="h-4 w-4" />
+                        </Button>
+                        {editHref ? (
+                            <Button variant="outline" asChild>
+                                <Link to={editHref}><FilePenLine className="h-4 w-4" />編輯正文</Link>
+                            </Button>
+                        ) : null}
+                        <Button type="button" variant="outline" onClick={() => setPreviewOpen(true)}>
+                            <Eye className="h-4 w-4" />預覽公開頁
+                        </Button>
+                    </div>
+                </div>
+            </header>
+
+            <div className="flex min-h-0 flex-1">
+                <nav aria-label="表單區段" className="hidden w-48 shrink-0 flex-col gap-0.5 overflow-y-auto py-6 pl-10 pr-2 lg:flex">
+                    {PAGE_SECTIONS.map((section) => (
+                        <button
+                            key={section.key}
+                            type="button"
+                            onClick={() => handleFocusSection(section.key)}
+                            aria-current={activeTab === section.key ? "true" : undefined}
+                            className={cn(
+                                "rounded-md px-3 py-2 text-left text-[13px] transition-colors",
+                                activeTab === section.key ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                            )}
+                        >
+                            {section.label}
+                        </button>
+                    ))}
+                </nav>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <div className="px-4 pt-4 sm:px-6 xl:hidden"><PublishChecklistPanel compact /></div>
+                    <ScriptMetadataDialogBody className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8" />
+                </div>
+                <aside aria-label="發布檢查" className="hidden w-80 shrink-0 overflow-y-auto py-6 pl-2 pr-10 xl:block">
+                    <PublishChecklistPanel />
+                </aside>
+            </div>
+
+            <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border bg-background px-4 py-3 sm:px-6 lg:px-10">
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                    儲存後：{status === "Public" ? "公開" : "私人"}
+                </span>
+                <div className="ml-auto flex gap-2 max-sm:w-full">
+                    <Button type="button" variant="outline" className="max-sm:flex-1" asChild>
+                        <Link to={backTo}>返回作品</Link>
+                    </Button>
+                    <Button type="button" onClick={handleSave} disabled={isSaving} className="min-w-[140px] max-sm:flex-1">
+                        {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {status === "Public" ? "儲存並更新公開頁" : "儲存為私人"}
+                    </Button>
+                </div>
+            </footer>
+            {previewOpen && <ScriptMetadataPreviewDialog open={previewOpen} onOpenChange={setPreviewOpen} />}
+            <ScriptMetadataDialogOverlays />
+        </div>
+    );
+}
+
+/**
+ * Full-page variant of the publish-information form. Shares the provider,
+ * sections, validation and save path with the dialog; only the frame differs.
+ */
+export function ScriptMetadataPage(props: Omit<ScriptMetadataDialogProps, "open" | "onOpenChange"> & ScriptMetadataPageExtraProps) {
+    const { isPublished, backTo, editHref, ...providerProps } = props;
+    // The form stays on screen after saving, so closing requests are ignored here.
+    const noopOpenChange = React.useCallback(() => {}, []);
+    return (
+        <ScriptMetadataDialogProvider {...providerProps} open onOpenChange={noopOpenChange}>
+            <ScriptMetadataPageInner isPublished={isPublished} backTo={backTo} editHref={editHref} />
         </ScriptMetadataDialogProvider>
     );
 }
