@@ -82,26 +82,26 @@ export function WorkScriptListCard({
       <div className="hidden sm:block"><StatusPill status={status}>{readiness.label}</StatusPill></div>
       <div className="hidden text-[13px] text-muted-foreground sm:block">{formatDate(script.lastModified)}</div>
 
-      <div className="col-span-2 flex flex-wrap items-center gap-1.5 sm:col-span-1 sm:justify-end">
-        <Button variant="outline" size="sm" className="h-10 sm:h-8" onClick={() => onContinueEdit?.(script)}>
+      <div className="col-span-2 flex flex-wrap items-center gap-1.5 sm:col-span-1 sm:grid sm:grid-cols-[5rem_7rem_2rem] sm:justify-end sm:gap-1">
+        <Button variant="outline" size="sm" className="h-10 sm:h-7 sm:w-full" onClick={() => onContinueEdit?.(script)}>
           <FilePenLine className="h-3.5 w-3.5" />
           {t("publisherWorksTab.continueWriting", "編輯")}
         </Button>
-        <Button variant="outline" size="sm" className="h-10 sm:h-8" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
+        <Button variant="outline" size="sm" className="h-10 sm:h-7 sm:w-full" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
           {readiness.primaryActionLabel}
         </Button>
-        {readiness.status === "published" && (
+        {readiness.status === "published" ? (
           <Button
             variant="ghost"
             size="sm"
-            className="h-10 w-10 px-0 text-muted-foreground sm:h-8 sm:w-8"
+            className="h-10 w-10 px-0 text-muted-foreground sm:h-7 sm:w-8"
             title={t("publisherWorksTab.viewPublicPage")}
             aria-label={t("publisherWorksTab.viewPublicPage")}
             onClick={() => openPublicPath(`/read/${script.id}`)}
           >
             <Eye className="h-4 w-4" />
           </Button>
-        )}
+        ) : <span className="hidden sm:block" aria-hidden="true" />}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, CircleHelp, FolderPlus, Link2, Plus, Upload } from "lucide-react";
+import { ChevronDown, FolderPlus, Link2, Plus } from "lucide-react";
 import { Button } from "../components/ui/button";
 import {
   DropdownMenu,
@@ -122,19 +122,6 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
         description="站內台本、外部連結作品與資料夾都在這裡管理。"
         actions={
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => (view === "folders" ? dispatchWriteTabAction("open-guide") : s.handleStartStudioGuide())}
-              aria-label="使用教學"
-              title="使用教學"
-            >
-              <CircleHelp className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" onClick={() => startCreate("import-script")} data-guide-id="write-import-script-btn">
-              <Upload className="h-4 w-4" />
-              匯入
-            </Button>
             <Button variant="outline" asChild>
               <Link to="/works/external">
                 <Link2 className="h-4 w-4" />
@@ -170,14 +157,14 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
           <StudioSectionTitle>
             <span id="works-recent">繼續寫作</span>
           </StudioSectionTitle>
-          <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
             {recent.map((item) => {
               const crop = getMediaCropStyle(String(item.coverUrl || ""));
               return (
                 <Link
                   key={item.id}
                   to={`/edit/${item.id}?mode=edit`}
-                  className="group flex w-[78%] min-w-0 shrink-0 snap-start gap-3 rounded-[10px] border border-border bg-card p-3 transition-colors hover:border-foreground/20 sm:w-auto"
+                  className="group flex min-w-0 gap-3 rounded-[10px] border border-border bg-card p-2.5 transition-colors hover:border-foreground/20 sm:p-3"
                 >
                   <span className="relative h-[52px] w-10 shrink-0 overflow-hidden rounded-md bg-muted">
                     {crop.src ? (
