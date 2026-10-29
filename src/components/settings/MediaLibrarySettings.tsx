@@ -1,10 +1,7 @@
 import React from "react";
 import { Image } from "lucide-react";
-import { Button } from "../ui/button";
-import { MEDIA_FILE_ACCEPT, formatBytes } from "../../lib/mediaLibrary";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { SettingRow } from "./SettingRow";
 import { useMediaLibrary } from "../../hooks/useMediaLibrary";
 import { SettingsSectionCard } from "./SettingsSectionCard";
 import { MediaLibraryBrowser } from "../media/MediaLibraryBrowser";
@@ -18,14 +15,17 @@ export function MediaLibrarySettings() {
   const [selectedId, setSelectedId] = React.useState<string>("");
   const {
     items,
+    organization,
     stats,
     error,
     isLoading,
     isUploading,
+    deletingUrl,
     refresh,
     uploadFromInput,
     clearAll,
     deleteByUrl,
+    updateOrganization,
   } = useMediaLibrary({ t, maxBytes: isAdmin ? Number.POSITIVE_INFINITY : undefined });
 
   React.useEffect(() => {
@@ -36,41 +36,17 @@ export function MediaLibrarySettings() {
     <SettingsSectionCard
       icon={<Image className="w-4 h-4" />}
       title={t("settings.media")}
-      description={t("mediaLibrary.itemCountDesc").replace("{count}", String(stats.count))}
-      contentClassName="space-y-4"
+      description={t("mediaLibrary.subtitle", "管理封面、頭像與 Logo 圖片，點擊縮圖可預覽。")}
+      contentClassName="space-y-3"
     >
-      <div className="divide-y divide-border/40">
-        <SettingRow label={t("mediaLibrary.usage")} stacked>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">{formatBytes(stats.usedBytes)} / {Number.isFinite(stats.maxBytes) ? formatBytes(stats.maxBytes) : "無上限"}</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.round((stats.ratio || 0) * 100)}%` }} />
-            </div>
-          </div>
-        </SettingRow>
-
-        <SettingRow label={t("common.actions")}>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-              {isUploading ? t("mediaLibrary.uploading") : t("mediaLibrary.addToLibrary")}
-              <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="hidden" onChange={uploadFromInput} disabled={isUploading || isLoading} />
-            </label>
-            <Button type="button" variant="outline" size="sm" onClick={clearAll} disabled={!items.length || isLoading}>
-              {t("mediaLibrary.clearLibrary")}
-            </Button>
-          </div>
-        </SettingRow>
-      </div>
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
-
       <MediaLibraryBrowser
         items={items}
+        organization={organization}
+        onOrganizationChange={(nextOrganization) => { void updateOrganization(nextOrganization); }}
         stats={stats}
         isLoading={isLoading}
         isUploading={isUploading}
+        deletingUrl={deletingUrl}
         error={error}
         query={query}
         setQuery={setQuery}
@@ -80,6 +56,7 @@ export function MediaLibrarySettings() {
         setSelectedId={setSelectedId}
         onUploadChange={uploadFromInput}
         onDelete={deleteByUrl}
+        onClearAll={clearAll}
       />
     </SettingsSectionCard>
   );

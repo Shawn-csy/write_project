@@ -28,6 +28,22 @@ export const getMediaObjects = async () => {
   return fetchApi("/media/items", { cache: "no-store" });
 };
 
+export interface MediaLibraryOrganization {
+  folders: Array<{ id: string; name: string }>;
+  assignments: Record<string, string>;
+}
+
+export const getMediaOrganization = async () => {
+  return fetchApi("/media/organization", { cache: "no-store" }) as Promise<MediaLibraryOrganization>;
+};
+
+export const saveMediaOrganization = async (organization: MediaLibraryOrganization) => {
+  return fetchApi("/media/organization", {
+    method: "PUT",
+    body: JSON.stringify(organization),
+  }) as Promise<MediaLibraryOrganization>;
+};
+
 export const deleteMediaObject = async (url: string) => {
   return fetchApi("/media/items", {
     method: "DELETE",
