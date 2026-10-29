@@ -77,7 +77,7 @@ export function WorkScriptGridCard({
           )}
         </div>
         {/* 缺失警示條 */}
-        {(readiness.missingRequired.length > 0 || readiness.missingRecommended.length > 0) && (
+        {(readiness.status === "ready" && readiness.missingRecommended.length > 0) && (
           <div className={`absolute bottom-0 left-0 right-0 px-2 py-1.5 backdrop-blur-sm ${readiness.missingRequired.length > 0 ? "bg-destructive/80" : "bg-[color:var(--license-term-bg)]/90"}`}>
             <p className={`text-[10px] font-medium leading-tight ${readiness.missingRequired.length > 0 ? "text-destructive-foreground" : "text-[color:var(--license-term-fg)]"}`}>
               {readiness.missingRequired.length > 0

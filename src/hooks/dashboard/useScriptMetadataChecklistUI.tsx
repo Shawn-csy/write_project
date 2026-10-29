@@ -63,16 +63,16 @@ export function useScriptMetadataChecklistUI({
     [publishChecklist.missingRequired]
   );
 
-  const rowLabelBaseClass = "p-4 text-sm font-medium text-foreground";
+  const rowLabelBaseClass = "px-3 py-2 text-xs font-medium text-foreground";
   const rowLabelToneClass = {
-    required: "border-l-[5px] border-sky-600 bg-sky-100/80 text-sky-950 dark:border-sky-500 dark:bg-sky-950/25 dark:text-foreground",
-    recommended: "border-l-[5px] border-amber-600 bg-amber-100/80 text-amber-950 dark:border-amber-500 dark:bg-amber-950/25 dark:text-foreground",
-    advanced: "border-l-[5px] border-fuchsia-600 bg-fuchsia-100/80 text-fuchsia-950 dark:border-fuchsia-500 dark:bg-fuchsia-950/25 dark:text-foreground",
+    required: "bg-muted/30",
+    recommended: "bg-muted/20",
+    advanced: "bg-muted/20",
   };
 
   const getRowLabelClass = (tone = "recommended") => `${rowLabelBaseClass} ${rowLabelToneClass[tone as keyof typeof rowLabelToneClass] || rowLabelToneClass.recommended}`;
   const withRequiredHighlight = (baseClass: string, missing: boolean) =>
-    missing ? `${baseClass} border-l-[6px] border-destructive bg-destructive/20 ring-2 ring-inset ring-destructive/55 dark:bg-destructive/30` : baseClass;
+    missing ? `${baseClass} border-l-2 border-destructive bg-destructive/5` : baseClass;
   const renderRowLabel = (label: string, tone = "recommended", missing = false, hint = "") => (
     <div className={withRequiredHighlight(getRowLabelClass(tone), missing)}>
       <div className="flex items-center gap-2">

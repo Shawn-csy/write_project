@@ -272,6 +272,16 @@ class PublicFeedback(Base):
     kind = Column(String, default="bug", index=True)  # bug | listing | ad_application
     contactName = Column(String, default="")
     contactEmail = Column(String, default="")
+    scriptTitle = Column(String, default="")
+    scriptSummary = Column(Text, default="")
+    authorName = Column(String, default="")
+    authorBio = Column(Text, default="")
+    authorSocialUrl = Column(Text, default="")
+    documentUrl = Column(Text, default="")
+    coverUrl = Column(Text, default="")
+    categories = Column(JSON, default=list)
+    seriesName = Column(String, default="")
+    notes = Column(Text, default="")
     content = Column(Text, nullable=False)
     pageUrl = Column(Text, default="")
     status = Column(String, default="new", index=True)  # new | reviewed | closed
@@ -340,6 +350,7 @@ class ExternalPublicScript(Base):
     __tablename__ = "external_public_scripts"
 
     id = Column(String, primary_key=True, index=True)
+    ownerId = Column(String, index=True, nullable=True)
     sourceUrl = Column(Text, nullable=False, unique=True, index=True)
     canonicalUrl = Column(Text, default="", index=True)
     sourceDomain = Column(String, default="")

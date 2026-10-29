@@ -722,9 +722,9 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                       <section aria-label={`${group.title}的演出版本`} className="min-w-0">
                         <div className="flex min-h-9 items-center justify-between gap-2 border-b border-border/70 px-3">
                           <h3 className="text-xs font-semibold">演出與試聽</h3>
-                          <span className="text-[10px] text-muted-foreground">{group.demos.length > 4 ? `顯示 4 / ${group.demos.length} 筆 · 向下捲動查看更多` : `${group.demos.length} 筆 Demo`}</span>
+                          <span className="text-[10px] text-muted-foreground">{group.demos.length} 筆 Demo</span>
                         </div>
-                        <div className="max-h-[13.25rem] overflow-y-auto overscroll-contain" aria-label="Demo 清單">
+                        <div className="divide-y divide-border/60" aria-label="Demo 清單">
                           {group.demos.map((demo, index) => {
                             const actors = demoActors(demo, voiceActorById);
                             const names = [...new Set([...actors.map((actor) => actor.displayName.trim()), ...demoCastNames(demo)])];
@@ -737,12 +737,12 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                             const demoTitle = demo.name && !GENERIC_DEMO_NAME_PATTERN.test(demo.name)
                               ? demo.name
                               : `演出版本 ${index + 1}`;
-                            const avatar = actors[0]?.avatar;
+                            const previewImage = youtubeThumbnail(demo.url) || demo.coverUrl;
                             return (
-                              <div key={`${demo.id}-${index}`} className="flex min-h-[3.15rem] items-center gap-2.5 border-b border-border/60 px-3 py-1.5 last:border-b-0 hover:bg-muted/60">
-                                <span className="relative grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-full bg-primary/10 text-xs font-medium text-primary">
-                                  {avatar ? <PublicImage src={avatar} alt="" preset="avatar" sizes="32px" /> : (names[0] || demoTitle).slice(0, 1)}
-                                </span>
+                              <div key={`${demo.id}-${index}`} className="grid min-h-[4.25rem] grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 hover:bg-muted/50 sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
+                                <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`播放 ${demoTitle}`} className="relative aspect-video overflow-hidden rounded-md bg-muted/70">
+                                  {previewImage ? <PublicImage src={previewImage} alt={`${demoTitle}預覽`} preset="thumbnail" /> : <Play className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground" aria-hidden />}
+                                </a>
                                 <span className="min-w-0 flex-1">
                                   <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`開啟 ${demoTitle} 的 Demo`} className="block truncate text-xs font-medium leading-5 hover:text-primary">{demoTitle}</a>
                                   <span className="flex min-w-0 items-center gap-1 truncate text-[10px] leading-4 text-muted-foreground">

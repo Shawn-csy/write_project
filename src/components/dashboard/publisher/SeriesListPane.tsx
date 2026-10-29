@@ -3,6 +3,7 @@ import {
   PublisherEntityListPane,
   PublisherEntityListItem,
   PublisherEmptyState,
+  usePublisherPanelNavigation,
 } from "./PublisherEntityLayout";
 
 interface SeriesItem {
@@ -76,6 +77,7 @@ export function SeriesListPane({
   onStartCreate,
   isDirty = false,
 }: SeriesListPaneProps): React.JSX.Element {
+  const { openEditor } = usePublisherPanelNavigation();
   const [query, setQuery] = React.useState("");
   const [pendingAction, setPendingAction] = React.useState<PendingAction | null>(null);
 
@@ -88,7 +90,7 @@ export function SeriesListPane({
   const handleCreate = React.useCallback(() => {
     if (isDirty) {
       setPendingAction({ type: "create" });
-      return;
+      return false;
     }
     onStartCreate();
   }, [isDirty, onStartCreate]);
@@ -110,7 +112,8 @@ export function SeriesListPane({
       }
     }
     setPendingAction(null);
-  }, [pendingAction, onStartCreate, seriesList, setSelectedSeriesId, setSeriesDraft]);
+    openEditor();
+  }, [pendingAction, onStartCreate, seriesList, setSelectedSeriesId, setSeriesDraft, openEditor]);
 
   return (
     <PublisherEntityListPane
@@ -182,7 +185,7 @@ export function SeriesListPane({
               if (series.id === selectedSeriesId) return;
               if (isDirty) {
                 setPendingAction({ type: "switch", id: series.id });
-                return;
+                return false;
               }
               setSelectedSeriesId(series.id);
               setSeriesDraft({

@@ -40,7 +40,7 @@ const PublisherOrgTabLazy = React.lazy(async () => {
 });
 
 const tabFallback = <div className="p-6 text-sm text-muted-foreground">載入中…</div>;
-const workbenchTabClass = "h-11 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]";
+const workbenchTabClass = "h-10 sm:h-8 justify-start rounded-lg border border-transparent bg-background/75 px-3 text-muted-foreground transition-colors hover:bg-[color:var(--morandi-tone-helper-bg)]/55 hover:text-foreground data-[state=active]:border-[color:var(--morandi-tone-panel-border)] data-[state=active]:bg-[color:var(--morandi-tone-trigger-bg)] data-[state=active]:text-[color:var(--morandi-tone-trigger-fg)] data-[state=active]:shadow-sm data-[state=active]:ring-1 data-[state=active]:ring-[color:var(--morandi-tone-helper-border)]";
 
 export interface CommunityWorkbenchPageProps {
   isSidebarOpen?: boolean;
@@ -82,8 +82,8 @@ export default function CommunityWorkbenchPage({
             </div>
             <div className={STUDIO_TOPBAR_TITLE_WRAP_CLASS}>
               <div className="flex items-center gap-2">
-                <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">Community</span>
-                <h1 className="truncate font-serif text-lg font-semibold text-primary">社群工作台</h1>
+                <span className="hidden rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary sm:inline-flex">Studio</span>
+                <h1 className="truncate text-sm font-semibold text-foreground sm:text-lg">{t("nav.community")}</h1>
                 {isDevPreview && <Badge variant="outline" className="hidden sm:inline-flex">DEV 預覽</Badge>}
               </div>
             </div>
@@ -126,16 +126,16 @@ export default function CommunityWorkbenchPage({
           )}
 
           <Tabs value={s.activeTab} onValueChange={s.handleTabChange} className="space-y-4">
-            <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-2.5 shadow-sm backdrop-blur">
-              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-2 gap-1.5 bg-transparent p-0 md:grid-cols-3">
+            <div className="sticky top-0 z-20 rounded-xl border border-[color:var(--morandi-tone-panel-border)] bg-gradient-to-r from-[var(--morandi-tone-helper-bg)]/85 via-[var(--morandi-tone-helper-bg)]/45 to-background p-1.5 backdrop-blur">
+              <TabsList ref={s.tabsGuideRef} className="grid h-auto w-full grid-cols-3 gap-1.5 bg-transparent p-0">
                 <TabsTrigger value="profile" style={s.tabTone.profile} className={workbenchTabClass}>
-                  <span className="flex items-center gap-2 text-xs sm:text-sm"><CircleUserRound className="h-4 w-4" /><span>{s.t("publisher.authorIdentity")}</span>{s.renderTabCount(s.tabCounts.profile)}</span>
+                  <span className="flex items-center gap-1 text-xs sm:gap-2 sm:text-sm"><CircleUserRound className="hidden h-4 w-4 sm:block" /><span>{s.t("publisher.authorIdentity")}</span>{s.renderTabCount(s.tabCounts.profile)}</span>
                 </TabsTrigger>
                 <TabsTrigger value="org" style={s.tabTone.org} className={workbenchTabClass}>
-                  <span className="flex items-center gap-2 text-xs sm:text-sm"><Building2 className="h-4 w-4" /><span>{s.t("publisher.organization")}</span>{s.renderTabCount(s.tabCounts.org)}</span>
+                  <span className="flex items-center gap-1 text-xs sm:gap-2 sm:text-sm"><Building2 className="hidden h-4 w-4 sm:block" /><span>{s.t("publisher.organization")}</span>{s.renderTabCount(s.tabCounts.org)}</span>
                 </TabsTrigger>
                 <TabsTrigger value="advertising" className={workbenchTabClass}>
-                  <span className="flex items-center gap-2 text-xs sm:text-sm"><Megaphone className="h-4 w-4" /><span>廣告申請</span></span>
+                  <span className="flex items-center gap-1 text-xs sm:gap-2 sm:text-sm"><Megaphone className="hidden h-4 w-4 sm:block" /><span>廣告申請</span></span>
                 </TabsTrigger>
               </TabsList>
             </div>

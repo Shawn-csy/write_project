@@ -70,14 +70,14 @@ export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrig
     } catch (err) { console.error(t("writeTab.importFailedLog"), err); throw err; }
   }, [manager, t]);
 
-  const handleOpenScript = useCallback((script: WriteScriptItem, targetMode = "read") => {
+  const handleOpenScript = useCallback((script: WriteScriptItem, targetMode = readOnly ? "read" : "edit") => {
     if (typeof window !== "undefined") {
       try {
         window.sessionStorage.setItem("write_tab_return_state_v1", JSON.stringify({ currentPath: manager.currentPath || "/", expandedPaths: Array.from(manager.expandedPaths || []) }));
       } catch (e) { console.warn("Failed to persist write tab return state", e); }
     }
     onSelectScript(script, targetMode);
-  }, [manager.currentPath, manager.expandedPaths, onSelectScript]);
+  }, [manager.currentPath, manager.expandedPaths, onSelectScript, readOnly]);
 
   const handleQuickCreateScript = useCallback(async () => {
     if (readOnly || isQuickCreatingScript) return;

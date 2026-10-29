@@ -39,7 +39,7 @@ const warningBadgeClass = "h-5 border-[color:var(--license-term-border)] bg-[col
 const errorBadgeClass = "h-5 border-destructive/40 bg-destructive/10 text-[10px] font-semibold text-destructive";
 const filterOptions = [
     { key: "all", label: "全部" },
-    { key: "needs_work", label: "待處理" },
+    { key: "needs_work", label: "草稿" },
     { key: "ready", label: "可公開" },
     { key: "published", label: "已公開" },
 ] as const;
@@ -84,7 +84,7 @@ export function PublisherWorksTab({
         <div className="flex flex-col gap-4">
             <div className="space-y-4">
             {/* 工具列：篩選 pill + 搜尋 + 排序 + 檢視切換 */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" data-guide-id="studio-works-filters">
+            <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between" data-guide-id="studio-works-filters">
                 {/* 左：篩選 pills */}
                 <div className="flex flex-wrap items-center gap-1">
                     {filterOptions.map((item) => (
@@ -92,7 +92,8 @@ export function PublisherWorksTab({
                             key={item.key}
                             type="button"
                             onClick={() => s.setFilter(item.key)}
-                            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors ${
+                            aria-pressed={s.filter === item.key}
+                            className={`inline-flex h-11 sm:h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors ${
                                 s.filter === item.key
                                     ? "bg-foreground text-background"
                                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -108,6 +109,7 @@ export function PublisherWorksTab({
                         <button
                             type="button"
                             onClick={s.clearFilters}
+                            aria-label="清除作品篩選"
                             className="inline-flex h-7 items-center rounded-md px-2 text-[11px] text-muted-foreground/50 hover:text-muted-foreground"
                         >
                             ✕
@@ -115,18 +117,19 @@ export function PublisherWorksTab({
                     )}
                 </div>
                 {/* 右：搜尋 + 排序 + 檢視 */}
-                <div className="flex items-center gap-2">
-                    <div className="relative">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:flex-wrap sm:items-center">
+                    <div className="relative col-span-2 min-w-0 sm:flex-1">
                         <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/40" />
                         <Input
                             value={s.query}
                             onChange={(event) => s.setQuery(event.target.value)}
                             placeholder="搜尋作品..."
-                            className="h-8 w-[180px] border-border/50 bg-transparent pl-8 text-xs placeholder:text-muted-foreground/40 focus-visible:border-border focus-visible:w-[240px] transition-all duration-200"
+                            aria-label="搜尋作品"
+                            className="h-11 w-full border-border/50 bg-background pl-8 text-sm sm:h-9 sm:min-w-[180px]"
                         />
                     </div>
                     <Select value={s.sortKey} onValueChange={(value) => s.setSortKey(value as "updated_desc" | "updated_asc" | "title_asc" | "views_desc")}>
-                        <SelectTrigger className="h-8 w-[120px] border-border/50 bg-transparent text-xs">
+                        <SelectTrigger aria-label="作品排序" className="h-11 w-full min-w-[128px] shrink-0 whitespace-nowrap border-border/50 bg-background text-xs sm:h-9 sm:w-[128px]">
                             <SelectValue placeholder="排序" />
                         </SelectTrigger>
                         <SelectContent>
@@ -137,10 +140,10 @@ export function PublisherWorksTab({
                         </SelectContent>
                     </Select>
                     <div className="inline-flex items-center rounded-md border border-border/50 p-0.5">
-                        <Button type="button" size="sm" variant={s.viewMode === "list" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => s.setViewMode("list")} title={t("publisherWorksTab.viewList", "列表檢視")}>
+                        <Button type="button" size="sm" variant={s.viewMode === "list" ? "secondary" : "ghost"} className="h-10 px-3 sm:h-8 sm:px-2" onClick={() => s.setViewMode("list")} title={t("publisherWorksTab.viewList", "列表檢視")}>
                             <Rows3 className="h-3.5 w-3.5" />
                         </Button>
-                        <Button type="button" size="sm" variant={s.viewMode === "grid" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => s.setViewMode("grid")} title={t("publisherWorksTab.viewGrid", "卡片檢視")}>
+                        <Button type="button" size="sm" variant={s.viewMode === "grid" ? "secondary" : "ghost"} className="h-10 px-3 sm:h-8 sm:px-2" onClick={() => s.setViewMode("grid")} title={t("publisherWorksTab.viewGrid", "卡片檢視")}>
                             <Grid3X3 className="h-3.5 w-3.5" />
                         </Button>
                     </div>
@@ -149,7 +152,7 @@ export function PublisherWorksTab({
 
             {isLoading ? (
                 <div className="flex justify-center p-6"><Loader2 className="animate-spin" /></div>
-            ) : !s.hasAnyScripts ? (
+            ) : !s.hasAnyScripts && !s.hasActiveFilters ? (
                 <Card className="border-dashed p-5 md:p-6">
                     <div className="mb-4">
                         <h4 className="text-base font-semibold">{t("publisherWorksTab.emptyDemoTitle", "這是作品管理示範")}</h4>
@@ -196,7 +199,7 @@ export function PublisherWorksTab({
                     title={s.filter === "all"
                         ? t("publisherWorksTab.emptyAll")
                         : s.filter === "needs_work"
-                            ? "沒有待處理作品"
+                            ? "沒有草稿"
                             : s.filter === "ready"
                                 ? "沒有可公開作品"
                                 : "沒有已公開作品"}

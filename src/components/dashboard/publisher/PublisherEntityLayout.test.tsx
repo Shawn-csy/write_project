@@ -10,6 +10,29 @@ import {
 } from "./PublisherEntityLayout";
 
 describe("PublisherEntityLayout", () => {
+  it("switches mobile panes while retaining an unsaved form", () => {
+    render(<PublisherSplitPanel
+      sidebar={<PublisherEntityListItem title="系列 A" onClick={() => {}} />}
+      header="編輯系列">
+      <input aria-label="系列名稱" defaultValue="原名稱" />
+    </PublisherSplitPanel>);
+    fireEvent.click(screen.getByRole("button", { name: "系列 A" }));
+    const panel = document.querySelector('[data-mobile-view]');
+    expect(panel).toHaveAttribute("data-mobile-view", "editor");
+    fireEvent.change(screen.getByLabelText("系列名稱"), { target: { value: "未儲存名稱" } });
+    fireEvent.click(screen.getByRole("button", { name: "返回列表" }));
+    expect(panel).toHaveAttribute("data-mobile-view", "list");
+    fireEvent.click(screen.getByRole("button", { name: "系列 A" }));
+    expect(screen.getByLabelText("系列名稱")).toHaveValue("未儲存名稱");
+  });
+
+  it("keeps the list open when a selection requires confirmation", () => {
+    render(<PublisherSplitPanel
+      sidebar={<PublisherEntityListItem title="其他系列" onClick={() => false} />}
+      header="編輯系列"><div>表單</div></PublisherSplitPanel>);
+    fireEvent.click(screen.getByRole("button", { name: "其他系列" }));
+    expect(document.querySelector('[data-mobile-view]')).toHaveAttribute("data-mobile-view", "list");
+  });
   it("renders split panel with sidebar/header/content/footer", () => {
     render(
       <PublisherSplitPanel

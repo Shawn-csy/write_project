@@ -120,6 +120,7 @@ export function useScriptMetadataGuide({
     onFinish: () => {
       focusSection("basic");
     },
+    autoStart: false,
     autoStartEnabled: Boolean(open),
     refreshDeps: [activeTab, open],
   });

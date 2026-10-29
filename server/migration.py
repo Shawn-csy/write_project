@@ -4,6 +4,7 @@ import uuid
 from sqlalchemy import text
 from database import engine
 from media_crop import parse_crop_from_url
+from publish_rules import classification_complete
 
 
 def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
@@ -174,10 +175,6 @@ def _backfill_canonical_metadata_fields(conn):
         print(f"Migrating: backfilled canonical metadata fields for {migrated} scripts")
 
 
-AUDIENCE_TAG_GROUP = {"全年齡", "青少年", "成人", "親子", "一般向", "男性向", "女性向", "兒童"}
-RATING_TAG_GROUP = {"普遍級", "保護級", "輔導級", "限制級", "G", "PG", "PG-13", "R", "NC-17"}
-
-
 def _metadata_entries_to_map(entries):
     if isinstance(entries, str):
         try:
@@ -199,7 +196,7 @@ def _metadata_entries_to_map(entries):
 def _backfill_publish_state(conn):
     rows = conn.execute(text(
         'SELECT id, "customMetadata", "personaId", title, status, "isPublic", '
-        '"licenseCommercial", "licenseDerivative", "licenseNotify" '
+        '"licenseCommercial", "licenseDerivative", "licenseNotify", "targetAudience", "contentRating" '
         'FROM scripts WHERE COALESCE(type, \'script\') != \'folder\''
     )).fetchall()
     if not rows:
@@ -231,13 +228,14 @@ def _backfill_publish_state(conn):
         persona_license = persona_license_by_id.get(persona_id, ("", "", ""))
         has_script_license = bool(row[6] and row[7] and row[8])
         has_persona_license = bool(persona_license[0] and persona_license[1] and persona_license[2])
+        has_audience, has_rating = classification_complete(row[9], row[10], tag_names)
         if row[4] == "Public" or bool(row[5]):
             readiness = "published"
         elif (
             str(row[3] or "").strip()
             and has_identity
-            and tag_names.intersection(AUDIENCE_TAG_GROUP)
-            and tag_names.intersection(RATING_TAG_GROUP)
+            and has_audience
+            and has_rating
             and (has_script_license or has_persona_license)
         ):
             readiness = "ready"
@@ -285,6 +283,41 @@ def _run_postgres_migrations():
         ("site_settings", "updatedAt"),
     ]
     with engine.connect() as conn:
+        feedback_table = conn.execute(text(
+            "SELECT table_name FROM information_schema.tables WHERE table_name = 'public_feedback'"
+        )).fetchone()
+        if feedback_table:
+            for col, col_type in [
+                ("scriptTitle", "TEXT NOT NULL DEFAULT ''"),
+                ("scriptSummary", "TEXT NOT NULL DEFAULT ''"),
+                ("authorName", "TEXT NOT NULL DEFAULT ''"),
+                ("authorBio", "TEXT NOT NULL DEFAULT ''"),
+                ("authorSocialUrl", "TEXT NOT NULL DEFAULT ''"),
+                ("documentUrl", "TEXT NOT NULL DEFAULT ''"),
+                ("coverUrl", "TEXT NOT NULL DEFAULT ''"),
+                ("categories", "JSONB NOT NULL DEFAULT '[]'::jsonb"),
+                ("seriesName", "TEXT NOT NULL DEFAULT ''"),
+                ("notes", "TEXT NOT NULL DEFAULT ''"),
+            ]:
+                exists = conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'public_feedback' AND column_name = :c"
+                ), {"c": col}).fetchone()
+                if not exists:
+                    conn.execute(text(f'ALTER TABLE public_feedback ADD COLUMN "{col}" {col_type}'))
+
+        external_table = conn.execute(text(
+            "SELECT table_name FROM information_schema.tables WHERE table_name = 'external_public_scripts'"
+        )).fetchone()
+        if external_table:
+            owner_column = conn.execute(text(
+                "SELECT column_name FROM information_schema.columns "
+                "WHERE table_name = 'external_public_scripts' AND column_name = 'ownerId'"
+            )).fetchone()
+            if not owner_column:
+                conn.execute(text('ALTER TABLE external_public_scripts ADD COLUMN "ownerId" TEXT'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_ownerId ON external_public_scripts("ownerId")'))
+
         for table, col in timestamp_columns:
             result = conn.execute(text(
                 "SELECT data_type FROM information_schema.columns "
@@ -509,7 +542,6 @@ def _run_postgres_migrations():
                 print(f"Migrating: Adding '{col}' column to scripts (PostgreSQL)")
                 conn.execute(text(f'ALTER TABLE scripts ADD COLUMN "{col}" {col_type}'))
         _backfill_content_fields(conn)
-        _backfill_publish_state(conn)
 
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS external_public_scripts (
@@ -619,6 +651,7 @@ def _run_postgres_migrations():
             if not result:
                 print(f"Migrating: Adding '{col}' column to scripts (PostgreSQL)")
                 conn.execute(text(f'ALTER TABLE scripts ADD COLUMN "{col}" {col_type}'))
+        _backfill_publish_state(conn)
         # NOTE: canonical metadata backfill is NOT run automatically here.
         # Run scripts/backfill_canonical_metadata.py --dry-run first to review,
         # then --write to apply. See docs/public-metadata-contract-migration-plan.md Phase 2.
@@ -648,6 +681,33 @@ def run_migrations():
 
     try:
         with engine.connect() as conn:
+            existing_external_columns = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(external_public_scripts)")).fetchall()
+            }
+            if existing_external_columns and "ownerId" not in existing_external_columns:
+                conn.execute(text('ALTER TABLE external_public_scripts ADD COLUMN "ownerId" TEXT'))
+            if existing_external_columns:
+                conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_ownerId ON external_public_scripts("ownerId")'))
+
+            existing_feedback_columns = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(public_feedback)")).fetchall()
+            }
+            feedback_column_types = {
+                "scriptTitle": "TEXT NOT NULL DEFAULT ''",
+                "scriptSummary": "TEXT NOT NULL DEFAULT ''",
+                "authorName": "TEXT NOT NULL DEFAULT ''",
+                "authorBio": "TEXT NOT NULL DEFAULT ''",
+                "authorSocialUrl": "TEXT NOT NULL DEFAULT ''",
+                "documentUrl": "TEXT NOT NULL DEFAULT ''",
+                "coverUrl": "TEXT NOT NULL DEFAULT ''",
+                "categories": "TEXT NOT NULL DEFAULT '[]'",
+                "seriesName": "TEXT NOT NULL DEFAULT ''",
+                "notes": "TEXT NOT NULL DEFAULT ''",
+            }
+            for col, col_type in feedback_column_types.items():
+                if existing_feedback_columns and col not in existing_feedback_columns:
+                    conn.execute(text(f'ALTER TABLE public_feedback ADD COLUMN "{col}" {col_type}'))
+
             # Check existing columns
             result = conn.execute(text("PRAGMA table_info(scripts)"))
             columns = [row.name for row in result.fetchall()]
@@ -1126,13 +1186,13 @@ def run_migrations():
             _backfill_crop_refs(conn, "series", "coverUrl", "coverCrop")
             _backfill_crop_refs(conn, "scripts", "coverUrl", "coverCrop")
             _backfill_content_fields(conn)
-            _backfill_publish_state(conn)
 
             for col in ("targetAudience", "contentRating", "license",
                         "licenseSpecialTerms", "authorDisplayMode", "authorOverrideName"):
                 if col not in columns:
                     print(f"Migrating: Adding '{col}' column to scripts")
                     conn.execute(text(f"ALTER TABLE scripts ADD COLUMN {col} TEXT DEFAULT NULL"))
+            _backfill_publish_state(conn)
             # NOTE: canonical metadata backfill is NOT run automatically here.
             # Run scripts/backfill_canonical_metadata.py --dry-run first to review,
             # then --write to apply. See docs/public-metadata-contract-migration-plan.md Phase 2.

@@ -9,7 +9,7 @@ const messages = {
     "gallery": "Gallery",
     "workspace": "Workspace",
     "studio": "Workspace",
-    "community": "Community Workspace",
+    "community": "Profiles & Organizations",
     "superAdmin": "Admin Workspace",
     "mediaLibrary": "Media Library"
   },
@@ -1441,7 +1441,7 @@ const messages = {
     "checkTags": "Add tags"
   },
   "publisherProfileTab": {
-    "authorList": "Author List",
+    "authorList": "Profiles",
     "noPersona": "No author identities yet",
     "createNow": "Create now",
     "createIdentity": "Create Identity",
@@ -1543,7 +1543,7 @@ const messages = {
     "accept": "Accept",
     "decline": "Decline",
     "myWorks": "My Works",
-    "authorIdentity": "Author Identity",
+    "authorIdentity": "Public Profiles",
     "organization": "Organization",
     "guide": "Guide",
     "guideSkip": "Skip",

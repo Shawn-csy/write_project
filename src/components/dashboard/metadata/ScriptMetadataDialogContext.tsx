@@ -102,7 +102,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const [activityBannerUploadWarning, setActivityBannerUploadWarning] = useState("");
 
     const initialCollapsedSections = {
-        basic: true,
+        basic: false,
         publish: true,
         exposure: true,
         activity: true,

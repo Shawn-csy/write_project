@@ -102,7 +102,9 @@ describe("PublisherWorksTab", () => {
       />
     );
 
-    expect(screen.getAllByText(/缺：授權/)).toHaveLength(2);
+    // Private writing drafts should not be presented as publishing errors.
+    expect(screen.queryByText(/缺：授權/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "發布資料" })).toHaveLength(2);
   });
 
   it("treats persona default license as valid when script metadata has no license fields", () => {

@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2, Mail, RefreshCw, Trash2 } from "lucide-react";
+import { Loader2, Mail, RefreshCw, Trash2, Upload } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { deletePublicFeedbackAdmin, getPublicFeedbackAdmin, updatePublicFeedbackStatusAdmin } from "../../lib/api/admin";
+import { createExternalPublicScriptAdmin, deletePublicFeedbackAdmin, getPublicFeedbackAdmin, updatePublicFeedbackStatusAdmin } from "../../lib/api/admin";
 import type { PublicFeedbackRecord } from "../../types/api";
 
 function formatFeedbackDate(value: number): string {
@@ -15,8 +15,17 @@ function formatFeedbackDate(value: number): string {
 
 function getFeedbackKindLabel(kind: PublicFeedbackRecord["kind"]): string {
   if (kind === "bug") return "Bug 回報";
-  if (kind === "listing") return "上架申請";
+  if (kind === "listing") return "台本投稿";
   return "廣告申請";
+}
+
+function safeExternalUrl(value: string): string | null {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function getAdBannerUrl(item: PublicFeedbackRecord): string | null {
@@ -38,7 +47,9 @@ export function PublicFeedbackInbox() {
   const [isLoading, setIsLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [importingId, setImportingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const loadFeedback = useCallback(async (search = "") => {
     setIsLoading(true);
@@ -92,12 +103,40 @@ export function PublicFeedbackInbox() {
     }
   }, []);
 
+  const handleImportAsDraft = useCallback(async (item: PublicFeedbackRecord) => {
+    setImportingId(item.id);
+    setError("");
+    setNotice("");
+    try {
+      const created = await createExternalPublicScriptAdmin({
+        sourceUrl: item.documentUrl,
+        authorName: item.authorName,
+        authorBio: item.authorBio,
+        authorUrl: item.authorSocialUrl,
+        titleOverride: item.scriptTitle,
+        summaryOverride: item.scriptSummary,
+        coverUrlOverride: item.coverUrl,
+        seriesName: item.seriesName,
+        categories: item.categories,
+        status: "draft",
+      });
+      const updated = await updatePublicFeedbackStatusAdmin(item.id, "closed");
+      setItems((currentItems) => currentItems.map((current) => current.id === item.id ? updated : current));
+      setNotice(`已建立「${created.title || item.scriptTitle}」草稿；請到外部台本管理檢查內容後發佈。`);
+    } catch (importError: unknown) {
+      console.error("Failed to import public script submission", importError);
+      setError("自動匯入草稿失敗；請檢查文件連結，或確認這份台本是否已經加入。 ");
+    } finally {
+      setImportingId(null);
+    }
+  }, []);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Input
           className="h-8 text-sm"
-          placeholder="搜尋聯絡人、Email、內容或頁面"
+          placeholder="搜尋台本、作者、聯絡人或文件"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -112,6 +151,7 @@ export function PublicFeedbackInbox() {
       </div>
 
       {error && <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>}
+      {notice && <div className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">{notice}</div>}
       {!isLoading && !error && items.length === 0 && <div className="py-4 text-xs text-muted-foreground">目前沒有申請或回報。</div>}
 
       <div className="space-y-2">
@@ -167,7 +207,34 @@ export function PublicFeedbackInbox() {
               ) : <span>Email：未提供</span>}
               {item.pageUrl && <a className="max-w-full truncate text-primary hover:underline" href={item.pageUrl} target="_blank" rel="noreferrer">來源頁面</a>}
             </div>
-            <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed text-foreground">{item.content}</p>
+            {item.kind === "listing" && (
+              <div className="mt-3 grid gap-3 rounded-md bg-muted/40 p-3 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                {item.coverUrl && safeExternalUrl(item.coverUrl) && <img src={safeExternalUrl(item.coverUrl) || undefined} alt="台本封面預覽" referrerPolicy="no-referrer" className="aspect-[3/4] w-28 rounded-md border border-border/60 bg-background object-cover" />}
+                <div className="min-w-0 space-y-2 text-xs">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">{item.scriptTitle || "未命名台本"}</h3>
+                    <p className="text-muted-foreground">作者：{item.authorName || "未提供"}{item.seriesName ? `　·　系列：${item.seriesName}` : ""}</p>
+                  </div>
+                  {item.scriptSummary && <p className="line-clamp-3 text-foreground/80">{item.scriptSummary}</p>}
+                  {item.authorBio && <p className="whitespace-pre-wrap break-words text-muted-foreground">作者介紹：{item.authorBio}</p>}
+                  {item.categories?.length > 0 && <div className="flex flex-wrap gap-1">{item.categories.map((category) => <span key={category} className="rounded-full border border-border/60 bg-background px-2 py-0.5">{category}</span>)}</div>}
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                    {item.authorSocialUrl && (safeExternalUrl(item.authorSocialUrl)
+                      ? <a className="text-primary hover:underline" href={safeExternalUrl(item.authorSocialUrl) || undefined} target="_blank" rel="noreferrer">作者社群</a>
+                      : <span>作者社群：{item.authorSocialUrl}</span>)}
+                    {item.documentUrl && (safeExternalUrl(item.documentUrl)
+                      ? <a className="text-primary hover:underline" href={safeExternalUrl(item.documentUrl) || undefined} target="_blank" rel="noreferrer">開啟台本文件</a>
+                      : <span>台本文件：{item.documentUrl}</span>)}
+                  </div>
+                  {item.notes && <p className="whitespace-pre-wrap break-words text-muted-foreground">備註：{item.notes}</p>}
+                  {item.status !== "closed" && <Button type="button" size="sm" variant="outline" disabled={importingId !== null} onClick={() => void handleImportAsDraft(item)}>
+                    {importingId === item.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    自動匯入為草稿
+                  </Button>}
+                </div>
+              </div>
+            )}
+            {item.kind !== "listing" && <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed text-foreground">{item.content}</p>}
             {bannerUrl && (
               <a href={bannerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full flex-col gap-1 text-xs text-primary hover:underline">
                 <img src={bannerUrl} alt="申請的廣告 Banner" className="max-h-40 max-w-full rounded-md border object-contain" />

@@ -64,6 +64,8 @@ def _base_script_query(db: Session, owner_id: str):
             models.Script.hasPublishIdentity,
             models.Script.metadataSeriesName,
             models.Script.publishReadiness,
+            models.Script.targetAudience,
+            models.Script.contentRating,
             models.Series.id.label("series_id"),
             models.Series.name.label("series_name"),
             models.Series.summary.label("series_summary"),
@@ -129,6 +131,8 @@ def _row_to_studio_script(row: Any, tags: List[Dict[str, Any]]) -> Dict[str, Any
         "hasPublishIdentity": bool(row.hasPublishIdentity or row.personaId or publish_as.startswith("persona:")),
         "metadataSeriesName": row.metadataSeriesName or meta.get("series") or meta.get("seriesname") or "",
         "publishReadiness": row.publishReadiness or "needs_work",
+        "targetAudience": row.targetAudience,
+        "contentRating": row.contentRating,
     }
 
 

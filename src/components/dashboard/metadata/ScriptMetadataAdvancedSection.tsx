@@ -23,9 +23,9 @@ export function ScriptMetadataAdvancedSection({
     <section id={sectionId || undefined} className="space-y-3 scroll-mt-24">
       {showTitle && <h3 className="text-base font-semibold">{t("scriptMetadataDialog.tabAdvanced", "進階設定")}</h3>}
       <div className="rounded-xl border border-border/70 bg-background shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("advanced")}>標記主題</div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Select value={markerThemeId} onValueChange={setMarkerThemeId}>
               <SelectTrigger>
                 <SelectValue placeholder={t("metadataAdvanced.markerThemePlaceholder")} />
@@ -38,7 +38,7 @@ export function ScriptMetadataAdvancedSection({
             </Select>
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("advanced")}>閱讀控制</div>
           <div className="flex flex-wrap gap-2 p-4">
             <Button type="button" variant="outline" className={showMarkerLegend ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : ""} onClick={() => setShowMarkerLegend(true)}>顯示圖例</Button>
@@ -47,7 +47,7 @@ export function ScriptMetadataAdvancedSection({
             <Button type="button" variant="outline" className={!disableCopy ? "border-primary bg-primary text-primary-foreground ring-2 ring-primary/40" : ""} onClick={() => setDisableCopy(false)}>允許複製</Button>
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("advanced")}>聯絡資訊</div>
           <div className="p-4">
             <MetadataDetailsTab
@@ -57,7 +57,7 @@ export function ScriptMetadataAdvancedSection({
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("advanced")}>自訂欄位</div>
           <div className="p-4">
             <MetadataDetailsTab
@@ -67,9 +67,9 @@ export function ScriptMetadataAdvancedSection({
             />
           </div>
         </div>
-        <div className="grid grid-cols-1 border-t md:grid-cols-[220px_minmax(0,1fr)] md:divide-x">
+        <div className="grid grid-cols-1 border-t md:grid-cols-[160px_minmax(0,1fr)] md:divide-x">
           <div className={getRowLabelClass("advanced")}>JSON 模式</div>
-          <div className="space-y-2 p-4">
+          <div className="space-y-2 p-3 md:py-2">
             <Button type="button" variant="outline" size="sm" onClick={() => setJsonMode(!jsonMode)}>
               {jsonMode ? t("metadataAdvanced.jsonClose") : t("metadataAdvanced.jsonOpen")}
             </Button>

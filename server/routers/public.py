@@ -104,6 +104,16 @@ def create_public_feedback(
 
     contact_name = (payload.contactName or "").strip()
     contact_email = (payload.contactEmail or "").strip()
+    script_title = (payload.scriptTitle or "").strip()
+    script_summary = (payload.scriptSummary or "").strip()
+    author_name = (payload.authorName or "").strip()
+    author_bio = (payload.authorBio or "").strip()
+    author_social_url = (payload.authorSocialUrl or "").strip()
+    document_url = (payload.documentUrl or "").strip()
+    cover_url = (payload.coverUrl or "").strip()
+    categories = payload.categories or []
+    series_name = (payload.seriesName or "").strip()
+    notes = (payload.notes or "").strip()
     content = (payload.content or "").strip()
     if not contact_name and not contact_email:
         raise HTTPException(status_code=400, detail="請至少填寫聯絡名稱或 Email")
@@ -111,7 +121,38 @@ def create_public_feedback(
         raise HTTPException(status_code=400, detail="Email 格式不正確")
     if len(contact_name) > 120:
         raise HTTPException(status_code=400, detail="聯絡名稱過長")
-    if len(content) < 5:
+    if payload.kind == "listing":
+        import re
+        if not script_title:
+            raise HTTPException(status_code=400, detail="請填寫台本名稱")
+        if len(script_title) > 300:
+            raise HTTPException(status_code=400, detail="台本名稱過長")
+        if len(script_summary) > 4000:
+            raise HTTPException(status_code=400, detail="台本介紹過長")
+        if not author_name:
+            raise HTTPException(status_code=400, detail="請填寫台本作者名稱")
+        if len(author_name) > 120:
+            raise HTTPException(status_code=400, detail="作者名稱過長")
+        if len(author_bio) > 4000:
+            raise HTTPException(status_code=400, detail="作者介紹過長")
+        if not re.fullmatch(r"https://[^\s]+", document_url, flags=re.IGNORECASE):
+            raise HTTPException(status_code=400, detail="請提供有效的 HTTPS 台本文件連結")
+        if len(document_url) > 2000:
+            raise HTTPException(status_code=400, detail="台本文件連結過長")
+        if author_social_url and not re.fullmatch(r"https://[^\s]+", author_social_url, flags=re.IGNORECASE):
+            raise HTTPException(status_code=400, detail="作者社群連結需使用 HTTPS")
+        if len(author_social_url) > 2000:
+            raise HTTPException(status_code=400, detail="作者社群連結過長")
+        if cover_url and not re.fullmatch(r"https://[^\s]+", cover_url, flags=re.IGNORECASE):
+            raise HTTPException(status_code=400, detail="封面連結需使用 HTTPS")
+        if len(cover_url) > 2000:
+            raise HTTPException(status_code=400, detail="封面連結過長")
+        if len(series_name) > 120:
+            raise HTTPException(status_code=400, detail="系列名稱過長")
+        if len(notes) > 10000:
+            raise HTTPException(status_code=400, detail="備註過長")
+        content = notes
+    elif len(content) < 5:
         raise HTTPException(status_code=400, detail="內容至少需要 5 個字")
     if len(content) > 10000:
         raise HTTPException(status_code=400, detail="內容過長")
@@ -123,6 +164,16 @@ def create_public_feedback(
         kind=payload.kind,
         contactName=contact_name[:120],
         contactEmail=contact_email[:320],
+        scriptTitle=script_title[:300],
+        scriptSummary=script_summary[:4000],
+        authorName=author_name[:120],
+        authorBio=author_bio[:4000],
+        authorSocialUrl=author_social_url[:2000],
+        documentUrl=document_url[:2000],
+        coverUrl=cover_url[:2000],
+        categories=categories,
+        seriesName=series_name[:120],
+        notes=notes[:10000],
         content=content,
         pageUrl=(payload.pageUrl or "").strip()[:2000],
         status="new",
@@ -142,6 +193,16 @@ def create_public_feedback(
             "kind": row.kind,
             "contactName": row.contactName,
             "contactEmail": row.contactEmail,
+            "scriptTitle": row.scriptTitle,
+            "scriptSummary": row.scriptSummary,
+            "authorName": row.authorName,
+            "authorBio": row.authorBio,
+            "authorSocialUrl": row.authorSocialUrl,
+            "documentUrl": row.documentUrl,
+            "coverUrl": row.coverUrl,
+            "categories": row.categories or [],
+            "seriesName": row.seriesName,
+            "notes": row.notes,
             "content": row.content,
             "pageUrl": row.pageUrl,
             "createdAt": str(row.createdAt),

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ScriptMetadataChecklistHeader } from "./ScriptMetadataChecklistHeader";
 
 describe("ScriptMetadataChecklistHeader", () => {
-  it("renders activity/demo section buttons and highlights demo as active", () => {
+  it("keeps missing-field shortcuts without duplicating accordion navigation", () => {
     const focusSection = vi.fn();
 
     render(
@@ -13,25 +13,20 @@ describe("ScriptMetadataChecklistHeader", () => {
         totalChecklistItems={3}
         completionPercent={0}
         hasBlockingIssues={false}
-        visibleChecklistChipItems={[]}
+        visibleChecklistChipItems={[{type: "required", key: "audience", label: "觀眾取向"}]}
         showAllChecklistChips={false}
         hiddenChecklistChipCount={0}
         checklistChipItems={[]}
         maxVisibleChecklistChips={4}
         activeTab="demo"
-        jumpToChecklistItem={vi.fn()}
+        jumpToChecklistItem={focusSection}
         setShowAllChecklistChips={vi.fn()}
         focusSection={focusSection}
       />
     );
 
-    const demoButton = screen.getByRole("button", { name: /試聽範例/i });
-    const activityButton = screen.getByRole("button", { name: /活動宣傳/i });
-
-    expect(demoButton.className).toContain("ring-2");
-    expect(activityButton.className).toContain("hover:bg-muted/60");
-
-    fireEvent.click(demoButton);
-    expect(focusSection).toHaveBeenCalledWith("demo");
+    expect(screen.queryByRole("button", { name: /試聽範例/i })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "觀眾取向" }));
+    expect(focusSection).toHaveBeenCalledWith("audience");
   });
 });

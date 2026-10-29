@@ -9,7 +9,7 @@ const messages = {
     "gallery": "公開台本",
     "workspace": "寫作工作室",
     "studio": "發布工作台",
-    "community": "社群工作台",
+    "community": "身份與組織",
     "superAdmin": "超管工作台",
     "mediaLibrary": "媒體庫"
   },
@@ -1441,7 +1441,7 @@ const messages = {
     "checkTags": "加入標籤"
   },
   "publisherProfileTab": {
-    "authorList": "作者列表",
+    "authorList": "身份列表",
     "noPersona": "尚無作者身分",
     "createNow": "立即建立",
     "createIdentity": "建立新身份",
@@ -1543,7 +1543,7 @@ const messages = {
     "accept": "接受",
     "decline": "拒絕",
     "myWorks": "我的作品",
-    "authorIdentity": "作者身份",
+    "authorIdentity": "公開身份",
     "organization": "組織",
     "guide": "教學",
     "guideSkip": "略過",
