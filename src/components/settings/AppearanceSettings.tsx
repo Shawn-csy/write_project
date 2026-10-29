@@ -89,6 +89,26 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
       >
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
           <div className="divide-y divide-border/40">
+            <SettingRow label={t("appearance.theme")} description={t("appearance.subtitle")}>
+              <div className="inline-flex shrink-0 rounded-md border border-border/40 bg-muted/40 p-0.5">
+                <button
+                  type="button"
+                  aria-pressed={!isDark}
+                  onClick={() => setTheme("light")}
+                  className={cn("inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-colors", !isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                >
+                  <Sun className="h-3.5 w-3.5" />{t("appearance.light")}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={isDark}
+                  onClick={() => setTheme("dark")}
+                  className={cn("inline-flex h-7 items-center gap-1.5 rounded px-2.5 text-xs font-medium transition-colors", isDark ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}
+                >
+                  <Moon className="h-3.5 w-3.5" />{t("appearance.dark")}
+                </button>
+              </div>
+            </SettingRow>
             <SettingRow label={t("appearance.fontFamily")}>
               <Select value={readingFontFamily} onValueChange={setReadingFontFamily}>
                 <SelectTrigger className="h-9 w-full bg-background/70 sm:w-56">
@@ -293,33 +313,7 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
         description={t("appearance.interfaceAppearanceDesc")}
       >
         <div className="divide-y divide-border/40">
-          <SettingRow label={t("appearance.theme")} description={t("appearance.subtitle")}>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="flex items-center bg-muted/40 p-1 rounded-lg border border-border/40 shrink-0">
-                <button
-                  type="button"
-                  aria-pressed={!isDark}
-                  onClick={() => setTheme("light")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                    !isDark ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Sun className="w-3.5 h-3.5" /> {t("appearance.light")}
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={isDark}
-                  onClick={() => setTheme("dark")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-                    isDark ? "bg-background text-foreground shadow-sm ring-1 ring-border/50" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <Moon className="w-3.5 h-3.5" /> {t("appearance.dark")}
-                </button>
-              </div>
-
+          <SettingRow label="介面強調色">
               <div className="flex items-center gap-1.5 flex-wrap">
                 {accentOptions.map((opt) => {
                   const active = accent === opt.value;
@@ -342,7 +336,6 @@ export function AppearanceSettings({ sectionRef }: AppearanceSettingsProps): Rea
                   );
                 })}
               </div>
-            </div>
           </SettingRow>
 
           <SettingRow label={t("appearance.uiFont")}>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { openPublicPath } from "../../../lib/publicNavigation";
-import { Loader2, Trash2, Building2, CircleHelp, ExternalLink, AlertTriangle } from "lucide-react";
+import { Loader2, Trash2, Building2, ExternalLink, AlertTriangle } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { MEDIA_FILE_ACCEPT } from "../../../lib/mediaLibrary";
@@ -223,18 +223,6 @@ export function PublisherOrgTab({
             header={(
                 <PublisherTabHeader
                     title={s.viewMode === "create" ? t("publisherOrgTab.createOrg") : t("publisherOrgTab.editOrg")}
-                    actions={<div className="flex min-w-[260px] items-center justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={s.startGuide}
-                        >
-                            <CircleHelp className="mr-1.5 h-3.5 w-3.5" />
-                            {t("publisherOrgTab.guide")}
-                        </Button>
-                    </div>}
                 />
             )}
             footer={(s.viewMode === "create" || selectedOrgId) ? (

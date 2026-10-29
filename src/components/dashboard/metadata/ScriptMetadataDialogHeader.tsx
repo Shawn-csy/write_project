@@ -1,5 +1,3 @@
-import { CircleHelp } from "lucide-react";
-import { Button } from "../../ui/button";
 import { DialogHeader, DialogTitle } from "../../ui/dialog";
 import { ScriptMetadataChecklistHeader } from "./ScriptMetadataChecklistHeader";
 import { useUIContext, useStatusContext, useChecklistContext } from "./ScriptMetadataDialogContext";
@@ -8,7 +6,6 @@ export function ScriptMetadataDialogHeader() {
     const { t } = useUIContext();
     const { status, activeTab } = useStatusContext();
     const {
-        startGuide,
         completedChecklistItems, totalChecklistItems, completionPercent,
         hasBlockingIssues, visibleChecklistChipItems, showAllChecklistChips,
         hiddenChecklistChipCount, checklistChipItems, maxVisibleChecklistChips,
@@ -28,16 +25,6 @@ export function ScriptMetadataDialogHeader() {
                         </DialogTitle>
                     </div>
                     <div className="mr-6 flex items-center gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title={t("scriptMetadataDialog.guide")}
-                            onClick={startGuide}
-                        >
-                            <CircleHelp className="h-4 w-4" />
-                        </Button>
                         <span id="metadata-status-badge" className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
                             儲存後：{status === "Public" ? "公開" : "私人"}
                         </span>

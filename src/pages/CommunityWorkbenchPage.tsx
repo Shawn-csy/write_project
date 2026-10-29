@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { Building2, CircleHelp, Loader2 } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
@@ -40,11 +40,6 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
         title={t("nav.identity", "公開身份")}
         description="你在公開台本上的筆名、介紹、組織與推廣申請。一個帳號可以有多個身份。"
         meta={isDevPreview ? <Badge variant="outline">DEV 預覽</Badge> : null}
-        actions={
-          <Button variant="ghost" size="icon" onClick={s.handleStartStudioGuide} aria-label={s.t("publisher.guide")} title={s.t("publisher.guide")}>
-            <CircleHelp className="h-4 w-4" />
-          </Button>
-        }
       />
           {s.myInvites.length > 0 && (
             <div className="mb-6 space-y-2" role="region" aria-label={s.t("publisher.myOrgInvites")}>
