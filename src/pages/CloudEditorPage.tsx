@@ -64,50 +64,7 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
     );
   }
 
-  const guideParams = new URLSearchParams(location.search);
-  const crossModeGuideActive = guideParams.get("guide") === "1";
-  const crossModeGuideStep = guideParams.get("guideStep") || "";
-  const navigateGuide = (mode: string, step = "") => {
-    if (!id) return;
-    const params = new URLSearchParams();
-    params.set("mode", mode);
-    if (step) {
-      params.set("guide", "1");
-      params.set("guideStep", step);
-    }
-    navigate(`/edit/${id}?${params.toString()}`);
-  };
-  const handleCrossGuideNext = () => {
-    if (crossModeGuideStep === "editIntro") {
-      navigateGuide("edit", "editPreview");
-      return;
-    }
-    if (crossModeGuideStep === "editPreview") {
-      navigateGuide("edit", "editActions");
-      return;
-    }
-    if (crossModeGuideStep === "editActions") {
-      navigateGuide("read", "readFinish");
-    }
-  };
-  const handleCrossGuidePrev = () => {
-    if (crossModeGuideStep === "editPreview") {
-      navigateGuide("edit", "editIntro");
-      return;
-    }
-    if (crossModeGuideStep === "editActions") {
-      navigateGuide("edit", "editPreview");
-      return;
-    }
-    if (crossModeGuideStep === "editIntro") {
-      navigateGuide("read", "readToEdit");
-    }
-  };
-  const handleCrossGuideExit = () => navigateGuide("read");
-
   const isReadMode = cloudScriptMode === "read";
-  const currentGuideParams = new URLSearchParams(location.search);
-  const isGuideRunning = currentGuideParams.get("guide") === "1";
 
   return (
     <LiveEditor
@@ -117,10 +74,6 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
       onRequestEdit={() => {
         const params = new URLSearchParams();
         params.set("mode", "edit");
-        if (isGuideRunning) {
-          params.set("guide", "1");
-          params.set("guideStep", "editIntro");
-        }
         navigate(`/edit/${activeCloudScript.id}?${params.toString()}`);
       }}
       onClose={() => {
@@ -147,11 +100,6 @@ export default function CloudEditorPage({ scriptManager, navProps }: { scriptMan
       isSidebarOpen={navProps.nav.isDesktopSidebarOpen}
       onSetSidebarOpen={navProps.nav.setSidebarOpen}
       showHeader={!isReadMode}
-      crossModeGuideActive={crossModeGuideActive}
-      crossModeGuideStep={crossModeGuideStep}
-      onCrossGuideNext={handleCrossGuideNext}
-      onCrossGuidePrev={handleCrossGuidePrev}
-      onCrossGuideExit={handleCrossGuideExit}
       onPersistMarkerTheme={!isReadMode ? handlePersistMarkerTheme : undefined}
       hiddenMarkerIds={scriptManager.hiddenMarkerIds}
       onToggleMarkerVisibility={scriptManager.toggleMarkerVisibility}

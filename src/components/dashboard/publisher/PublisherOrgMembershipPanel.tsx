@@ -91,7 +91,7 @@ export function PublisherOrgMembershipPanel({
 }: PublisherOrgMembershipPanelProps) {
   return (
     <>
-      <div id="org-guide-members">
+      <div>
         <PublisherFormRow label={t("publisherOrgTab.members")}>
           <div className="border rounded-md p-3 bg-muted/10 space-y-3">
             {isLoading && (
@@ -199,7 +199,7 @@ export function PublisherOrgMembershipPanel({
 
       {canManageOrgMembers ? (
         <>
-          <div id="org-guide-invite">
+          <div>
             <PublisherFormRow label={t("publisherOrgTab.inviteMember")}>
               <div className="border rounded-md p-3 bg-muted/10 space-y-2">
                 <Input

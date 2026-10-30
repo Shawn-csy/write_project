@@ -77,7 +77,7 @@ export function PublisherWorksTab({
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center" data-guide-id="studio-works-filters">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="flex flex-wrap items-center gap-2">
                     <SegmentedControl
                         ariaLabel="狀態篩選"

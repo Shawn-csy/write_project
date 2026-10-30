@@ -5,7 +5,6 @@ import { PublicMarkerLegend } from "./PublicMarkerLegend";
 import { ActivitySection } from "./ActivitySection";
 import { RelatedSeriesSection } from "./RelatedSeriesSection";
 import ScriptSurface from "../editor/ScriptSurface";
-import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { usePublicReaderLayoutState } from "../../hooks/public/usePublicReaderLayoutState";
 import type { PublicReaderScriptData, ViewerProps } from "../../hooks/public/usePublicReaderLayoutState";
 import type { CoverDesign } from "../../types/coverDesign";
@@ -108,7 +107,6 @@ export function PublicReaderLayout({
 
   const safeScrollRef = scriptSurfaceProps?.scrollRef as React.RefObject<HTMLDivElement | null> | undefined;
   const showHeader = !embeddedPreview;
-  const showGuideOverlay = !embeddedPreview;
   return (
     <div className={`relative w-full ${embeddedPreview ? "h-full min-h-[620px]" : "h-[100dvh]"} overflow-hidden flex flex-col bg-background ${s.hideWhitespace ? 'hide-whitespace' : ''} ${s.protectionClass}`}>
       {/* Background Layer */}
@@ -134,7 +132,6 @@ export function PublicReaderLayout({
           showTitle={s.titleVisible}
           onBack={onBack || (() => {})}
           onShare={onShare}
-          onOpenGuide={s.handleStartGuide}
           downloadOptions={s.downloadOptions}
           sceneList={viewerProps?.sceneList || viewerProps?.scenes || []}
           currentSceneId={viewerProps?.activeSceneId}
@@ -150,7 +147,7 @@ export function PublicReaderLayout({
       )}
 
       {/* Main Scrollable Area */}
-      <div data-guide-id="public-guide-script" className="relative z-10 flex-1 min-h-0 h-full">
+      <div className="relative z-10 flex-1 min-h-0 h-full">
         <ScriptSurface
           {...scriptSurfaceProps}
           scrollRef={safeScrollRef}
@@ -160,7 +157,7 @@ export function PublicReaderLayout({
           headerNode={
             !isLoading && script && (
               <>
-                <div data-guide-id="public-guide-info">
+                <div>
                   <PublicScriptInfoOverlay
                     title={s.title}
                     synopsis={s.synopsis}
@@ -221,24 +218,6 @@ export function PublicReaderLayout({
         />
       </div>
 
-      {showGuideOverlay && (
-        <SpotlightGuideOverlay
-          open={s.showGuide}
-          zIndex={260}
-          spotlightRect={s.guideSpotlightRect}
-          currentStep={s.guideIndex + 1}
-          totalSteps={s.guideSteps.length}
-          title={s.currentGuide?.title || ""}
-          description={s.currentGuide?.description || ""}
-          onSkip={s.finishGuide}
-          skipLabel={s.t("publicReader.guideSkip")}
-          onPrev={s.handleGuidePrev}
-          prevLabel={s.t("publicReader.guidePrev")}
-          prevDisabled={s.guideIndex === 0}
-          onNext={s.handleGuideNext}
-          nextLabel={s.guideIndex === s.guideSteps.length - 1 ? s.t("publicReader.guideDone") : s.t("publicReader.guideNext")}
-        />
-      )}
     </div>
   );
 }

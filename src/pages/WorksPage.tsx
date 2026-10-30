@@ -10,7 +10,6 @@ import {
 } from "../components/ui/dropdown-menu";
 import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
 import { WriteTab } from "../components/dashboard/WriteTab";
-import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
 import { StudioPage, StudioPageHeader, StudioSectionTitle } from "../components/studio/StudioPage";
 import { SegmentedControl } from "../components/studio/SegmentedControl";
@@ -24,7 +23,7 @@ type WorksView = "all" | "folders";
 const isCloudScript = (value: unknown): value is CloudScript =>
   typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string";
 
-const dispatchWriteTabAction = (type: "create-script" | "create-folder" | "import-script" | "open-guide") => {
+const dispatchWriteTabAction = (type: "create-script" | "create-folder" | "import-script") => {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type } }));
 };
@@ -128,7 +127,7 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
                 加入外部作品
               </Link>
             </Button>
-            <div className="inline-flex overflow-hidden rounded-md bg-primary text-primary-foreground shadow" data-guide-id="write-create-script-btn">
+            <div className="inline-flex overflow-hidden rounded-md bg-primary text-primary-foreground shadow">
               <Button className="rounded-none shadow-none" onClick={() => startCreate("create-script")}>
                 <Plus className="h-4 w-4" />
                 新增台本
@@ -186,7 +185,7 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
       ) : null}
 
       <section aria-label="全部作品">
-        <div className="mb-4 flex flex-wrap items-center gap-3" ref={s.tabsGuideRef}>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
           <h2 className="mr-1 text-[15px] font-semibold">全部作品</h2>
           <SegmentedControl<WorksView>
             ariaLabel="檢視方式"
@@ -199,7 +198,7 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
           />
         </div>
 
-        <div hidden={view !== "all"} data-guide-id="studio-works-panel">
+        <div hidden={view !== "all"}>
           <PublisherWorksTab
             isLoading={s.isWorksLoading}
             scripts={s.scripts}
@@ -221,22 +220,6 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
         </div>
       </section>
 
-      <SpotlightGuideOverlay
-        open={view === "all" && s.showStudioGuide && Boolean(s.currentStudioGuide)}
-        zIndex={220}
-        spotlightRect={s.studioSpotlightRect}
-        currentStep={s.studioGuideIndex + 1}
-        totalSteps={s.studioGuideSteps.length}
-        title={s.currentStudioGuide?.title}
-        description={s.currentStudioGuide?.description}
-        onSkip={s.finishStudioGuide}
-        skipLabel={s.t("publisher.guideSkip")}
-        onPrev={s.handleStudioGuidePrev}
-        prevLabel={s.t("publisher.guidePrev")}
-        prevDisabled={s.studioGuideIndex === 0}
-        onNext={s.handleStudioGuideNext}
-        nextLabel={s.studioGuideIndex === s.studioGuideSteps.length - 1 ? s.t("publisher.guideDone") : s.t("publisher.guideNext")}
-      />
     </StudioPage>
   );
 }

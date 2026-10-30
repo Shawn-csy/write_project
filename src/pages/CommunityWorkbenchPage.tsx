@@ -7,7 +7,6 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
-import { SpotlightGuideOverlay } from "../components/common/SpotlightGuideOverlay";
 import { CommunityAdApplicationForm } from "../components/community/CommunityAdApplicationForm";
 import { StudioPage, StudioPageHeader } from "../components/studio/StudioPage";
 
@@ -57,7 +56,7 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
           )}
 
           <Tabs value={s.activeTab} onValueChange={s.handleTabChange} className="space-y-6">
-            <TabsList ref={s.tabsGuideRef} className="flex h-auto w-full justify-start gap-6 overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
+            <TabsList className="flex h-auto w-full justify-start gap-6 overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
               <TabsTrigger value="profile" className={underlineTabClass}>
                 {s.t("publisher.authorIdentity")}{s.renderTabCount(s.tabCounts.profile)}
               </TabsTrigger>
@@ -69,7 +68,7 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile" className="mt-0" data-guide-id="studio-profile-panel">
+            <TabsContent value="profile" className="mt-0">
               <Suspense fallback={tabFallback}>
                 <PublisherProfileTabLazy
                   selectedPersonaId={s.selectedPersonaId} setSelectedPersonaId={s.setSelectedPersonaId}
@@ -89,7 +88,7 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
               </Suspense>
             </TabsContent>
 
-            <TabsContent value="org" className="mt-0" data-guide-id="studio-org-panel">
+            <TabsContent value="org" className="mt-0">
               <Suspense fallback={tabFallback}>
                 <PublisherOrgTabLazy
                   orgs={s.orgsForPersona}
@@ -152,22 +151,6 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
             </DialogContent>
           </Dialog>
 
-          <SpotlightGuideOverlay
-            open={s.showStudioGuide && Boolean(s.currentStudioGuide)}
-            zIndex={220}
-            spotlightRect={s.studioSpotlightRect}
-            currentStep={s.studioGuideIndex + 1}
-            totalSteps={s.studioGuideSteps.length}
-            title={s.currentStudioGuide?.title}
-            description={s.currentStudioGuide?.description}
-            onSkip={s.finishStudioGuide}
-            skipLabel={s.t("publisher.guideSkip")}
-            onPrev={s.handleStudioGuidePrev}
-            prevLabel={s.t("publisher.guidePrev")}
-            prevDisabled={s.studioGuideIndex === 0}
-            onNext={s.handleStudioGuideNext}
-            nextLabel={s.studioGuideIndex === s.studioGuideSteps.length - 1 ? s.t("publisher.guideDone") : s.t("publisher.guideNext")}
-          />
     </StudioPage>
   );
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, Share2, Moon, Sun, MoreHorizontal, Globe, Eye, Download, HelpCircle, Palette } from "lucide-react";
+import { ArrowLeft, Share2, Moon, Sun, MoreHorizontal, Globe, Eye, Download, Palette } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReaderAppearanceMenu } from "./ReaderAppearanceMenu";
 import { ReaderTOC } from "./ReaderTOC";
@@ -49,7 +49,6 @@ interface SimplifiedReaderHeaderProps {
   title?: string;
   showTitle?: boolean;
   onShare?: () => void;
-  onOpenGuide?: () => void;
   downloadOptions?: DownloadOption[];
   sceneList?: SceneItem[];
   currentSceneId?: string;
@@ -68,7 +67,6 @@ export function SimplifiedReaderHeader({
   title,
   showTitle = false,
   onShare,
-  onOpenGuide,
   downloadOptions = [],
   // TOC props
   sceneList,
@@ -99,13 +97,11 @@ export function SimplifiedReaderHeader({
 
   return (
     <header
-      data-guide-id="public-guide-header"
-      className={`fixed top-0 left-0 right-0 h-14 md:h-16 px-4 z-40 flex items-center justify-between transition-all duration-300 ${className}`}
+      className={`fixed top-0 left-0 right-0 h-14 px-4 z-40 flex items-center justify-between transition-all duration-300 ${className}`}
     >
       {/* Left: Back */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <Button
-          data-guide-id="public-guide-back"
           variant="ghost"
           size="icon"
           onClick={onBack}
@@ -122,8 +118,6 @@ export function SimplifiedReaderHeader({
           metaItems={metaItems}
           open={tocOpen}
           onOpenChange={onTocOpenChange}
-          triggerGuideId="public-guide-toc-trigger"
-          panelGuideId="public-guide-toc-panel"
           hideHeaderTrigger
         />
 
@@ -139,7 +133,7 @@ export function SimplifiedReaderHeader({
       </div>
 
       {/* Right: Actions */}
-      <div data-guide-id="public-guide-actions" className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         <Button
           variant="ghost"
           size="icon"
@@ -212,12 +206,6 @@ export function SimplifiedReaderHeader({
               <Palette className="mr-2 h-4 w-4" />
               {t("readerAppearance.title")}
             </DropdownMenuItem>
-            {onOpenGuide ? (
-              <DropdownMenuItem onClick={onOpenGuide}>
-                <HelpCircle className="mr-2 h-4 w-4" />
-                {t("publicReader.guide")}
-              </DropdownMenuItem>
-            ) : null}
             {activeDownloadOptions.length > 0 && (
               <>
                 <DropdownMenuSeparator />

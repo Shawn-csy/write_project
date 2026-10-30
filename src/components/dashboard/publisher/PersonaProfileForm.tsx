@@ -246,6 +246,30 @@ export function PersonaProfileForm({
           </div>
         </PublisherFormRow>
 
+        <PublisherFormRow label={t("publisherProfileTab.roles", "公開身份角色")} hint={t("publisherProfileTab.rolesHint", "選擇後會顯示在公開身份頁；聲演可自行登記。") }>
+          <div className="flex flex-wrap gap-2">
+            {["台本師", "聲演"].map((role) => {
+              const selected = (personaDraft.tags || []).some((tag) => String(tag).trim() === role);
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => setPersonaDraft((prev) => ({
+                    ...prev,
+                    tags: selected
+                      ? (prev.tags || []).filter((tag) => String(tag).trim() !== role)
+                      : [...(prev.tags || []).filter((tag) => String(tag).trim() !== role), role],
+                  }))}
+                  className={`h-8 rounded-md border px-3 text-xs font-medium transition-colors ${selected ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:bg-muted"}`}
+                >
+                  {role === "台本師" ? t("publisherProfileTab.scriptwriterRole", "台本師") : t("publisherProfileTab.voiceActorRole", "聲演")}
+                </button>
+              );
+            })}
+          </div>
+        </PublisherFormRow>
+
         <PublisherFormRow label={t("publisherProfileTab.tags")}>
           <PublisherTagEditor
             tags={personaDraft.tags || []}

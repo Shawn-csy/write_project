@@ -2,7 +2,6 @@ import React from "react";
 import { optimizeImageForUpload, getImageUploadGuide } from "../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../lib/api/media";
 import { useI18n } from "../../contexts/I18nContext";
-import { usePublisherOrgGuide } from "./usePublisherOrgGuide";
 import type { MediaSelection } from "../../components/ui/MediaPicker";
 
 interface OrgItem {
@@ -80,7 +79,6 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
   const orgProgress = Math.round((orgDone / orgChecklist.length) * 100);
   const orgNextSteps = orgChecklist.filter(i => !i.ok).slice(0, 3);
 
-  const guide = usePublisherOrgGuide({ t, viewMode, selectedOrgId: selectedOrgId || "", canManageOrgMembers });
   const isReadOnlyExistingOrg = viewMode === "edit" && Boolean(selectedOrgId) && !canManageOrgMembers;
 
   const applyUploadedImage = React.useCallback(async (file: File, field: "logoUrl" | "bannerUrl") => {
@@ -188,6 +186,5 @@ export function usePublisherOrgTabState({ orgs, selectedOrgId, setSelectedOrgId,
     logoGuide, bannerGuide, filteredTagOptions,
     orgChecklist, orgDone, orgProgress, orgNextSteps,
     applyUploadedImage, handleImageUpload, openCropFromUrl, applyCropRef, handleMediaPickerSelect, handleMediaPickerSelectMedia,
-    ...guide,
   };
 }

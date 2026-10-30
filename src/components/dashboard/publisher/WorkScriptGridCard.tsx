@@ -101,7 +101,7 @@ export function WorkScriptGridCard({
             <FilePenLine className="mr-1.5 h-3 w-3" /> {t("publisherWorksTab.continueWriting")}
           </Button>
           <div className="flex gap-1">
-            <Button variant="outline" size="sm" className="h-7 flex-1 justify-start px-2 text-xs" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
+            <Button variant="outline" size="sm" className="h-7 flex-1 justify-start px-2 text-xs" onClick={() => setEditingScript(script)}>
               <Edit className="mr-1 h-3 w-3" /> {readiness.primaryActionLabel}
             </Button>
             {readiness.status === "published" && (

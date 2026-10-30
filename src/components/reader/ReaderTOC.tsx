@@ -29,8 +29,6 @@ interface ReaderTOCProps {
   metaItems?: MetaItem[];
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  triggerGuideId?: string;
-  panelGuideId?: string;
   hideHeaderTrigger?: boolean;
 }
 
@@ -41,8 +39,6 @@ export function ReaderTOC({
   metaItems = [],
   open,
   onOpenChange,
-  triggerGuideId = "public-guide-toc-trigger",
-  panelGuideId = "public-guide-toc-panel",
   hideHeaderTrigger = false,
 }: ReaderTOCProps) {
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -65,7 +61,6 @@ export function ReaderTOC({
       {!resolvedOpen && hideHeaderTrigger && (
         <button
           type="button"
-          data-guide-id={triggerGuideId}
           className="md:hidden inline-flex items-center justify-center rounded-full bg-background/20 p-2 text-foreground backdrop-blur-md hover:bg-background/40"
           onClick={() => setOpen(true)}
           aria-label={t("publicReader.openToc", "開啟詳細資料側欄")}
@@ -76,7 +71,6 @@ export function ReaderTOC({
       {!resolvedOpen && (
         <button
           type="button"
-          data-guide-id={triggerGuideId}
           className="hidden md:inline-flex fixed left-0 top-1/2 -translate-y-1/2 z-40 items-center gap-1.5 rounded-r-xl border border-l-0 border-border/80 bg-background/95 px-3 py-4 text-xs font-medium text-foreground shadow-md backdrop-blur-sm transition-all hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-lg"
           onClick={() => setOpen(true)}
           aria-label={t("publicReader.openToc", "開啟詳細資料側欄")}
@@ -90,7 +84,6 @@ export function ReaderTOC({
         {!hideHeaderTrigger ? (
           <SheetTrigger asChild>
             <Button
-              data-guide-id={triggerGuideId}
               variant="ghost"
               size="icon"
               className="rounded-full bg-background/20 hover:bg-background/40 text-foreground backdrop-blur-md"
@@ -101,7 +94,6 @@ export function ReaderTOC({
           </SheetTrigger>
         ) : null}
         <SheetContent
-          data-guide-id={panelGuideId}
           side="left"
           className="w-[300px] sm:w-[400px] p-0 flex flex-col h-full bg-background/95 backdrop-blur-md"
         >

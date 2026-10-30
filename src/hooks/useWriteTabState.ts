@@ -23,9 +23,6 @@ export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrig
   const [sortKey, setSortKey] = useState("custom");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [filterQuery, setFilterQuery] = useState("");
-  const [showGuide, setShowGuide] = useState(false);
-  const [guideIndex, setGuideIndex] = useState(0);
-  const [guideSpotlightRect, setGuideSpotlightRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
   const [isPreviewCollapsed, setIsPreviewCollapsed] = useState(true);
   const [footerQuote, setFooterQuote] = useState<{ quote?: string; anime?: string; character?: string } | null>(null);
   const [isQuickCreatingScript, setIsQuickCreatingScript] = useState(false);
@@ -101,7 +98,6 @@ export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrig
       if (type === "create-script") { handleQuickCreateScript(); return; }
       if (type === "create-folder") { manager.setNewType("folder"); manager.setIsCreateOpen(true); return; }
       if (type === "import-script") { setIsImportOpen(true); return; }
-      if (type === "open-guide") { setGuideIndex(0); setShowGuide(true); }
     };
     window.addEventListener("write-tab-action", handleAction);
     return () => window.removeEventListener("write-tab-action", handleAction);
@@ -219,61 +215,20 @@ export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrig
     manager.toggleExpand((folder === "/" ? "" : folder) + "/" + item.title);
   }, [manager.toggleExpand]);
 
-  const guideSteps = useMemo(() => ([
-    { title: t("writeTab.guideCreateTitle"), description: t("writeTab.guideCreateDesc"), target: "write-create-script-btn" },
-    { title: t("writeTab.guideImportTitle"), description: t("writeTab.guideImportDesc"), target: "write-import-script-btn" },
-    { title: t("writeTab.guideMiddleTitle"), description: totalItems === 0 ? t("writeTab.guideMiddleDescDemo") : t("writeTab.guideMiddleDesc"), target: "write-middle-controls" },
-    { title: t("writeTab.guideListTitle"), description: t("writeTab.guideListDesc"), target: "write-list-panel" },
-    { title: t("writeTab.guidePreviewTitle"), description: t("writeTab.guidePreviewDesc"), target: hasDesktopPreview ? "write-preview-panel" : "write-list-panel" },
-  ]), [hasDesktopPreview, t, totalItems]);
-
-  const getGuideTargetElement = useCallback((target: string) => {
-    if (typeof document === "undefined") return null;
-    return document.querySelector(`[data-guide-id="${target}"]`);
-  }, []);
-
-  const updateGuideSpotlight = useCallback(() => {
-    if (!showGuide) { setGuideSpotlightRect(null); return; }
-    const step = guideSteps[guideIndex];
-    const element = step ? getGuideTargetElement(step.target) : null;
-    if (!element) { setGuideSpotlightRect(null); return; }
-    const rect = element.getBoundingClientRect();
-    if (!rect.width || !rect.height) { setGuideSpotlightRect(null); return; }
-    const padding = 8;
-    setGuideSpotlightRect({ top: Math.max(0, rect.top - padding), left: Math.max(0, rect.left - padding), width: rect.width + padding * 2, height: rect.height + padding * 2 });
-  }, [getGuideTargetElement, guideIndex, guideSteps, showGuide]);
-
-  useEffect(() => {
-    if (!showGuide) return undefined;
-    updateGuideSpotlight();
-    window.addEventListener("resize", updateGuideSpotlight);
-    window.addEventListener("scroll", updateGuideSpotlight, true);
-    return () => { window.removeEventListener("resize", updateGuideSpotlight); window.removeEventListener("scroll", updateGuideSpotlight, true); };
-  }, [guideIndex, showGuide, updateGuideSpotlight]);
-
-  const closeGuide = useCallback(() => { setShowGuide(false); setGuideSpotlightRect(null); }, []);
-  const prevGuide = useCallback(() => { setGuideIndex(prev => Math.max(0, prev - 1)); }, []);
-  const nextGuide = useCallback(() => {
-    if (guideIndex >= guideSteps.length - 1) { closeGuide(); return; }
-    setGuideIndex(prev => Math.min(guideSteps.length - 1, prev + 1));
-  }, [closeGuide, guideIndex, guideSteps.length]);
-
   return {
     t, manager, writeTone: null,
     isImportOpen, setIsImportOpen,
     previewItemId, pageSize, setPageSize,
     sortKey, setSortKey, sortDir, setSortDir,
     filterQuery, setFilterQuery,
-    showGuide, setShowGuide, guideIndex, setGuideIndex, guideSpotlightRect,
     isPreviewCollapsed, setIsPreviewCollapsed,
     footerQuote, footerTip,
     isQuickCreatingScript, isMobilePreviewOpen, setIsMobilePreviewOpen,
     hasDesktopPreview, breadcrumbs,
     previewItem, previewPath, availableFolders,
     filteredAndSortedItems, hasActiveFilters, totalItems, pagedItems, hasMoreItems,
-    guideSteps,
     handleImport, handleOpenScript, handleQuickCreateScript,
     handlePreviewItemSelect, handleListScroll, handleSortChange,
-    handleToggleExpandItem, loadMore, closeGuide, prevGuide, nextGuide,
+    handleToggleExpandItem, loadMore,
   };
 }

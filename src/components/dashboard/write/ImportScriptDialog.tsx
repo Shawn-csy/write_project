@@ -1,16 +1,14 @@
 import React from "react";
-import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2, CircleHelp } from "lucide-react";
+import { Loader2, ClipboardPaste, FileText, Eye, CheckCircle2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Textarea } from "../../ui/textarea";
 import { Label } from "../../ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "../../ui/dialog";
-import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 
 import { ImportStageInput } from "./import/ImportStageInput";
 import { ImportStagePreview } from "./import/ImportStagePreview";
 import { ImportStageResult } from "./import/ImportStageResult";
-import { ImportFormatGuideDialog } from "./import/ImportFormatGuideDialog";
 import type { ControlledMetadataField } from "./import/ImportStagePreview";
 
 import { useImportScriptDialogState, STEPS, type ImportPayload } from "../../../hooks/dashboard/useImportScriptDialogState";
@@ -38,15 +36,13 @@ interface ImportScriptDialogProps {
 }
 
 export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }: ImportScriptDialogProps): React.JSX.Element {
-  const s = useImportScriptDialogState({ open, onOpenChange, onImport, currentPath });
+  const s = useImportScriptDialogState({ onOpenChange, onImport, currentPath });
 
   return (
     <>
       <Dialog open={open} onOpenChange={s.handleOpenChange}>
         <DialogContent
           className="max-w-5xl h-[85vh] flex flex-col"
-          onInteractOutside={(e) => { if (s.showGuide) e.preventDefault(); }}
-          onEscapeKeyDown={(e) => { if (s.showGuide) e.preventDefault(); }}
         >
           <DialogHeader>
             <div className="flex items-center justify-between gap-2">
@@ -54,15 +50,6 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
                 <FileText className="w-5 h-5" />
                 {s.t("importDialog.title")}
               </DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="ghost" size="sm" onClick={() => s.setShowFormatQuickInfo(true)}>
-                  {s.t("importDialog.formatGuide")}
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={s.handleGuideStart}>
-                  <CircleHelp className="w-4 h-4 mr-1" />
-                  {s.t("importDialog.help")}
-                </Button>
-              </div>
             </div>
             <DialogDescription>{s.t("importDialog.descDefault")}</DialogDescription>
           </DialogHeader>
@@ -88,7 +75,7 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
             {/* Step 1 */}
             {s.step === STEPS.INPUT && (
               <div className="flex flex-col gap-4 h-full min-h-0 overflow-y-auto pr-1 pb-1">
-                <div ref={s.guidePasteRef} className="flex flex-col gap-4 min-h-0">
+                <div className="flex flex-col gap-4 min-h-0">
                   <div className="flex items-center gap-2">
                     <Input
                       placeholder={s.t("importDialog.scriptTitle")}
@@ -103,7 +90,7 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
                   </div>
                   <ImportStageInput text={s.rawInput} setText={s.setRawInput} />
                 </div>
-                <div ref={s.guideCharacterRef} className="border rounded-md p-3 space-y-2 bg-muted/20 shrink-0">
+                <div className="border rounded-md p-3 space-y-2 bg-muted/20 shrink-0">
                   <div className="space-y-0.5">
                     <Label htmlFor="character-whole-line-input">{s.t("importDialog.characterAutoLabel")}</Label>
                     <p className="text-xs text-muted-foreground">{s.t("importDialog.characterAutoDesc")}</p>
@@ -121,7 +108,7 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
 
             {/* Step 2 */}
             {s.step === STEPS.PREVIEW && s.preprocessResult && (
-              <div ref={s.guidePreviewRef} className="h-full">
+              <div className="h-full">
                 <ImportStagePreview
                   previewText={s.preprocessResult.cleanedText}
                   setPreviewText={s.handleSetPreviewText}
@@ -140,7 +127,7 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
 
             {/* Step 3 */}
             {s.step === STEPS.RESULT && s.preprocessResult?.cleanedText && (
-              <div ref={s.guideResultRef} className="h-full">
+              <div className="h-full">
                 <ImportStageResult
                   title={s.title}
                   setTitle={s.setTitle}
@@ -179,31 +166,6 @@ export function ImportScriptDialog({ open, onOpenChange, onImport, currentPath }
         </DialogContent>
       </Dialog>
 
-      <SpotlightGuideOverlay
-        open={s.showGuide && Boolean(s.currentGuide)}
-        zIndex={200}
-        spotlightRect={s.spotlightRect}
-        currentStep={s.guideIndex + 1}
-        totalSteps={s.guideSteps.length}
-        title={s.currentGuide?.title}
-        description={s.currentGuide?.description}
-        onSkip={s.finishGuide}
-        skipLabel={s.t("importDialog.guideSkip")}
-        onPrev={s.handleGuidePrev}
-        prevLabel={s.t("importDialog.guidePrev")}
-        prevDisabled={s.guideIndex === 0}
-        onNext={s.handleGuideNext}
-        nextLabel={s.guideIndex === s.guideSteps.length - 1 ? s.t("importDialog.guideDone") : s.t("importDialog.guideNext")}
-      />
-
-      <ImportFormatGuideDialog
-        open={s.showFormatQuickInfo}
-        onOpenChange={s.setShowFormatQuickInfo}
-        markerRows={s.markerRows}
-        detailRows={s.detailRows}
-        showFormatDetails={s.showFormatDetails}
-        setShowFormatDetails={s.setShowFormatDetails}
-      />
     </>
   );
 }

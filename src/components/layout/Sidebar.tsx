@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   BookOpen,
   ExternalLink,
+  Mic2,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import UserMenu from "../auth/UserMenu";
@@ -153,6 +154,7 @@ function Sidebar({
             <NavItem collapsed={collapsed} icon={FileText} label={t("nav.works", "作品")} onClick={() => go("/works")} isActive={isWorks} />
             <NavItem collapsed={collapsed} icon={Layers3} label={t("nav.series", "系列")} onClick={() => go("/series")} isActive={path.startsWith("/series")} />
             <NavItem collapsed={collapsed} icon={UserRound} label={t("nav.identity", "公開身份")} onClick={() => go("/identity")} isActive={path.startsWith("/identity") || path === "/community"} />
+            <NavItem collapsed={collapsed} icon={Mic2} label={t("nav.demoManagement", "Demo 管理")} onClick={() => go("/demos")} isActive={path === "/demos"} />
             <NavItem collapsed={collapsed} icon={Image} label={t("nav.mediaLibrary", "媒體庫")} onClick={() => go("/settings?tab=media")} isActive={isMedia} />
           </div>
 

@@ -14,7 +14,6 @@ import { useSettings } from "../../contexts/SettingsContext";
 import { useScriptView } from "../../contexts/ScriptViewContext";
 import { useEditorSync } from "../useEditorSync";
 import { useEditorResize } from "./useEditorResize";
-import { useEditorGuide } from "./useEditorGuide";
 import { useLiveEditorPersistence } from "./useLiveEditorPersistence";
 import { usePreviewLineNavigation } from "../usePreviewLineNavigation";
 import { useLiveEditorDownloadOptions } from "./useLiveEditorDownloadOptions";
@@ -58,11 +57,6 @@ interface Props {
   onTitleNote?: (note: string) => void;
   onTitleSummary?: (summary: string) => void;
   onTitleName?: (name: string) => void;
-  crossModeGuideActive?: boolean;
-  crossModeGuideStep?: string;
-  onCrossGuideNext?: () => void;
-  onCrossGuidePrev?: () => void;
-  onCrossGuideExit?: () => void;
   onPersistMarkerTheme?: (themeId: string) => Promise<boolean | void>;
   hiddenMarkerIds?: string[];
   toggleMarkerVisibility?: (id: string) => void;
@@ -72,7 +66,7 @@ interface Props {
 export function useLiveEditorState({
   scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false,
   readOnly = false, contentScrollRef,
-  onTitleName, crossModeGuideActive = false, crossModeGuideStep = "",
+  onTitleName,
   onPersistMarkerTheme, hiddenMarkerIds = [], toggleMarkerVisibility = () => {}, t,
 }: Props) {
   const {
@@ -100,7 +94,6 @@ export function useLiveEditorState({
 
   const headerRef = useRef<HTMLDivElement | null>(null);
   const editorPaneRef = useRef<HTMLDivElement | null>(null);
-  const moreActionsButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const [systemPrefersDark, setSystemPrefersDark] = useState(() => {
     if (typeof window === "undefined" || !window.matchMedia) return false;
@@ -190,15 +183,6 @@ export function useLiveEditorState({
     editorPreviewContainerRef, editorPaneWidth: _editorPaneWidth, isResizing,
     handleResizerPointerDown, handleResizerPointerMove, handleResizerPointerUp, handleResizerDoubleClick,
   } = useEditorResize({ readOnly, showPreview });
-
-  const {
-    showGuide, guideSpotlightRect, currentGuide, guideSteps, guideIndex,
-    crossGuideSpotlightRect, showCrossModeEditGuide, crossGuideTitle, crossGuideDesc,
-    startGuide, finishGuide, handleGuidePrev, handleGuideNext,
-  } = useEditorGuide({
-    readOnly, isMobile, t, crossModeGuideActive, crossModeGuideStep,
-    refs: { headerRef, editorPaneRef, previewRef, moreActionsButtonRef },
-  });
 
   const [scenes, setScenes] = useState<Array<{ id?: string; [key: string]: unknown }>>([]);
 
@@ -310,16 +294,12 @@ export function useLiveEditorState({
     captureRenderedHtml, setRawRenderedHtml, setProcessedRenderedHtml,
     ast, scenes, setScenes,
     // refs
-    headerRef, editorPaneRef, moreActionsButtonRef,
+    headerRef, editorPaneRef,
     editorPreviewContainerRef, previewRef,
     initialSceneId,
     // resize
     isResizing, handleResizerPointerDown, handleResizerPointerMove,
     handleResizerPointerUp, handleResizerDoubleClick,
-    // guide
-    showGuide, guideSpotlightRect, currentGuide, guideSteps, guideIndex,
-    crossGuideSpotlightRect, showCrossModeEditGuide, crossGuideTitle, crossGuideDesc,
-    startGuide, finishGuide, handleGuidePrev, handleGuideNext,
     // handlers
     handleChange, handleTitleUpdate, handleBack, handleManualSave,
     handleEditorCreate, handleViewUpdate, handleSwitchMarkerTheme,

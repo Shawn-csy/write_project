@@ -11,7 +11,6 @@ import { PublisherFormRow } from "./PublisherFormRow";
 import { PublisherTabHeader } from "./PublisherTabHeader";
 import { PublisherOrgMembershipPanel } from "./PublisherOrgMembershipPanel";
 import { PublisherTagEditor } from "./PublisherTagEditor";
-import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
 import {
     PublisherSplitPanel,
@@ -21,7 +20,6 @@ import {
     PublisherActionBar,
     PUBLISHER_CONTENT_STACK_CLASS,
     PUBLISHER_SECTION_CARD_CLASS,
-    PUBLISHER_DEMO_CARD_CLASS,
 } from "./PublisherEntityLayout";
 import { usePublisherOrgTabState } from "../../../hooks/publisher/usePublisherOrgTabState";
 
@@ -164,7 +162,7 @@ export function PublisherOrgTab({
         <PublisherSplitPanel
             sidebar={(
                 <PublisherEntityListPane
-                    id="org-guide-list"
+                    id="publisher-org-list"
                     title={t("publisherOrgTab.orgList")}
                     onCreate={s.onStartCreate}
                     createAriaLabel={t("publisherOrgTab.createOrg")}
@@ -198,7 +196,7 @@ export function PublisherOrgTab({
                     emptyState={orgs.length === 0 ? (
                         <PublisherEmptyState
                             title={t("publisherOrgTab.noOrg")}
-                            description={t("publisherOrgTab.emptyDemoDesc", "尚未建立組織時，教學會先用示範資料帶你了解表單、成員與邀請區。")}
+                            description="建立組織後，可在這裡管理組織資料、成員與邀請。"
                             actionLabel={t("publisherOrgTab.createNow")}
                             onAction={s.onStartCreate}
                             className="mx-1"
@@ -226,7 +224,7 @@ export function PublisherOrgTab({
                 />
             )}
             footer={(s.viewMode === "create" || selectedOrgId) ? (
-                <PublisherActionBar id="org-guide-save">
+                <PublisherActionBar>
                     <Button
                         onClick={s.viewMode === "create" ? handleCreateOrg : handleSaveOrg}
                         disabled={(s.viewMode === "create" ? isCreatingOrg : isSavingOrg) || !orgDraft.name.trim()}
@@ -270,7 +268,7 @@ export function PublisherOrgTab({
                                 </div>
                             )}
                             <div className="space-y-4">
-                                <div id="org-guide-basic" className="grid gap-4">
+                                <div className="grid gap-4">
                                     <PublisherFormRow label={t("publisherOrgTab.orgName")} required>
                                         <Input
                                             id="org-name"
@@ -465,74 +463,15 @@ export function PublisherOrgTab({
                         </div>
                     </>
                 ) : (
-                    <div className="space-y-4">
-                        <div className={PUBLISHER_DEMO_CARD_CLASS}>
-                            <div className="flex items-start gap-3">
-                                <div className="mt-0.5 h-10 w-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                                    <Building2 className="h-5 w-5" />
-                                </div>
-                                <div className="space-y-1">
-                                    <h4 className="text-base font-semibold">{t("publisherOrgTab.emptyDemoTitle", "這是組織管理示範")}</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {t("publisherOrgTab.emptyDemoDesc", "尚未建立組織時，教學會先用示範資料帶你了解表單、成員與邀請區。")}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="org-guide-basic" className={`${PUBLISHER_SECTION_CARD_CLASS} space-y-3`}>
-                            <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoBasicTitle", "示範：組織基本資訊")}</div>
-                            <div className="grid gap-2 md:grid-cols-2">
-                                <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
-                                    <div className="text-muted-foreground">組織名稱</div>
-                                    <div className="font-medium">示範組織名稱</div>
-                                </div>
-                                <div className="rounded-md border bg-muted/20 px-3 py-2 text-xs">
-                                    <div className="text-muted-foreground">網站</div>
-                                    <div className="font-medium">https://example.org</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="org-guide-members" className={`${PUBLISHER_SECTION_CARD_CLASS} space-y-2`}>
-                            <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoMembersTitle", "示範：成員與角色")}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {t("publisherOrgTab.emptyDemoMembersDesc", "這裡會顯示帳號成員、作者身份，以及每位成員的組織角色。")}
-                            </p>
-                        </div>
-
-                        <div id="org-guide-invite" className={`${PUBLISHER_SECTION_CARD_CLASS} space-y-2`}>
-                            <div className="text-sm font-semibold">{t("publisherOrgTab.emptyDemoInviteTitle", "示範：邀請與申請")}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {t("publisherOrgTab.emptyDemoInviteDesc", "這裡可搜尋帳號發送邀請，並處理加入申請。")}
-                            </p>
-                        </div>
-
-                        <div id="org-guide-save" className="flex items-center justify-between rounded-lg border bg-background/60 px-3 py-2">
-                            <span className="text-xs text-muted-foreground">{t("publisherOrgTab.selectOrgToEdit")}</span>
-                            <Button variant="outline" onClick={s.onStartCreate}>{t("publisherOrgTab.orCreateNewOrg")}</Button>
-                        </div>
+                    <div className="flex min-h-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border px-5 py-8 text-center">
+                        <Building2 className="h-6 w-6 text-muted-foreground" />
+                        <p className="text-sm font-medium">{orgs.length ? "選擇一個組織查看資料" : "尚未建立組織"}</p>
+                        {!orgs.length ? <Button variant="outline" onClick={s.onStartCreate}>{t("publisherOrgTab.createNow")}</Button> : null}
                     </div>
                 )}
             </div>
         </PublisherSplitPanel>
 
-        <SpotlightGuideOverlay
-            open={s.showGuide && Boolean(s.currentGuide)}
-            zIndex={230}
-            spotlightRect={s.guideSpotlightRect}
-            currentStep={s.guideIndex + 1}
-            totalSteps={s.guideSteps.length}
-            title={s.currentGuide?.title}
-            description={s.currentGuide?.description}
-            onSkip={s.finishGuide}
-            skipLabel={t("publisherOrgTab.guideSkip")}
-            onPrev={s.handleGuidePrev}
-            prevLabel={t("publisherOrgTab.guidePrev")}
-            prevDisabled={s.guideIndex === 0}
-            onNext={s.handleGuideNext}
-            nextLabel={s.guideIndex === s.guideSteps.length - 1 ? t("publisherOrgTab.guideDone") : t("publisherOrgTab.guideNext")}
-        />
         <MediaPicker
             open={s.isMediaPickerOpen}
             onOpenChange={s.setIsMediaPickerOpen}

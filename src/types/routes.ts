@@ -33,10 +33,7 @@ export interface WorkspaceRoutesProps {
   handleCloudMarkerThemeUpdate: (themeId: string) => Promise<boolean>;
   accentStyle: { label?: string; [key: string]: string | undefined };
   activeCloudScript: CloudScript | null;
-  isCloudReadMode: boolean;
-  startCrossModeGuide: () => void;
   handleReaderEdit: () => void;
-  guideOverlay: React.ReactNode;
   navigate: NavigateFunction;
 }
 

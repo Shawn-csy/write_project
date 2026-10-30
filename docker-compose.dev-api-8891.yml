@@ -74,7 +74,8 @@ services:
 
 volumes:
   dev-api-8891-postgres:
-    name: write-project-dev-api-8891-postgres
+    name: write-project-dev-api-8891-postgres-recovery
+    external: true
   dev-api-8891-media:
     name: write-project-dev-api-8891-media
     external: true

@@ -26,7 +26,7 @@ type AllState = ReturnType<typeof useScriptMetadataDialogState>;
 
 /** Stable shell: open/close, i18n, save action. Changes only on dialog open/close or save. */
 export type UIContextValue = Pick<AllState,
-    "open" | "onOpenChange" | "t" | "isSaving" | "handleSave" | "showGuide"
+    "open" | "onOpenChange" | "t" | "isSaving" | "handleSave"
 >;
 const UIContext = React.createContext<UIContextValue | null>(null);
 export function useUIContext() {
@@ -47,15 +47,13 @@ export function useStatusContext() {
     return ctx;
 }
 
-/** Checklist + guide + validation row helpers. Changes on every form field edit. */
+/** Checklist + validation row helpers. Changes on every form field edit. */
 export type ChecklistContextValue = Pick<AllState,
     "completedChecklistItems" | "totalChecklistItems" | "completionPercent" |
     "hasBlockingIssues" | "checklistChipItems" | "maxVisibleChecklistChips" |
     "hiddenChecklistChipCount" | "visibleChecklistChipItems" |
     "showAllChecklistChips" | "setShowAllChecklistChips" |
     "handleFocusSection" | "handleJumpToChecklistItem" |
-    "startGuide" | "handleGuideNext" | "handleGuidePrev" | "finishGuide" |
-    "guideIndex" | "guideSteps" | "guideSpotlightRect" | "currentGuide" |
     "requiredErrorMap" | "recommendedErrorMap" | "missingRequiredMap" |
     "renderRowLabel" | "getRowLabelClass"
 >;
@@ -183,7 +181,7 @@ export function ScriptMetadataDialogProvider({
     // Destructure first so useMemo deps are direct stable references,
     // which satisfies react-hooks/exhaustive-deps without disable comments.
     const {
-        open, onOpenChange, t, isSaving, handleSave, showGuide,
+        open, onOpenChange, t, isSaving, handleSave,
         status: allStatus, setStatus, activeTab, setActiveTab,
         collapsedSections, toggleSection, contentScrollRef, isInitializing,
         completedChecklistItems, totalChecklistItems, completionPercent,
@@ -191,8 +189,6 @@ export function ScriptMetadataDialogProvider({
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,
         handleFocusSection, handleJumpToChecklistItem,
-        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
-        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
         isMediaPickerOpen, setIsMediaPickerOpen, mediaPickerTarget, handleMediaPickerSelect, handleMediaPickerSelectMedia,
         cropOpen, setCropOpen, cropSource, cropPurpose, cropTarget, applyCroppedUpload, openCoverCropFromUrl, applyCoverCropRef,
         showPersonaSetupDialog, handlePersonaSetupDialogOpenChange, handleGoToAuthorProfile,
@@ -201,8 +197,8 @@ export function ScriptMetadataDialogProvider({
     } = all;
 
     const ui: UIContextValue = useMemo(() => ({
-        open, onOpenChange, t, isSaving, handleSave, showGuide,
-    }), [open, onOpenChange, t, isSaving, handleSave, showGuide]);
+        open, onOpenChange, t, isSaving, handleSave,
+    }), [open, onOpenChange, t, isSaving, handleSave]);
 
     const status: StatusContextValue = useMemo(() => ({
         status: allStatus, setStatus,
@@ -217,8 +213,6 @@ export function ScriptMetadataDialogProvider({
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,
         handleFocusSection, handleJumpToChecklistItem,
-        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
-        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
         requiredErrorMap, recommendedErrorMap, missingRequiredMap,
         renderRowLabel, getRowLabelClass,
     }), [
@@ -227,8 +221,6 @@ export function ScriptMetadataDialogProvider({
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,
         handleFocusSection, handleJumpToChecklistItem,
-        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
-        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
         requiredErrorMap, recommendedErrorMap, missingRequiredMap,
         renderRowLabel, getRowLabelClass,
     ]);
@@ -246,7 +238,7 @@ export function ScriptMetadataDialogProvider({
     // Strip all slice-allocated fields from `all` to obtain the remaining form state.
     // We already have the individual names from the destructure above, so just rest-spread.
     const {
-        open: _o, onOpenChange: _oc, t: _t, isSaving: _is, handleSave: _hs, showGuide: _sg,
+        open: _o, onOpenChange: _oc, t: _t, isSaving: _is, handleSave: _hs,
         status: _st, setStatus: _ss, activeTab: _at, setActiveTab: _sat,
         collapsedSections: _cs, toggleSection: _ts, contentScrollRef: _csr, isInitializing: _ii,
         completedChecklistItems: _cci, totalChecklistItems: _tci, completionPercent: _cp,
@@ -254,8 +246,6 @@ export function ScriptMetadataDialogProvider({
         hiddenChecklistChipCount: _hccc, visibleChecklistChipItems: _vcci,
         showAllChecklistChips: _sacc, setShowAllChecklistChips: _ssacc,
         handleFocusSection: _hfs, handleJumpToChecklistItem: _hjtci,
-        startGuide: _sgu, handleGuideNext: _hgn, handleGuidePrev: _hgp, finishGuide: _fg,
-        guideIndex: _gi, guideSteps: _gst, guideSpotlightRect: _gsr, currentGuide: _cg,
         isMediaPickerOpen: _impo, setIsMediaPickerOpen: _simpo,
         mediaPickerTarget: _mpt, handleMediaPickerSelect: _hmps, handleMediaPickerSelectMedia: _hmpm,
         cropOpen: _co, setCropOpen: _sco, cropSource: _cso, cropPurpose: _cpu,
