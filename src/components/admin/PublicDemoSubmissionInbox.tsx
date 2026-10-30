@@ -4,6 +4,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { getPublicDemoSubmissionsAdmin, updatePublicDemoSubmissionStatusAdmin } from "../../lib/api/admin";
+import { notifyAdminQueueUpdated } from "../../lib/adminNotifications";
 import type { PublicDemoSubmissionRecord } from "../../types/api";
 
 type StatusFilter = "all" | PublicDemoSubmissionRecord["status"];
@@ -45,6 +46,7 @@ export function PublicDemoSubmissionInbox(): React.JSX.Element {
     setError("");
     try {
       const updated = await updatePublicDemoSubmissionStatusAdmin(id, nextStatus);
+      notifyAdminQueueUpdated();
       setItems((current) => current.map((item) => item.id === id ? updated : item));
       if (status === "pending" && nextStatus !== "pending") {
         setItems((current) => current.filter((item) => item.id !== id));
@@ -120,7 +122,7 @@ export function PublicDemoSubmissionInbox(): React.JSX.Element {
             </div>
             {item.coverUrl && <a href={item.coverUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:underline"><img src={item.coverUrl} alt="Demo 封面預覽" className="h-12 w-20 rounded border border-border/70 object-cover" loading="lazy" referrerPolicy="no-referrer" />檢視封面</a>}
             {item.description && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">{item.description}</p>}
-            {item.status !== "approved" && (item.manualVoiceActors?.length || 0) > 0 && <p className="mt-2 text-xs text-muted-foreground">核准後會建立待認領聲演身份頁，並列入聲演名錄。</p>}
+            {item.status !== "approved" && (item.manualVoiceActors?.length || 0) > 0 && <p className="mt-2 text-xs text-muted-foreground">核准後會建立尚未連結帳戶的聲演身份頁，並列入聲演名錄。</p>}
             {item.status !== "approved" && (
               <div className="mt-3 flex gap-2">
                 <Button size="sm" className="h-8" disabled={updatingId === item.id} onClick={() => void updateStatus(item.id, "approved")}>

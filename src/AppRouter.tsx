@@ -1,13 +1,10 @@
 import React from "react";
 import { Routes, useNavigate } from "react-router-dom";
-import { useI18n } from "./contexts/I18nContext";
-import { useCrossModeReadGuide } from "./hooks/useCrossModeReadGuide";
 import { renderWorkspaceRoutes } from "./routes/WorkspaceRoutes";
 import type { ScriptManager } from "./hooks/useScriptManager.types";
 import type { Nav, NavProps } from "./types/nav";
 import type { DownloadOption } from "./types/routes";
 
-import { ReadGuideOverlay } from "./components/reader/ReadGuideOverlay";
 
 interface AppRouterProps {
   scriptManager: ScriptManager;
@@ -50,22 +47,7 @@ export function AppRouter({
   accentStyle,
   activeCloudScript,
 }: AppRouterProps) {
-  const { t } = useI18n() as { t: (key: string, fallback?: string) => string };
   const navigate = useNavigate();
-
-  const { cloudScriptMode } = scriptManager;
-  const {
-    isCloudReadMode,
-    guideStep,
-    readGuideDialogOpen,
-    readGuideTitle,
-    readGuideDesc,
-    readGuideSpotlightRect,
-    startCrossModeGuide,
-    exitGuideToRead,
-    nextReadGuideStep,
-    handleReaderEdit,
-  } = useCrossModeReadGuide({ activeCloudScript, cloudScriptMode, isPublicReader, t });
 
   return (
     <Routes>
@@ -88,22 +70,10 @@ export function AppRouter({
         handleCloudMarkerThemeUpdate,
         accentStyle,
         activeCloudScript,
-        isCloudReadMode,
-        startCrossModeGuide,
-        handleReaderEdit,
+        handleReaderEdit: () => {
+          if (activeCloudScript) navigate(`/edit/${activeCloudScript.id}?mode=edit`);
+        },
         navigate,
-        guideOverlay: (
-          <ReadGuideOverlay
-            open={readGuideDialogOpen}
-            spotlightRect={readGuideSpotlightRect}
-            title={readGuideTitle}
-            description={readGuideDesc}
-            onExit={exitGuideToRead}
-            onNext={nextReadGuideStep}
-            exitLabel={t("readerActions.crossGuideExit")}
-            nextLabel={guideStep === "readFinish" ? t("readerActions.crossGuideDone") : t("readerActions.crossGuideNext")}
-          />
-        ),
       })}
     </Routes>
   );

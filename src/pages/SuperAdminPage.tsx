@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
@@ -11,10 +11,19 @@ import { AdminUserManagementCard } from "../components/admin/AdminUserManagement
 import { TermsAcceptanceTable } from "../components/admin/TermsAcceptanceTable";
 import { HomepageBannerSection } from "../components/admin/HomepageBannerSection";
 import { ExternalPublicScriptSection } from "../components/admin/ExternalPublicScriptSection";
+import { ExternalAuthorPagesSection } from "../components/admin/ExternalAuthorPagesSection";
+import { ActivityPagesAdminSection } from "../components/admin/ActivityPagesAdminSection";
+import { ActivitySubmissionsAdminSection } from "../components/admin/ActivitySubmissionsAdminSection";
+import { VoiceActorManagementSection } from "../components/admin/VoiceActorManagementSection";
 import { PublicFeedbackInbox } from "../components/admin/PublicFeedbackInbox";
 import { PublicDemoSubmissionInbox } from "../components/admin/PublicDemoSubmissionInbox";
+import { PublicDemoManagement } from "../components/admin/PublicDemoManagement";
+import { VoiceActorProfileReviewInbox } from "../components/admin/VoiceActorProfileReviewInbox";
+import { ExternalAuthorProfileReviewInbox } from "../components/admin/ExternalAuthorProfileReviewInbox";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
+import { getExternalAuthorProfileSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
+import { ADMIN_QUEUE_UPDATED_EVENT } from "../lib/adminNotifications";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useStudioShell } from "../components/studio/StudioShellContext";
 
@@ -62,15 +71,23 @@ function AdminWorkflowPlaceholder({ title }: { title: string }): React.JSX.Eleme
 
 export default function SuperAdminPage(): React.JSX.Element {
   const s = useAdminPageState();
+  const [pendingDemoCount, setPendingDemoCount] = useState(0);
+  const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+  const [pendingVoiceActorProfileCount, setPendingVoiceActorProfileCount] = useState(0);
+  const [pendingExternalAuthorProfileCount, setPendingExternalAuthorProfileCount] = useState(0);
   const { openMobileMenu } = useStudioShell();
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const requestedSection = searchParams.get("section") || "";
-  const reviewTabs = ["applications", "signatures", "submissions", "claims"];
+  const reviewTabs = ["applications", "signatures", "submissions", "claims", "voice-actor-profiles", "external-author-profiles"];
   const activityReviewTabs = ["activity-submissions", "campaigns"];
   const activeArea = requestedSection === "directory" || requestedSection === "catalog" || requestedSection === "settings"
     ? "settings"
+    : requestedSection === "voice-actors"
+      ? "voice-actors"
+    : requestedSection === "demos"
+      ? "demos"
     : requestedSection === "external"
       ? "external"
       : requestedSection === "marketing" || requestedSection === "homepage" || requestedSection === "activities"
@@ -94,6 +111,33 @@ export default function SuperAdminPage(): React.JSX.Element {
   const resourceTabs = ["scripts", "author-pages", "studios"];
   const requestedResourceTab = searchParams.get("resource") || "";
   const resourceTab = resourceTabs.includes(requestedResourceTab) ? requestedResourceTab : "scripts";
+
+  const refreshQueueCounts = useCallback(async () => {
+    const [feedbackResult, demoResult, voiceActorResult, externalAuthorResult] = await Promise.allSettled([
+      getPublicFeedbackAdmin({ excludeKind: "demo_submission", status: "new", limit: 1, offset: 0 }),
+      getPublicDemoSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
+      getVoiceActorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
+      getExternalAuthorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
+    ]);
+    if (feedbackResult.status === "fulfilled") setNewFeedbackCount(feedbackResult.value.total || 0);
+    if (demoResult.status === "fulfilled") setPendingDemoCount(demoResult.value.total || 0);
+    if (voiceActorResult.status === "fulfilled") setPendingVoiceActorProfileCount(voiceActorResult.value.total || 0);
+    if (externalAuthorResult.status === "fulfilled") setPendingExternalAuthorProfileCount(externalAuthorResult.value.total || 0);
+  }, []);
+
+  useEffect(() => {
+    if (!s.profile?.isAdmin) return;
+    const refresh = () => { void refreshQueueCounts(); };
+    refresh();
+    const intervalId = window.setInterval(refresh, 60_000);
+    window.addEventListener("focus", refresh);
+    window.addEventListener(ADMIN_QUEUE_UPDATED_EVENT, refresh);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener(ADMIN_QUEUE_UPDATED_EVENT, refresh);
+    };
+  }, [s.profile?.isAdmin, refreshQueueCounts]);
 
   const goToSection = (section: string) => {
     const next = new URLSearchParams();
@@ -157,13 +201,16 @@ export default function SuperAdminPage(): React.JSX.Element {
         { key: "applications", label: "申請與回報", active: activeArea === "review" && reviewTab === "applications", go: () => goToSection("applications") },
         { key: "submissions", label: "Demo 投稿", active: activeArea === "review" && reviewTab === "submissions", go: () => goToSection("submissions") },
         { key: "claims", label: "身份認領", active: activeArea === "review" && reviewTab === "claims", go: () => goToSection("claims") },
+        { key: "voice-actor-profiles", label: "聲演頁面審核", active: activeArea === "review" && reviewTab === "voice-actor-profiles", go: () => goToSection("voice-actor-profiles") },
+        { key: "external-author-profiles", label: "外部台本師頁面審核", active: activeArea === "review" && reviewTab === "external-author-profiles", go: () => goToSection("external-author-profiles") },
         { key: "activity-submissions", label: "活動頁面審核", active: activeArea === "activity-review" && activityReviewTab === "activity-submissions", go: () => goToSection("activity-submissions") },
-        { key: "campaigns", label: "活動徵件審核", active: activeArea === "activity-review" && activityReviewTab === "campaigns", go: () => goToSection("campaigns") },
+        { key: "campaigns", label: "活動投稿管理", active: activeArea === "activity-review" && activityReviewTab === "campaigns", go: () => goToSection("campaigns") },
       ],
     },
     {
       name: "內容與行銷",
       items: [
+        { key: "demo-management", label: "Demo 管理", active: activeArea === "demos", go: () => goToSection("demos") },
         { key: "homepage", label: "首頁 Banner", active: activeArea === "marketing" && marketingTab === "homepage", go: () => goToMarketingTab("homepage") },
         { key: "activities", label: "活動頁面", active: activeArea === "marketing" && marketingTab === "activities", go: () => goToMarketingTab("activities") },
         { key: "external-scripts", label: "外部台本", active: activeArea === "external" && resourceTab === "scripts", go: () => goToResourceTab("scripts") },
@@ -174,6 +221,7 @@ export default function SuperAdminPage(): React.JSX.Element {
     {
       name: "全站名錄",
       items: [
+        { key: "voice-actors", label: "聲演管理", active: activeArea === "voice-actors", go: () => goToSection("voice-actors") },
         { key: "catalog-scripts", label: s.t("transferAdmin.scriptTab"), active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "scripts", go: () => goToCatalogTab("scripts") },
         { key: "catalog-personas", label: s.t("transferAdmin.personaTab"), active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "personas", go: () => goToCatalogTab("personas") },
         { key: "catalog-orgs", label: s.t("transferAdmin.orgTab"), active: activeArea === "settings" && settingsTab === "directory" && catalogTab === "orgs", go: () => goToCatalogTab("orgs") },
@@ -204,17 +252,23 @@ export default function SuperAdminPage(): React.JSX.Element {
             <div key={group.name} className="contents lg:block lg:pb-2">
               <div className="hidden px-2.5 pb-1 pt-3 text-xs font-semibold text-muted-foreground lg:block">{group.name}</div>
               {group.items.map((item) => (
+                (() => {
+                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
+                  return (
                 <button
                   key={item.key}
                   type="button"
                   onClick={item.go}
                   aria-current={item.active ? "page" : undefined}
-                  className={`shrink-0 whitespace-nowrap rounded-md px-3 text-left text-sm transition-colors max-lg:h-10 lg:flex lg:w-full lg:py-2 ${
+                  className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md px-3 text-left text-sm transition-colors max-lg:h-10 lg:w-full lg:py-2 ${
                     item.active ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
+                  {noticeCount > 0 && <span aria-label={`${noticeCount} 筆待處理`} title={`${noticeCount} 筆待處理`} className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">{noticeCount > 99 ? "99+" : noticeCount}</span>}
                 </button>
+                  );
+                })()
               ))}
             </div>
           ))}
@@ -248,7 +302,7 @@ export default function SuperAdminPage(): React.JSX.Element {
             {[
               { label: "使用者", value: s.users.length },
               { label: "組織", value: s.orgs.length },
-              { label: "作者", value: s.personas.length },
+              { label: "台本師", value: s.authorPersonas.length },
               { label: "劇本", value: s.scripts.filter((sc) => sc.type !== "folder").length },
             ].map(({ label, value }) => (
               <Card key={label} className="border-border/60 bg-card/70 shadow-none">
@@ -408,9 +462,9 @@ export default function SuperAdminPage(): React.JSX.Element {
           <TabsContent value="personas">
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle>所有作者</CardTitle>
+                <CardTitle>所有台本師</CardTitle>
                 <Input placeholder="篩選名稱或 owner..." value={s.personaFilter} onChange={(e) => s.setPersonaFilter(e.target.value)} className="h-8 text-sm mt-2" />
-                <CardDescription>顯示 {s.filteredPersonas.length} / {s.personas.length} 位</CardDescription>
+                <CardDescription>依台本師標記或已綁定台本的身份篩選。顯示 {s.filteredPersonas.length} / {s.authorPersonas.length} 位</CardDescription>
               </CardHeader>
               <CardContent>
                 {s.isLoading ? (
@@ -500,6 +554,8 @@ export default function SuperAdminPage(): React.JSX.Element {
               <TabsTrigger value="signatures" className={workbenchTabClass}>簽署紀錄</TabsTrigger>
               <TabsTrigger value="submissions" className={workbenchTabClass}>Demo 投稿</TabsTrigger>
               <TabsTrigger value="claims" className={workbenchTabClass}>身份認領</TabsTrigger>
+              <TabsTrigger value="voice-actor-profiles" className={workbenchTabClass}>聲演頁面審核</TabsTrigger>
+              <TabsTrigger value="external-author-profiles" className={workbenchTabClass}>外部台本師頁面審核</TabsTrigger>
             </TabsList>
             <TabsContent value="applications">
               <CollapsibleSection title="廣告、上架申請與回報" defaultOpen>
@@ -514,17 +570,27 @@ export default function SuperAdminPage(): React.JSX.Element {
             </TabsContent>
             <TabsContent value="submissions"><PublicDemoSubmissionInbox /></TabsContent>
             <TabsContent value="claims"><AdminWorkflowPlaceholder title="身份認領" /></TabsContent>
+            <TabsContent value="voice-actor-profiles"><VoiceActorProfileReviewInbox /></TabsContent>
+            <TabsContent value="external-author-profiles"><ExternalAuthorProfileReviewInbox /></TabsContent>
           </Tabs>
+        </TabsContent>
+
+        <TabsContent value="demos" className="mt-0 space-y-4">
+          <PublicDemoManagement />
+        </TabsContent>
+
+        <TabsContent value="voice-actors" className="mt-0 space-y-4">
+          <VoiceActorManagementSection />
         </TabsContent>
 
         <TabsContent value="activity-review" className="mt-0 space-y-4">
           <Tabs value={activityReviewTab} onValueChange={goToActivityReviewTab} className="space-y-3">
             <TabsList className="hidden">
               <TabsTrigger value="activity-submissions" className={workbenchTabClass}>活動頁面審核</TabsTrigger>
-              <TabsTrigger value="campaigns" className={workbenchTabClass}>活動徵件審核</TabsTrigger>
+              <TabsTrigger value="campaigns" className={workbenchTabClass}>活動投稿管理</TabsTrigger>
             </TabsList>
             <TabsContent value="activity-submissions"><AdminWorkflowPlaceholder title="活動頁面審核" /></TabsContent>
-            <TabsContent value="campaigns"><AdminWorkflowPlaceholder title="活動徵件審核" /></TabsContent>
+            <TabsContent value="campaigns"><ActivitySubmissionsAdminSection /></TabsContent>
           </Tabs>
         </TabsContent>
 
@@ -539,7 +605,7 @@ export default function SuperAdminPage(): React.JSX.Element {
                 <HomepageBannerSection />
               </CollapsibleSection>
             </TabsContent>
-            <TabsContent value="activities"><AdminWorkflowPlaceholder title="活動頁面管理" /></TabsContent>
+            <TabsContent value="activities"><ActivityPagesAdminSection /></TabsContent>
           </Tabs>
         </TabsContent>
 
@@ -560,7 +626,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <ExternalPublicScriptSection />
             </TabsContent>
             <TabsContent value="author-pages">
-              <AdminWorkflowPlaceholder title="外部作者頁來源尚未接入" />
+              <ExternalAuthorPagesSection />
             </TabsContent>
             <TabsContent value="studios">
               <AdminWorkflowPlaceholder title="外部錄音室來源尚未接入" />

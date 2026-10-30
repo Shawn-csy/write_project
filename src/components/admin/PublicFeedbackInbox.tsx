@@ -3,7 +3,8 @@ import { Loader2, Mail, RefreshCw, Trash2, Upload } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { createExternalPublicScriptAdmin, deletePublicFeedbackAdmin, getPublicFeedbackAdmin, updatePublicFeedbackStatusAdmin } from "../../lib/api/admin";
+import { createExternalPublicScriptAdmin, deletePublicFeedbackAdmin, getActivityPagesAdmin, getPublicFeedbackAdmin, updateActivityPageAdmin, updatePublicFeedbackStatusAdmin } from "../../lib/api/admin";
+import { notifyAdminQueueUpdated } from "../../lib/adminNotifications";
 import type { PublicFeedbackRecord } from "../../types/api";
 
 function formatFeedbackDate(value: number): string {
@@ -79,6 +80,7 @@ export function PublicFeedbackInbox() {
     setError("");
     try {
       await deletePublicFeedbackAdmin(feedbackId);
+      notifyAdminQueueUpdated();
       setItems((currentItems) => currentItems.filter((item) => item.id !== feedbackId));
       setTotal((currentTotal) => Math.max(0, currentTotal - 1));
     } catch (deleteError: unknown) {
@@ -94,6 +96,7 @@ export function PublicFeedbackInbox() {
     setError("");
     try {
       const updated = await updatePublicFeedbackStatusAdmin(feedbackId, status);
+      notifyAdminQueueUpdated();
       setItems((currentItems) => currentItems.map((item) => item.id === feedbackId ? updated : item));
     } catch (updateError: unknown) {
       console.error("Failed to update public feedback status", updateError);
@@ -120,9 +123,24 @@ export function PublicFeedbackInbox() {
         categories: item.categories,
         status: "draft",
       });
+      let linkedActivity = "";
+      if (item.activityPageId) {
+        const pages = await getActivityPagesAdmin();
+        const activity = pages.find((page) => page.id === item.activityPageId);
+        if (activity && !activity.externalScriptIds.includes(created.id)) {
+          await updateActivityPageAdmin(activity.id, {
+            slug: activity.slug, title: activity.title, summary: activity.summary, coverUrl: activity.coverUrl,
+            coverCrop: activity.coverCrop || null, body: activity.body, scriptIds: activity.scriptIds,
+            externalScriptIds: [...activity.externalScriptIds, created.id], acceptingSubmissions: activity.acceptingSubmissions,
+            status: activity.status, sortOrder: activity.sortOrder,
+          });
+          linkedActivity = activity.title;
+        }
+      }
       const updated = await updatePublicFeedbackStatusAdmin(item.id, "closed");
+      notifyAdminQueueUpdated();
       setItems((currentItems) => currentItems.map((current) => current.id === item.id ? updated : current));
-      setNotice(`已建立「${created.title || item.scriptTitle}」草稿；請到外部台本管理檢查內容後發佈。`);
+      setNotice(`已建立「${created.title || item.scriptTitle}」草稿${linkedActivity ? `並加入「${linkedActivity}」活動` : ""}；請到外部台本管理檢查後發佈。`);
     } catch (importError: unknown) {
       console.error("Failed to import public script submission", importError);
       setError("自動匯入草稿失敗；請檢查文件連結，或確認這份台本是否已經加入。 ");
@@ -199,6 +217,7 @@ export function PublicFeedbackInbox() {
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
               <span>聯絡人：{item.contactName || "未提供"}</span>
+              {item.activityPageId && <Badge variant="outline">活動徵件</Badge>}
               {item.contactEmail ? (
                 <a className="inline-flex items-center gap-1 text-primary hover:underline" href={`mailto:${item.contactEmail}`}>
                   <Mail className="h-3 w-3" />

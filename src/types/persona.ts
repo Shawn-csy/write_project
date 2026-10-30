@@ -15,6 +15,7 @@ export interface PersonaLike {
   bannerCrop?: { cx?: number; cy?: number; zoom?: number } | null;
   organizationIds?: string[];
   tags?: string[];
+  voiceActorHidden?: boolean;
   defaultLicenseCommercial?: string;
   defaultLicenseDerivative?: string;
   defaultLicenseNotify?: string;

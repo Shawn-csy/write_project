@@ -252,7 +252,52 @@ export interface PublicBundleResponse {
   banner?: HomepageBanner | null;
   externalPublicScripts?: ExternalPublicScript[];
   demoSubmissions?: PublicDemoEntry[];
+  activityPages?: ActivityPage[];
   [key: string]: unknown;
+}
+
+export interface ActivityPage {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  coverUrl: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  body: string;
+  scriptIds: string[];
+  externalScriptIds: string[];
+  acceptingSubmissions: boolean;
+  status: "draft" | "published";
+  sortOrder: number;
+  createdAt: number;
+  updatedAt: number;
+  publishedAt?: number | null;
+}
+
+export interface ActivitySubmissionRecord {
+  id: string;
+  activityPageId: string;
+  kind: "demo" | "script";
+  title: string;
+  summary: string;
+  link: string;
+  coverUrl: string;
+  scriptType?: "internal" | "external" | null;
+  scriptId?: string | null;
+  externalScriptId?: string | null;
+  voiceTypes: Array<"male" | "female">;
+  createdAt: number;
+}
+
+export interface AdminVoiceActor extends PersonaLike {
+  ownerId?: string | null;
+  ownerName: string;
+  voiceActorHidden: boolean;
+  sourceTypes: string[];
+  demoCount: number;
+  internalDemoCount: number;
+  externalDemoCount: number;
+  scriptCount: number;
 }
 
 export interface PublicDemoEntry {
@@ -281,6 +326,7 @@ export interface ExternalPublicScript {
   sourceDomain?: string;
   sourceName?: string;
   authorName?: string;
+  authorPersonaId?: string | null;
   authorBio?: string;
   authorUrl?: string;
   authorAvatarUrl?: string;
@@ -296,7 +342,7 @@ export interface ExternalPublicScript {
   coverUrlOverride?: string;
   seriesName?: string;
   seriesOrder?: number | null;
-  demoLinks?: Array<{ id?: string; name?: string; url: string; coverUrl?: string; cast?: string; description?: string }>;
+  demoLinks?: Array<{ id?: string; name?: string; url: string; coverUrl?: string; cast?: string; voiceTypes?: Array<"male" | "female">; voiceActorIds?: string[]; description?: string }>;
   title: string;
   summary?: string;
   coverUrl?: string;
@@ -309,6 +355,18 @@ export interface ExternalPublicScript {
   sourceModifiedAt?: number | null;
   createdAt?: number;
   mountedAt?: number;
+  updatedAt?: number;
+}
+
+export interface ExternalAuthorPageProfile {
+  authorKey: string;
+  linkedPersonaId?: string | null;
+  displayName: string;
+  bio: string;
+  profileUrl: string;
+  avatarUrl: string;
+  isHidden: boolean;
+  createdAt?: number;
   updatedAt?: number;
 }
 
@@ -385,6 +443,7 @@ export interface PublicFeedbackRecord {
   notes: string;
   content: string;
   pageUrl: string;
+  activityPageId?: string | null;
   status: "new" | "reviewed" | "closed";
   createdAt: number;
   updatedAt: number;
@@ -406,14 +465,18 @@ export interface PublicFeedbackCreate {
   notes?: string;
   content?: string;
   pageUrl?: string;
+  activityPageId?: string;
   website?: string;
 }
 
 export interface PublicDemoSubmissionRecord {
   id: string;
+  ownerId?: string | null;
+  voiceActorPersonaId?: string | null;
   scriptType: "internal" | "external";
   scriptId?: string | null;
   externalScriptId?: string | null;
+  activityPageId?: string | null;
   scriptTitle: string;
   scriptUrl: string;
   demoName: string;
@@ -432,9 +495,136 @@ export interface PublicDemoSubmissionRecord {
   createdAt: number;
 }
 
+export interface StudioDemoSubmissionPayload {
+  scriptType: "internal" | "external";
+  scriptId?: string;
+  externalScriptId?: string;
+  voiceActorPersonaId: string;
+  demoName?: string;
+  demoUrl: string;
+  coverUrl?: string;
+  cast?: string;
+  voiceTypes?: Array<"male" | "female">;
+  description?: string;
+}
+
+export interface StudioDemoSubmissionUpdatePayload {
+  demoName?: string;
+  demoUrl: string;
+  coverUrl?: string;
+  cast?: string;
+  voiceTypes?: Array<"male" | "female">;
+  description?: string;
+}
+
 export interface PublicDemoSubmissionListResponse {
   total: number;
   items: PublicDemoSubmissionRecord[];
+}
+
+export interface VoiceActorProfileSubmission {
+  id: string;
+  personaId: string;
+  personaName: string;
+  submitterName: string;
+  contactEmail: string;
+  contributorName?: string;
+  collaborators?: Array<{ name?: string; contributedAt?: number }>;
+  currentProfile?: {
+    displayName?: string;
+    bio?: string;
+    avatar?: string;
+    website?: string;
+    links?: Array<{ label?: string; url?: string }>;
+    organizations?: Array<{ name?: string; url?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string }>;
+  };
+  acceptedFields?: string[];
+  profile: {
+    displayName?: string;
+    contributorName?: string;
+    bio?: string;
+    avatar?: string;
+    website?: string;
+    links?: Array<{ label?: string; url?: string }>;
+    organizations?: Array<{ name?: string; url?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string }>;
+  };
+  status: "pending" | "approved" | "rejected";
+  reviewNote?: string;
+  reviewedAt?: number | null;
+  createdAt: number;
+}
+
+export interface VoiceActorProfileSubmissionListResponse {
+  total: number;
+  items: VoiceActorProfileSubmission[];
+}
+
+export interface ExternalAuthorProfileSubmission {
+  id: string;
+  authorKey: string;
+  authorName: string;
+  submitterName: string;
+  contactEmail: string;
+  contributorName?: string;
+  collaborators?: Array<{ name?: string; contributedAt?: number }>;
+  currentProfile?: Record<string, unknown>;
+  profile: Record<string, unknown>;
+  acceptedFields?: string[];
+  status: "pending" | "approved" | "rejected";
+  reviewNote?: string;
+  reviewedAt?: number | null;
+  createdAt: number;
+}
+
+export interface ExternalAuthorProfileSubmissionListResponse {
+  total: number;
+  items: ExternalAuthorProfileSubmission[];
+}
+
+export interface AdminDemoRecord {
+  id: string;
+  sourceKind: "submission" | "internal" | "external";
+  parentId?: string | null;
+  scriptTitle: string;
+  scriptUrl: string;
+  demoName: string;
+  demoUrl: string;
+  coverUrl: string;
+  cast: string;
+  voiceTypes: Array<"male" | "female">;
+  voiceActorIds: string[];
+  voiceActorNames?: string[];
+  description: string;
+  displayName: string;
+  contactEmail: string;
+  status: "pending" | "approved" | "rejected";
+  createdAt: number;
+}
+
+export interface AdminDemoTarget {
+  id: string;
+  sourceKind: "internal" | "external";
+  title: string;
+  authorName: string;
+}
+
+export interface AdminDemoMutationPayload {
+  sourceKind: "submission" | "internal" | "external";
+  parentId?: string;
+  scriptTitle?: string;
+  scriptUrl?: string;
+  demoName: string;
+  demoUrl: string;
+  coverUrl?: string;
+  cast?: string;
+  voiceTypes?: Array<"male" | "female">;
+  voiceActorIds?: string[];
+  description?: string;
+  displayName?: string;
+  contactEmail?: string;
+  status?: "pending" | "approved" | "rejected";
 }
 
 export interface PublicFeedbackResponse {

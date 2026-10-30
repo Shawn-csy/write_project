@@ -5,6 +5,8 @@ interface ActivityDemoLink {
   name: string;
   url: string;
   cast: string;
+  voiceActorIds?: string[];
+  voiceTypes?: Array<"male" | "female">;
   description: string;
 }
 
@@ -13,6 +15,8 @@ export const createEmptyActivityDemoLink = (id = "") => ({
   name: "",
   url: "",
   cast: "",
+  voiceActorIds: [],
+  voiceTypes: [],
   description: "",
 });
 
@@ -21,8 +25,7 @@ const isNonEmptyDemoLink = (entry: ActivityDemoLink) =>
 
 export const normalizeActivityDemoLinks = (value: unknown): ActivityDemoLink[] => {
   if (!Array.isArray(value)) return [];
-  return value
-    .map((entry, idx) => {
+  const normalized = value.map<ActivityDemoLink | null>((entry: unknown, idx: number) => {
       if (typeof entry === "string") {
         const url = trimText(entry);
         return {
@@ -30,20 +33,24 @@ export const normalizeActivityDemoLinks = (value: unknown): ActivityDemoLink[] =
           name: "",
           url,
           cast: "",
+          voiceActorIds: [],
+          voiceTypes: [],
           description: "",
         };
       }
       if (!entry || typeof entry !== "object") return null;
+      const item = entry as Record<string, unknown>;
       return {
-        id: trimText(entry.id) || `demo-${idx + 1}`,
-        name: trimText(entry.name || entry.title || entry.label),
-        url: trimText(entry.url || entry.link),
-        cast: trimText(entry.cast || entry.voiceActor || entry.speaker),
-        description: trimText(entry.description || entry.desc),
+        id: trimText(item.id) || `demo-${idx + 1}`,
+        name: trimText(item.name || item.title || item.label),
+        url: trimText(item.url || item.link),
+        cast: trimText(item.cast || item.voiceActor || item.speaker),
+        voiceActorIds: Array.isArray(item.voiceActorIds) ? [...new Set((item.voiceActorIds as unknown[]).map((id: unknown) => trimText(id)).filter(Boolean))] : [],
+        voiceTypes: Array.isArray(item.voiceTypes) ? [...new Set((item.voiceTypes as unknown[]).filter((type: unknown): type is "male" | "female" => type === "male" || type === "female"))] : [],
+        description: trimText(item.description || item.desc),
       };
-    })
-    .filter((entry): entry is ActivityDemoLink => entry !== null)
-    .filter(isNonEmptyDemoLink);
+    });
+  return normalized.filter((entry): entry is ActivityDemoLink => entry !== null).filter(isNonEmptyDemoLink);
 };
 
 export const parseActivityDemoLinks = (rawValue: unknown) => {
@@ -68,10 +75,12 @@ export const parseActivityDemoLinks = (rawValue: unknown) => {
 };
 
 export const serializeActivityDemoLinks = (links: unknown) => {
-  const normalized = normalizeActivityDemoLinks(links).map(({ name, url, cast, description }) => ({
+  const normalized = normalizeActivityDemoLinks(links).map(({ name, url, cast, voiceActorIds, voiceTypes, description }) => ({
     name,
     url,
     cast,
+    voiceActorIds,
+    voiceTypes,
     description,
   }));
   if (normalized.length === 0) return "";

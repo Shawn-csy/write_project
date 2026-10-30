@@ -36,6 +36,7 @@ export interface AdminPersona {
   displayName?: string;
   ownerId?: string;
   avatar?: string;
+  tags?: string[];
 }
 
 export interface AdminScript {
@@ -295,10 +296,19 @@ export function useAdminPageState() {
     return !q ? orgs : orgs.filter((o) => toText(o.name).toLowerCase().includes(q) || getOwnerLabel(o.ownerId).toLowerCase().includes(q));
   }, [orgs, orgFilter, userById]);
 
+  const authorPersonas = useMemo(() => {
+    const personasWithScripts = new Set(scripts
+      .filter((script) => script.type !== "folder" && script.personaId)
+      .map((script) => String(script.personaId)));
+    const writerTagPattern = /台本師|編劇|劇本師|作者|script\s*writer|writer/i;
+    return personas.filter((persona) => personasWithScripts.has(persona.id)
+      || (persona.tags || []).some((tag) => writerTagPattern.test(String(tag))));
+  }, [personas, scripts]);
+
   const filteredPersonas = useMemo(() => {
     const q = personaFilter.toLowerCase();
-    return !q ? personas : personas.filter((p) => toText(p.displayName).toLowerCase().includes(q) || getOwnerLabel(p.ownerId).toLowerCase().includes(q));
-  }, [personas, personaFilter, userById]);
+    return !q ? authorPersonas : authorPersonas.filter((p) => toText(p.displayName).toLowerCase().includes(q) || getOwnerLabel(p.ownerId).toLowerCase().includes(q));
+  }, [authorPersonas, personaFilter, userById]);
 
   const filteredUsers = useMemo(() => {
     const q = userFilter.toLowerCase();
@@ -308,7 +318,7 @@ export function useAdminPageState() {
   return {
     t, currentUser, profile,
     // data
-    orgs, scripts, personas, users,
+    orgs, scripts, personas, authorPersonas, users,
     isLoading, listQuery, setListQuery,
     // transfer
     transferType, selectedItem, targetUser, setTargetUser,
