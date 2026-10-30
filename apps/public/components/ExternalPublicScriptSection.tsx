@@ -92,7 +92,7 @@ export function ExternalPublicScriptCard({
   const date = formatDate(mountedAt);
   const authorName = item.authorName || item.organizationName || "";
   const authorHref = item.authorName
-    ? externalEntityHref("author", item.authorName, item.authorUrl)
+    ? (item.authorPersonaId ? `/author/${encodeURIComponent(item.authorPersonaId)}` : externalEntityHref("author", item.authorName, item.authorUrl))
     : item.organizationName
       ? externalEntityHref("org", item.organizationName, item.organizationUrl)
       : undefined;

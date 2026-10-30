@@ -1,27 +1,33 @@
+"use client";
+
 /**
  * PublicTopBar — shared top navigation for public SSR pages.
- * Next-native: uses <a> for navigation, no react-router-dom.
- * Server-renderable (no hooks that need client).
+ * Uses the shared shell topbar and adds the activity link when an activity is published.
  * Pass client-side actions (theme toggle, studio link, etc.) via the `trailing` prop.
  */
 
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 import Link from "next/link";
 import { SITE_BRAND_NAME } from "@/lib/seo";
+import { useHasPublishedActivities } from "@/lib/useHasPublishedActivities";
+import { PublicShellTopBar } from "@write/public-ui";
+import { PublicShellActions } from "@/components/PublicShellActions";
 
 export interface TopBarTab {
   key: string;
   label: string;
   href: string;
+  hideOnTablet?: boolean;
 }
 
 interface Props {
   activeTab?: string;
   tabs?: TopBarTab[];
+  additionalTabs?: TopBarTab[];
   showBack?: boolean;
   backHref?: string;
   backLabel?: string;
-  /** Extra content rendered in the actions slot (right side). Use PublicShellActions for standard shell actions. */
+  /** Override the standard public actions rendered on the right. */
   trailing?: ReactNode;
 }
 
@@ -34,78 +40,25 @@ const DEFAULT_TABS: TopBarTab[] = [
 export function PublicTopBar({
   activeTab,
   tabs = DEFAULT_TABS,
+  additionalTabs = [],
   showBack = false,
   backHref = "/",
   backLabel = "返回",
-  trailing,
+  trailing = <PublicShellActions />,
 }: Props) {
-  return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/95 backdrop-blur">
-      <div className="flex h-14 items-center gap-3 px-3 sm:px-5 lg:px-8 w-full">
-        {/* Left: logo + back */}
-        <div className="flex items-center gap-2 shrink-0">
-          {showBack && (
-            <Link
-              href={backHref}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              aria-label={backLabel}
-            >
-              ←
-            </Link>
-          )}
-          <Link
-            href="/"
-            className="font-serif font-bold text-foreground text-base hover:text-primary transition-colors"
-          >
-            {SITE_BRAND_NAME}
-          </Link>
-        </div>
-
-        {/* Center: tab nav (hidden on mobile, shown on md+) */}
-        {tabs.length > 0 && (
-          <nav className="hidden md:flex items-center gap-1 ml-2 shrink-0">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.key}
-                href={tab.href}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
-        )}
-
-        {/* Right: trailing actions */}
-        <div className="ml-auto flex items-center gap-2 shrink-0">
-          {trailing}
-        </div>
-      </div>
-
-      {/* Mobile tab row */}
-      {tabs.length > 0 && (
-        <div className="md:hidden border-t border-border/40 overflow-x-auto">
-          <nav className="flex items-center gap-1 px-4 py-2">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.key}
-                href={tab.href}
-                className={`px-3 py-1 text-sm rounded-md whitespace-nowrap transition-colors ${
-                  activeTab === tab.key
-                    ? "bg-primary text-primary-foreground font-medium"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      )}
-    </header>
-  );
+  const hasPublishedActivity = useHasPublishedActivities();
+  const visibleTabs = [...tabs];
+  if (hasPublishedActivity && !visibleTabs.some((tab) => tab.key === "activities")) {
+    visibleTabs.push({ key: "activities", label: "活動專區", href: "/activities" });
+  }
+  visibleTabs.push(...additionalTabs.filter((tab) => !visibleTabs.some((visibleTab) => visibleTab.key === tab.key)));
+  return <PublicShellTopBar
+    activeTab={activeTab}
+    activeTabStyle="subtle"
+    tabs={visibleTabs}
+    brandName="公開台本"
+    brandSubtitle={SITE_BRAND_NAME}
+    brandLeading={showBack ? <Link href={backHref} aria-label={backLabel} className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground">←</Link> : undefined}
+    trailing={trailing}
+  />;
 }

@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { buildTagData, type PublicBundleLike, type TagData } from "@/lib/entityModels";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
@@ -103,7 +102,7 @@ export default async function TagPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
+      <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>#{tagName}</h1>

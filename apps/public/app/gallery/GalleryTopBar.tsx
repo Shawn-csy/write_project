@@ -10,6 +10,7 @@ import { PublicFeedbackDialog } from "@/components/PublicFeedbackDialog";
 import { AppearanceMenuContent } from "@/components/PublicAppearanceMenu";
 import { InfoMenuContent } from "@/components/PublicInfoMenu";
 import { studioUrl } from "@/lib/studioUrl";
+import { useHasPublishedActivities } from "@/lib/useHasPublishedActivities";
 
 export type { GalleryView };
 
@@ -18,7 +19,7 @@ export type { GalleryView };
 const sheetSectionTitleClass =
   "mb-2 px-1 [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.16em] text-muted-foreground/65";
 
-function MobileActionSheet({ onClose }: { onClose: () => void }) {
+function MobileActionSheet({ onClose, hasPublishedActivity }: { onClose: () => void; hasPublishedActivity: boolean }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   // Esc, focus trap, body scroll lock
@@ -102,10 +103,11 @@ function MobileActionSheet({ onClose }: { onClose: () => void }) {
         {/* Studio CTA */}
         <section className="px-5 pt-3 shrink-0">
           <p className={sheetSectionTitleClass}>公開專區</p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <a href="/?view=authors" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">作者</a>
             <a href="/voice-actors" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">聲演</a>
             <a href="/demos" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">Demo 專區</a>
+            {hasPublishedActivity && <a href="/activities" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">活動專區</a>}
           </div>
         </section>
         <div className="px-5 pt-4 pb-3 shrink-0">
@@ -164,16 +166,22 @@ export function GalleryTopBar({
   onTabChange,
 }: GalleryTopBarProps) {
   const [moreOpen, setMoreOpen] = useState(false);
+  const hasPublishedActivity = useHasPublishedActivities();
 
   return (
     <>
       <PublicGalleryTopBar
         activeTab={activeTab}
         onTabChange={onTabChange}
-        tabs={[{ key: "authors", label: "作者" }]}
+        activeTabStyle="subtle"
+        tabs={[
+          { key: "authors", label: "作者" },
+          { key: "voice-actors", label: "聲演", href: "/voice-actors" },
+          { key: "demos", label: "Demo 專區", href: "/demos" },
+          ...(hasPublishedActivity ? [{ key: "activities", label: "活動專區", href: "/activities" }] : []),
+        ]}
         brandName="公開台本"
         brandSubtitle="泛用型產品作坊"
-        leadingTrailing={<nav aria-label="公開專區" className="hidden sm:flex items-center gap-0.5"><a href="/voice-actors" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground">聲演</a><a href="/demos" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground">Demo 專區</a></nav>}
         trailing={<PublicShellActions />}
         mobileTrailingAction={
           <button
@@ -186,7 +194,7 @@ export function GalleryTopBar({
           </button>
         }
       />
-      {moreOpen && <MobileActionSheet onClose={() => setMoreOpen(false)} />}
+      {moreOpen && <MobileActionSheet onClose={() => setMoreOpen(false)} hasPublishedActivity={hasPublishedActivity} />}
     </>
   );
 }

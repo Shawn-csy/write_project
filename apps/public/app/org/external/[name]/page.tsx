@@ -6,7 +6,6 @@ import { externalEntityHref, externalEntitySlug, socialAvatarUrl } from "@/lib/e
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { decodeRouteName, findExternalOrgModel } from "@/lib/entityModels";
 import { getStaticExternalOrgParams } from "@/lib/staticParams";
 import { LiveExternalOrgPage } from "@/components/LiveEntityPages";
@@ -64,7 +63,7 @@ export default async function ExternalOrgPage({ params }: { params: Promise<{ na
   }
   return (
     <>
-      <PublicTopBar activeTab="orgs" trailing={<PublicShellActions />} />
+      <PublicTopBar activeTab="orgs" />
       {STATIC_EXPORT ? (
         <LiveExternalOrgPage rawName={rawName} initial={model} />
       ) : (

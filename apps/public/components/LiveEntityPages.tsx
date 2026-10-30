@@ -12,7 +12,6 @@
 
 import { useEffect, type ReactNode } from "react";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { NotFoundBody, NotFoundContent } from "@/components/NotFoundContent";
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { AuthorPageClient } from "@/app/author/[id]/AuthorPageClient";
@@ -32,7 +31,8 @@ import {
   type TagData,
 } from "@/lib/entityModels";
 import { LiveApiError, liveApi } from "@/lib/liveApi";
-import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
+import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
+import { externalScriptsForPersona } from "@/lib/publicIdentity";
 import { TITLE_SUFFIX } from "@/lib/seo";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { useLiveData, type LiveData } from "@/lib/useLiveData";
@@ -53,7 +53,6 @@ function Frame({ state, chrome, children }: FrameProps) {
       showBack={chrome.back}
       backHref="/"
       backLabel="返回"
-      trailing={<PublicShellActions />}
     />
   ) : null;
   if (state.status === "ready") return <>{bar}{children}</>;
@@ -109,15 +108,15 @@ export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: 
       readBundle(signal),
     ]);
     const performances = getPublicVoicePerformances(id, bundle || {});
-    const normalizedName = persona.displayName.trim().toLocaleLowerCase();
-    const externalScripts = (bundle?.externalPublicScripts || []).filter((script) =>
-      script.status === "published" && script.authorName?.trim().toLocaleLowerCase() === normalizedName
-    );
+    const externalScripts = externalScriptsForPersona(persona, bundle?.externalPublicScripts || []);
     return { persona, scripts: scripts ?? [], performances, externalScripts };
   }, `author:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.persona.displayName : null);
+  const resolvedChrome = state.status === "ready" && chrome && (hasVoiceActorSelfTag(state.data.persona) || state.data.performances.length > 0)
+    ? { ...chrome, activeTab: "voice-actors" }
+    : chrome;
   return (
-    <Frame state={state} chrome={chrome}>
+    <Frame state={state} chrome={resolvedChrome}>
       {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} />}
     </Frame>
   );
@@ -199,6 +198,11 @@ function LiveExternalPage({ kind, rawName, initial, chrome }: {
     const bundle = await readBundle(signal);
     return bundle ? find(publishedExternalScripts(bundle), rawName) : null;
   }, `external-${kind}:${rawName}`);
+  useEffect(() => {
+    if (kind === "author" && state.status === "ready" && state.data.personaId) {
+      window.location.replace(`/author/${encodeURIComponent(state.data.personaId)}`);
+    }
+  }, [kind, state]);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.name : null);
   return (
     <Frame state={state} chrome={chrome}>
@@ -209,6 +213,9 @@ function LiveExternalPage({ kind, rawName, initial, chrome }: {
           bio={state.data.bio}
           profileUrl={state.data.profileUrl}
           profileAvatarUrl={state.data.profileAvatarUrl}
+          authorKey={state.data.authorKey}
+          supplement={state.data.supplement}
+          contributors={state.data.contributors}
           items={state.data.items}
         />
       )}

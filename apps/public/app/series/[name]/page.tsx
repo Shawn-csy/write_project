@@ -5,7 +5,6 @@ import { apiFetch } from "@/lib/api";
 import { buildSeriesData, type PublicBundleLike, type SeriesData } from "@/lib/entityModels";
 import { SeriesPageClient } from "./SeriesPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticSeriesParams } from "@/lib/staticParams";
@@ -114,7 +113,7 @@ export default async function SeriesPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" trailing={<PublicShellActions />} />
+      <PublicTopBar activeTab="scripts" showBack backHref="/" backLabel="返回" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{seriesName}</h1>

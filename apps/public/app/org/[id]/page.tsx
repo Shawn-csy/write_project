@@ -5,7 +5,6 @@ import { apiFetch } from "@/lib/api";
 import type { PublicOrg, PublicScript } from "@/lib/types";
 import { OrgPageClient } from "./OrgPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticOrgParams } from "@/lib/staticParams";
@@ -107,7 +106,7 @@ export default async function OrgPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab="orgs" trailing={<PublicShellActions />} />
+      <PublicTopBar activeTab="orgs" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{org.name}</h1>

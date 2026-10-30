@@ -4,6 +4,7 @@
  */
 
 import { SITE_BRAND_NAME } from "@/lib/seo";
+import type { ReactNode } from "react";
 
 const FOOTER_LINKS = [
   { href: "/about", label: "關於我們" },
@@ -13,7 +14,7 @@ const FOOTER_LINKS = [
   { href: "/terms", label: "使用條款" },
 ] as const;
 
-export function PublicFooter() {
+export function PublicFooter({ children }: { children?: ReactNode } = {}) {
   return (
     <footer
       className="mt-auto px-4 sm:px-6 lg:px-8 py-6 text-muted-foreground"
@@ -39,6 +40,7 @@ export function PublicFooter() {
               {label}
             </a>
           ))}
+          {children}
         </nav>
       </div>
     </footer>
