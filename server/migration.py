@@ -1,5 +1,6 @@
 import json
 import time
+import unicodedata
 import uuid
 from sqlalchemy import text
 from database import engine
@@ -36,6 +37,125 @@ def _backfill_crop_refs(conn, table: str, url_col: str, crop_col: str):
         migrated += 1
     if migrated:
         print(f"Migrating: backfilled {migrated} crop refs for {table}.{url_col}")
+
+
+def _json_value(value):
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except Exception:
+            return []
+    return value
+
+
+def _backfill_identity_architecture(conn):
+    """Populate immutable external authors and role profiles idempotently."""
+    now_ms = int(time.time() * 1000)
+    is_postgres = engine.dialect.name == "postgresql"
+    author_rows = conn.execute(text(
+        'SELECT DISTINCT "authorKey" FROM external_public_scripts '
+        'WHERE COALESCE("authorKey", \'\') != \'\''
+    )).fetchall()
+    for row in author_rows:
+        key = str(row[0] or "").strip()
+        if not key:
+            continue
+        existing = conn.execute(text('SELECT id FROM external_authors WHERE "canonicalKey" = :key'), {"key": key}).fetchone()
+        if existing:
+            author_id = existing[0]
+        else:
+            profile = conn.execute(text(
+                'SELECT "linkedPersonaId", "displayName", bio, "profileUrl", "avatarUrl", "isHidden", "createdAt", "updatedAt" '
+                'FROM external_author_page_profiles WHERE "authorKey" = :key'
+            ), {"key": key}).fetchone()
+            source = conn.execute(text(
+                'SELECT "authorName", "authorBio", "authorUrl", "authorAvatarUrl" '
+                'FROM external_public_scripts WHERE "authorKey" = :key ORDER BY "updatedAt" DESC LIMIT 1'
+            ), {"key": key}).fetchone()
+            author_id = str(uuid.uuid4())
+            conn.execute(text(
+                'INSERT INTO external_authors '
+                '(id, "canonicalKey", "linkedPersonaId", "displayName", bio, "profileUrl", "avatarUrl", "isHidden", "createdAt", "updatedAt") '
+                'VALUES (:id, :key, :persona, :name, :bio, :url, :avatar, :hidden, :created, :updated)'
+            ), {
+                "id": author_id,
+                "key": key,
+                "persona": profile[0] if profile else None,
+                "name": (profile[1] if profile and profile[1] else source[0] if source else key),
+                "bio": (profile[2] if profile and profile[2] else source[1] if source else ""),
+                "url": (profile[3] if profile and profile[3] else source[2] if source else ""),
+                "avatar": (profile[4] if profile and profile[4] else source[3] if source else ""),
+                "hidden": bool(profile[5]) if profile else False,
+                "created": int(profile[6] or now_ms) if profile else now_ms,
+                "updated": int(profile[7] or now_ms) if profile else now_ms,
+            })
+        conn.execute(text(
+            'UPDATE external_public_scripts SET "externalAuthorId" = :author_id '
+            'WHERE "authorKey" = :key AND ("externalAuthorId" IS NULL OR "externalAuthorId" = \'\')'
+        ), {"author_id": author_id, "key": key})
+
+    persona_rows = conn.execute(text(
+        'SELECT id, tags, "voiceActorHidden", "voiceActorWorks", "voiceActorOrganizations", "voiceActorContributors" FROM personas'
+    )).fetchall()
+    role_sources: dict[tuple[str, str], set[str]] = {}
+    role_profiles: dict[tuple[str, str], dict] = {}
+    role_visibility: dict[tuple[str, str], bool] = {}
+    for row in persona_rows:
+        persona_id = str(row[0])
+        tags = [str(tag).strip().casefold() for tag in (_json_value(row[1]) or [])]
+        if any(tag in {"聲演", "配音", "voice actor", "voice-actor", "voiceactor"} for tag in tags):
+            key = (persona_id, "voice_actor")
+            role_sources.setdefault(key, set()).add("self_declared")
+            role_visibility[key] = not bool(row[2])
+            role_profiles[key] = {
+                "works": _json_value(row[3]) or [],
+                "organizations": _json_value(row[4]) or [],
+                "contributors": _json_value(row[5]) or [],
+            }
+    for row in conn.execute(text('SELECT DISTINCT "personaId" FROM scripts WHERE "personaId" IS NOT NULL')).fetchall():
+        role_sources.setdefault((str(row[0]), "scriptwriter"), set()).add("internal_script")
+    for row in conn.execute(text('SELECT DISTINCT "linkedPersonaId" FROM external_authors WHERE "linkedPersonaId" IS NOT NULL')).fetchall():
+        role_sources.setdefault((str(row[0]), "scriptwriter"), set()).add("external_script")
+    demo_rows = conn.execute(text(
+        'SELECT "voiceActorPersonaId", "voiceActorIds", "manualVoiceActors" FROM public_demo_submissions WHERE status = \'approved\''
+    )).fetchall()
+    for row in demo_rows:
+        ids = []
+        if row[0]:
+            ids.append(str(row[0]))
+        ids.extend(str(value) for value in (_json_value(row[1]) or []) if value)
+        for actor in (_json_value(row[2]) or []):
+            if isinstance(actor, dict) and actor.get("personaId"):
+                ids.append(str(actor["personaId"]))
+        for persona_id in ids:
+            role_sources.setdefault((persona_id, "voice_actor"), set()).add("demo")
+
+    for (persona_id, role), sources in role_sources.items():
+        existing = conn.execute(text(
+            'SELECT id FROM persona_roles WHERE "personaId" = :persona AND role = :role'
+        ), {"persona": persona_id, "role": role}).fetchone()
+        if existing:
+            continue
+        role_id = str(uuid.uuid4())
+        params = {
+            "id": role_id,
+            "persona": persona_id,
+            "role": role,
+            "visible": role_visibility.get((persona_id, role), True),
+            "sources": json.dumps(sorted(sources), ensure_ascii=False),
+            "profile": json.dumps(role_profiles.get((persona_id, role), {}), ensure_ascii=False),
+            "now": now_ms,
+        }
+        if is_postgres:
+            conn.execute(text(
+                'INSERT INTO persona_roles (id, "personaId", role, "isVisible", "sourceTypes", profile, "createdAt", "updatedAt") '
+                'VALUES (:id, :persona, :role, :visible, CAST(:sources AS JSONB), CAST(:profile AS JSONB), :now, :now)'
+            ), params)
+        else:
+            conn.execute(text(
+                'INSERT INTO persona_roles (id, "personaId", role, "isVisible", "sourceTypes", profile, "createdAt", "updatedAt") '
+                'VALUES (:id, :persona, :role, :visible, :sources, :profile, :now, :now)'
+            ), params)
 
 def _backfill_content_fields(conn):
     """Backfill structured content fields from customMetadata.
@@ -309,6 +429,44 @@ def _run_postgres_migrations():
         external_table = conn.execute(text(
             "SELECT table_name FROM information_schema.tables WHERE table_name = 'external_public_scripts'"
         )).fetchone()
+        activity_cover_crop = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'activity_pages' AND column_name = 'coverCrop'"
+        )).fetchone()
+        if not activity_cover_crop:
+            activity_table = conn.execute(text(
+                "SELECT table_name FROM information_schema.tables WHERE table_name = 'activity_pages'"
+            )).fetchone()
+            if activity_table:
+                conn.execute(text('ALTER TABLE activity_pages ADD COLUMN "coverCrop" JSON'))
+        activity_table = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = 'activity_pages'")).fetchone()
+        if activity_table:
+            for col, col_type in [("acceptingSubmissions", "BOOLEAN NOT NULL DEFAULT FALSE")]:
+                exists = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'activity_pages' AND column_name = :c"), {"c": col}).fetchone()
+                if not exists:
+                    conn.execute(text(f'ALTER TABLE activity_pages ADD COLUMN "{col}" {col_type}'))
+        personas_table = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = 'personas'")).fetchone()
+        if personas_table:
+            for col, col_type in [
+                ("voiceActorHidden", "BOOLEAN NOT NULL DEFAULT FALSE"),
+                ("voiceActorWorks", "JSONB NOT NULL DEFAULT '[]'::jsonb"),
+                ("voiceActorOrganizations", "JSONB NOT NULL DEFAULT '[]'::jsonb"),
+                ("voiceActorContributors", "JSONB NOT NULL DEFAULT '[]'::jsonb"),
+            ]:
+                if not conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'personas' AND column_name = :c"), {"c": col}).fetchone():
+                    conn.execute(text(f'ALTER TABLE personas ADD COLUMN "{col}" {col_type}'))
+        profile_submissions_table = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = 'voice_actor_profile_submissions'")).fetchone()
+        if profile_submissions_table and not conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'voice_actor_profile_submissions' AND column_name = 'acceptedFields'")).fetchone():
+            conn.execute(text("ALTER TABLE voice_actor_profile_submissions ADD COLUMN \"acceptedFields\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
+        for table in ("public_feedback", "public_demo_submissions"):
+            exists_table = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = :t"), {"t": table}).fetchone()
+            if exists_table:
+                exists_col = conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = :t AND column_name = 'activityPageId'"), {"t": table}).fetchone()
+                if not exists_col:
+                    conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "activityPageId" TEXT'))
+        if conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = 'public_feedback'")).fetchone():
+            if not conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'public_feedback' AND column_name = 'activityScriptId'")).fetchone():
+                conn.execute(text('ALTER TABLE public_feedback ADD COLUMN "activityScriptId" TEXT'))
         if external_table:
             owner_column = conn.execute(text(
                 "SELECT column_name FROM information_schema.columns "
@@ -580,6 +738,8 @@ def _run_postgres_migrations():
             )
         """))
         external_public_script_columns = [
+            ("externalAuthorId", "TEXT DEFAULT NULL"),
+            ("authorKey", "TEXT DEFAULT ''"),
             ("authorName", "TEXT DEFAULT ''"),
             ("authorBio", "TEXT DEFAULT ''"),
             ("authorUrl", "TEXT DEFAULT ''"),
@@ -607,6 +767,15 @@ def _run_postgres_migrations():
             "SELECT table_name FROM information_schema.tables WHERE table_name = 'public_demo_submissions'"
         )).fetchone()
         if demo_submissions_table:
+            for col in ("ownerId", "voiceActorPersonaId"):
+                exists = conn.execute(text(
+                    "SELECT column_name FROM information_schema.columns "
+                    "WHERE table_name = 'public_demo_submissions' AND column_name = :c"
+                ), {"c": col}).fetchone()
+                if not exists:
+                    conn.execute(text(f'ALTER TABLE public_demo_submissions ADD COLUMN "{col}" TEXT'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_public_demo_submissions_ownerId ON public_demo_submissions("ownerId")'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_public_demo_submissions_voiceActorPersonaId ON public_demo_submissions("voiceActorPersonaId")'))
             result = conn.execute(text(
                 "SELECT column_name FROM information_schema.columns "
                 "WHERE table_name = 'public_demo_submissions' AND column_name = 'voiceActorIds'"
@@ -632,8 +801,72 @@ def _run_postgres_migrations():
             if not result:
                 conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"voiceTypes\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
         conn.execute(text('UPDATE external_public_scripts SET "mountedAt" = "createdAt" WHERE "mountedAt" IS NULL'))
+        author_rows = conn.execute(text('SELECT id, "authorName", "authorKey" FROM external_public_scripts')).fetchall()
+        for row in author_rows:
+            if str(row[2] or "").strip():
+                continue
+            key = unicodedata.normalize("NFKC", str(row[1] or "").strip()).casefold()
+            conn.execute(text('UPDATE external_public_scripts SET "authorKey" = :key WHERE id = :id'), {"key": key, "id": row[0]})
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_authorKey ON external_public_scripts("authorKey")'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_externalAuthorId ON external_public_scripts("externalAuthorId")'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts("sortOrder")'))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS external_author_page_profiles (
+                "authorKey" TEXT PRIMARY KEY,
+                "displayName" TEXT NOT NULL DEFAULT '',
+                bio TEXT NOT NULL DEFAULT '',
+                "profileUrl" TEXT NOT NULL DEFAULT '',
+                "avatarUrl" TEXT NOT NULL DEFAULT '',
+                "isHidden" BOOLEAN NOT NULL DEFAULT FALSE,
+                "createdAt" BIGINT NOT NULL,
+                "updatedAt" BIGINT NOT NULL
+            )
+        """))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_author_page_profiles_isHidden ON external_author_page_profiles("isHidden")'))
+        linked_persona_column = conn.execute(text(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'external_author_page_profiles' AND column_name = 'linkedPersonaId'"
+        )).fetchone()
+        if not linked_persona_column:
+            conn.execute(text('ALTER TABLE external_author_page_profiles ADD COLUMN "linkedPersonaId" TEXT'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_author_page_profiles_linkedPersonaId ON external_author_page_profiles("linkedPersonaId")'))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS external_authors (
+                id TEXT PRIMARY KEY,
+                "canonicalKey" TEXT NOT NULL,
+                "linkedPersonaId" TEXT DEFAULT NULL REFERENCES personas(id) ON DELETE SET NULL,
+                "displayName" TEXT NOT NULL DEFAULT '',
+                bio TEXT NOT NULL DEFAULT '',
+                "profileUrl" TEXT NOT NULL DEFAULT '',
+                "avatarUrl" TEXT NOT NULL DEFAULT '',
+                "isHidden" BOOLEAN NOT NULL DEFAULT FALSE,
+                "createdAt" BIGINT NOT NULL,
+                "updatedAt" BIGINT NOT NULL
+            )
+        """))
+        # canonicalKey is only an import/search hint. Different people may
+        # legitimately share the same public name, so it must not be unique.
+        conn.execute(text('ALTER TABLE external_authors DROP CONSTRAINT IF EXISTS "external_authors_canonicalKey_key"'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_authors_linkedPersonaId ON external_authors("linkedPersonaId")'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_authors_canonicalKey ON external_authors("canonicalKey")'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_authors_isHidden ON external_authors("isHidden")'))
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS persona_roles (
+                id TEXT PRIMARY KEY,
+                "personaId" TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+                role TEXT NOT NULL,
+                "isVisible" BOOLEAN NOT NULL DEFAULT TRUE,
+                "sourceTypes" JSONB NOT NULL DEFAULT '[]'::jsonb,
+                profile JSONB NOT NULL DEFAULT '{}'::jsonb,
+                "createdAt" BIGINT NOT NULL,
+                "updatedAt" BIGINT NOT NULL,
+                CONSTRAINT uq_persona_roles_persona_role UNIQUE ("personaId", role)
+            )
+        """))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_persona_roles_personaId ON persona_roles("personaId")'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_persona_roles_role ON persona_roles(role)'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_persona_roles_isVisible ON persona_roles("isVisible")'))
+        _backfill_identity_architecture(conn)
 
         canonical_metadata_columns = [
             ("targetAudience",      "TEXT"),
@@ -684,6 +917,29 @@ def run_migrations():
             existing_external_columns = {
                 row[1] for row in conn.execute(text("PRAGMA table_info(external_public_scripts)")).fetchall()
             }
+            existing_activity_columns = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(activity_pages)")).fetchall()
+            }
+            if existing_activity_columns and "coverCrop" not in existing_activity_columns:
+                conn.execute(text('ALTER TABLE activity_pages ADD COLUMN coverCrop TEXT'))
+            if existing_activity_columns and "acceptingSubmissions" not in existing_activity_columns:
+                conn.execute(text('ALTER TABLE activity_pages ADD COLUMN "acceptingSubmissions" BOOLEAN NOT NULL DEFAULT 0'))
+            persona_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(personas)")).fetchall()}
+            if persona_columns and "voiceActorHidden" not in persona_columns:
+                conn.execute(text('ALTER TABLE personas ADD COLUMN "voiceActorHidden" BOOLEAN NOT NULL DEFAULT 0'))
+            for col in ("voiceActorWorks", "voiceActorOrganizations", "voiceActorContributors"):
+                if persona_columns and col not in persona_columns:
+                    conn.execute(text(f'ALTER TABLE personas ADD COLUMN "{col}" JSON NOT NULL DEFAULT \'[]\''))
+            profile_submission_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(voice_actor_profile_submissions)")).fetchall()}
+            if profile_submission_columns and "acceptedFields" not in profile_submission_columns:
+                conn.execute(text('ALTER TABLE voice_actor_profile_submissions ADD COLUMN "acceptedFields" JSON NOT NULL DEFAULT \'[]\''))
+            for table in ("public_feedback", "public_demo_submissions"):
+                columns = {row[1] for row in conn.execute(text(f"PRAGMA table_info({table})")).fetchall()}
+                if columns and "activityPageId" not in columns:
+                    conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "activityPageId" TEXT'))
+            feedback_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(public_feedback)")).fetchall()}
+            if feedback_columns and "activityScriptId" not in feedback_columns:
+                conn.execute(text('ALTER TABLE public_feedback ADD COLUMN "activityScriptId" TEXT'))
             if existing_external_columns and "ownerId" not in existing_external_columns:
                 conn.execute(text('ALTER TABLE external_public_scripts ADD COLUMN "ownerId" TEXT'))
             if existing_external_columns:
@@ -1085,6 +1341,8 @@ def run_migrations():
                 )
             """))
             external_public_script_columns = [
+                ("externalAuthorId", "TEXT DEFAULT NULL"),
+                ("authorKey", "TEXT DEFAULT ''"),
                 ("authorName", "TEXT DEFAULT ''"),
                 ("authorBio", "TEXT DEFAULT ''"),
                 ("authorUrl", "TEXT DEFAULT ''"),
@@ -1109,6 +1367,12 @@ def run_migrations():
             existing_demo_submission_columns = {
                 row[1] for row in conn.execute(text("PRAGMA table_info(public_demo_submissions)")).fetchall()
             }
+            if existing_demo_submission_columns and "ownerId" not in existing_demo_submission_columns:
+                conn.execute(text('ALTER TABLE public_demo_submissions ADD COLUMN "ownerId" TEXT'))
+            if existing_demo_submission_columns and "voiceActorPersonaId" not in existing_demo_submission_columns:
+                conn.execute(text('ALTER TABLE public_demo_submissions ADD COLUMN "voiceActorPersonaId" TEXT'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_public_demo_submissions_ownerId ON public_demo_submissions("ownerId")'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_public_demo_submissions_voiceActorPersonaId ON public_demo_submissions("voiceActorPersonaId")'))
             if existing_demo_submission_columns and "voiceActorIds" not in existing_demo_submission_columns:
                 conn.execute(text('ALTER TABLE public_demo_submissions ADD COLUMN "voiceActorIds" TEXT DEFAULT \'[]\''))
             if existing_demo_submission_columns and "coverUrl" not in existing_demo_submission_columns:
@@ -1118,8 +1382,69 @@ def run_migrations():
             if existing_demo_submission_columns and "voiceTypes" not in existing_demo_submission_columns:
                 conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"voiceTypes\" TEXT NOT NULL DEFAULT '[]'"))
             conn.execute(text('UPDATE external_public_scripts SET mountedAt = createdAt WHERE mountedAt IS NULL'))
+            author_rows = conn.execute(text('SELECT id, authorName, authorKey FROM external_public_scripts')).fetchall()
+            for row in author_rows:
+                if str(row[2] or "").strip():
+                    continue
+                key = unicodedata.normalize("NFKC", str(row[1] or "").strip()).casefold()
+                conn.execute(text('UPDATE external_public_scripts SET authorKey = :key WHERE id = :id'), {"key": key, "id": row[0]})
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_authorKey ON external_public_scripts(authorKey)"))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_externalAuthorId ON external_public_scripts("externalAuthorId")'))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts(sortOrder)"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS external_author_page_profiles (
+                    authorKey TEXT PRIMARY KEY,
+                    displayName TEXT NOT NULL DEFAULT '',
+                    bio TEXT NOT NULL DEFAULT '',
+                    profileUrl TEXT NOT NULL DEFAULT '',
+                    avatarUrl TEXT NOT NULL DEFAULT '',
+                    isHidden INTEGER NOT NULL DEFAULT 0,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+            """))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_author_page_profiles_isHidden ON external_author_page_profiles(isHidden)"))
+            external_author_profile_columns = {
+                row[1] for row in conn.execute(text("PRAGMA table_info(external_author_page_profiles)")).fetchall()
+            }
+            if "linkedPersonaId" not in external_author_profile_columns:
+                conn.execute(text('ALTER TABLE external_author_page_profiles ADD COLUMN "linkedPersonaId" TEXT'))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_author_page_profiles_linkedPersonaId ON external_author_page_profiles("linkedPersonaId")'))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS external_authors (
+                    id TEXT PRIMARY KEY,
+                    canonicalKey TEXT NOT NULL,
+                    linkedPersonaId TEXT DEFAULT NULL REFERENCES personas(id) ON DELETE SET NULL,
+                    displayName TEXT NOT NULL DEFAULT '',
+                    bio TEXT NOT NULL DEFAULT '',
+                    profileUrl TEXT NOT NULL DEFAULT '',
+                    avatarUrl TEXT NOT NULL DEFAULT '',
+                    isHidden INTEGER NOT NULL DEFAULT 0,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                )
+            """))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_authors_linkedPersonaId ON external_authors(linkedPersonaId)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_authors_canonicalKey ON external_authors(canonicalKey)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_external_authors_isHidden ON external_authors(isHidden)"))
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS persona_roles (
+                    id TEXT PRIMARY KEY,
+                    personaId TEXT NOT NULL REFERENCES personas(id) ON DELETE CASCADE,
+                    role TEXT NOT NULL,
+                    isVisible INTEGER NOT NULL DEFAULT 1,
+                    sourceTypes TEXT NOT NULL DEFAULT '[]',
+                    profile TEXT NOT NULL DEFAULT '{}',
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL,
+                    UNIQUE (personaId, role)
+                )
+            """))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_roles_personaId ON persona_roles(personaId)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_roles_role ON persona_roles(role)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_persona_roles_isVisible ON persona_roles(isVisible)"))
+            _backfill_identity_architecture(conn)
 
             # Backfill user -> org memberships from legacy users.organizationId
             now_ms = int(time.time() * 1000)

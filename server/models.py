@@ -6,6 +6,7 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Float, Boolean
 from sqlalchemy.orm import relationship
 from database import Base
 import time
+import uuid
 
 
 class User(Base):
@@ -62,7 +63,11 @@ class Persona(Base):
     website = Column(String, default="")
     links = Column(JSON, default=list)
     organizationIds = Column(JSON, default=list)
+    voiceActorWorks = Column(JSON, default=list)
+    voiceActorOrganizations = Column(JSON, default=list)
+    voiceActorContributors = Column(JSON, default=list)
     tags = Column(JSON, default=list)
+    voiceActorHidden = Column(Boolean, default=False, nullable=False, index=True)
     defaultLicenseCommercial = Column(String, default="")
     defaultLicenseDerivative = Column(String, default="")
     defaultLicenseNotify = Column(String, default="")
@@ -71,6 +76,28 @@ class Persona(Base):
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
 
     owner = relationship("User", back_populates="personas")
+
+
+class PersonaRole(Base):
+    """Role-specific state attached to one public identity.
+
+    Persona owns shared profile fields. Role visibility and role-only profile
+    data live here so adding a new role does not add more columns to Persona.
+    """
+
+    __tablename__ = "persona_roles"
+    __table_args__ = (UniqueConstraint("personaId", "role", name="uq_persona_roles_persona_role"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    personaId = Column(String, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, nullable=False, index=True)
+    isVisible = Column(Boolean, nullable=False, default=True, index=True)
+    sourceTypes = Column(JSON, nullable=False, default=list)
+    profile = Column(JSON, nullable=False, default=dict)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+    persona = relationship("Persona", backref="roleRecords")
 
 
 class Tag(Base):
@@ -284,6 +311,8 @@ class PublicFeedback(Base):
     notes = Column(Text, default="")
     content = Column(Text, nullable=False)
     pageUrl = Column(Text, default="")
+    activityPageId = Column(String, ForeignKey("activity_pages.id", ondelete="SET NULL"), nullable=True, index=True)
+    activityScriptId = Column(String, index=True, nullable=True)
     status = Column(String, default="new", index=True)  # new | reviewed | closed
     ipAddress = Column(String, default="")
     forwardedFor = Column(String, default="")
@@ -299,9 +328,12 @@ class PublicDemoSubmission(Base):
     __tablename__ = "public_demo_submissions"
 
     id = Column(String, primary_key=True, index=True)
+    ownerId = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    voiceActorPersonaId = Column(String, ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True)
     scriptType = Column(String, nullable=False, index=True)  # internal | external
     scriptId = Column(String, ForeignKey("scripts.id", ondelete="SET NULL"), nullable=True, index=True)
     externalScriptId = Column(String, ForeignKey("external_public_scripts.id", ondelete="SET NULL"), nullable=True, index=True)
+    activityPageId = Column(String, ForeignKey("activity_pages.id", ondelete="SET NULL"), nullable=True, index=True)
     scriptTitle = Column(Text, nullable=False, default="")
     scriptUrl = Column(Text, nullable=False, default="")
     demoName = Column(String, nullable=False, default="")
@@ -318,6 +350,26 @@ class PublicDemoSubmission(Base):
     reviewedAt = Column(BigInteger, nullable=True)
     reviewedBy = Column(String, nullable=True)
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+
+class VoiceActorProfileSubmission(Base):
+    """Public profile updates for voice actor personas, applied only after admin approval."""
+
+    __tablename__ = "voice_actor_profile_submissions"
+
+    id = Column(String, primary_key=True, index=True)
+    personaId = Column(String, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False, index=True)
+    submitterName = Column(String, nullable=False, default="")
+    contactEmail = Column(String, nullable=False, default="")
+    profile = Column(JSON, nullable=False, default=dict)
+    acceptedFields = Column(JSON, nullable=False, default=list)
+    status = Column(String, nullable=False, default="pending", index=True)
+    reviewNote = Column(Text, nullable=False, default="")
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+    persona = relationship("Persona")
 
 
 class AdminUser(Base):
@@ -339,6 +391,49 @@ class SiteSetting(Base):
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
 
 
+class ActivityPage(Base):
+    """Admin-curated campaign pages shown in the public Activity hub."""
+
+    __tablename__ = "activity_pages"
+
+    id = Column(String, primary_key=True, index=True)
+    slug = Column(String, nullable=False, unique=True, index=True)
+    title = Column(String, nullable=False)
+    summary = Column(Text, default="")
+    coverUrl = Column(Text, default="")
+    coverCrop = Column(JSON, nullable=True)
+    body = Column(Text, default="")
+    scriptIds = Column(JSON, default=list)
+    externalScriptIds = Column(JSON, default=list)
+    acceptingSubmissions = Column(Boolean, default=False, nullable=False)
+    status = Column(String, default="draft", index=True)  # draft | published
+    sortOrder = Column(Integer, default=0)
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+    updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+    publishedAt = Column(BigInteger, nullable=True)
+
+
+class ExternalAuthor(Base):
+    """Immutable external author identity.
+
+    canonicalKey is an import/grouping hint. Relationships use id, so changing
+    a public display name can never detach scripts, supplements, or reviews.
+    """
+
+    __tablename__ = "external_authors"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    canonicalKey = Column(String, nullable=False, index=True)
+    linkedPersonaId = Column(String, ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True)
+    displayName = Column(Text, nullable=False, default="")
+    bio = Column(Text, nullable=False, default="")
+    profileUrl = Column(Text, nullable=False, default="")
+    avatarUrl = Column(Text, nullable=False, default="")
+    isHidden = Column(Boolean, nullable=False, default=False, index=True)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
 class ExternalPublicScript(Base):
     """A public-script entry curated from an external source.
 
@@ -355,6 +450,11 @@ class ExternalPublicScript(Base):
     canonicalUrl = Column(Text, default="", index=True)
     sourceDomain = Column(String, default="")
     sourceName = Column(String, default="")
+    externalAuthorId = Column(String, ForeignKey("external_authors.id", ondelete="SET NULL"), nullable=True, index=True)
+    # Stable grouping key for the external author.  Public identity joins must
+    # use this key (and ExternalAuthorPageProfile.linkedPersonaId), never a
+    # display-name comparison performed by a page component.
+    authorKey = Column(String, default="", index=True)
     authorName = Column(String, default="")
     authorBio = Column(Text, default="")
     authorUrl = Column(Text, default="")
@@ -389,3 +489,49 @@ class ExternalPublicScript(Base):
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
     mountedAt = Column(BigInteger, nullable=True, index=True)
     updatedAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+
+class ExternalAuthorPageProfile(Base):
+    """Admin-managed public profile overrides for grouped external authors."""
+
+    __tablename__ = "external_author_page_profiles"
+
+    authorKey = Column(String, primary_key=True, index=True)
+    linkedPersonaId = Column(String, ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True)
+    displayName = Column(Text, nullable=False, default="")
+    bio = Column(Text, nullable=False, default="")
+    profileUrl = Column(Text, nullable=False, default="")
+    avatarUrl = Column(Text, nullable=False, default="")
+    isHidden = Column(Boolean, nullable=False, default=False, index=True)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
+class ExternalAuthorPageSupplement(Base):
+    """Approved public profile supplements and contributor credits for external authors."""
+
+    __tablename__ = "external_author_page_supplements"
+
+    authorKey = Column(String, primary_key=True, index=True)
+    profile = Column(JSON, nullable=False, default=dict)
+    contributors = Column(JSON, nullable=False, default=list)
+    updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
+class ExternalAuthorProfileSubmission(Base):
+    """Public proposals to supplement an external scriptwriter profile."""
+
+    __tablename__ = "external_author_profile_submissions"
+
+    id = Column(String, primary_key=True, index=True)
+    authorKey = Column(String, nullable=False, index=True)
+    authorName = Column(String, nullable=False, default="")
+    submitterName = Column(String, nullable=False, default="")
+    contactEmail = Column(String, nullable=False, default="")
+    profile = Column(JSON, nullable=False, default=dict)
+    acceptedFields = Column(JSON, nullable=False, default=list)
+    status = Column(String, nullable=False, default="pending", index=True)
+    reviewNote = Column(Text, nullable=False, default="")
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000), index=True)

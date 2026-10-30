@@ -6,7 +6,6 @@ import { externalEntityHref, externalEntitySlug, socialAvatarUrl } from "@/lib/e
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { decodeRouteName, findExternalAuthorModel } from "@/lib/entityModels";
 import { getStaticExternalAuthorParams } from "@/lib/staticParams";
 import { LiveExternalAuthorPage } from "@/components/LiveEntityPages";
@@ -58,17 +57,18 @@ export default async function ExternalAuthorPage({ params }: { params: Promise<{
   const { name: rawName } = await params;
   const model = await getModel(rawName);
   if (!model) notFound();
+  if (model.personaId) redirect(`/author/${encodeURIComponent(model.personaId)}`);
   const canonicalPath = externalEntityHref("author", model.name, model.profileUrl);
   if (decodeName(rawName).trim() !== externalEntitySlug(model.name, model.profileUrl)) {
     redirect(canonicalPath);
   }
   return (
     <>
-      <PublicTopBar activeTab="authors" trailing={<PublicShellActions />} />
+      <PublicTopBar activeTab="authors" />
       {STATIC_EXPORT ? (
         <LiveExternalAuthorPage rawName={rawName} initial={model} />
       ) : (
-        <ExternalEntityPage kind="author" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} />
+        <ExternalEntityPage kind="author" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} authorKey={model.authorKey} externalAuthorId={model.externalAuthorId} supplement={model.supplement} contributors={model.contributors} items={model.items} />
       )}
     </>
   );

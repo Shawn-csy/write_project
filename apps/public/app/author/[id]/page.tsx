@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
-import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
+import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
+import { externalScriptsForPersona } from "@/lib/publicIdentity";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticAuthorParams } from "@/lib/staticParams";
@@ -106,10 +106,7 @@ export default async function AuthorPage({
   if (!persona) notFound();
 
   const performances = getPublicVoicePerformances(id, bundle);
-  const normalizedName = persona.displayName.trim().toLocaleLowerCase();
-  const externalScripts = (bundle.externalPublicScripts || []).filter((script) =>
-    script.status === "published" && script.authorName?.trim().toLocaleLowerCase() === normalizedName
-  );
+  const externalScripts = externalScriptsForPersona(persona, bundle.externalPublicScripts || []);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -124,7 +121,7 @@ export default async function AuthorPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab="authors" trailing={<PublicShellActions />} />
+      <PublicTopBar activeTab={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "voice-actors" : "authors"} />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{persona.displayName}</h1>

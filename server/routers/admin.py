@@ -7,7 +7,11 @@ import time
 import uuid
 import json
 import os
+import re
+import math
 import httpx
+import unicodedata
+from urllib.parse import urlparse
 import crud_ops as crud
 import models
 import schemas
@@ -35,6 +39,20 @@ def _send_homepage_revalidation() -> None:
         # The Banner write has already succeeded; cache invalidation can fail
         # without turning a successful save into an error.
         pass
+
+
+def _send_public_paths_revalidation(paths: list[str]) -> None:
+    if not _REVALIDATE_URL or not _REVALIDATE_SECRET or not paths:
+        return
+    try:
+        httpx.post(_REVALIDATE_URL, json={"secret": _REVALIDATE_SECRET, "paths": sorted(set(paths))}, timeout=5)
+    except Exception:
+        pass
+
+
+def _queue_demo_revalidation(background_tasks: BackgroundTasks | None, *paths: str) -> None:
+    if background_tasks:
+        background_tasks.add_task(_send_public_paths_revalidation, list(paths))
 
 
 def _delete_scripts_owned_by(db: Session, owner_id: str):
@@ -190,6 +208,7 @@ def list_public_terms_acceptances(
 def list_public_feedback(
     q: Optional[str] = None,
     excludeKind: Optional[str] = None,
+    status: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -202,6 +221,10 @@ def list_public_feedback(
     safe_offset = max(offset, 0)
     normalized_q = (q or "").strip()
     query = db.query(models.PublicFeedback)
+    if status:
+        if status not in {"new", "reviewed", "closed"}:
+            raise HTTPException(status_code=400, detail="Invalid feedback status")
+        query = query.filter(models.PublicFeedback.status == status)
     if excludeKind:
         query = query.filter(models.PublicFeedback.kind != excludeKind)
     if normalized_q:
@@ -328,6 +351,246 @@ def update_public_demo_submission_status(
     return _serialize_demo_submission(db, row)
 
 
+@router.delete("/public-demo-submissions/{submission_id}")
+def delete_public_demo_submission(
+    submission_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.id == submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Demo submission not found")
+    db.delete(row)
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    return {"success": True, "id": submission_id}
+
+
+def _admin_demo_links(value: Any) -> list[dict]:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            value = []
+    if not isinstance(value, list):
+        return []
+    result = []
+    for index, item in enumerate(value):
+        if not isinstance(item, dict) or not str(item.get("url") or "").strip():
+            continue
+        normalized = dict(item)
+        normalized["id"] = str(normalized.get("id") or f"demo-{index + 1}")
+        result.append(normalized)
+    return result
+
+
+def _admin_demo_link_record(kind: str, parent_id: str, link: dict, script_title: str, script_url: str, status: str, created_at: int = 0) -> dict:
+    return {
+        "id": str(link.get("id") or ""), "sourceKind": kind, "parentId": parent_id,
+        "scriptTitle": script_title, "scriptUrl": script_url,
+        "demoName": str(link.get("name") or ""), "demoUrl": str(link.get("url") or ""),
+        "coverUrl": str(link.get("coverUrl") or ""), "cast": str(link.get("cast") or ""),
+        "voiceTypes": link.get("voiceTypes") if isinstance(link.get("voiceTypes"), list) else [],
+        "voiceActorIds": list(dict.fromkeys(str(item) for item in link.get("voiceActorIds", []) if item)) if isinstance(link.get("voiceActorIds"), list) else [],
+        "description": str(link.get("description") or ""), "displayName": "", "contactEmail": "",
+        "status": status, "createdAt": created_at,
+    }
+
+
+@router.get("/all-demos", response_model=schemas.AdminDemoListResponse)
+def list_all_demos(
+    q: Optional[str] = None,
+    status: Optional[str] = "all",
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    """List all managed demo links, including script metadata and moderated submissions."""
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if status not in {None, "all", "pending", "approved", "rejected"}:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    records: list[dict] = []
+    for row in db.query(models.PublicDemoSubmission).all():
+        records.append({**_serialize_demo_submission(db, row), "sourceKind": "submission", "parentId": row.id})
+
+    for script in db.query(models.Script).filter(models.Script.type == "script").all():
+        for index, link in enumerate(_admin_demo_links(script.activityDemoLinks)):
+            link_id = str(link.get("id") or f"demo-{index + 1}")
+            link["id"] = link_id
+            records.append(_admin_demo_link_record(
+                "internal", script.id, link, str(script.title or ""), f"/read/{script.id}",
+                "approved" if bool(script.isPublic) or str(script.status or "").lower() in {"public", "published"} else "pending",
+                int(script.lastModified or script.createdAt or 0),
+            ))
+
+    for script in db.query(models.ExternalPublicScript).all():
+        for index, link in enumerate(_admin_demo_links(script.demoLinks)):
+            link_id = str(link.get("id") or f"demo-{index + 1}")
+            link["id"] = link_id
+            records.append(_admin_demo_link_record(
+                "external", script.id, link,
+                str(script.titleOverride or script.remoteTitle or "外部台本"), str(script.sourceUrl or ""),
+                "approved" if str(script.status or "").lower() == "published" else "pending",
+                int(script.updatedAt or script.createdAt or 0),
+            ))
+
+    normalized_q = (q or "").strip().casefold()
+    if normalized_q:
+        records = [record for record in records if normalized_q in " ".join(str(record.get(field) or "") for field in ("scriptTitle", "demoName", "demoUrl", "cast", "description", "displayName", "contactEmail")).casefold()]
+    if status and status != "all":
+        records = [record for record in records if record.get("status") == status]
+    records.sort(key=lambda record: (int(record.get("createdAt") or 0), str(record.get("scriptTitle") or "").casefold()), reverse=True)
+    total = len(records)
+    page = records[max(offset, 0):max(offset, 0) + max(1, min(limit, 200))]
+    return schemas.AdminDemoListResponse(total=total, items=page)
+
+
+@router.get("/all-demos/targets", response_model=List[schemas.AdminDemoTarget])
+def list_all_demo_targets(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    targets = []
+    for script in db.query(models.Script).filter(models.Script.type == "script").order_by(models.Script.title).all():
+        targets.append({"id": script.id, "sourceKind": "internal", "title": str(script.title or "未命名台本"), "authorName": str(script.author or "")})
+    for script in db.query(models.ExternalPublicScript).order_by(models.ExternalPublicScript.titleOverride, models.ExternalPublicScript.remoteTitle).all():
+        targets.append({"id": script.id, "sourceKind": "external", "title": str(script.titleOverride or script.remoteTitle or "外部台本"), "authorName": str(script.authorName or "")})
+    return targets
+
+
+@router.post("/all-demos", response_model=schemas.AdminDemoRecord)
+def create_all_demo(payload: schemas.AdminDemoMutation, background_tasks: BackgroundTasks, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if payload.sourceKind == "submission":
+        raise HTTPException(status_code=400, detail="新增 Demo 請選擇一個台本作為來源")
+    parent_id = str(payload.parentId or "").strip()
+    parent = db.query(models.Script if payload.sourceKind == "internal" else models.ExternalPublicScript).filter_by(id=parent_id).first()
+    if not parent:
+        raise HTTPException(status_code=404, detail="台本不存在")
+    links = _admin_demo_links(parent.activityDemoLinks if payload.sourceKind == "internal" else parent.demoLinks)
+    if len(links) >= 40:
+        raise HTTPException(status_code=400, detail="單一本台本最多可管理 40 筆 Demo")
+    link = {"id": str(uuid.uuid4()), "name": payload.demoName, "url": payload.demoUrl, "coverUrl": payload.coverUrl, "cast": payload.cast, "description": payload.description, "voiceTypes": payload.voiceTypes, "voiceActorIds": payload.voiceActorIds}
+    links.append(link)
+    if payload.sourceKind == "internal":
+        parent.activityDemoLinks = json.dumps(links, ensure_ascii=False)
+        script_url = f"/read/{parent.id}"
+        script_title = str(parent.title or "")
+    else:
+        parent.demoLinks = json.dumps(links, ensure_ascii=False)
+        parent.updatedAt = int(time.time() * 1000)
+        script_url = str(parent.sourceUrl or "")
+        script_title = str(parent.titleOverride or parent.remoteTitle or "")
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, "/demos", "/voice-actors", script_url if payload.sourceKind == "internal" else "/")
+    return _admin_demo_link_record(payload.sourceKind, parent.id, link, script_title, script_url, "approved", int(time.time() * 1000))
+
+
+@router.put("/all-demos/{source_kind}/{parent_id}/{demo_id}", response_model=schemas.AdminDemoRecord)
+def update_all_demo(source_kind: str, parent_id: str, demo_id: str, payload: schemas.AdminDemoMutation, background_tasks: BackgroundTasks, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if source_kind != payload.sourceKind:
+        raise HTTPException(status_code=400, detail="Demo 來源不一致")
+    if source_kind == "submission":
+        row = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.id == demo_id).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Demo 不存在")
+        row.scriptTitle, row.scriptUrl = payload.scriptTitle, payload.scriptUrl
+        row.demoName, row.demoUrl, row.coverUrl = payload.demoName, payload.demoUrl, payload.coverUrl
+        row.cast, row.voiceTypes, row.description = payload.cast, payload.voiceTypes, payload.description
+        selected_actor_ids = list(dict.fromkeys(payload.voiceActorIds))
+        row.voiceActorPersonaId = selected_actor_ids[0] if selected_actor_ids else None
+        row.voiceActorIds = selected_actor_ids[1:] if selected_actor_ids else []
+        row.displayName, row.contactEmail, row.status = payload.displayName, payload.contactEmail, payload.status
+        if payload.status == "approved":
+            _ensure_manual_voice_actor_personas(db, row)
+        row.reviewedAt = int(time.time() * 1000) if payload.status != "pending" else None
+        row.reviewedBy = ownerId if payload.status != "pending" else None
+        db.commit()
+        db.refresh(row)
+        result = {**_serialize_demo_submission(db, row), "sourceKind": "submission", "parentId": row.id}
+    elif source_kind in {"internal", "external"}:
+        model = models.Script if source_kind == "internal" else models.ExternalPublicScript
+        parent = db.query(model).filter_by(id=parent_id).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="台本不存在")
+        links = _admin_demo_links(parent.activityDemoLinks if source_kind == "internal" else parent.demoLinks)
+        link = next((item for item in links if str(item.get("id") or "") == demo_id), None)
+        if not link:
+            raise HTTPException(status_code=404, detail="Demo 不存在")
+        link.update({"name": payload.demoName, "url": payload.demoUrl, "coverUrl": payload.coverUrl, "cast": payload.cast, "description": payload.description, "voiceTypes": payload.voiceTypes, "voiceActorIds": payload.voiceActorIds})
+        updated_at = int(time.time() * 1000)
+        if source_kind == "internal":
+            parent.activityDemoLinks = json.dumps(links, ensure_ascii=False)
+            parent.lastModified = updated_at
+            script_url, script_title = f"/read/{parent.id}", str(parent.title or "")
+            next_status = "approved" if bool(parent.isPublic) or str(parent.status or "").lower() in {"public", "published"} else "pending"
+        else:
+            parent.demoLinks = json.dumps(links, ensure_ascii=False)
+            parent.updatedAt = updated_at
+            script_url, script_title = str(parent.sourceUrl or ""), str(parent.titleOverride or parent.remoteTitle or "")
+            next_status = "approved" if str(parent.status or "").lower() == "published" else "pending"
+        db.commit()
+        result = _admin_demo_link_record(source_kind, parent.id, link, script_title, script_url, next_status, updated_at)
+    else:
+        raise HTTPException(status_code=400, detail="無效的 Demo 來源")
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    revalidate_paths = ["/demos", "/voice-actors"]
+    if source_kind == "internal": revalidate_paths.append(f"/read/{parent_id}")
+    if source_kind == "external":
+        from routers import external_public_scripts
+        revalidate_paths.extend(external_public_scripts._external_public_paths(parent))
+    _queue_demo_revalidation(background_tasks, *revalidate_paths)
+    return result
+
+
+@router.delete("/all-demos/{source_kind}/{parent_id}/{demo_id}")
+def delete_all_demo(source_kind: str, parent_id: str, demo_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if source_kind == "submission":
+        row = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.id == demo_id).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Demo 不存在")
+        db.delete(row)
+    elif source_kind in {"internal", "external"}:
+        model = models.Script if source_kind == "internal" else models.ExternalPublicScript
+        parent = db.query(model).filter_by(id=parent_id).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="台本不存在")
+        links = _admin_demo_links(parent.activityDemoLinks if source_kind == "internal" else parent.demoLinks)
+        next_links = [item for item in links if str(item.get("id") or "") != demo_id]
+        if len(next_links) == len(links):
+            raise HTTPException(status_code=404, detail="Demo 不存在")
+        if source_kind == "internal":
+            parent.activityDemoLinks = json.dumps(next_links, ensure_ascii=False)
+        else:
+            parent.demoLinks = json.dumps(next_links, ensure_ascii=False)
+            parent.updatedAt = int(time.time() * 1000)
+    else:
+        raise HTTPException(status_code=400, detail="無效的 Demo 來源")
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    revalidate_paths = ["/demos", "/voice-actors"]
+    if source_kind == "internal": revalidate_paths.append(f"/read/{parent_id}")
+    if source_kind == "external":
+        from routers import external_public_scripts
+        revalidate_paths.extend(external_public_scripts._external_public_paths(parent))
+    _queue_demo_revalidation(background_tasks, *revalidate_paths)
+    return {"success": True, "id": demo_id}
+
+
 def _ensure_manual_voice_actor_personas(db: Session, row: models.PublicDemoSubmission) -> None:
     """Create unclaimed public voice-actor identities when a Demo is approved."""
     raw_actors = row.manualVoiceActors if isinstance(row.manualVoiceActors, list) else []
@@ -375,7 +638,7 @@ def _ensure_manual_voice_actor_personas(db: Session, row: models.PublicDemoSubmi
                 website="",
                 links=links,
                 organizationIds=[],
-                tags=["聲演", "Demo 投稿建立", "待認領"],
+                tags=["聲演", "Demo 投稿建立"],
                 defaultLicenseCommercial="",
                 defaultLicenseDerivative="",
                 defaultLicenseNotify="",
@@ -397,12 +660,16 @@ def _ensure_manual_voice_actor_personas(db: Session, row: models.PublicDemoSubmi
 
 def _serialize_demo_submission(db: Session, row: models.PublicDemoSubmission) -> dict:
     voice_actor_ids = row.voiceActorIds if isinstance(row.voiceActorIds, list) else []
-    personas = db.query(models.Persona).filter(models.Persona.id.in_(voice_actor_ids)).all() if voice_actor_ids else []
+    all_voice_actor_ids = list(dict.fromkeys([*voice_actor_ids, *([row.voiceActorPersonaId] if row.voiceActorPersonaId else [])]))
+    personas = db.query(models.Persona).filter(models.Persona.id.in_(all_voice_actor_ids)).all() if all_voice_actor_ids else []
     return {
         "id": row.id,
+        "ownerId": row.ownerId,
+        "voiceActorPersonaId": row.voiceActorPersonaId,
         "scriptType": row.scriptType,
         "scriptId": row.scriptId,
         "externalScriptId": row.externalScriptId,
+        "activityPageId": row.activityPageId,
         "scriptTitle": row.scriptTitle,
         "scriptUrl": row.scriptUrl,
         "demoName": row.demoName,
@@ -410,7 +677,7 @@ def _serialize_demo_submission(db: Session, row: models.PublicDemoSubmission) ->
         "coverUrl": row.coverUrl or "",
         "cast": row.cast,
         "voiceTypes": row.voiceTypes if isinstance(row.voiceTypes, list) else [],
-        "voiceActorIds": voice_actor_ids,
+        "voiceActorIds": all_voice_actor_ids,
         "manualVoiceActors": row.manualVoiceActors if isinstance(row.manualVoiceActors, list) else [],
         "voiceActorNames": [persona.displayName for persona in personas],
         "description": row.description,
@@ -609,6 +876,559 @@ def update_homepage_banner(
     return schemas.HomepageBannerSetting(**clean)
 
 
+def _activity_page_payload_values(payload: schemas.ActivityPagePayload) -> dict:
+    slug = re.sub(r"[^a-z0-9]+", "-", payload.slug.strip().lower()).strip("-")[:100]
+    title = payload.title.strip()[:160]
+    if not slug:
+        raise HTTPException(status_code=400, detail="請使用英數字與連字號設定活動網址代稱")
+    if not title:
+        raise HTTPException(status_code=400, detail="活動標題不可空白")
+    cover_url = payload.coverUrl.strip()[:2000]
+    if cover_url and not (cover_url.startswith("https://") or cover_url.startswith("http://") or cover_url.startswith("/media/")):
+        raise HTTPException(status_code=400, detail="封面請使用 http(s) 網址或站內媒體路徑")
+    cover_crop = None
+    if cover_url and payload.coverCrop:
+        def clamp_crop(key: str, default: float, minimum: float, maximum: float) -> float:
+            value = float(payload.coverCrop.get(key, default))
+            if not math.isfinite(value):
+                return default
+            return min(maximum, max(minimum, value))
+        cover_crop = {
+            "cx": clamp_crop("cx", 0, -1, 1),
+            "cy": clamp_crop("cy", 0, -1, 1),
+            "zoom": clamp_crop("zoom", 1, 0.35, 3),
+        }
+    return {
+        "slug": slug,
+        "title": title,
+        "summary": payload.summary.strip()[:1000],
+        "coverUrl": cover_url,
+        "coverCrop": cover_crop,
+        "body": payload.body[:50_000],
+        "scriptIds": list(dict.fromkeys(str(value) for value in payload.scriptIds if str(value).strip()))[:100],
+        "externalScriptIds": list(dict.fromkeys(str(value) for value in payload.externalScriptIds if str(value).strip()))[:100],
+        "acceptingSubmissions": bool(payload.acceptingSubmissions),
+        "status": payload.status,
+        "sortOrder": payload.sortOrder,
+    }
+
+
+def _invalidate_activity_pages():
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+
+
+@router.get("/activity-pages", response_model=List[schemas.ActivityPageRecord])
+def list_activity_pages_admin(
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return db.query(models.ActivityPage).order_by(models.ActivityPage.sortOrder, models.ActivityPage.updatedAt.desc()).all()
+
+
+@router.post("/activity-pages", response_model=schemas.ActivityPageRecord)
+def create_activity_page_admin(
+    payload: schemas.ActivityPagePayload,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    values = _activity_page_payload_values(payload)
+    if db.query(models.ActivityPage.id).filter(models.ActivityPage.slug == values["slug"]).first():
+        raise HTTPException(status_code=409, detail="這個活動網址代稱已被使用")
+    now_ms = int(time.time() * 1000)
+    row = models.ActivityPage(id=str(uuid.uuid4()), **values, createdAt=now_ms, updatedAt=now_ms, publishedAt=now_ms if values["status"] == "published" else None)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    _invalidate_activity_pages()
+    return row
+
+
+@router.put("/activity-pages/{page_id}", response_model=schemas.ActivityPageRecord)
+def update_activity_page_admin(
+    page_id: str,
+    payload: schemas.ActivityPagePayload,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.ActivityPage).filter(models.ActivityPage.id == page_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="找不到活動頁")
+    values = _activity_page_payload_values(payload)
+    conflict = db.query(models.ActivityPage.id).filter(models.ActivityPage.slug == values["slug"], models.ActivityPage.id != page_id).first()
+    if conflict:
+        raise HTTPException(status_code=409, detail="這個活動網址代稱已被使用")
+    for key, value in values.items():
+        setattr(row, key, value)
+    row.updatedAt = int(time.time() * 1000)
+    row.publishedAt = row.publishedAt or row.updatedAt if row.status == "published" else None
+    db.commit()
+    db.refresh(row)
+    _invalidate_activity_pages()
+    return row
+
+
+@router.delete("/activity-pages/{page_id}")
+def delete_activity_page_admin(
+    page_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.ActivityPage).filter(models.ActivityPage.id == page_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="找不到活動頁")
+    db.delete(row)
+    db.commit()
+    _invalidate_activity_pages()
+    return {"success": True, "id": page_id}
+
+
+@router.get("/activity-pages/{page_id}/submissions", response_model=schemas.ActivitySubmissionListResponse)
+def list_activity_submissions_admin(
+    page_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    page = db.query(models.ActivityPage).filter(models.ActivityPage.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="找不到活動頁")
+    items = []
+    for row in db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.activityPageId == page_id).order_by(models.PublicDemoSubmission.createdAt.desc()).all():
+        items.append({"id": row.id, "activityPageId": page_id, "kind": "demo", "title": row.demoName or row.scriptTitle, "summary": row.description or "", "link": row.demoUrl, "coverUrl": row.coverUrl or "", "scriptType": row.scriptType, "scriptId": row.scriptId, "externalScriptId": row.externalScriptId, "voiceTypes": row.voiceTypes or [], "createdAt": row.createdAt})
+    for row in db.query(models.PublicFeedback).filter(models.PublicFeedback.activityPageId == page_id, models.PublicFeedback.kind == "listing", models.PublicFeedback.activityScriptId.isnot(None)).order_by(models.PublicFeedback.createdAt.desc()).all():
+        script = db.query(models.ExternalPublicScript).filter(models.ExternalPublicScript.id == row.activityScriptId).first()
+        if not script:
+            continue
+        items.append({"id": row.id, "activityPageId": page_id, "kind": "script", "title": script.titleOverride or script.remoteTitle or row.scriptTitle, "summary": script.summaryOverride or script.remoteSummary or row.scriptSummary, "link": script.sourceUrl, "coverUrl": script.coverUrlOverride or script.remoteCoverUrl or row.coverUrl, "scriptType": "external", "externalScriptId": script.id, "createdAt": row.createdAt})
+    items.sort(key=lambda item: item["createdAt"], reverse=True)
+    return schemas.ActivitySubmissionListResponse(items=items)
+
+
+@router.put("/activity-pages/{page_id}/submissions/{kind}/{submission_id}", response_model=schemas.ActivitySubmissionRecord)
+def update_activity_submission_admin(
+    page_id: str,
+    kind: str,
+    submission_id: str,
+    payload: schemas.ActivitySubmissionUpdate,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    page = db.query(models.ActivityPage).filter(models.ActivityPage.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="找不到活動頁")
+    now_ms = int(time.time() * 1000)
+    if kind == "demo":
+        row = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.id == submission_id, models.PublicDemoSubmission.activityPageId == page_id).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="找不到活動 Demo")
+        if not payload.title.strip() or not payload.link.strip().lower().startswith("https://"):
+            raise HTTPException(status_code=400, detail="Demo 名稱不可空白，連結需使用 HTTPS")
+        if payload.coverUrl.strip() and not payload.coverUrl.strip().lower().startswith("https://"):
+            raise HTTPException(status_code=400, detail="封面連結需使用 HTTPS")
+        row.demoName = payload.title.strip()[:160]
+        row.description = payload.summary[:2000]
+        row.demoUrl = payload.link.strip()[:2000]
+        row.coverUrl = payload.coverUrl.strip()[:2000]
+        row.voiceTypes = payload.voiceTypes
+        db.commit()
+        from routers import public_bundle
+        public_bundle.invalidate_public_bundle_cache()
+        return {"id": row.id, "activityPageId": page_id, "kind": "demo", "title": row.demoName or row.scriptTitle, "summary": row.description or "", "link": row.demoUrl, "coverUrl": row.coverUrl or "", "scriptType": row.scriptType, "scriptId": row.scriptId, "externalScriptId": row.externalScriptId, "voiceTypes": row.voiceTypes or [], "createdAt": row.createdAt}
+    if kind == "script":
+        feedback = db.query(models.PublicFeedback).filter(models.PublicFeedback.id == submission_id, models.PublicFeedback.activityPageId == page_id, models.PublicFeedback.kind == "listing").first()
+        if not feedback or not feedback.activityScriptId:
+            raise HTTPException(status_code=404, detail="找不到活動台本投稿")
+        script = db.query(models.ExternalPublicScript).filter(models.ExternalPublicScript.id == feedback.activityScriptId).first()
+        if not script:
+            raise HTTPException(status_code=404, detail="找不到活動外部台本")
+        next_link = payload.link.strip()[:2000]
+        if not next_link.lower().startswith("https://"):
+            raise HTTPException(status_code=400, detail="台本連結需使用 HTTPS")
+        duplicate = db.query(models.ExternalPublicScript.id).filter(models.ExternalPublicScript.sourceUrl == next_link, models.ExternalPublicScript.id != script.id).first()
+        if duplicate:
+            raise HTTPException(status_code=409, detail="這個台本連結已經存在")
+        if not payload.title.strip():
+            raise HTTPException(status_code=400, detail="台本名稱不可空白")
+        if payload.coverUrl.strip() and not payload.coverUrl.strip().lower().startswith("https://"):
+            raise HTTPException(status_code=400, detail="封面連結需使用 HTTPS")
+        script.titleOverride = payload.title.strip()[:300]
+        script.summaryOverride = payload.summary[:4000]
+        script.sourceUrl = next_link
+        from urllib.parse import urlparse
+        script.sourceDomain = (urlparse(next_link).hostname or "").lower()[:255]
+        script.canonicalUrl = next_link
+        script.coverUrlOverride = payload.coverUrl.strip()[:2000]
+        script.updatedAt = now_ms
+        feedback.scriptTitle = script.titleOverride
+        feedback.scriptSummary = script.summaryOverride
+        feedback.documentUrl = script.sourceUrl
+        feedback.coverUrl = script.coverUrlOverride
+        feedback.updatedAt = now_ms
+        db.commit()
+        _invalidate_activity_pages()
+        return {"id": feedback.id, "activityPageId": page_id, "kind": "script", "title": script.titleOverride or script.remoteTitle, "summary": script.summaryOverride or script.remoteSummary or "", "link": script.sourceUrl, "coverUrl": script.coverUrlOverride or "", "scriptType": "external", "externalScriptId": script.id, "createdAt": feedback.createdAt}
+    raise HTTPException(status_code=400, detail="無效的活動投稿類型")
+
+
+@router.delete("/activity-pages/{page_id}/submissions/{kind}/{submission_id}")
+def delete_activity_submission_admin(
+    page_id: str,
+    kind: str,
+    submission_id: str,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if kind == "demo":
+        row = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.id == submission_id, models.PublicDemoSubmission.activityPageId == page_id).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="找不到活動 Demo")
+        db.delete(row)
+    elif kind == "script":
+        row = db.query(models.PublicFeedback).filter(models.PublicFeedback.id == submission_id, models.PublicFeedback.activityPageId == page_id, models.PublicFeedback.kind == "listing").first()
+        if not row:
+            raise HTTPException(status_code=404, detail="找不到活動台本投稿")
+        page = db.query(models.ActivityPage).filter(models.ActivityPage.id == page_id).first()
+        if page and row.activityScriptId:
+            page.externalScriptIds = [value for value in (page.externalScriptIds if isinstance(page.externalScriptIds, list) else []) if value != row.activityScriptId]
+            page.updatedAt = int(time.time() * 1000)
+        row.activityPageId = None
+        row.activityScriptId = None
+    else:
+        raise HTTPException(status_code=400, detail="無效的活動投稿類型")
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    return {"success": True}
+
+
+def _external_author_key(value: Any) -> str:
+    return unicodedata.normalize("NFKC", str(value or "").strip()).lower()
+
+
+def _external_author_url(value: Any, *, image: bool = False) -> str:
+    raw = str(value or "").strip()[:2000]
+    if image and raw.startswith("/media/"):
+        return raw
+    if raw.startswith("/") and not raw.startswith("//") and not image:
+        return raw
+    parsed = urlparse(raw)
+    if parsed.scheme in {"http", "https"} and parsed.hostname:
+        return raw
+    if raw:
+        raise HTTPException(status_code=400, detail="作者社群與頭像請填有效的 http(s) 網址")
+    return ""
+
+
+def _external_author_page_rows(db: Session, author_key: str) -> list[models.ExternalPublicScript]:
+    rows = (
+        db.query(models.ExternalPublicScript)
+        .filter(models.ExternalPublicScript.status == "published")
+        .order_by(models.ExternalPublicScript.mountedAt.desc(), models.ExternalPublicScript.updatedAt.desc())
+        .all()
+    )
+    return [row for row in rows if _external_author_key(row.authorName) == author_key]
+
+
+def _external_author_current_profile(db: Session, author_key: str, rows: list[models.ExternalPublicScript]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    defaults = _external_author_page_defaults(author_key, rows)
+    override = db.query(models.ExternalAuthorPageProfile).filter_by(authorKey=author_key).first()
+    supplement = db.query(models.ExternalAuthorPageSupplement).filter_by(authorKey=author_key).first()
+    details = supplement.profile if supplement and isinstance(supplement.profile, dict) else {}
+    current = {
+        "displayName": override.displayName if override and override.displayName else defaults["displayName"],
+        "bio": override.bio if override and override.bio else defaults["bio"],
+        "avatar": override.avatarUrl if override and override.avatarUrl else defaults["avatarUrl"],
+        "profileUrl": override.profileUrl if override and override.profileUrl else defaults["profileUrl"],
+        "website": str(details.get("website") or ""),
+        "links": details.get("links") if isinstance(details.get("links"), list) else [],
+        "organizations": details.get("organizations") if isinstance(details.get("organizations"), list) else [],
+        "works": details.get("works") if isinstance(details.get("works"), list) else [],
+    }
+    contributors = supplement.contributors if supplement and isinstance(supplement.contributors, list) else []
+    return current, contributors
+
+
+def _external_author_page_profile_record(profile: models.ExternalAuthorPageProfile) -> dict[str, Any]:
+    return {
+        "authorKey": profile.authorKey,
+        "linkedPersonaId": profile.linkedPersonaId,
+        "displayName": profile.displayName or "",
+        "bio": profile.bio or "",
+        "profileUrl": profile.profileUrl or "",
+        "avatarUrl": profile.avatarUrl or "",
+        "isHidden": bool(profile.isHidden),
+        "createdAt": int(profile.createdAt or 0),
+        "updatedAt": int(profile.updatedAt or 0),
+    }
+
+
+def _external_author_page_defaults(author_key: str, rows: list[models.ExternalPublicScript]) -> dict[str, str]:
+    def first_value(field: str) -> str:
+        return next((str(getattr(row, field, "") or "").strip() for row in rows if str(getattr(row, field, "") or "").strip()), "")
+
+    return {
+        "authorKey": author_key,
+        "displayName": first_value("authorName"),
+        "bio": first_value("authorBio"),
+        "profileUrl": first_value("authorUrl"),
+        "avatarUrl": first_value("authorAvatarUrl"),
+    }
+
+
+@router.get("/external-author-profile-submissions", response_model=schemas.ExternalAuthorProfileSubmissionListResponse)
+def list_external_author_profile_submissions_admin(
+    q: Optional[str] = None,
+    status: str = "pending",
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    query = db.query(models.ExternalAuthorProfileSubmission)
+    if status != "all":
+        if status not in {"pending", "approved", "rejected"}:
+            raise HTTPException(status_code=400, detail="無效的審核狀態")
+        query = query.filter(models.ExternalAuthorProfileSubmission.status == status)
+    if q and q.strip():
+        needle = f"%{q.strip()}%"
+        query = query.filter(
+            models.ExternalAuthorProfileSubmission.authorName.ilike(needle)
+            | models.ExternalAuthorProfileSubmission.submitterName.ilike(needle)
+            | models.ExternalAuthorProfileSubmission.contactEmail.ilike(needle)
+        )
+    total = query.count()
+    rows = query.order_by(models.ExternalAuthorProfileSubmission.createdAt.desc()).offset(max(0, offset)).limit(min(max(limit, 1), 200)).all()
+    items = []
+    for row in rows:
+        source_rows = _external_author_page_rows(db, row.authorKey)
+        current_profile, collaborators = _external_author_current_profile(db, row.authorKey, source_rows)
+        items.append(schemas.ExternalAuthorProfileSubmissionRecord(
+            id=row.id, authorKey=row.authorKey, authorName=row.authorName or "（作者已不存在）",
+            submitterName=row.submitterName, contactEmail=row.contactEmail,
+            contributorName=str((row.profile or {}).get("contributorName") or ""),
+            collaborators=collaborators, currentProfile=current_profile, profile=row.profile or {},
+            acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
+            status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+        ))
+    return schemas.ExternalAuthorProfileSubmissionListResponse(total=total, items=items)
+
+
+@router.patch("/external-author-profile-submissions/{submission_id}/status", response_model=schemas.ExternalAuthorProfileSubmissionRecord)
+def review_external_author_profile_submission_admin(
+    submission_id: str,
+    payload: schemas.ExternalAuthorProfileSubmissionStatusUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.ExternalAuthorProfileSubmission).filter_by(id=submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="找不到外部作者資料申請")
+    if row.status != "pending":
+        raise HTTPException(status_code=409, detail="這筆申請已完成審核")
+    source_rows = _external_author_page_rows(db, row.authorKey)
+    if not source_rows:
+        raise HTTPException(status_code=404, detail="原外部作者已沒有公開作品")
+    profile_data = row.profile if isinstance(row.profile, dict) else {}
+    current_profile, collaborators = _external_author_current_profile(db, row.authorKey, source_rows)
+    now_ms = int(time.time() * 1000)
+    if payload.status == "approved":
+        accepted_fields = set(payload.acceptedFields or ["displayName", "bio", "avatar", "profileUrl", "website", "links", "organizations", "works", "contributorName"])
+        override = db.query(models.ExternalAuthorPageProfile).filter_by(authorKey=row.authorKey).first()
+        if not override:
+            defaults = _external_author_page_defaults(row.authorKey, source_rows)
+            override = models.ExternalAuthorPageProfile(**{key: value for key, value in defaults.items() if key != "authorKey"}, authorKey=row.authorKey, createdAt=now_ms, updatedAt=now_ms)
+            db.add(override)
+        if "displayName" in accepted_fields:
+            override.displayName = str(profile_data.get("displayName") or override.displayName or row.authorName).strip()[:200]
+        if "bio" in accepted_fields:
+            override.bio = str(profile_data.get("bio") or "").strip()[:10000]
+        if "avatar" in accepted_fields:
+            override.avatarUrl = str(profile_data.get("avatar") or "").strip()[:2000]
+        if "profileUrl" in accepted_fields:
+            override.profileUrl = str(profile_data.get("profileUrl") or "").strip()[:2000]
+        override.updatedAt = now_ms
+
+        supplement = db.query(models.ExternalAuthorPageSupplement).filter_by(authorKey=row.authorKey).first()
+        if not supplement:
+            supplement = models.ExternalAuthorPageSupplement(authorKey=row.authorKey, profile={}, contributors=[], updatedAt=now_ms)
+            db.add(supplement)
+        details = dict(supplement.profile or {}) if isinstance(supplement.profile, dict) else {}
+        for field in ("website", "links", "organizations", "works"):
+            if field in accepted_fields:
+                details[field] = profile_data.get(field) or ([] if field in {"links", "organizations", "works"} else "")
+        supplement.profile = details
+        contributor_name = str(profile_data.get("contributorName") or "").strip()[:120]
+        if "contributorName" in accepted_fields and contributor_name:
+            collaborators = [*collaborators, {"name": contributor_name, "contributedAt": now_ms}]
+            supplement.contributors = collaborators[:100]
+        supplement.updatedAt = now_ms
+        row.acceptedFields = sorted(accepted_fields)
+    else:
+        row.acceptedFields = []
+    row.status = payload.status
+    row.reviewNote = payload.reviewNote.strip()[:1000]
+    row.reviewedAt = now_ms
+    row.reviewedBy = ownerId
+    db.commit()
+    import routers.external_public_scripts as external_scripts_router
+    external_scripts_router._invalidate_public_bundle_cache()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    previous_item = models.ExternalPublicScript(id="author-profile-before", authorName=row.authorName)
+    current_item = models.ExternalPublicScript(id="author-profile-after", authorName=row.authorName)
+    external_scripts_router._queue_external_revalidation(background_tasks, previous_item, current_item)
+    current_profile, collaborators = _external_author_current_profile(db, row.authorKey, source_rows)
+    return schemas.ExternalAuthorProfileSubmissionRecord(
+        id=row.id, authorKey=row.authorKey, authorName=row.authorName or "", submitterName=row.submitterName,
+        contactEmail=row.contactEmail, contributorName=str(profile_data.get("contributorName") or ""),
+        collaborators=collaborators, currentProfile=current_profile, profile=profile_data,
+        acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
+        status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+    )
+
+
+@router.get("/external-author-pages", response_model=List[schemas.ExternalAuthorPageProfileRecord])
+def list_external_author_page_profiles_admin(
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    rows = db.query(models.ExternalAuthorPageProfile).order_by(models.ExternalAuthorPageProfile.displayName.asc()).all()
+    return [_external_author_page_profile_record(row) for row in rows]
+
+
+@router.put("/external-author-pages", response_model=schemas.ExternalAuthorPageProfileRecord)
+def save_external_author_page_profile_admin(
+    payload: schemas.ExternalAuthorPageProfilePayload,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    author_key = _external_author_key(payload.authorKey)
+    if not author_key:
+        raise HTTPException(status_code=400, detail="找不到外部作者頁")
+    rows = _external_author_page_rows(db, author_key)
+    if not rows:
+        raise HTTPException(status_code=404, detail="這位作者目前沒有已發布的外部台本")
+    display_name = payload.displayName.strip()[:200]
+    if not display_name:
+        raise HTTPException(status_code=400, detail="作者名稱不可空白")
+
+    profile = db.query(models.ExternalAuthorPageProfile).filter_by(authorKey=author_key).first()
+    defaults = _external_author_page_defaults(author_key, rows)
+    previous_name = profile.displayName if profile and profile.displayName else defaults["displayName"]
+    now_ms = int(time.time() * 1000)
+    if not profile:
+        profile = models.ExternalAuthorPageProfile(
+            **{key: value for key, value in defaults.items() if key != "authorKey"},
+            authorKey=author_key,
+            createdAt=now_ms,
+            updatedAt=now_ms,
+        )
+        db.add(profile)
+    linked_persona_id = str(payload.linkedPersonaId or "").strip() or None
+    if linked_persona_id and not db.query(models.Persona).filter_by(id=linked_persona_id).first():
+        raise HTTPException(status_code=400, detail="找不到要連結的公開身份")
+    profile.linkedPersonaId = linked_persona_id
+    profile.displayName = display_name
+    profile.bio = payload.bio.strip()[:10000]
+    profile.profileUrl = _external_author_url(payload.profileUrl)
+    profile.avatarUrl = _external_author_url(payload.avatarUrl, image=True)
+    profile.isHidden = bool(payload.isHidden)
+    profile.updatedAt = now_ms
+    external_author_ids = {str(row.externalAuthorId or "") for row in rows if str(row.externalAuthorId or "")}
+    if external_author_ids:
+        external_authors = db.query(models.ExternalAuthor).filter(models.ExternalAuthor.id.in_(external_author_ids)).all()
+        for external_author in external_authors:
+            external_author.linkedPersonaId = linked_persona_id
+            external_author.displayName = display_name
+            external_author.bio = profile.bio
+            external_author.profileUrl = profile.profileUrl
+            external_author.avatarUrl = profile.avatarUrl
+            external_author.isHidden = profile.isHidden
+            external_author.updatedAt = now_ms
+    if linked_persona_id:
+        role = db.query(models.PersonaRole).filter_by(personaId=linked_persona_id, role="scriptwriter").first()
+        if not role:
+            role = models.PersonaRole(
+                id=str(uuid.uuid4()), personaId=linked_persona_id, role="scriptwriter",
+                isVisible=True, sourceTypes=["external_script"], profile={},
+                createdAt=now_ms, updatedAt=now_ms,
+            )
+            db.add(role)
+        elif "external_script" not in (role.sourceTypes or []):
+            role.sourceTypes = [*(role.sourceTypes or []), "external_script"]
+            role.updatedAt = now_ms
+    db.commit()
+    db.refresh(profile)
+
+    import routers.external_public_scripts as external_scripts_router
+    external_scripts_router._invalidate_public_bundle_cache()
+    previous_item = models.ExternalPublicScript(id="author-profile-before", authorName=previous_name)
+    current_item = models.ExternalPublicScript(id="author-profile-after", authorName=profile.displayName)
+    external_scripts_router._queue_external_revalidation(background_tasks, previous_item, current_item)
+    return _external_author_page_profile_record(profile)
+
+
+@router.delete("/external-author-pages", response_model=schemas.ExternalAuthorPageProfileRecord)
+def hide_external_author_page_admin(
+    authorKey: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    author_key = _external_author_key(authorKey)
+    rows = _external_author_page_rows(db, author_key)
+    profile = db.query(models.ExternalAuthorPageProfile).filter_by(authorKey=author_key).first()
+    if not profile and not rows:
+        raise HTTPException(status_code=404, detail="找不到外部作者頁")
+    defaults = _external_author_page_defaults(author_key, rows)
+    previous_name = profile.displayName if profile and profile.displayName else defaults["displayName"]
+    now_ms = int(time.time() * 1000)
+    if not profile:
+        profile = models.ExternalAuthorPageProfile(
+            **{key: value for key, value in defaults.items() if key != "authorKey"},
+            authorKey=author_key,
+            createdAt=now_ms,
+            updatedAt=now_ms,
+        )
+        db.add(profile)
+    profile.isHidden = True
+    profile.updatedAt = now_ms
+    db.commit()
+    db.refresh(profile)
+
+    import routers.external_public_scripts as external_scripts_router
+    external_scripts_router._invalidate_public_bundle_cache()
+    previous_item = models.ExternalPublicScript(id="author-profile-before", authorName=previous_name)
+    external_scripts_router._queue_external_revalidation(background_tasks, previous_item)
+    return _external_author_page_profile_record(profile)
+
+
 @router.get("/all-users", response_model=List[schemas.UserPublic])
 def list_all_users(
     q: Optional[str] = None,
@@ -759,6 +1579,282 @@ def list_all_personas(
         p.organizationIds = crud._ensure_list(p.organizationIds)
         p.defaultLicenseSpecialTerms = crud._ensure_list(p.defaultLicenseSpecialTerms)
     return rows
+
+
+@router.get("/voice-actors", response_model=List[schemas.AdminVoiceActorRecord])
+def list_voice_actors_admin(
+    q: Optional[str] = None,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    approved = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.status == "approved").all()
+    demo_sources: dict[str, set[str]] = {}
+    for demo in approved:
+        ids = [demo.voiceActorPersonaId, *crud._ensure_list(demo.voiceActorIds)]
+        ids.extend(actor.get("personaId") for actor in crud._ensure_list(demo.manualVoiceActors) if isinstance(actor, dict))
+        source = "本站 Demo" if demo.scriptType == "internal" else "外部台本 Demo"
+        for persona_id in ids:
+            if persona_id:
+                demo_sources.setdefault(str(persona_id), set()).add(source)
+    demo_counts: dict[str, dict[str, int]] = {}
+    for demo in approved:
+        ids = {str(value) for value in [demo.voiceActorPersonaId, *crud._ensure_list(demo.voiceActorIds)] if value}
+        ids.update(str(actor.get("personaId")) for actor in crud._ensure_list(demo.manualVoiceActors) if isinstance(actor, dict) and actor.get("personaId"))
+        key = "internalDemoCount" if demo.scriptType == "internal" else "externalDemoCount"
+        for persona_id in ids:
+            counts = demo_counts.setdefault(persona_id, {"internalDemoCount": 0, "externalDemoCount": 0})
+            counts[key] += 1
+    script_counts: dict[str, int] = {}
+    for persona_id, in db.query(models.Script.personaId).filter(models.Script.personaId.isnot(None)).all():
+        if persona_id:
+            script_counts[str(persona_id)] = script_counts.get(str(persona_id), 0) + 1
+    query = (q or "").strip().casefold()
+    result = []
+    for persona in db.query(models.Persona).all():
+        tags = crud._ensure_list(persona.tags)
+        is_tagged = any(any(mark in str(tag).casefold() for mark in ("聲演", "配音", "voice actor", "voice-actor", "voiceactor")) for tag in tags)
+        sources = demo_sources.get(persona.id, set())
+        if not is_tagged and not sources:
+            continue
+        owner = db.query(models.User).filter(models.User.id == persona.ownerId).first() if persona.ownerId else None
+        searchable = f"{persona.displayName or ''} {persona.id} {persona.ownerId or ''} {owner.displayName if owner else ''} {' '.join(tags)}".casefold()
+        if query and query not in searchable:
+            continue
+        types = []
+        if is_tagged:
+            types.append("公開身份")
+        types.extend(sorted(sources))
+        counts = demo_counts.get(persona.id, {"internalDemoCount": 0, "externalDemoCount": 0})
+        item = schemas.AdminVoiceActorRecord.model_validate(persona).model_dump()
+        item.update({"ownerName": owner.displayName if owner else "", "sourceTypes": types, "demoCount": sum(counts.values()), **counts, "scriptCount": script_counts.get(persona.id, 0)})
+        result.append(item)
+    return sorted(result, key=lambda item: (bool(item["voiceActorHidden"]), str(item["displayName"]).casefold()))
+
+
+@router.put("/voice-actors/{persona_id}", response_model=schemas.AdminVoiceActorRecord)
+def update_voice_actor_admin(
+    persona_id: str,
+    payload: schemas.AdminVoiceActorUpdate,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="找不到聲演身份")
+    display_name = payload.displayName.strip()[:120]
+    if not display_name:
+        raise HTTPException(status_code=400, detail="顯示名稱不可空白")
+    persona.displayName = display_name
+    persona.bio = payload.bio.strip()[:4000]
+    persona.avatar = payload.avatar.strip()[:2000]
+    persona.website = payload.website.strip()[:2000]
+    persona.links = [item for item in payload.links if isinstance(item, dict)][:30]
+    persona.voiceActorHidden = payload.voiceActorHidden
+    persona.updatedAt = int(time.time() * 1000)
+    role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+    if not role:
+        role = models.PersonaRole(
+            id=str(uuid.uuid4()), personaId=persona.id, role="voice_actor",
+            isVisible=not payload.voiceActorHidden, sourceTypes=["admin"], profile={},
+            createdAt=persona.updatedAt, updatedAt=persona.updatedAt,
+        )
+        db.add(role)
+    else:
+        role.isVisible = not payload.voiceActorHidden
+        role.updatedAt = persona.updatedAt
+    db.commit()
+    db.refresh(persona)
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    item = schemas.AdminVoiceActorRecord.model_validate(persona).model_dump()
+    item.update({"ownerName": persona.owner.displayName if persona.owner else "", "sourceTypes": [], "demoCount": 0, "internalDemoCount": 0, "externalDemoCount": 0, "scriptCount": 0})
+    return item
+
+
+@router.post("/voice-actors", response_model=schemas.AdminVoiceActorRecord)
+def create_voice_actor_admin(
+    payload: schemas.AdminVoiceActorCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    now_ms = int(time.time() * 1000)
+    persona = models.Persona(
+        id=str(uuid.uuid4()),
+        ownerId=None,
+        displayName=payload.displayName,
+        avatar="",
+        bannerUrl="",
+        bio="",
+        website="",
+        links=[],
+        organizationIds=[],
+        tags=["聲演"],
+        voiceActorHidden=False,
+        defaultLicenseCommercial="",
+        defaultLicenseDerivative="",
+        defaultLicenseNotify="",
+        defaultLicenseSpecialTerms=[],
+        createdAt=now_ms,
+        updatedAt=now_ms,
+    )
+    db.add(persona)
+    db.add(models.PersonaRole(
+        id=str(uuid.uuid4()), personaId=persona.id, role="voice_actor",
+        isVisible=True, sourceTypes=["admin"], profile={},
+        createdAt=now_ms, updatedAt=now_ms,
+    ))
+    db.commit()
+    db.refresh(persona)
+    item = schemas.AdminVoiceActorRecord.model_validate(persona).model_dump()
+    item.update({"ownerName": "", "sourceTypes": ["公開身份"], "demoCount": 0, "internalDemoCount": 0, "externalDemoCount": 0, "scriptCount": 0})
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, "/voice-actors")
+    return item
+
+
+@router.get("/voice-actor-profile-submissions", response_model=schemas.VoiceActorProfileSubmissionListResponse)
+def list_voice_actor_profile_submissions_admin(
+    q: Optional[str] = None,
+    status: str = "pending",
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    query = db.query(models.VoiceActorProfileSubmission)
+    if status != "all":
+        if status not in {"pending", "approved", "rejected"}:
+            raise HTTPException(status_code=400, detail="無效的審核狀態")
+        query = query.filter(models.VoiceActorProfileSubmission.status == status)
+    if q and q.strip():
+        needle = f"%{q.strip()}%"
+        persona_ids = [row[0] for row in db.query(models.Persona.id).filter(models.Persona.displayName.ilike(needle)).all()]
+        query = query.filter(
+            (models.VoiceActorProfileSubmission.submitterName.ilike(needle))
+            | (models.VoiceActorProfileSubmission.contactEmail.ilike(needle))
+            | (models.VoiceActorProfileSubmission.personaId.in_(persona_ids))
+        )
+    total = query.count()
+    rows = query.order_by(models.VoiceActorProfileSubmission.createdAt.desc()).offset(max(0, offset)).limit(min(max(limit, 1), 200)).all()
+    items = []
+    for row in rows:
+        persona = db.query(models.Persona).filter(models.Persona.id == row.personaId).first()
+        items.append(schemas.VoiceActorProfileSubmissionRecord(
+            id=row.id, personaId=row.personaId, personaName=persona.displayName if persona else "（身份已刪除）",
+            submitterName=row.submitterName, contactEmail=row.contactEmail,
+            contributorName=str((row.profile or {}).get("contributorName") or ""),
+            collaborators=persona.voiceActorContributors if persona and isinstance(persona.voiceActorContributors, list) else [],
+            currentProfile={
+                "displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "",
+                "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [],
+                "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else [],
+            } if persona else {},
+            profile=row.profile or {},
+            acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
+            status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+        ))
+    return schemas.VoiceActorProfileSubmissionListResponse(total=total, items=items)
+
+
+@router.patch("/voice-actor-profile-submissions/{submission_id}/status", response_model=schemas.VoiceActorProfileSubmissionRecord)
+def review_voice_actor_profile_submission_admin(
+    submission_id: str,
+    payload: schemas.VoiceActorProfileSubmissionStatusUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.VoiceActorProfileSubmission).filter(models.VoiceActorProfileSubmission.id == submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="找不到聲演資料申請")
+    if row.status != "pending":
+        raise HTTPException(status_code=409, detail="這筆申請已完成審核")
+    persona = db.query(models.Persona).filter(models.Persona.id == row.personaId).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="原聲演身份已不存在")
+    now_ms = int(time.time() * 1000)
+    if payload.status == "approved":
+        profile = row.profile if isinstance(row.profile, dict) else {}
+        accepted_fields = set(payload.acceptedFields or ["displayName", "bio", "avatar", "website", "links", "organizations", "works", "contributorName"])
+        if "displayName" in accepted_fields:
+            persona.displayName = str(profile.get("displayName") or persona.displayName or "").strip()[:120]
+        if "bio" in accepted_fields:
+            persona.bio = str(profile.get("bio") or "").strip()[:4000]
+        if "avatar" in accepted_fields:
+            persona.avatar = str(profile.get("avatar") or "").strip()[:2000]
+        if "website" in accepted_fields:
+            persona.website = str(profile.get("website") or "").strip()[:2000]
+        if "links" in accepted_fields:
+            persona.links = [item for item in profile.get("links", []) if isinstance(item, dict)][:30]
+        if "organizations" in accepted_fields:
+            persona.voiceActorOrganizations = [item for item in profile.get("organizations", []) if isinstance(item, dict)][:20]
+        if "works" in accepted_fields:
+            persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
+        contributors = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
+        contributor_name = str(profile.get("contributorName") or "").strip()[:120]
+        public_contributor = contributor_name if "contributorName" in accepted_fields and contributor_name else "訪客協作者"
+        contributors = [*contributors, {"name": public_contributor, "contributedAt": now_ms}]
+        persona.voiceActorContributors = contributors[:100]
+        persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
+        persona.updatedAt = now_ms
+        role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+        role_profile = {
+            "works": persona.voiceActorWorks,
+            "organizations": persona.voiceActorOrganizations,
+            "contributors": persona.voiceActorContributors,
+        }
+        if not role:
+            role = models.PersonaRole(
+                id=str(uuid.uuid4()), personaId=persona.id, role="voice_actor",
+                isVisible=not persona.voiceActorHidden,
+                sourceTypes=["profile_submission"], profile=role_profile,
+                createdAt=now_ms, updatedAt=now_ms,
+            )
+            db.add(role)
+        else:
+            sources = list(role.sourceTypes or [])
+            if "profile_submission" not in sources:
+                sources.append("profile_submission")
+            role.sourceTypes = sources
+            role.profile = role_profile
+            role.isVisible = not persona.voiceActorHidden
+            role.updatedAt = now_ms
+        row.acceptedFields = sorted(accepted_fields)
+    else:
+        row.acceptedFields = []
+    row.status = payload.status
+    row.reviewNote = payload.reviewNote.strip()[:1000]
+    row.reviewedAt = now_ms
+    row.reviewedBy = ownerId
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", "/voice-actors")
+    return schemas.VoiceActorProfileSubmissionRecord(
+        id=row.id, personaId=row.personaId, personaName=persona.displayName or "", submitterName=row.submitterName,
+        contactEmail=row.contactEmail, contributorName=str((row.profile or {}).get("contributorName") or ""),
+        collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
+        currentProfile={
+            "displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "",
+            "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [],
+            "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else [],
+        },
+        profile=row.profile or {}, acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
+        status=row.status, reviewNote=row.reviewNote or "",
+        reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+    )
 
 
 @router.get("/all-scripts", response_model=List[schemas.ScriptSummary])
