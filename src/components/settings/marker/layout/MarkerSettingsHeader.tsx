@@ -13,7 +13,7 @@ import {
 import { useI18n } from "../../../../contexts/I18nContext";
 import { cn } from "../../../../lib/utils";
 
-export type MarkerViewMode = "ui" | "json" | "guide";
+export type MarkerViewMode = "ui" | "json";
 
 interface ThemeOption {
   id: string;
@@ -73,7 +73,6 @@ export function MarkerSettingsHeader({
   const modes: Array<{ id: MarkerViewMode; label: string }> = [
     { id: "ui", label: t("markerSettingsHeader.viewRules") },
     { id: "json", label: "JSON" },
-    { id: "guide", label: t("markerSettingsHeader.viewGuide") },
   ];
 
   return (

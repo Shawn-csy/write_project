@@ -24,6 +24,7 @@ const StatisticsPanel = lazyWithRefreshRetry(
 );
 const AboutPanelLazy = lazyWithRefreshRetry(() => import("../components/panels/AboutPanel"), "about-panel");
 const WorksPage = lazyWithRefreshRetry(() => import("../pages/WorksPage"), "page-works");
+const DemoManagementPage = lazyWithRefreshRetry(() => import("../pages/DemoManagementPage"), "page-demo-management");
 const WorkManagePage = lazyWithRefreshRetry(() => import("../pages/WorkManagePage"), "page-work-manage");
 const ExternalWorksPage = lazyWithRefreshRetry(() => import("../pages/ExternalWorksPage"), "page-external-works");
 const SeriesPage = lazyWithRefreshRetry(() => import("../pages/SeriesPage"), "page-series");
@@ -89,10 +90,7 @@ export function renderWorkspaceRoutes({
   handleCloudMarkerThemeUpdate,
   accentStyle,
   activeCloudScript,
-  isCloudReadMode,
-  startCrossModeGuide,
   handleReaderEdit,
-  guideOverlay,
   navigate,
 }: WorkspaceRoutesProps) {
   const {
@@ -112,6 +110,7 @@ export function renderWorkspaceRoutes({
     ast,
     fileMeta,
   } = scriptManager;
+  const isCloudReadMode = Boolean(activeCloudScript) && scriptManager.cloudScriptMode === "read";
 
   return (
     <>
@@ -166,8 +165,6 @@ export function renderWorkspaceRoutes({
                       scrollProgress={scrollProgress}
                       totalLines={0}
                       onEdit={activeCloudScript && !isPublicReader ? handleReaderEdit : null}
-                      onOpenGuide={isCloudReadMode ? startCrossModeGuide : undefined}
-                      showReadModeHint={isCloudReadMode}
                       onBack={handleReturnHome}
                       onToggleStats={() => setShowStats(!showStats)}
                       extraActions={
@@ -203,7 +200,7 @@ export function renderWorkspaceRoutes({
                 {nav.aboutOpen ? (
                   <div className="absolute inset-0 z-50 flex">
                     <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading...</div>}>
-                      <AboutPanelLazy accentStyle={{ accent: accentStyle?.accent }} onClose={() => nav.setAboutOpen(false)} />
+                      <AboutPanelLazy onClose={() => nav.setAboutOpen(false)} />
                     </Suspense>
                   </div>
                 ) : nav.settingsOpen ? (
@@ -243,6 +240,14 @@ export function renderWorkspaceRoutes({
                       element={
                         <Suspense fallback={routeFallback}>
                           <SeriesPage />
+                        </Suspense>
+                      }
+                    />
+                    <Route
+                      path="demos"
+                      element={
+                        <Suspense fallback={routeFallback}>
+                          <DemoManagementPage />
                         </Suspense>
                       }
                     />
@@ -318,7 +323,6 @@ export function renderWorkspaceRoutes({
                 </div>
               )}
             </main>
-            {guideOverlay}
           </MainLayout>
           </RequireAuth>
         }

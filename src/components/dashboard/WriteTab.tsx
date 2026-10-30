@@ -10,7 +10,6 @@ import { Button } from "../ui/button";
 import { Search, ArrowUpDown, RotateCcw, PanelRightOpen, PanelRightClose, Loader2 } from "lucide-react";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle } from "../ui/drawer";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import { WritePreviewContent } from "./write/WritePreviewPanel";
 import { useWriteTabState } from "../../hooks/useWriteTabState";
 import type { WriteScriptItem } from "../../types/write";
@@ -36,10 +35,9 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
       <div className={`flex-1 min-h-0 grid grid-cols-1 gap-3 ${s.isPreviewCollapsed ? "xl:grid-cols-1" : "xl:grid-cols-[minmax(0,1fr)_22rem]"}`}>
         <section
           className="min-h-0 flex flex-col overflow-hidden rounded-[10px] border border-border bg-card"
-          data-guide-id="write-list-panel"
           aria-label={s.t("writeTab.listTitle", "檔案清單")}
         >
-          <div className="border-b border-border px-3 py-2.5 text-xs" data-guide-id="write-middle-controls">
+          <div className="border-b border-border px-3 py-2.5 text-xs">
             <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="relative flex min-w-[11rem] flex-1 items-center shrink-0 sm:max-w-sm" title={s.t("writeTab.searchTitle")}>
                 <Search className="pointer-events-none absolute left-2.5 h-4 w-4 text-muted-foreground" />
@@ -85,12 +83,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2" onScroll={s.handleListScroll}>
-            {s.showGuide && s.totalItems === 0 && (
-              <div className="m-4 rounded-[10px] border border-dashed border-border p-4">
-                <h4 className="text-sm font-semibold">{s.t("writeTab.guideDemoTitle")}</h4>
-                <p className="mt-1 text-xs text-muted-foreground">{s.t("writeTab.guideDemoDesc")}</p>
-              </div>
-            )}
             <ScriptList
               loading={s.manager.loading}
               visibleItems={s.pagedItems}
@@ -127,7 +119,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
 
         <aside
           className={`${s.isPreviewCollapsed ? "hidden" : "hidden xl:flex"} flex-col gap-3 overflow-y-auto rounded-[10px] border border-border bg-card p-4`}
-          data-guide-id="write-preview-panel"
         >
           <h3 className="text-sm font-semibold">{s.t("writeTab.previewInfo")}</h3>
           <WritePreviewContent
@@ -179,21 +170,6 @@ export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 
       <DeleteScriptDialog open={s.manager.isDeleteOpen} onOpenChange={s.manager.setIsDeleteOpen} item={s.manager.deleteItem} scripts={s.manager.scripts} deleting={s.manager.deleting} onConfirm={s.manager.handleDeleteConfirm} />
       <MoveScriptDialog open={s.manager.isMoveOpen} onOpenChange={s.manager.setIsMoveOpen} item={s.manager.moveItem} availableFolders={s.availableFolders} targetFolder={s.manager.moveTargetFolder} setTargetFolder={s.manager.setMoveTargetFolder} moving={s.manager.moving} onConfirm={s.manager.handleMoveConfirm} />
 
-      <SpotlightGuideOverlay
-        open={s.showGuide}
-        spotlightRect={s.guideSpotlightRect}
-        currentStep={s.guideIndex + 1}
-        totalSteps={s.guideSteps.length}
-        title={s.guideSteps[s.guideIndex]?.title || ""}
-        description={s.guideSteps[s.guideIndex]?.description || ""}
-        onSkip={s.closeGuide}
-        skipLabel={s.t("writeTab.guideSkip")}
-        onPrev={s.prevGuide}
-        prevLabel={s.t("writeTab.guidePrev")}
-        prevDisabled={s.guideIndex === 0}
-        onNext={s.nextGuide}
-        nextLabel={s.guideIndex === s.guideSteps.length - 1 ? s.t("writeTab.guideDone") : s.t("writeTab.guideNext")}
-      />
 
       {s.isQuickCreatingScript && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm">

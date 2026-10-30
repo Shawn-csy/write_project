@@ -46,11 +46,8 @@ interface EditorHeaderProps {
   onToggleStats: () => void;
   showPreview: boolean;
   onTogglePreview: () => void;
-  onOpenGuide?: () => void;
   isSidebarOpen?: boolean;
   onSetSidebarOpen?: (open: boolean) => void;
-  guideButtonRef?: React.Ref<HTMLDivElement>;
-  moreActionsRef?: React.Ref<HTMLButtonElement>;
   onTitleChange: (title: string) => void;
   markerConfigs?: MarkerConfig[];
   markerThemes?: MarkerThemeLike[];
@@ -75,11 +72,8 @@ export function EditorHeader({
   onToggleStats,
   showPreview,
   onTogglePreview,
-  onOpenGuide,
   isSidebarOpen,
   onSetSidebarOpen,
-  guideButtonRef,
-  moreActionsRef,
   onTitleChange,
   markerConfigs = [],
   markerThemes = [],
@@ -254,7 +248,6 @@ export function EditorHeader({
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <Button
-              ref={moreActionsRef}
               variant="ghost"
               size="icon"
               className="h-9 w-9 rounded-md text-muted-foreground hover:text-foreground"
@@ -277,12 +270,6 @@ export function EditorHeader({
               <ChartNoAxesColumn className="w-4 h-4 mr-2" />
               {t("editorHeader.stats")}
             </DropdownMenuItem>
-            {onOpenGuide && (
-              <DropdownMenuItem ref={guideButtonRef} onClick={onOpenGuide}>
-                <CircleHelp className="w-4 h-4 mr-2" />
-                {t("editorHeader.guide")}
-              </DropdownMenuItem>
-            )}
             <DropdownMenuSeparator />
             <div className="px-2 py-1.5">
               <div className="text-[11px] text-muted-foreground mb-1">{t("settings.language")}</div>

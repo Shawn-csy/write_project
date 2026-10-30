@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import { useLocation } from "react-router-dom";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import { useI18n } from "../../contexts/I18nContext";
 import { useSettings } from "../../contexts/SettingsContext";
@@ -40,8 +39,6 @@ interface ReaderHeaderProps {
   scrollProgress?: number;
   totalLines?: number;
   onEdit?: (() => void) | null;
-  onOpenGuide?: () => void;
-  showReadModeHint?: boolean;
   extraActions?: React.ReactNode;
   onBack?: () => void;
   onToggleStats?: () => void;
@@ -75,8 +72,6 @@ function ReaderHeader({
   scrollProgress = 0,
   totalLines = 0,
   onEdit,
-  onOpenGuide,
-  showReadModeHint = false,
   extraActions,
   onBack,
   onToggleStats,
@@ -88,7 +83,6 @@ function ReaderHeader({
   onToggleMarker: onToggleMarkerProp,
 }: ReaderHeaderProps) {
   const { t } = useI18n() as { t: (key: string, fallback?: string) => string };
-  const location = useLocation();
   const {
     markerThemes = [] as MarkerTheme[],
     currentThemeId = "default",
@@ -143,18 +137,13 @@ function ReaderHeader({
     onTitleChange
   );
 
-  const isGuideMode = React.useMemo(() => {
-    const params = new URLSearchParams(location.search || "");
-    return params.get("guide") === "1";
-  }, [location.search]);
-
-  const showTools = isGuideMode || isLg || !collapsed;
+  const showTools = isLg || !collapsed;
 
   const activeFileName =
     typeof activeFile === "object" && activeFile !== null ? activeFile.name : activeFile;
 
   return (
-    <Card id="reader-guide-header" className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
+    <Card className="border border-border bg-card/80 backdrop-blur rounded-none sm:rounded-xl border-x-0 sm:border-x">
       <CardContent
         className={`flex flex-col ${
           collapsed ? "p-2 sm:p-3" : "p-3 sm:p-4"
@@ -227,18 +216,12 @@ function ReaderHeader({
                     <span className="opacity-50">·</span>
                     <span className="whitespace-nowrap">{progressLabel}</span>
                   </div>
-                  {showReadModeHint && onEdit && (
-                    <div className="mt-0.5 text-xs text-[color:var(--license-term-fg)] truncate">
-                      {t("readerHeader.readModeHint")}
-                    </div>
-                  )}
                 </div>
               }
             />
 
             {!isLg && (
               <button
-                id="reader-guide-tools-toggle"
                 onClick={(e) => {
                   e.stopPropagation();
                   setAutoCollapse(false);
@@ -255,7 +238,6 @@ function ReaderHeader({
 
         {showTools && (
           <div
-            id="reader-guide-tools"
             className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 lg:justify-end lg:ml-auto lg:w-auto w-full mt-2 sm:mt-0"
           >
             <ReaderControls
@@ -280,7 +262,6 @@ function ReaderHeader({
               shareCopied={shareCopied}
               downloadOptions={downloadOptions}
               onEdit={onEdit ?? undefined}
-              onOpenGuide={onOpenGuide}
               extraActions={extraActions}
               onToggleStats={onToggleStats}
             />

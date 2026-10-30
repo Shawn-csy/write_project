@@ -10,15 +10,7 @@ import { buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import { useScriptDownloadOptions } from "../shared/useScriptDownloadOptions";
 import { buildExportMetadata } from "../../lib/exportMetadata";
 
-const PUBLIC_READER_GUIDE_STORAGE_KEY = "public-reader-guide-seen-v1";
 const PUBLIC_READER_TOC_OPEN_STORAGE_KEY = "public-reader-toc-open-v1";
-
-interface RectLike {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}
 
 interface PublicReaderScriptData {
   title?: string;
@@ -221,11 +213,7 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     resolveTableExport: (html) => buildV2TableExportFromRenderedHtml(html),
   });
 
-  // Guide state
   const [titleVisible, setTitleVisible] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
-  const [guideIndex, setGuideIndex] = useState(0);
-  const [guideSpotlightRect, setGuideSpotlightRect] = useState<RectLike | null>(null);
   const [tocOpen, setTocOpen] = useState(() => {
     try {
       if (typeof window === "undefined") return false;
@@ -234,127 +222,6 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
       return false;
     }
   });
-
-  const guideSteps = useMemo(() => ([
-    {
-      title: t("publicReader.guideTocEntryTitle", "詳細資料按鈕"),
-      description: t("publicReader.guideTocEntryDesc", "先點這個按鈕可開啟詳細資料側欄。"),
-      targetId: "public-guide-toc-trigger",
-    },
-    {
-      title: t("publicReader.guideTocPanelTitle", "左側導覽面板"),
-      description: t("publicReader.guideTocPanelDesc", "這裡可快速跳場景、查看更多作品資訊。"),
-      targetId: "public-guide-toc-panel",
-      delaySpotlight: 350,
-    },
-    {
-      title: t("publicReader.guideHeaderTitle"),
-      description: t("publicReader.guideHeaderDesc"),
-      targetId: "public-guide-actions",
-    },
-    {
-      title: t("publicReader.guideInfoTitle"),
-      description: t("publicReader.guideInfoDesc"),
-      targetId: null,
-    },
-    {
-      title: t("publicReader.guideScriptTitle"),
-      description: t("publicReader.guideScriptDesc"),
-      targetId: null,
-    },
-  ]), [t]);
-
-  const currentGuide = showGuide ? guideSteps[guideIndex] : null;
-
-  const resolveGuideTarget = useCallback((): Element | null => {
-    if (!currentGuide?.targetId) return null;
-    const nodes = document.querySelectorAll(`[data-guide-id="${currentGuide.targetId}"]`);
-    for (const node of nodes) {
-      const rect = node.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) return node;
-    }
-    return null;
-  }, [currentGuide]);
-
-  const refreshGuideSpotlight = useCallback(() => {
-    if (!showGuide) { setGuideSpotlightRect(null); return; }
-    const node = resolveGuideTarget();
-    if (!node) { setGuideSpotlightRect(null); return; }
-    const rect = node.getBoundingClientRect();
-    const pad = 10;
-    setGuideSpotlightRect({
-      top: Math.max(8, rect.top - pad),
-      left: Math.max(8, rect.left - pad),
-      width: Math.max(80, rect.width + pad * 2),
-      height: Math.max(52, rect.height + pad * 2),
-    });
-  }, [resolveGuideTarget, showGuide]);
-
-  const jumpGuide = useCallback((index: number) => {
-    if (index < 0 || index >= guideSteps.length) return;
-    setGuideIndex(index);
-    setShowGuide(true);
-  }, [guideSteps.length]);
-
-  const finishGuide = useCallback(() => {
-    setShowGuide(false);
-    setGuideIndex(0);
-    setGuideSpotlightRect(null);
-    setTocOpen(false);
-    try { localStorage.setItem(PUBLIC_READER_GUIDE_STORAGE_KEY, "1"); }
-    catch (err) { console.error("Failed to persist public reader guide state", err); }
-  }, []);
-
-  const handleGuideNext = useCallback(() => {
-    if (guideIndex >= guideSteps.length - 1) { finishGuide(); return; }
-    jumpGuide(guideIndex + 1);
-  }, [finishGuide, guideIndex, guideSteps.length, jumpGuide]);
-
-  const handleGuidePrev = useCallback(() => {
-    if (guideIndex <= 0) return;
-    jumpGuide(guideIndex - 1);
-  }, [guideIndex, jumpGuide]);
-
-  const handleStartGuide = useCallback(() => {
-    setTocOpen(false);
-    jumpGuide(0);
-  }, [jumpGuide]);
-
-  useEffect(() => {
-    try {
-      const seen = localStorage.getItem(PUBLIC_READER_GUIDE_STORAGE_KEY) === "1";
-      if (!seen) {
-        jumpGuide(0);
-        localStorage.setItem(PUBLIC_READER_GUIDE_STORAGE_KEY, "1");
-      }
-    } catch (err) {
-      console.error("Failed to read public reader guide state", err);
-    }
-  }, [jumpGuide]);
-
-  useEffect(() => {
-    if (!showGuide) return;
-    const targetId = currentGuide?.targetId || "";
-    if (targetId === "public-guide-toc-panel") setTocOpen(true);
-    else if (targetId) setTocOpen(false);
-  }, [showGuide, currentGuide]);
-
-  useEffect(() => {
-    if (!showGuide) return;
-    const delay = currentGuide?.delaySpotlight || 0;
-    let raf: number | undefined;
-    const run = () => { raf = window.requestAnimationFrame(refreshGuideSpotlight); };
-    const timer = delay > 0 ? window.setTimeout(run, delay) : undefined;
-    if (!timer) run();
-    window.addEventListener("resize", refreshGuideSpotlight);
-    window.addEventListener("scroll", refreshGuideSpotlight, true);
-    return () => {
-      if (timer) window.clearTimeout(timer);
-      if (raf) window.cancelAnimationFrame(raf);
-      window.removeEventListener("resize", refreshGuideSpotlight);
-      window.removeEventListener("scroll", refreshGuideSpotlight, true);
-    };
-  }, [showGuide, guideIndex, tocOpen, refreshGuideSpotlight, currentGuide?.delaySpotlight]);
 
   useEffect(() => {
     try { localStorage.setItem(PUBLIC_READER_TOC_OPEN_STORAGE_KEY, tocOpen ? "1" : "0"); }
@@ -437,12 +304,9 @@ export function usePublicReaderLayoutState({ script, isLoading, viewerProps, scr
     mergedViewerProps, downloadOptions,
     backgroundStyle, coverDisplayUrl, protectionClass,
     normalizedActivity, normalizedDemoLinks, normalizedLicenseSpecialTerms,
-    // guide
-    showGuide, guideIndex, guideSteps, currentGuide, guideSpotlightRect,
     tocOpen, setTocOpen,
     titleVisible,
-    handleStartGuide, handleGuideNext, handleGuidePrev, finishGuide,
   };
 }
 
-export type { RectLike, PublicReaderScriptData, ViewerProps };
+export type { PublicReaderScriptData, ViewerProps };

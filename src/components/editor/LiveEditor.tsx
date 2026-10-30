@@ -7,7 +7,6 @@ import { PreviewPanel } from "./PreviewPanel";
 import { MarkerRulesPanel } from "./MarkerRulesPanel";
 import { StatsPanelOverlay } from "./StatsPanelOverlay";
 import { useI18n } from "../../contexts/I18nContext";
-import { SpotlightGuideOverlay } from "../common/SpotlightGuideOverlay";
 import type { MarkerConfig } from "../../types/script";
 
 interface LiveEditorScriptData {
@@ -36,11 +35,6 @@ interface LiveEditorProps {
   onTitleSummary?: (summary: string) => void;
   onTitleName?: (name: string) => void;
   showHeader?: boolean;
-  crossModeGuideActive?: boolean;
-  crossModeGuideStep?: string;
-  onCrossGuideNext?: () => void;
-  onCrossGuidePrev?: () => void;
-  onCrossGuideExit?: () => void;
   onPersistMarkerTheme?: (themeId: string) => Promise<boolean | void>;
   hiddenMarkerIds?: string[];
   onToggleMarkerVisibility?: (id: string) => void;
@@ -50,14 +44,13 @@ export default function LiveEditor({
   scriptId, initialData, onClose, initialSceneId, defaultShowPreview = false,
   readOnly = false, onRequestEdit, onOpenMarkerSettings, contentScrollRef,
   isSidebarOpen, onSetSidebarOpen, onTitleHtml, onHasTitle, onTitleNote, onTitleSummary, onTitleName,
-  showHeader = true, crossModeGuideActive = false, crossModeGuideStep = "",
-  onCrossGuideNext, onCrossGuidePrev, onCrossGuideExit, onPersistMarkerTheme,
+  showHeader = true, onPersistMarkerTheme,
   hiddenMarkerIds = [], onToggleMarkerVisibility = () => {},
 }: LiveEditorProps) {
   const { t } = useI18n();
   const s = useLiveEditorState({
     scriptId, initialData, onClose, initialSceneId, defaultShowPreview,
-    readOnly, contentScrollRef, onTitleName, crossModeGuideActive, crossModeGuideStep,
+    readOnly, contentScrollRef, onTitleName,
     onPersistMarkerTheme, hiddenMarkerIds, toggleMarkerVisibility: onToggleMarkerVisibility, t,
   });
 
@@ -68,10 +61,6 @@ export default function LiveEditor({
     const nextTitle = String(updated.title || "");
     if (nextTitle && nextTitle !== s.title) s.handleTitleUpdate(nextTitle);
   }, [s.title, s.handleTitleUpdate]);
-  const handleCrossGuideSkip = useCallback(() => onCrossGuideExit?.(), [onCrossGuideExit]);
-  const handleCrossGuidePrev = useCallback(() => onCrossGuidePrev?.(), [onCrossGuidePrev]);
-  const handleCrossGuideNext = useCallback(() => onCrossGuideNext?.(), [onCrossGuideNext]);
-
   if (s.loading) {
     return (
       <div className="h-full flex items-center justify-center bg-background">
@@ -97,8 +86,6 @@ export default function LiveEditor({
             onToggleStats={handleToggleStats}
             showPreview={s.showPreview}
             onTogglePreview={handleTogglePreview}
-            onOpenGuide={s.startGuide}
-            moreActionsRef={s.moreActionsButtonRef}
             isSidebarOpen={isSidebarOpen}
             onSetSidebarOpen={onSetSidebarOpen}
             onTitleChange={s.handleTitleUpdate}
@@ -208,37 +195,6 @@ export default function LiveEditor({
         />
       </div>
 
-      <SpotlightGuideOverlay
-        open={s.showGuide && Boolean(s.currentGuide)}
-        zIndex={250}
-        spotlightRect={s.guideSpotlightRect}
-        currentStep={s.guideIndex + 1}
-        totalSteps={s.guideSteps.length}
-        title={s.currentGuide?.title}
-        description={s.currentGuide?.description}
-        onSkip={s.finishGuide}
-        skipLabel={t("liveEditor.guideSkip")}
-        onPrev={s.handleGuidePrev}
-        prevLabel={t("liveEditor.guidePrev")}
-        prevDisabled={s.guideIndex === 0}
-        onNext={s.handleGuideNext}
-        nextLabel={s.guideIndex === s.guideSteps.length - 1 ? t("liveEditor.guideDone") : t("liveEditor.guideNext")}
-      />
-      <SpotlightGuideOverlay
-        open={s.showCrossModeEditGuide}
-        zIndex={255}
-        spotlightRect={s.crossGuideSpotlightRect}
-        title={s.crossGuideTitle}
-        description={s.crossGuideDesc}
-        onSkip={handleCrossGuideSkip}
-        skipLabel={t("liveEditor.crossGuideExit")}
-        onPrev={handleCrossGuidePrev}
-        prevLabel={t("liveEditor.crossGuidePrev")}
-        prevDisabled={crossModeGuideStep === "editIntro"}
-        onNext={handleCrossGuideNext}
-        nextLabel={crossModeGuideStep === "editActions" ? t("liveEditor.crossGuideBackToRead") : t("liveEditor.crossGuideNext")}
-        showProgress={false}
-      />
     </div>
   );
 }

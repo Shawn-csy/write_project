@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Share2, PenBox, BarChart, MoreHorizontal, HelpCircle } from "lucide-react";
+import { Share2, PenBox, BarChart, MoreHorizontal } from "lucide-react";
 import type { DownloadOption } from "../../types/routes";
 import {
     DropdownMenu,
@@ -18,7 +18,6 @@ interface ReaderActionsProps {
     shareCopied?: boolean;
     downloadOptions?: DownloadOption[];
     onEdit?: () => void;
-    onOpenGuide?: () => void;
     extraActions?: React.ReactNode;
     onToggleStats?: () => void;
 }
@@ -29,7 +28,6 @@ export function ReaderActions({
     shareCopied,
     downloadOptions = [],
     onEdit,
-    onOpenGuide,
     extraActions,
     onToggleStats,
 }: ReaderActionsProps) {
@@ -38,20 +36,8 @@ export function ReaderActions({
 
     return (
         <div className="flex items-center gap-2 print:hidden">
-            {onOpenGuide && (
-            <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenGuide}
-                title={t("readerActions.guide")}
-                aria-label={t("readerActions.guide")}
-            >
-                <HelpCircle className="h-4 w-4" />
-            </Button>
-            )}
             {onEdit && (
             <Button
-                id="reader-guide-edit-button"
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}

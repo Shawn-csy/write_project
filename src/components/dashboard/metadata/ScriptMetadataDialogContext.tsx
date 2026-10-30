@@ -9,7 +9,6 @@ import { ensureList } from "../../../hooks/dashboard/scriptMetadataUtils";
 import { useScriptMetadataJson } from "../../../hooks/dashboard/useScriptMetadataJson";
 import { useScriptTags } from "../../../hooks/dashboard/useScriptTags";
 import { useScriptMetadataSave } from "../../../hooks/dashboard/useScriptMetadataSave";
-import { useScriptMetadataGuide } from "../../../hooks/dashboard/useScriptMetadataGuide";
 import { useScriptMetadataBootstrap } from "../../../hooks/dashboard/useScriptMetadataBootstrap";
 import type { BootstrapPreloadedData } from "../../../hooks/dashboard/useScriptMetadataBootstrap";
 import { useScriptMetadataHydration } from "../../../hooks/dashboard/useScriptMetadataHydration";
@@ -169,7 +168,7 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const lastActiveTabRef = useRef("basic");
     const pendingActiveTabExpandRef = useRef(false);
     const customIdRef = useRef(0);
-    const contentScrollRef = useRef(null);
+    const contentScrollRef = useRef<HTMLDivElement | null>(null);
     const initializedRef = useRef(false);
     const userEditedRef = useRef(false);
     const contactAutoFilledRef = useRef(false);
@@ -317,13 +316,6 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const hasAnyPersona = personas.length > 0;
 
     const {
-        showGuide, setShowGuide,
-        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
-        focusSection, jumpToChecklistItem,
-        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
-    } = useScriptMetadataGuide({ t, open, isInitializing, activeTab, setActiveTab, contentScrollRef });
-
-    const {
         applyCroppedUpload,
         handleCoverUpload,
         handleActivityBannerUpload,
@@ -394,6 +386,34 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         setIsCreatingSeries, setSeriesId, setSeriesName, setQuickSeriesName,
         toast: toastAdapter,
     });
+
+    const autoScrollLockUntilRef = useRef(0);
+    const focusSection = useCallback((section: string) => {
+        autoScrollLockUntilRef.current = Date.now() + 900;
+        setActiveTab(section);
+        const element = document.getElementById(`metadata-section-${section}`);
+        element?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    }, [setActiveTab]);
+    const jumpToChecklistItem = useCallback((key: string) => {
+        const targets: Record<string, { section: string; fieldId?: string }> = {
+            title: { section: "basic", fieldId: "metadata-title" },
+            identity: { section: "basic", fieldId: "metadata-identity-trigger" },
+            audience: { section: "publish", fieldId: "metadata-audience" },
+            rating: { section: "publish", fieldId: "metadata-rating" },
+            license: { section: "publish", fieldId: "license-commercial" },
+            cover: { section: "exposure", fieldId: "metadata-cover-url" },
+            synopsis: { section: "basic", fieldId: "metadata-synopsis" },
+            tags: { section: "exposure", fieldId: "metadata-new-tag" },
+        };
+        const target = targets[key] || { section: "basic" };
+        focusSection(target.section);
+        window.setTimeout(() => {
+            if (!target.fieldId) return;
+            const element = document.getElementById(target.fieldId);
+            element?.focus?.();
+            element?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+        }, 80);
+    }, [focusSection]);
 
     const saveDraft = {
         title, status, coverUrl, coverCrop: coverCrop ?? null, coverDesign: coverDesign ?? null,
@@ -468,6 +488,66 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     };
 
     useEffect(() => {
+        if (!open || isInitializing) return;
+        const rootElement = contentScrollRef.current;
+        if (!rootElement) return;
+        let frameId: number | null = null;
+        const updateActiveSection = () => {
+            if (Date.now() < autoScrollLockUntilRef.current) return;
+            const threshold = rootElement.getBoundingClientRect().top + 120;
+            let nextSection = "basic";
+            for (const section of ["basic", "publish", "exposure", "activity", "demo", "advanced"]) {
+                const element = document.getElementById(`metadata-section-${section}`);
+                if (element && element.getBoundingClientRect().top <= threshold) nextSection = section;
+            }
+            setActiveTab((previous) => previous === nextSection ? previous : nextSection);
+        };
+        const onScroll = () => {
+            if (frameId !== null) return;
+            frameId = window.requestAnimationFrame(() => {
+                frameId = null;
+                updateActiveSection();
+            });
+        };
+        rootElement.addEventListener("scroll", onScroll, { passive: true });
+        updateActiveSection();
+        return () => {
+            rootElement.removeEventListener("scroll", onScroll);
+            if (frameId !== null) window.cancelAnimationFrame(frameId);
+        };
+    }, [contentScrollRef, isInitializing, open, setActiveTab]);
+
+    useEffect(() => {
+        if (!open || isInitializing) return;
+        const rootElement = contentScrollRef.current;
+        if (!rootElement) return;
+        let frameId: number | null = null;
+        const updateActiveSection = () => {
+            if (Date.now() < autoScrollLockUntilRef.current) return;
+            const threshold = rootElement.getBoundingClientRect().top + 120;
+            let nextSection = "basic";
+            for (const section of ["basic", "publish", "exposure", "activity", "demo", "advanced"]) {
+                const element = document.getElementById(`metadata-section-${section}`);
+                if (element && element.getBoundingClientRect().top <= threshold) nextSection = section;
+            }
+            setActiveTab((previous) => previous === nextSection ? previous : nextSection);
+        };
+        const onScroll = () => {
+            if (frameId !== null) return;
+            frameId = window.requestAnimationFrame(() => {
+                frameId = null;
+                updateActiveSection();
+            });
+        };
+        rootElement.addEventListener("scroll", onScroll, { passive: true });
+        updateActiveSection();
+        return () => {
+            rootElement.removeEventListener("scroll", onScroll);
+            if (frameId !== null) window.cancelAnimationFrame(frameId);
+        };
+    }, [contentScrollRef, isInitializing, open, setActiveTab]);
+
+    useEffect(() => {
         if (!open) return;
         const previous = lastActiveTabRef.current;
         lastActiveTabRef.current = activeTab;
@@ -508,9 +588,6 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         status, setStatus,
         activeTab, setActiveTab,
         isInitializing,
-        showGuide, setShowGuide,
-        guideIndex, guideSteps, guideSpotlightRect, currentGuide,
-        startGuide, handleGuideNext, handleGuidePrev, finishGuide,
         // checklist
         completedChecklistItems, totalChecklistItems, completionPercent,
         hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,

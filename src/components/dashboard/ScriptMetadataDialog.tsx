@@ -1,7 +1,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { AlertCircle, ArrowLeft, CheckCircle2, CircleHelp, Circle, Eye, FilePenLine, Loader2, Menu } from "lucide-react";
+import { AlertCircle, ArrowLeft, CheckCircle2, Circle, Eye, FilePenLine, Loader2, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScriptMetadataDialogProvider, ScriptMetadataDialogProps, useFormContext, useUIContext, useStatusContext, useChecklistContext } from "./metadata/ScriptMetadataDialogContext";
 import { StatusPill } from "../studio/StatusPill";
@@ -325,7 +325,7 @@ function ScriptMetadataPreviewDialog({ open, onOpenChange }: { open: boolean; on
 }
 
 function ScriptMetadataDialogInner() {
-    const { open, onOpenChange, showGuide, isSaving, handleSave, t } = useUIContext();
+    const { open, onOpenChange, isSaving, handleSave, t } = useUIContext();
     const [previewOpen, setPreviewOpen] = React.useState(false);
     const { status } = useStatusContext();
 
@@ -334,12 +334,6 @@ function ScriptMetadataDialogInner() {
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent
                     className="studio-density flex max-h-[92vh] w-[95vw] flex-col overflow-hidden gap-0 rounded-lg bg-background p-0 sm:max-w-[760px] lg:max-w-[980px] xl:max-w-[1120px]"
-                    onInteractOutside={(e) => {
-                        if (showGuide) e.preventDefault();
-                    }}
-                    onEscapeKeyDown={(e) => {
-                        if (showGuide) e.preventDefault();
-                    }}
                 >
                     <ScriptMetadataDialogHeader />
                     <ScriptMetadataDialogBody />
@@ -411,7 +405,7 @@ function PublishChecklistPanel({ compact = false }: { compact?: boolean }) {
     }
 
     return (
-        <div id="metadata-guide-checklist" className="rounded-[10px] border border-border bg-card p-4">
+        <div className="rounded-[10px] border border-border bg-card p-4">
             <div className="flex items-center justify-between gap-2">
                 <strong className="text-[15px]">{heading}</strong>
                 <span className="text-xs tabular-nums text-muted-foreground">{completedChecklistItems} / {totalChecklistItems}</span>
@@ -459,7 +453,7 @@ function ScriptMetadataPageInner({ isPublished, backTo, editHref }: ScriptMetada
     const { isSaving, handleSave } = useUIContext();
     const { status, activeTab } = useStatusContext();
     const { title } = useFormContext();
-    const { handleFocusSection, startGuide } = useChecklistContext();
+    const { handleFocusSection } = useChecklistContext();
     const { openMobileMenu } = useStudioShell();
     const [previewOpen, setPreviewOpen] = React.useState(false);
 
@@ -480,9 +474,6 @@ function ScriptMetadataPageInner({ isPublished, backTo, editHref }: ScriptMetada
                         <StatusPill status={isPublished ? "live" : "draft"}>{isPublished ? "已公開" : "未公開"}</StatusPill>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button type="button" variant="ghost" size="icon" onClick={startGuide} aria-label="使用教學" title="使用教學">
-                            <CircleHelp className="h-4 w-4" />
-                        </Button>
                         {editHref ? (
                             <Button variant="outline" asChild>
                                 <Link to={editHref}><FilePenLine className="h-4 w-4" />編輯正文</Link>

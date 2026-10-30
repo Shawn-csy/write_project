@@ -40,7 +40,7 @@ export function ScriptMetadataChecklistHeader({
   focusSection,
 }: ScriptMetadataChecklistHeaderProps) {
   return (
-    <div id="metadata-guide-checklist" className="space-y-1">
+    <div className="space-y-1">
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="text-[11px] font-medium text-muted-foreground">{t("scriptMetadataDialog.publishChecklist")}</div>
         <div className="text-xs font-semibold text-foreground">

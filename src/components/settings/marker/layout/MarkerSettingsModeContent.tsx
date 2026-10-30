@@ -1,13 +1,12 @@
 import React from "react";
 import { MarkerJsonEditor } from "../MarkerJsonEditor";
-import { MarkerUsageGuide } from "../MarkerUsageGuide";
 import { MarkerVisualEditorPane } from "./MarkerVisualEditorPane";
 import type { MarkerConfig } from "../../../../types/script";
 import type { LayoutConfig, TrackConfig } from "../../../../lib/v2";
 import type { EditableMarkerConfig, UpdateMarkerFn } from "../types";
 
 interface MarkerSettingsModeContentProps {
-  viewMode: "ui" | "json" | "guide";
+  viewMode: "ui" | "json";
   localConfigs: MarkerConfig[];
   setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
   updateMarker: UpdateMarkerFn;
@@ -57,14 +56,6 @@ export function MarkerSettingsModeContent({
   onOpenFullLayoutEditor,
   usePresentationRenderer = false,
 }: MarkerSettingsModeContentProps): React.JSX.Element {
-  if (viewMode === "guide") {
-    return (
-      <div className="h-full overflow-hidden px-4 py-5 text-sm sm:px-6 lg:px-8">
-        <MarkerUsageGuide markerConfigs={localConfigs} />
-      </div>
-    );
-  }
-
   if (viewMode === "json") {
     return (
       <fieldset disabled={readOnly} className="h-full min-h-0 px-4 py-5 sm:px-6 lg:px-8">

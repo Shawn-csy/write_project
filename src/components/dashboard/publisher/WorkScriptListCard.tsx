@@ -87,7 +87,7 @@ export function WorkScriptListCard({
           <FilePenLine className="h-3.5 w-3.5" />
           {t("publisherWorksTab.continueWriting", "編輯")}
         </Button>
-        <Button variant="outline" size="sm" className="h-10 sm:h-7 sm:w-full" onClick={() => setEditingScript(script)} data-guide-id="studio-works-edit-info">
+        <Button variant="outline" size="sm" className="h-10 sm:h-7 sm:w-full" onClick={() => setEditingScript(script)}>
           {readiness.primaryActionLabel}
         </Button>
         {readiness.status === "published" ? (

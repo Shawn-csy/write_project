@@ -8,7 +8,6 @@ import { getUserProfile } from "../../lib/api/user";
 import { getStudioBootstrap, getStudioPublishContext, getStudioScriptsPage } from "../../lib/api/studio";
 import { getMorandiTagStyle } from "../../lib/tagColors";
 import { normalizeOrgIds } from "../dashboard/scriptMetadataUtils";
-import { useStudioGuide } from "./useStudioGuide";
 import { usePublisherSeriesEditor } from "./usePublisherSeriesEditor";
 import { usePublisherOrgMemberActions } from "./usePublisherOrgMemberActions";
 import { usePublisherOrgQueues } from "./usePublisherOrgQueues";
@@ -113,7 +112,6 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     handleBatchReorderSeriesScripts,
   } = seriesEditor;
 
-  const tabsGuideRef = useRef<HTMLDivElement | null>(null);
   const bootstrapRequestedRef = useRef(false);
   const worksQueryRef = useRef(worksQuery);
 
@@ -446,10 +444,6 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
       orgDraft, setSelectedOrgId, setConfirmDeleteOrgOpen, loadData, t, toast,
     });
 
-  const { showStudioGuide, studioGuideIndex, studioGuideSteps, currentStudioGuide, studioSpotlightRect,
-    finishStudioGuide, handleStudioGuideNext, handleStudioGuidePrev, handleStartStudioGuide } =
-    useStudioGuide({ t, currentUser, activeTab, handleTabChange, tabsGuideRef, mode });
-
   const renderTabCount = (count: number) =>
     count ? React.createElement("span", { className: "text-xs tabular-nums text-muted-foreground" }, count) : null;
 
@@ -476,7 +470,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     inviteSearchQuery, setInviteSearchQuery,
     inviteSearchResults, isInviteSearching,
     canManageOrgMembers, currentUserId, currentOrgRole,
-    tabCounts, renderTabCount, tabsGuideRef,
+    tabCounts, renderTabCount,
     parseTags, addTags, getSuggestions, getTagStyle, formatDate,
     handleWorksQueryChange, handleLoadMoreWorks,
     // CRUD
@@ -488,8 +482,5 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     // org members
     handleInviteMember, handleAcceptRequest, handleDeclineRequest, handleRemoveMember,
     handleRemovePersonaMember, handleChangeMemberRole, handleAcceptInvite, handleDeclineInvite,
-    // guide
-    showStudioGuide, studioGuideIndex, studioGuideSteps, currentStudioGuide, studioSpotlightRect,
-    finishStudioGuide, handleStudioGuideNext, handleStudioGuidePrev, handleStartStudioGuide,
   };
 }

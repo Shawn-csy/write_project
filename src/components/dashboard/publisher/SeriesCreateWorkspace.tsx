@@ -1,6 +1,5 @@
 import React from "react";
 import { PUBLISHER_CONTENT_STACK_CLASS } from "./PublisherEntityLayout";
-import { SeriesCreateGuide } from "./SeriesCreateGuide";
 import { SeriesMetadataForm } from "./SeriesMetadataForm";
 import { SeriesDraftPreview } from "./SeriesDraftPreview";
 
@@ -26,7 +25,6 @@ export function SeriesCreateWorkspace({
 }: SeriesCreateWorkspaceProps): React.JSX.Element {
   return (
     <div className={PUBLISHER_CONTENT_STACK_CLASS}>
-      <SeriesCreateGuide />
       <SeriesMetadataForm
         seriesDraft={seriesDraft}
         setSeriesDraft={setSeriesDraft}

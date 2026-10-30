@@ -1,12 +1,10 @@
 import { MediaPicker } from "../../ui/MediaPicker";
 import { ImageCropDialog } from "../../ui/ImageCropDialog";
-import { SpotlightGuideOverlay } from "../../common/SpotlightGuideOverlay";
 import { PersonaSetupDialog } from "./PersonaSetupDialog";
-import { useUIContext, useChecklistContext, useOverlayContext } from "./ScriptMetadataDialogContext";
+import { useUIContext, useOverlayContext } from "./ScriptMetadataDialogContext";
 
 export function ScriptMetadataDialogOverlays() {
-    const { t, showGuide } = useUIContext();
-    const { currentGuide, guideSpotlightRect, guideIndex, guideSteps, finishGuide, handleGuidePrev, handleGuideNext } = useChecklistContext();
+    const { t } = useUIContext();
     const {
         isMediaPickerOpen, setIsMediaPickerOpen,
         mediaPickerTarget,
@@ -41,26 +39,6 @@ export function ScriptMetadataDialogOverlays() {
                 onApplyCropRef={cropSource?.url && cropTarget === "cover" ? applyCoverCropRef : undefined}
                 applyCropRefLabel={t("mediaLibrary.applyCropFrame", "套用裁切框")}
                 initialCropRef={cropSource?.url ? (cropSource.initialCropRef ?? null) : null}
-            />
-            <SpotlightGuideOverlay
-                open={showGuide && Boolean(currentGuide)}
-                zIndex={240}
-                spotlightRect={guideSpotlightRect}
-                currentStep={guideIndex + 1}
-                totalSteps={guideSteps.length}
-                title={currentGuide?.title}
-                description={currentGuide?.description}
-                onSkip={finishGuide}
-                skipLabel={t("scriptMetadataDialog.guideSkip")}
-                onPrev={handleGuidePrev}
-                prevLabel={t("scriptMetadataDialog.guidePrev")}
-                prevDisabled={guideIndex === 0}
-                onNext={handleGuideNext}
-                nextLabel={
-                    guideIndex === guideSteps.length - 1
-                        ? t("scriptMetadataDialog.guideDone")
-                        : t("scriptMetadataDialog.guideNext")
-                }
             />
             <PersonaSetupDialog
                 t={t}
