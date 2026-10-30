@@ -19,11 +19,39 @@ export function MarkerRulesPanel({
   onOpenMarkerSettings
 }: MarkerRulesPanelProps): React.JSX.Element | null {
   const { t } = useI18n();
+  const ruleHelp: Record<string, { syntax: string; usage: string }> = {
+    "rule-numbered-chapter-title": {
+      syntax: t("markerRules.syntaxChapter"),
+      usage: t("markerRules.usageChapter"),
+    },
+    "rule-se-performer": {
+      syntax: t("markerRules.syntaxSePerformer"),
+      usage: t("markerRules.usageSePerformer"),
+    },
+    "rule-tone-general": {
+      syntax: t("markerRules.syntaxTone"),
+      usage: t("markerRules.usageTone"),
+    },
+  };
   const getRendererTemplate = (config: MarkerConfig): string | undefined => {
     const renderer = config.renderer;
     if (!renderer || typeof renderer !== "object") return undefined;
     const template = (renderer as { template?: unknown }).template;
     return typeof template === "string" ? template : undefined;
+  };
+  const getSyntax = (config: MarkerConfig): string => {
+    const help = ruleHelp[config.id];
+    if (help) return help.syntax;
+
+    if (config.matchMode === "enclosure" && config.start && config.end) {
+      return `${config.start}內容${config.end}`;
+    }
+    if (config.matchMode === "range" && config.start && config.end) {
+      return `${config.start}…${config.end}`;
+    }
+    if (config.start) return `${config.start}內容`;
+    if (config.matchMode === "regex") return t("markerRules.syntaxPattern");
+    return t("markerRules.syntaxContent");
   };
   if (!show) return null;
 
@@ -61,15 +89,21 @@ export function MarkerRulesPanel({
                 {config.label || config.id}
               </span>
               <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                {config.start}text{config.end}
+                {getSyntax(config)}
               </code>
             </div>
+
+            {ruleHelp[config.id] && (
+              <p className="mb-2 text-xs leading-relaxed text-muted-foreground">
+                {ruleHelp[config.id].usage}
+              </p>
+            )}
 
             {/* Live Preview Render */}
             <div className="mt-2 text-xs text-muted-foreground mb-1">
               {t("markerRules.preview")}
             </div>
-            <div className="p-3 rounded bg-background border border-dashed border-muted-foreground/20 font-serif">
+            <div className="p-3 rounded bg-slate-50 text-slate-900 border border-dashed border-muted-foreground/20 font-serif">
               {config.isBlock ? (
                 // Block Preview (Simulating LayerNode)
                 <div

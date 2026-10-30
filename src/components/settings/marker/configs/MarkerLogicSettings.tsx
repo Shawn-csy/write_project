@@ -29,7 +29,7 @@ const isBlock = config.type === 'block' || config.isBlock;
                  <div className="mb-4">
                     <ModeSelector 
                         value={config.matchMode || 'enclosure'} 
-                        onChange={(mode: "enclosure" | "prefix" | "range" | "regex") => updateMarker(idx, 'matchMode', mode)}
+                        onChange={(mode: "enclosure" | "prefix" | "range") => updateMarker(idx, 'matchMode', mode)}
                     />
                 </div>
              )}

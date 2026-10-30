@@ -17,6 +17,8 @@ import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashb
 import { useAuth } from "../contexts/AuthContext";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
 import type { ScriptManager, CloudScript } from "../hooks/useScriptManager.types";
+import { deleteScript } from "../lib/api/scripts";
+import { useToast } from "../components/ui/toast";
 
 type WorksView = "all" | "folders";
 
@@ -50,6 +52,7 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const s = usePublisherDashboardState({ mode: "studio" });
   const view: WorksView = new URLSearchParams(location.search).get("view") === "folders" ? "folders" : "all";
   const [recent, setRecent] = useState<RecentWork[] | null>(null);
@@ -112,6 +115,19 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
     // Creating and importing belong to the folder tree, so switch to it first.
     if (type !== "create-script" && view !== "folders") setView("folders");
     dispatchWriteTabAction(type);
+  };
+
+  const handleDeleteDraft = async (script: { id: string; title?: string }) => {
+    try {
+      await deleteScript(script.id);
+      s.setScripts((previous) => previous.filter((item) => item.id !== script.id));
+      await s.refreshWorks();
+      toast({ title: "草稿已刪除", description: `「${script.title || "未命名"}」已永久刪除。` });
+    } catch (error) {
+      console.error("Failed to delete draft", error);
+      toast({ title: "刪除失敗", description: "請稍後再試一次。", variant: "destructive" });
+      throw error;
+    }
   };
 
   return (
@@ -212,6 +228,7 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
             isLoadingMore={s.isLoadingMoreWorks}
             onLoadMore={s.handleLoadMoreWorks}
             onQueryChange={s.handleWorksQueryChange}
+            onDeleteScript={handleDeleteDraft}
           />
         </div>
 

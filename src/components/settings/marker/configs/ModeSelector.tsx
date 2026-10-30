@@ -3,7 +3,7 @@ import { useI18n } from "../../../../contexts/I18nContext";
 
 interface ModeSelectorProps {
   value?: string;
-  onChange: (mode: "enclosure" | "prefix" | "range" | "regex") => void;
+  onChange: (mode: "enclosure" | "prefix" | "range") => void;
 }
 
 export function ModeSelector({ value, onChange }: ModeSelectorProps): React.JSX.Element {
@@ -12,7 +12,6 @@ export function ModeSelector({ value, onChange }: ModeSelectorProps): React.JSX.
         { id: "enclosure", label: t("modeSelector.enclosure"), example: "[...]", desc: t("modeSelector.enclosureDesc") },
         { id: "prefix",    label: t("modeSelector.prefix"),    example: "#...", desc: t("modeSelector.prefixDesc") },
         { id: "range",     label: t("modeSelector.range"),     example: ">>...<<", desc: t("modeSelector.rangeDesc") },
-        { id: "regex",     label: t("modeSelector.regex"),     example: "/^.+$/", desc: t("modeSelector.regexDesc") },
     ] as const;
 
     return (

@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, FilePenLine } from "lucide-react";
+import { Eye, FilePenLine, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { CoverRenderer } from "../../ui/CoverRenderer";
@@ -19,6 +19,7 @@ interface WorkScriptListCardProps {
   readiness: PublishReadiness;
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
+  onDeleteScript?: (script: PublisherScriptItem) => void;
   setEditingScript: (script: PublisherScriptItem) => void;
 }
 
@@ -33,6 +34,7 @@ export function WorkScriptListCard({
   readiness,
   formatDate,
   onContinueEdit,
+  onDeleteScript,
   setEditingScript,
 }: WorkScriptListCardProps): React.JSX.Element {
   const { t } = useI18n();
@@ -100,6 +102,17 @@ export function WorkScriptListCard({
             onClick={() => openPublicPath(`/read/${script.id}`)}
           >
             <Eye className="h-4 w-4" />
+          </Button>
+        ) : onDeleteScript ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 px-0 text-muted-foreground hover:text-destructive sm:h-7 sm:w-8"
+            title={t("publisherWorksTab.deleteUnpublished", "刪除未公開作品")}
+            aria-label={`${t("publisherWorksTab.deleteUnpublished", "刪除未公開作品")}：${script.title || "未命名"}`}
+            onClick={() => onDeleteScript(script)}
+          >
+            <Trash2 className="h-4 w-4" />
           </Button>
         ) : <span className="hidden sm:block" aria-hidden="true" />}
       </div>

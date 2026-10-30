@@ -25,10 +25,9 @@ interface MarkerDetailEditorProps {
 const TYPE_OPTIONS = ["inline", "block"] as const;
 
 const MATCH_MODES = [
-    { id: "enclosure", descKey: "enclosureDesc", example: "（小聲）" },
-    { id: "prefix",    descKey: "prefixDesc",    example: "#SE 敲門聲" },
-    { id: "range",     descKey: "rangeDesc",     example: ">>SE … <<SE" },
-    { id: "regex",     descKey: "regexDesc",     example: "/^第\\d+話/" },
+    { id: "enclosure", example: "（小聲）" },
+    { id: "prefix", example: "#SE 敲門聲" },
+    { id: "range", example: ">>SE … <<SE" },
 ] as const;
 
 function Step({ number, title, description, children }: { number: number; title: string; description?: string; children: React.ReactNode }) {
@@ -150,8 +149,8 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                 ) : null}
             </div>
 
-            <Step number={1} title={t("markerStudio.stepSyntax", "原稿裡怎麼寫")} description={t("markerStudio.stepSyntaxDesc", "決定在原稿中用什麼符號標出這種內容。")}>
-                <div role="radiogroup" aria-label={t("markerLogic.matchMode")} className="grid max-w-2xl grid-cols-2 gap-2">
+            <Step number={1} title={t("markerStudio.stepSyntax", "原稿裡怎麼寫")}>
+                <div role="radiogroup" aria-label={t("markerLogic.matchMode")} className="grid max-w-2xl grid-cols-3 gap-1 rounded-lg bg-muted p-1">
                     {MATCH_MODES.map((mode) => {
                         const isActive = matchMode === mode.id;
                         return (
@@ -162,16 +161,12 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                 aria-checked={isActive}
                                 onClick={() => updateMatchMode(mode.id)}
                                 className={cn(
-                                    "flex flex-col items-start gap-1.5 rounded-[10px] border p-3 text-left transition-colors",
-                                    isActive ? "border-primary bg-primary/5 ring-1 ring-primary" : "border-border hover:border-foreground/25 hover:bg-muted/40"
+                                    "flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-center transition-colors",
+                                    isActive ? "bg-background font-semibold text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
-                                <span className="flex w-full items-center justify-between gap-2">
-                                    <span className="text-[13px] font-semibold">{t(`modeSelector.${mode.id}`)}</span>
-                                    {isActive && <Check className="h-3.5 w-3.5 shrink-0 text-primary" />}
-                                </span>
-                                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{mode.example}</code>
-                                <span className="text-xs leading-snug text-muted-foreground">{t(`modeSelector.${mode.descKey}`)}</span>
+                                <span className="text-xs">{t(`modeSelector.${mode.id}`)}</span>
+                                <code className="max-w-full truncate font-mono text-[10px] text-muted-foreground">{mode.example}</code>
                             </button>
                         );
                     })}

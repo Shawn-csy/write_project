@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2, Save, PanelRight, PanelRightClose, ChartNoAxesColumn, CircleHelp, Ellipsis, Check, AlertCircle, Settings2 } from "lucide-react";
+import { Loader2, Save, Eye, ListFilter, ChartNoAxesColumn, CircleHelp, Ellipsis, Check, AlertCircle, Settings2 } from "lucide-react";
 import { useEditableTitle } from "../../hooks/useEditableTitle";
 import EditableTitle from "../header/EditableTitle";
 import HeaderTitleBlock from "../header/HeaderTitleBlock";
@@ -226,7 +226,7 @@ export function EditorHeader({
           title={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
           aria-label={showPreview ? t("editorHeader.switchToEditOnly") : t("editorHeader.switchToSplit")}
         >
-          {showPreview ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
+          <Eye className="w-4 h-4" />
         </Button>
 
         {/* Marker 控制 */}
@@ -241,6 +241,7 @@ export function EditorHeader({
           visibilityTriggerClassName="h-9 w-9 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
           contentAlign="end"
           titlePrefix={t("editorHeader.markerPrefix")}
+          triggerIcon={ListFilter}
         />
 
         {/* ⋯ 更多 */}

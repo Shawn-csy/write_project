@@ -23,6 +23,7 @@ export function MarkerThemeVisibilityControl({
   currentThemeId = "default",
   onSwitchMarkerTheme = () => {},
   titlePrefix,
+  triggerIcon,
   visibilityTriggerClassName = "",
   themeTriggerClassName: _themeTriggerClassName = "",
   contentAlign = "end",
@@ -39,6 +40,7 @@ export function MarkerThemeVisibilityControl({
   currentThemeId?: string;
   onSwitchMarkerTheme?: (themeId: string) => void;
   titlePrefix?: string;
+  triggerIcon?: React.ComponentType<{ className?: string }>;
   visibilityTriggerClassName?: string;
   themeTriggerClassName?: string;
   contentAlign?: "start" | "center" | "end";
@@ -59,6 +61,7 @@ export function MarkerThemeVisibilityControl({
   if (!markerConfigs?.length || !onToggleMarker) return null;
 
   const resolvedTitlePrefix = titlePrefix || t("editorHeader.markerPrefix");
+  const TriggerIcon = triggerIcon || Eye;
   const visibleCount = computedVisibleIds.length;
   const totalCount = markerConfigs.length;
   const triggerTitle = `${resolvedTitlePrefix} (${visibleCount}/${totalCount})`;
@@ -74,7 +77,7 @@ export function MarkerThemeVisibilityControl({
             title={triggerTitle}
             aria-label={triggerTitle}
           >
-            <Eye className="h-4 w-4 shrink-0" />
+            <TriggerIcon className="h-4 w-4 shrink-0" />
             {visibilityTriggerClassName && (
               <span className="truncate">{triggerTitle}</span>
             )}

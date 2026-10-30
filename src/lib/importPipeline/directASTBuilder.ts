@@ -317,6 +317,17 @@ export class DirectASTBuilder {
       }
     );
 
+    // Keep accepting the older numbered-heading format while the default
+    // editor rule uses the simpler, explicit #H prefix.
+    const chapterRule = sortedMarkers.find(
+      (marker) => marker.id === 'rule-numbered-chapter-title' && marker.matchMode === 'prefix' && marker.start === '#H'
+    );
+    const legacyHeading = chapterRule ? this._parseLegacyNumberedHeading(line) : null;
+    if (chapterRule && legacyHeading) {
+      const parsed = this._buildParsedNode(chapterRule, legacyHeading, line, lineNumber, null);
+      if (parsed) return parsed;
+    }
+
     for (const marker of sortedMarkers) {
       if (marker.matchMode !== 'regex' && !marker.start) continue;
       const caseInsensitive = Boolean(marker.caseInsensitive);
@@ -450,6 +461,19 @@ export class DirectASTBuilder {
     }
     
     return null;
+  }
+
+  _parseLegacyNumberedHeading(line: string): string | null {
+    const trimmed = String(line || '').trim();
+    const normalized = this._normalizeWidthAndCase(trimmed);
+    let index = 0;
+    while (index < normalized.length && normalized.charCodeAt(index) >= 48 && normalized.charCodeAt(index) <= 57) {
+      index += 1;
+    }
+    if (index < 1 || index > 3 || !['.', '、'].includes(normalized[index] || '')) return null;
+
+    const title = trimmed.slice(index + 1).trim();
+    return title ? trimmed : null;
   }
 
   _startsWithToken(text: string, token: string, caseInsensitive = false) {
