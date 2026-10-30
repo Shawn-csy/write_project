@@ -120,19 +120,25 @@ export function externalPersonasFromScripts(items: ExternalPublicScript[]): Publ
   for (const item of items) {
     const displayName = item.authorName?.trim();
     if (!displayName) continue;
-    const key = displayName.toLocaleLowerCase();
+    const key = item.externalAuthorId || item.authorKey || item.authorProfileKey || displayName.normalize("NFKC").toLocaleLowerCase();
     const current = map.get(key);
     const tags = Array.from(new Set([...(current?.tags || []), ...(item.categories || [])]));
+    const supplement = item.authorSupplement || {};
+    const supplementalLinks = Array.isArray(supplement.links) ? supplement.links : [];
+    const fallbackLink = item.authorUrl ? [{ url: item.authorUrl, label: "X / Twitter" }] : [];
+    const currentLinks = Array.isArray(current?.links) ? current.links : [];
+    const mergedLinks = [...currentLinks, ...fallbackLink, ...supplementalLinks]
+      .filter((link, index, all) => Boolean(link.url) && all.findIndex((candidate) => candidate.url === link.url) === index);
     map.set(key, {
       ...(current || {}),
-      id: current?.id || `external-author:${displayName}`,
+      id: current?.id || `external-author:${key}`,
       displayName,
       bio: current?.bio || item.authorBio || undefined,
-      website: current?.website || item.authorUrl || undefined,
+      website: current?.website || supplement.website || item.authorUrl || undefined,
       avatar: current?.avatar || item.authorAvatarUrl || socialAvatarUrl(item.authorUrl),
-      links: current?.links || (item.authorUrl ? [{ url: item.authorUrl, label: "X / Twitter" }] : []),
+      links: mergedLinks,
       tags,
-      externalHref: externalEntityHref("author", displayName, item.authorUrl),
+      externalHref: item.authorPersonaId ? `/author/${encodeURIComponent(item.authorPersonaId)}` : externalEntityHref("author", displayName, item.authorUrl),
     });
   }
   return Array.from(map.values()).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant"));

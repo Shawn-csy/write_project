@@ -81,10 +81,21 @@ export interface ExternalPublicScript {
   canonicalUrl?: string;
   sourceDomain?: string;
   sourceName?: string;
+  externalAuthorId?: string | null;
+  authorKey?: string;
   authorName?: string;
   authorBio?: string;
   authorUrl?: string;
   authorAvatarUrl?: string;
+  authorProfileKey?: string;
+  authorPersonaId?: string | null;
+  authorSupplement?: {
+    website?: string;
+    links?: Array<{ label?: string; url?: string }>;
+    organizations?: Array<{ name?: string; url?: string; description?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string }>;
+  };
+  authorContributors?: Array<{ name?: string; contributedAt?: number }>;
   organizationName?: string;
   organizationBio?: string;
   organizationUrl?: string;
@@ -122,6 +133,22 @@ export interface ExternalPublicScript {
   createdAt?: number;
   mountedAt?: number;
   updatedAt?: number;
+}
+
+export interface ActivityPage {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  coverUrl: string;
+  coverCrop?: { cx?: number; cy?: number; zoom?: number } | null;
+  body: string;
+  scriptIds: string[];
+  externalScriptIds: string[];
+  acceptingSubmissions: boolean;
+  status: "draft" | "published";
+  sortOrder: number;
+  publishedAt?: number | null;
 }
 
 export interface PublicDemoSubmission {
@@ -166,8 +193,15 @@ export interface PublicPersona {
   website?: string;
   links?: Array<{ url?: string; label?: string }> | string;
   tags?: string[];
+  roles?: Array<"scriptwriter" | "voice_actor">;
+  profileSources?: string[];
+  roleProfiles?: Partial<Record<"scriptwriter" | "voice_actor", Record<string, unknown>>>;
+  voiceActorHidden?: boolean;
   organizationIds?: string[];
   organizations?: PublicOrg[];
+  voiceActorWorks?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string }>;
+  voiceActorOrganizations?: Array<{ name?: string; url?: string; description?: string }>;
+  voiceActorContributors?: Array<{ name?: string; contributedAt?: number }>;
   /** Synthetic route used for authors imported from external scripts. */
   externalHref?: string;
 }

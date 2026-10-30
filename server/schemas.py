@@ -99,7 +99,11 @@ class PersonaBase(BaseModel):
     website: Optional[str] = ""
     links: List[Dict[str, Any]] = []
     organizationIds: List[str] = []
+    voiceActorWorks: List[Dict[str, Any]] = []
+    voiceActorOrganizations: List[Dict[str, Any]] = []
+    voiceActorContributors: List[Dict[str, Any]] = []
     tags: List[str] = []
+    voiceActorHidden: bool = False
     defaultLicenseCommercial: Optional[str] = ""
     defaultLicenseDerivative: Optional[str] = ""
     defaultLicenseNotify: Optional[str] = ""
@@ -119,6 +123,140 @@ class Persona(PersonaBase):
 
 class PersonaPublic(Persona):
     organizations: List[Organization] = []
+    roles: List[Literal["scriptwriter", "voice_actor"]] = []
+    profileSources: List[str] = []
+    roleProfiles: Dict[str, Any] = {}
+
+
+class AdminVoiceActorRecord(Persona):
+    voiceActorHidden: bool = False
+    ownerName: str = ""
+    sourceTypes: List[str] = []
+    demoCount: int = 0
+    internalDemoCount: int = 0
+    externalDemoCount: int = 0
+    scriptCount: int = 0
+
+
+class AdminVoiceActorUpdate(BaseModel):
+    displayName: str
+    bio: str = ""
+    avatar: str = ""
+    website: str = ""
+    links: List[Dict[str, Any]] = []
+    voiceActorHidden: bool = False
+
+
+class AdminVoiceActorCreate(BaseModel):
+    displayName: str
+
+    @field_validator("displayName", mode="before")
+    @classmethod
+    def clean_voice_actor_display_name(cls, value: Any) -> str:
+        name = str(value or "").strip()
+        if not name or len(name) > 120:
+            raise ValueError("聲演名稱需為 1 至 120 個字")
+        return name
+
+
+class VoiceActorProfileSubmissionCreate(BaseModel):
+    personaId: str
+    displayName: str
+    submitterName: str
+    contactEmail: str
+    contributorName: str = ""
+    bio: str = ""
+    avatar: str = ""
+    website: str = ""
+    links: List[Dict[str, Any]] = []
+    organizations: List[Dict[str, Any]] = []
+    works: List[Dict[str, Any]] = []
+    websiteTrap: str = ""
+
+
+class VoiceActorProfileSubmissionStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected"]
+    reviewNote: str = ""
+    acceptedFields: List[Literal["displayName", "bio", "avatar", "website", "links", "organizations", "works", "contributorName"]] = []
+
+
+class VoiceActorProfileSubmissionRecord(BaseModel):
+    id: str
+    personaId: str
+    personaName: str = ""
+    submitterName: str = ""
+    contactEmail: str = ""
+    contributorName: str = ""
+    collaborators: List[Dict[str, Any]] = []
+    currentProfile: Dict[str, Any] = {}
+    profile: Dict[str, Any] = {}
+    acceptedFields: List[str] = []
+    status: Literal["pending", "approved", "rejected"]
+    reviewNote: str = ""
+    reviewedAt: Optional[int] = None
+    createdAt: int
+
+
+class VoiceActorProfileSubmissionListResponse(BaseModel):
+    total: int
+    items: List[VoiceActorProfileSubmissionRecord]
+
+
+class VoiceActorProfileSubmissionResponse(BaseModel):
+    success: bool
+    submissionId: str
+    createdAt: int
+
+
+class ExternalAuthorProfileSubmissionCreate(BaseModel):
+    externalAuthorId: Optional[str] = None
+    authorKey: str
+    displayName: str
+    submitterName: str
+    contactEmail: str
+    contributorName: str = ""
+    bio: str = ""
+    avatar: str = ""
+    profileUrl: str = ""
+    website: str = ""
+    links: List[Dict[str, Any]] = []
+    organizations: List[Dict[str, Any]] = []
+    works: List[Dict[str, Any]] = []
+    websiteTrap: str = ""
+
+
+class ExternalAuthorProfileSubmissionStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected"]
+    reviewNote: str = ""
+    acceptedFields: List[Literal["displayName", "bio", "avatar", "profileUrl", "website", "links", "organizations", "works", "contributorName"]] = []
+
+
+class ExternalAuthorProfileSubmissionRecord(BaseModel):
+    id: str
+    authorKey: str
+    authorName: str = ""
+    submitterName: str = ""
+    contactEmail: str = ""
+    contributorName: str = ""
+    collaborators: List[Dict[str, Any]] = []
+    currentProfile: Dict[str, Any] = {}
+    profile: Dict[str, Any] = {}
+    acceptedFields: List[str] = []
+    status: Literal["pending", "approved", "rejected"]
+    reviewNote: str = ""
+    reviewedAt: Optional[int] = None
+    createdAt: int
+
+
+class ExternalAuthorProfileSubmissionListResponse(BaseModel):
+    total: int
+    items: List[ExternalAuthorProfileSubmissionRecord]
+
+
+class ExternalAuthorProfileSubmissionResponse(BaseModel):
+    success: bool
+    submissionId: str
+    createdAt: int
 
 class OrganizationPublic(Organization):
     members: List[Persona] = []
@@ -656,6 +794,9 @@ class PublicFeedbackCreate(BaseModel):
     notes: Optional[str] = ""
     content: str = ""
     pageUrl: Optional[str] = ""
+    activityPageId: Optional[str] = None
+    activityScriptId: Optional[str] = None
+    confirmPublicListing: bool = False
     website: Optional[str] = ""  # Honeypot; real visitors should leave this empty.
 
     @field_validator("contactName", "contactEmail", "scriptTitle", "scriptSummary", "authorName", "authorBio", "authorSocialUrl", "documentUrl", "coverUrl", "seriesName", "notes", "pageUrl", mode="before")
@@ -701,6 +842,7 @@ class PublicFeedbackRecord(BaseModel):
     notes: str = ""
     content: str
     pageUrl: str = ""
+    activityPageId: Optional[str] = None
     status: str = "new"
     createdAt: int
     updatedAt: int
@@ -752,6 +894,7 @@ class PublicDemoSubmissionCreate(BaseModel):
     scriptType: Literal["internal", "external"]
     scriptId: Optional[str] = None
     externalScriptId: Optional[str] = None
+    activityPageId: Optional[str] = None
     demoName: str = ""
     demoUrl: str
     coverUrl: str = ""
@@ -814,11 +957,84 @@ class PublicDemoSubmissionCreate(BaseModel):
         return value[:20]
 
 
-class PublicDemoSubmissionRecord(BaseModel):
-    id: str
+class StudioDemoSubmissionCreate(BaseModel):
     scriptType: Literal["internal", "external"]
     scriptId: Optional[str] = None
     externalScriptId: Optional[str] = None
+    voiceActorPersonaId: str
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    description: str = ""
+
+    @field_validator("demoUrl", "coverUrl", mode="before")
+    @classmethod
+    def validate_https_urls(cls, value: Any, info) -> str:
+        import re
+        url = str(value or "").strip()
+        if not url and info.field_name == "coverUrl":
+            return ""
+        if len(url) > 2000 or not re.fullmatch(r"https://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("請提供有效的 HTTPS 連結")
+        return url
+
+    @field_validator("demoName", "cast", "description", mode="before")
+    @classmethod
+    def normalize_text(cls, value: Any) -> str:
+        return str(value or "").strip()
+
+    @field_validator("voiceTypes", mode="before")
+    @classmethod
+    def normalize_voice_types(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        allowed = {"male", "female"}
+        return list(dict.fromkeys(str(item).strip().lower() for item in value if str(item).strip().lower() in allowed))
+
+
+class StudioDemoSubmissionUpdate(BaseModel):
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    description: str = ""
+
+    @field_validator("demoUrl", "coverUrl", mode="before")
+    @classmethod
+    def validate_https_urls(cls, value: Any, info) -> str:
+        import re
+        url = str(value or "").strip()
+        if not url and info.field_name == "coverUrl":
+            return ""
+        if len(url) > 2000 or not re.fullmatch(r"https://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("請提供有效的 HTTPS 連結")
+        return url
+
+    @field_validator("demoName", "cast", "description", mode="before")
+    @classmethod
+    def normalize_text(cls, value: Any) -> str:
+        return str(value or "").strip()
+
+    @field_validator("voiceTypes", mode="before")
+    @classmethod
+    def normalize_voice_types(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        allowed = {"male", "female"}
+        return list(dict.fromkeys(str(item).strip().lower() for item in value if str(item).strip().lower() in allowed))
+
+
+class PublicDemoSubmissionRecord(BaseModel):
+    id: str
+    ownerId: Optional[str] = None
+    voiceActorPersonaId: Optional[str] = None
+    scriptType: Literal["internal", "external"]
+    scriptId: Optional[str] = None
+    externalScriptId: Optional[str] = None
+    activityPageId: Optional[str] = None
     scriptTitle: str = ""
     scriptUrl: str = ""
     demoName: str = ""
@@ -846,6 +1062,79 @@ class PublicDemoSubmissionListResponse(BaseModel):
 
 class PublicDemoSubmissionStatusUpdate(BaseModel):
     status: Literal["approved", "rejected", "pending"]
+
+
+class AdminDemoRecord(BaseModel):
+    id: str
+    sourceKind: Literal["submission", "internal", "external"]
+    parentId: Optional[str] = None
+    scriptTitle: str = ""
+    scriptUrl: str = ""
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    voiceActorIds: List[str] = []
+    description: str = ""
+    displayName: str = ""
+    contactEmail: str = ""
+    status: str = "approved"
+    createdAt: int = 0
+
+
+class AdminDemoListResponse(BaseModel):
+    total: int
+    items: List[AdminDemoRecord] = []
+
+
+class AdminDemoTarget(BaseModel):
+    id: str
+    sourceKind: Literal["internal", "external"]
+    title: str
+    authorName: str = ""
+
+
+class AdminDemoMutation(BaseModel):
+    sourceKind: Literal["submission", "internal", "external"]
+    parentId: Optional[str] = None
+    scriptTitle: str = ""
+    scriptUrl: str = ""
+    demoName: str = ""
+    demoUrl: str
+    coverUrl: str = ""
+    cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    voiceActorIds: List[str] = []
+    description: str = ""
+    displayName: str = ""
+    contactEmail: str = ""
+    status: Literal["pending", "approved", "rejected"] = "approved"
+
+    @field_validator("voiceActorIds", mode="before")
+    @classmethod
+    def normalize_admin_voice_actor_ids(cls, value: Any) -> List[str]:
+        if not isinstance(value, list):
+            return []
+        return list(dict.fromkeys(str(item).strip() for item in value if str(item).strip()))[:20]
+
+    @field_validator("demoUrl", "coverUrl", "scriptUrl", mode="before")
+    @classmethod
+    def validate_admin_demo_urls(cls, value: Any, info) -> str:
+        import re
+        url = str(value or "").strip()
+        if not url and info.field_name in {"coverUrl", "scriptUrl"}:
+            return ""
+        if info.field_name == "scriptUrl" and len(url) <= 2000 and url.startswith("/") and not url.startswith("//"):
+            return url
+        if len(url) > 2000 or not re.fullmatch(r"https?://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("請提供有效的公開連結")
+        return url
+
+    @field_validator("demoName", "cast", "description", "displayName", "contactEmail", "scriptTitle", mode="before")
+    @classmethod
+    def clean_admin_demo_text(cls, value: Any) -> str:
+        return str(value or "").strip()
 
 
 class PublicDemoSubmissionResponse(BaseModel):
@@ -911,6 +1200,56 @@ class HomepageBannerSetting(BaseModel):
     items: List[HomepageBannerItem] = []
 
 
+class ActivityPagePayload(BaseModel):
+    slug: str
+    title: str
+    summary: str = ""
+    coverUrl: str = ""
+    coverCrop: Optional[dict[str, float]] = None
+    body: str = ""
+    scriptIds: List[str] = []
+    externalScriptIds: List[str] = []
+    acceptingSubmissions: bool = False
+    status: Literal["draft", "published"] = "draft"
+    sortOrder: int = 0
+
+
+class ActivityPageRecord(ActivityPagePayload):
+    id: str
+    createdAt: int
+    updatedAt: int
+    publishedAt: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ActivitySubmissionRecord(BaseModel):
+    id: str
+    activityPageId: str
+    kind: Literal["demo", "script"]
+    title: str
+    summary: str = ""
+    link: str = ""
+    coverUrl: str = ""
+    scriptType: Optional[Literal["internal", "external"]] = None
+    scriptId: Optional[str] = None
+    externalScriptId: Optional[str] = None
+    voiceTypes: List[Literal["male", "female"]] = []
+    createdAt: int
+
+
+class ActivitySubmissionListResponse(BaseModel):
+    items: List[ActivitySubmissionRecord] = []
+
+
+class ActivitySubmissionUpdate(BaseModel):
+    title: str
+    summary: str = ""
+    link: str = ""
+    coverUrl: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+
+
 class ExternalPublicScriptPreviewRequest(BaseModel):
     sourceUrl: str
     authorUrl: Optional[str] = None
@@ -923,11 +1262,14 @@ class ExternalPublicScriptDemoLink(BaseModel):
     url: str
     coverUrl: str = ""
     cast: str = ""
+    voiceTypes: List[Literal["male", "female"]] = []
+    voiceActorIds: List[str] = []
     description: str = ""
 
 
 class ExternalPublicScriptPayload(BaseModel):
     sourceUrl: str
+    externalAuthorId: Optional[str] = None
     authorPersonaId: Optional[str] = None
     canonicalUrl: Optional[str] = None
     sourceDomain: Optional[str] = None
@@ -958,6 +1300,7 @@ class ExternalPublicScriptPayload(BaseModel):
 
 
 class ExternalPublicScriptUpdate(BaseModel):
+    externalAuthorId: Optional[str] = None
     sourceUrl: Optional[str] = None
     canonicalUrl: Optional[str] = None
     sourceDomain: Optional[str] = None
@@ -993,6 +1336,8 @@ class ExternalPublicScriptResponse(BaseModel):
     canonicalUrl: str = ""
     sourceDomain: str = ""
     sourceName: str = ""
+    externalAuthorId: Optional[str] = None
+    authorKey: str = ""
     authorName: str = ""
     authorBio: str = ""
     authorUrl: str = ""
@@ -1023,6 +1368,21 @@ class ExternalPublicScriptResponse(BaseModel):
     sourceModifiedAt: Optional[int] = None
     createdAt: int
     mountedAt: int = 0
+    updatedAt: int
+
+
+class ExternalAuthorPageProfilePayload(BaseModel):
+    authorKey: str
+    linkedPersonaId: Optional[str] = None
+    displayName: str
+    bio: str = ""
+    profileUrl: str = ""
+    avatarUrl: str = ""
+    isHidden: bool = False
+
+
+class ExternalAuthorPageProfileRecord(ExternalAuthorPageProfilePayload):
+    createdAt: int
     updatedAt: int
 
 

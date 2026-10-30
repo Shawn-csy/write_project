@@ -16,11 +16,15 @@ interface Props {
   initialExternalScripts: ExternalPublicScript[];
 }
 
-function firstSocialLink(persona: PublicPersona): { label: string; url: string } | null {
+function socialLinks(persona: PublicPersona): Array<{ label: string; url: string }> {
   const links = Array.isArray(persona.links) ? persona.links : [];
-  const item = links.find((link) => /^https:\/\//i.test(String(link.url || "")));
-  if (!item?.url) return null;
-  return { label: String(item.label || "社群"), url: item.url };
+  const unique = new Set<string>();
+  return links.filter((item) => {
+    const url = String(item.url || "").trim();
+    if (!/^https:\/\//i.test(url) || unique.has(url)) return false;
+    unique.add(url);
+    return true;
+  }).map((item) => ({ label: String(item.label || "社群"), url: String(item.url) }));
 }
 
 export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initialScripts, initialExternalScripts }: Props) {
@@ -46,8 +50,8 @@ export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initi
 
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return personas.filter((persona) => hasVoiceActorSelfTag(persona)
-      || getPublicVoicePerformances(persona.id, { scripts, externalPublicScripts: externalScripts, demoSubmissions: demos }).length > 0)
+    return personas.filter((persona) => !persona.voiceActorHidden && (persona.roles?.includes("voice_actor") || hasVoiceActorSelfTag(persona)
+      || getPublicVoicePerformances(persona.id, { scripts, externalPublicScripts: externalScripts, demoSubmissions: demos }).length > 0))
       .filter((persona) => !needle || `${persona.displayName} ${persona.bio || ""} ${(persona.tags || []).join(" ")}`.toLocaleLowerCase().includes(needle))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant"));
   }, [personas, scripts, externalScripts, demos, query]);
@@ -77,7 +81,7 @@ export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initi
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((persona) => {
-              const social = firstSocialLink(persona);
+              const socials = socialLinks(persona);
               const count = getPublicVoicePerformances(persona.id, { scripts, externalPublicScripts: externalScripts, demoSubmissions: demos }).length;
               return (
                 <article key={persona.id} className="flex min-h-28 gap-3 rounded-xl border border-border/70 bg-card/40 p-3 transition-colors hover:border-primary/40">
@@ -90,7 +94,7 @@ export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initi
                       <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{count} 筆公開演出</span>
                     </div>
                     {persona.bio && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{persona.bio}</p>}
-                    {social && <a href={social.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">{social.label}<ExternalLink className="h-3 w-3" aria-hidden /></a>}
+                    {socials.length > 0 && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">{socials.slice(0, 3).map((social) => <a key={social.url} href={social.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">{social.label}<ExternalLink className="h-3 w-3" aria-hidden /></a>)}</div>}
                   </div>
                 </article>
               );

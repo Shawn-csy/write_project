@@ -91,7 +91,16 @@ export interface ExternalEntityModel {
   bio: string;
   profileUrl: string;
   profileAvatarUrl: string;
+  authorKey?: string;
+  externalAuthorId?: string;
+  personaId?: string;
+  supplement?: NonNullable<ExternalPublicScript["authorSupplement"]>;
+  contributors?: NonNullable<ExternalPublicScript["authorContributors"]>;
   items: ExternalPublicScript[];
+}
+
+function normalizeExternalAuthorKey(value: string): string {
+  return value.normalize("NFKC").trim().toLocaleLowerCase();
 }
 
 function normalizeAuthorAlias(value: string): string {
@@ -126,11 +135,25 @@ export function findExternalAuthorModel(published: ExternalPublicScript[], rawNa
   }
 
   if (items.length === 0) return null;
+  const matchedId = items[0].externalAuthorId;
+  const matchedKey = items[0].authorKey || items[0].authorProfileKey;
+  if (matchedId) {
+    items = published.filter((item) => item.externalAuthorId === matchedId);
+  } else if (matchedKey) {
+    items = published.filter((item) => (item.authorKey || item.authorProfileKey) === matchedKey);
+  }
   return {
     name: items[0].authorName?.trim() || name,
     bio: items.find((item) => item.authorBio?.trim())?.authorBio?.trim() || "",
     profileUrl: items.find((item) => item.authorUrl)?.authorUrl || "",
     profileAvatarUrl: items.find((item) => item.authorAvatarUrl)?.authorAvatarUrl || "",
+    authorKey: items.find((item) => item.authorKey || item.authorProfileKey)?.authorKey
+      || items.find((item) => item.authorProfileKey)?.authorProfileKey
+      || normalizeExternalAuthorKey(items[0].authorName?.trim() || ""),
+    externalAuthorId: items.find((item) => item.externalAuthorId)?.externalAuthorId || undefined,
+    personaId: items.find((item) => item.authorPersonaId)?.authorPersonaId || undefined,
+    supplement: items.find((item) => item.authorSupplement)?.authorSupplement,
+    contributors: items.find((item) => item.authorContributors)?.authorContributors,
     items,
   };
 }

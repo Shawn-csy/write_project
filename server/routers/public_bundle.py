@@ -91,6 +91,33 @@ def _get_approved_demo_submissions(db: Session) -> list[dict]:
     ]
 
 
+def _get_published_activity_pages(db: Session) -> list[dict]:
+    rows = (
+        db.query(models.ActivityPage)
+        .filter(models.ActivityPage.status == "published")
+        .order_by(models.ActivityPage.sortOrder, models.ActivityPage.publishedAt.desc())
+        .all()
+    )
+    return [
+        {
+            "id": row.id,
+            "slug": row.slug,
+            "title": row.title,
+            "summary": row.summary or "",
+            "coverUrl": row.coverUrl or "",
+            "coverCrop": row.coverCrop,
+            "body": row.body or "",
+            "scriptIds": row.scriptIds if isinstance(row.scriptIds, list) else [],
+            "externalScriptIds": row.externalScriptIds if isinstance(row.externalScriptIds, list) else [],
+            "acceptingSubmissions": bool(row.acceptingSubmissions),
+            "status": row.status,
+            "sortOrder": row.sortOrder or 0,
+            "publishedAt": row.publishedAt,
+        }
+        for row in rows
+    ]
+
+
 def _build_bundle(db: Session) -> dict:
     scripts = [public_router.sanitize_public_script(s) for s in crud.get_public_scripts(db)]
     serialized_scripts = [_serialize_bundle_script(s) for s in scripts]
@@ -114,6 +141,7 @@ def _build_bundle(db: Session) -> dict:
         "banner": _get_banner(db),
         "externalPublicScripts": get_published_external_public_scripts(db),
         "demoSubmissions": _get_approved_demo_submissions(db),
+        "activityPages": _get_published_activity_pages(db),
     })
 
 

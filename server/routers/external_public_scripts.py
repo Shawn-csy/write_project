@@ -7,6 +7,7 @@ import json
 import os
 import re
 import time
+import unicodedata
 import uuid
 from pathlib import Path
 from typing import Any
@@ -37,6 +38,91 @@ router = APIRouter(prefix="/api/admin/external-public-scripts", tags=["external-
 EXTERNAL_COVER_PREFIX = "/media/external-public-scripts/"
 EXTERNAL_COVER_FOLDER = "外部台本封面"
 EXTERNAL_AVATAR_FOLDER = "外部台本圖片"
+
+
+def _author_key(value: object) -> str:
+    return unicodedata.normalize("NFKC", str(value or "").strip()).casefold()
+
+
+def _ensure_persona_role(db: Session, persona_id: str, role: str, source_type: str) -> None:
+    record = (
+        db.query(models.PersonaRole)
+        .filter(models.PersonaRole.personaId == persona_id, models.PersonaRole.role == role)
+        .first()
+    )
+    now_ms = int(time.time() * 1000)
+    if not record:
+        db.add(models.PersonaRole(
+            id=str(uuid.uuid4()),
+            personaId=persona_id,
+            role=role,
+            isVisible=True,
+            sourceTypes=[source_type],
+            profile={},
+            createdAt=now_ms,
+            updatedAt=now_ms,
+        ))
+        return
+    sources = [str(value) for value in (record.sourceTypes or []) if value]
+    if source_type not in sources:
+        record.sourceTypes = [*sources, source_type]
+        record.updatedAt = now_ms
+
+
+def _resolve_external_author(
+    db: Session,
+    *,
+    external_author_id: str | None,
+    author_name: str,
+    author_bio: str,
+    author_url: str,
+    author_avatar_url: str,
+    linked_persona_id: str | None = None,
+) -> models.ExternalAuthor:
+    """Resolve one immutable author entity without using display text as a join."""
+    now_ms = int(time.time() * 1000)
+    author: models.ExternalAuthor | None = None
+    if external_author_id:
+        author = db.query(models.ExternalAuthor).filter(models.ExternalAuthor.id == external_author_id).first()
+        if not author:
+            raise HTTPException(status_code=400, detail="找不到指定的外部作者身份")
+    else:
+        canonical_key = _author_key(author_name)
+        candidates = db.query(models.ExternalAuthor).filter(models.ExternalAuthor.canonicalKey == canonical_key).all()
+        normalized_url = _safe_link_url(author_url)
+        if normalized_url:
+            author = next((row for row in candidates if str(row.profileUrl or "") == normalized_url), None)
+        if not author and linked_persona_id:
+            author = next((row for row in candidates if row.linkedPersonaId == linked_persona_id), None)
+        if not author and len(candidates) == 1:
+            author = candidates[0]
+        if not author:
+            author = models.ExternalAuthor(
+                id=str(uuid.uuid4()),
+                canonicalKey=canonical_key or str(uuid.uuid4()),
+                displayName=author_name,
+                bio=author_bio,
+                profileUrl=normalized_url,
+                avatarUrl=author_avatar_url,
+                isHidden=False,
+                createdAt=now_ms,
+                updatedAt=now_ms,
+            )
+            db.add(author)
+    if linked_persona_id:
+        persona = db.query(models.Persona).filter(models.Persona.id == linked_persona_id).first()
+        if not persona:
+            raise HTTPException(status_code=400, detail="找不到指定的公開身份")
+        author.linkedPersonaId = persona.id
+        _ensure_persona_role(db, persona.id, "scriptwriter", "external_script")
+    author.displayName = author_name or author.displayName or ""
+    author.bio = author_bio or author.bio or ""
+    author.profileUrl = _safe_link_url(author_url) or author.profileUrl or ""
+    author.avatarUrl = author_avatar_url or author.avatarUrl or ""
+    author.updatedAt = now_ms
+    return author
+
+
 MAX_GENERATED_COVER_BYTES = 2 * 1024 * 1024
 _REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
 _REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
@@ -97,6 +183,8 @@ def _demo_links(value: Any) -> list[dict[str, str]]:
             "url": url,
             "coverUrl": _safe_link_url(raw.get("coverUrl"))[:2000],
             "cast": str(raw.get("cast") or "").strip()[:300],
+            "voiceTypes": [str(value) for value in raw.get("voiceTypes", []) if str(value) in {"male", "female"}] if isinstance(raw.get("voiceTypes"), list) else [],
+            "voiceActorIds": list(dict.fromkeys(str(value).strip() for value in raw.get("voiceActorIds", []) if str(value).strip()))[:20] if isinstance(raw.get("voiceActorIds"), list) else [],
             "description": str(raw.get("description") or "").strip()[:1000],
         })
     return result
@@ -261,6 +349,8 @@ def serialize_external_public_script(item: models.ExternalPublicScript) -> dict[
         "canonicalUrl": str(item.canonicalUrl or ""),
         "sourceDomain": str(item.sourceDomain or ""),
         "sourceName": str(item.sourceName or ""),
+        "externalAuthorId": item.externalAuthorId or None,
+        "authorKey": str(item.authorKey or _author_key(item.authorName)),
         "authorName": str(item.authorName or ""),
         "authorBio": str(item.authorBio or ""),
         "authorUrl": str(item.authorUrl or ""),
@@ -569,21 +659,36 @@ def create_external_public_script(
         metadata.get("organizationAvatarUrl"),
         payload.organizationUrl if payload.organizationUrl is not None else metadata.get("organizationUrl", ""),
     )
+    author_name = str(payload.authorName if payload.authorName is not None else metadata.get("authorName", "") or "").strip()
+    author_bio = str(payload.authorBio if payload.authorBio is not None else metadata.get("authorBio", "") or "").strip()
+    author_url = _safe_link_url(payload.authorUrl if payload.authorUrl is not None else metadata.get("authorUrl", ""))
+    materialized_author_avatar = _materialize_social_avatar(
+        user_id,
+        author_avatar_url,
+        "作者",
+        payload.authorUrl if payload.authorUrl is not None else metadata.get("authorUrl", ""),
+    )
+    external_author = _resolve_external_author(
+        db,
+        external_author_id=payload.externalAuthorId,
+        author_name=author_name,
+        author_bio=author_bio,
+        author_url=author_url,
+        author_avatar_url=materialized_author_avatar,
+        linked_persona_id=payload.authorPersonaId,
+    )
     item = models.ExternalPublicScript(
         id=item_id,
         sourceUrl=source_url,
         canonicalUrl=metadata["canonicalUrl"],
         sourceDomain=metadata["sourceDomain"],
         sourceName=metadata["sourceName"],
-        authorName=str(payload.authorName if payload.authorName is not None else metadata.get("authorName", "") or "").strip(),
-        authorBio=str(payload.authorBio if payload.authorBio is not None else metadata.get("authorBio", "") or "").strip(),
-        authorUrl=_safe_link_url(payload.authorUrl if payload.authorUrl is not None else metadata.get("authorUrl", "")),
-        authorAvatarUrl=_materialize_social_avatar(
-            user_id,
-            author_avatar_url,
-            "作者",
-            payload.authorUrl if payload.authorUrl is not None else metadata.get("authorUrl", ""),
-        ),
+        externalAuthorId=external_author.id,
+        authorKey=external_author.canonicalKey,
+        authorName=author_name,
+        authorBio=author_bio,
+        authorUrl=author_url,
+        authorAvatarUrl=materialized_author_avatar,
         organizationName=str(payload.organizationName if payload.organizationName is not None else metadata.get("organizationName", "") or "").strip(),
         organizationBio=str(payload.organizationBio if payload.organizationBio is not None else metadata.get("organizationBio", "") or "").strip(),
         organizationUrl=_safe_link_url(payload.organizationUrl if payload.organizationUrl is not None else metadata.get("organizationUrl", "")),
@@ -614,6 +719,25 @@ def create_external_public_script(
         updatedAt=now_ms,
     )
     db.add(item)
+    if payload.authorPersonaId and item.authorKey:
+        persona = db.query(models.Persona).filter(models.Persona.id == payload.authorPersonaId).first()
+        profile = db.query(models.ExternalAuthorPageProfile).filter(models.ExternalAuthorPageProfile.authorKey == item.authorKey).first()
+        if not profile:
+            profile = models.ExternalAuthorPageProfile(
+                authorKey=item.authorKey,
+                linkedPersonaId=persona.id,
+                displayName=author_name,
+                bio=item.authorBio or "",
+                profileUrl=item.authorUrl or "",
+                avatarUrl=item.authorAvatarUrl or "",
+                isHidden=False,
+                createdAt=now_ms,
+                updatedAt=now_ms,
+            )
+            db.add(profile)
+        else:
+            profile.linkedPersonaId = persona.id
+            profile.updatedAt = now_ms
     db.commit()
     db.refresh(item)
     _invalidate_public_bundle_cache()
@@ -774,6 +898,17 @@ def update_external_public_script(
         item.sortOrder = float(payload.sortOrder)
     if payload.mountedAt is not None:
         item.mountedAt = int(payload.mountedAt)
+    requested_author_id = payload.externalAuthorId if "externalAuthorId" in payload.model_fields_set else item.externalAuthorId
+    external_author = _resolve_external_author(
+        db,
+        external_author_id=requested_author_id,
+        author_name=str(item.authorName or ""),
+        author_bio=str(item.authorBio or ""),
+        author_url=str(item.authorUrl or ""),
+        author_avatar_url=str(item.authorAvatarUrl or ""),
+    )
+    item.externalAuthorId = external_author.id
+    item.authorKey = external_author.canonicalKey
     item.updatedAt = int(time.time() * 1000)
     db.commit()
     db.refresh(item)
@@ -817,4 +952,50 @@ def get_published_external_public_scripts(db: Session) -> list[dict[str, Any]]:
         )
         .all()
     )
-    return [serialize_external_public_script(row) for row in rows]
+    authors = {
+        author.id: author
+        for author in db.query(models.ExternalAuthor).all()
+    }
+    profiles = {
+        profile.authorKey: profile
+        for profile in db.query(models.ExternalAuthorPageProfile).all()
+    }
+    supplements = {
+        supplement.authorKey: supplement
+        for supplement in db.query(models.ExternalAuthorPageSupplement).all()
+    }
+    result: list[dict[str, Any]] = []
+    for row in rows:
+        item = serialize_external_public_script(row)
+        author_key = str(row.authorKey or _author_key(row.authorName))
+        item["authorProfileKey"] = author_key
+        author = authors.get(row.externalAuthorId)
+        profile = profiles.get(author_key)
+        supplement = supplements.get(author_key)
+        if author:
+            item["authorPersonaId"] = author.linkedPersonaId or None
+            if author.isHidden:
+                item.update({"authorName": "", "authorBio": "", "authorUrl": "", "authorAvatarUrl": ""})
+            else:
+                item.update({
+                    "authorName": author.displayName or str(row.authorName or ""),
+                    "authorBio": author.bio or "",
+                    "authorUrl": author.profileUrl or "",
+                    "authorAvatarUrl": author.avatarUrl or "",
+                })
+        elif profile:
+            item["authorPersonaId"] = profile.linkedPersonaId or None
+            if profile.isHidden:
+                item.update({"authorName": "", "authorBio": "", "authorUrl": "", "authorAvatarUrl": ""})
+            else:
+                item.update({
+                    "authorName": profile.displayName or str(row.authorName or ""),
+                    "authorBio": profile.bio or "",
+                    "authorUrl": profile.profileUrl or "",
+                    "authorAvatarUrl": profile.avatarUrl or "",
+                })
+        if supplement and not ((author and author.isHidden) or (profile and profile.isHidden)):
+            item["authorSupplement"] = supplement.profile if isinstance(supplement.profile, dict) else {}
+            item["authorContributors"] = supplement.contributors if isinstance(supplement.contributors, list) else []
+        result.append(item)
+    return result

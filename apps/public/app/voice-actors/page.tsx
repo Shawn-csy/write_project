@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 async function getDirectoryData(): Promise<{ personas: PublicPersona[]; demos: PublicDemoSubmission[]; scripts: PublicScript[]; externalScripts: ExternalPublicScript[] }> {
   try {
-    const bundle = await apiFetch<{ personas?: PublicPersona[]; scripts?: PublicScript[]; externalPublicScripts?: ExternalPublicScript[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle", { next: { revalidate: 300, tags: ["public-bundle"] } });
+    const bundle = await apiFetch<{ personas?: PublicPersona[]; scripts?: PublicScript[]; externalPublicScripts?: ExternalPublicScript[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle", { cache: "no-store" });
     return { personas: bundle.personas || [], demos: bundle.demoSubmissions || [], scripts: bundle.scripts || [], externalScripts: bundle.externalPublicScripts || [] };
   } catch {
     return { personas: [], demos: [], scripts: [], externalScripts: [] };
