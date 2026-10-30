@@ -14,8 +14,11 @@ import type { PublicShellTab } from "./PublicShellTopBar";
 export type { GalleryView };
 
 export interface PublicGalleryTab {
-  key: GalleryView;
+  key: string;
   label: string;
+  /** Render as a normal link instead of a gallery SPA tab. */
+  href?: string;
+  hideOnTablet?: boolean;
 }
 
 export const DEFAULT_TABS: PublicGalleryTab[] = [
@@ -31,6 +34,8 @@ export interface PublicGalleryTopBarProps {
   onOpenMobileFilter?: () => void;
   /** Override default tab definitions. */
   tabs?: PublicGalleryTab[];
+  /** Match the public section links that stay visually neutral on every page. */
+  activeTabStyle?: "pill" | "subtle" | "none";
   /** Brand name displayed on the left (main title). */
   brandName?: string;
   /** Subtle subtitle displayed after the brand name. */
@@ -46,6 +51,8 @@ export interface PublicGalleryTopBarProps {
   mobileFilterLabel?: string;
   /** Mobile trailing action (e.g. "more" button opening a bottom sheet). */
   mobileTrailingAction?: React.ReactNode;
+  /** Optional shared public navigation shown below the mobile header row. */
+  mobileNav?: React.ReactNode;
 }
 
 export function PublicGalleryTopBar({
@@ -53,18 +60,18 @@ export function PublicGalleryTopBar({
   onTabChange,
   onOpenMobileFilter,
   tabs = DEFAULT_TABS,
+  activeTabStyle = "pill",
   brandName = "Screenplay Reader",
   brandSubtitle,
   trailing,
   leadingTrailing,
   mobileFilterLabel = "開啟篩選",
   mobileTrailingAction,
+  mobileNav,
 }: PublicGalleryTopBarProps): React.JSX.Element {
-  const shellTabs: PublicShellTab[] = tabs.map((t) => ({
-    key: t.key,
-    label: t.label,
-    onSelect: () => onTabChange(t.key),
-  }));
+  const shellTabs: PublicShellTab[] = tabs.map((t) => t.href
+    ? { key: t.key, label: t.label, href: t.href, hideOnTablet: t.hideOnTablet }
+    : { key: t.key, label: t.label, onSelect: () => onTabChange(t.key as GalleryView), hideOnTablet: t.hideOnTablet });
 
   // Filter button — only on scripts tab, shown on mobile + tablet (hidden on lg+)
   const filterButton = activeTab === "scripts" && onOpenMobileFilter ? (
@@ -90,7 +97,7 @@ export function PublicGalleryTopBar({
     </button>
   ) : null;
 
-  const mobileTabSwitcher = tabs.length > 0 ? (
+  const mobileTabSwitcher = tabs.length > 0 && tabs.every((tab) => !tab.href) ? (
     <select
       value={activeTab}
       onChange={(event) => onTabChange(event.target.value as GalleryView)}
@@ -104,6 +111,7 @@ export function PublicGalleryTopBar({
   return (
     <PublicShellTopBar
       activeTab={activeTab}
+      activeTabStyle={activeTabStyle}
       tabs={shellTabs}
       brandName={brandName}
       brandSubtitle={brandSubtitle}
@@ -111,6 +119,7 @@ export function PublicGalleryTopBar({
       mobileLeadingAction={filterButton}
       mobileTrailingAction={mobileTrailingAction}
       mobileTabSwitcher={mobileTabSwitcher}
+      mobileNav={mobileNav}
       trailing={
         <>
           {tabletFilterButton}

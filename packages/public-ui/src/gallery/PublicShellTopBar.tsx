@@ -24,10 +24,14 @@ export interface PublicShellTab {
   href?: string;
   /** If provided (and href is absent), renders a <button> with this handler. */
   onSelect?: () => void;
+  /** Keep secondary navigation out of the crowded tablet header. */
+  hideOnTablet?: boolean;
 }
 
 export interface PublicShellTopBarProps {
   activeTab?: string;
+  /** Visual treatment for the current tab. Use "none" for global links that stay visually neutral. */
+  activeTabStyle?: "pill" | "subtle" | "none";
   tabs?: PublicShellTab[];
   /** Brand name displayed on the left (main title). */
   brandName?: string;
@@ -35,6 +39,8 @@ export interface PublicShellTopBarProps {
   brandSubtitle?: string;
   /** href for the brand logo link. Defaults to "/". */
   brandHref?: string;
+  /** Optional back control rendered immediately before the brand. */
+  brandLeading?: React.ReactNode;
   /**
    * Trailing slot — host-specific actions at the right end of the bar (desktop).
    * Wrap in a stable-width container to prevent hydration shift.
@@ -48,21 +54,23 @@ export interface PublicShellTopBarProps {
   mobileTrailingAction?: React.ReactNode;
   /** Compact mobile tab switcher rendered in row 1 instead of a second tab row. */
   mobileTabSwitcher?: React.ReactNode;
+  /** Optional shared mobile navigation row, rendered below row 1. */
+  mobileNav?: React.ReactNode;
 }
 
 function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-function TabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boolean }) {
+function TabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none" }) {
   const className = cn(
-    "relative h-9 px-3.5 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
-    isActive
-      ? "text-foreground font-semibold bg-muted/60"
-      : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
-  );
-  const indicator = isActive && (
-    <span className="absolute bottom-[5px] left-1/2 -translate-x-1/2 w-4 h-[2px] bg-primary rounded-full" />
+    "relative flex h-9 items-center justify-center px-3.5 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
+    tab.hideOnTablet && "hidden lg:inline-flex",
+    isActive && activeTabStyle === "pill"
+      ? "bg-primary text-primary-foreground font-medium"
+      : isActive && activeTabStyle === "subtle"
+        ? "bg-muted/60 text-foreground font-semibold after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-primary"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
   );
 
   if (tab.href) {
@@ -73,7 +81,6 @@ function TabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boolean }) 
         className={className}
       >
         {tab.label}
-        {indicator}
       </a>
     );
   }
@@ -86,27 +93,24 @@ function TabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boolean }) 
       className={className}
     >
       {tab.label}
-      {indicator}
     </button>
   );
 }
 
-function MobileTabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boolean }) {
+function MobileTabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none" }) {
   const className = cn(
     "relative flex items-center justify-center h-11 px-4 text-[0.8125rem] whitespace-nowrap transition-all duration-150",
-    isActive
-      ? "text-foreground font-semibold"
-      : "text-muted-foreground font-normal"
-  );
-  const indicator = isActive && (
-    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-primary rounded-full" />
+    isActive && activeTabStyle === "pill"
+      ? "rounded-md bg-primary text-primary-foreground font-medium"
+      : isActive && activeTabStyle === "subtle"
+        ? "rounded-md bg-muted/60 text-foreground font-semibold after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-primary"
+        : "text-muted-foreground font-normal"
   );
 
   if (tab.href) {
     return (
       <a href={tab.href} aria-current={isActive ? "page" : undefined} className={className}>
         {tab.label}
-        {indicator}
       </a>
     );
   }
@@ -114,22 +118,24 @@ function MobileTabItem({ tab, isActive }: { tab: PublicShellTab; isActive: boole
   return (
     <button type="button" onClick={tab.onSelect} aria-current={isActive ? "page" : undefined} className={className}>
       {tab.label}
-      {indicator}
     </button>
   );
 }
 
 export function PublicShellTopBar({
   activeTab,
+  activeTabStyle = "pill",
   tabs = [],
   brandName = "Screenplay Reader",
   brandSubtitle,
   brandHref = "/",
+  brandLeading,
   trailing,
   leadingTrailing,
   mobileLeadingAction,
   mobileTrailingAction,
   mobileTabSwitcher,
+  mobileNav,
 }: PublicShellTopBarProps): React.JSX.Element {
   const hasTabs = tabs.length > 0;
 
@@ -142,10 +148,8 @@ export function PublicShellTopBar({
       <div className="relative flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
 
         {/* Brand — left-aligned */}
-        <a
-          href={brandHref}
-          className="flex items-center gap-2.5 shrink-0 group"
-        >
+        {brandLeading}
+        <a href={brandHref} className="flex items-center gap-2.5 shrink-0 group">
           {/* Ink-stamp logo mark */}
           <div className="relative w-7 h-7 shrink-0">
             <div className="absolute inset-0 rounded-[6px] bg-foreground/90 group-hover:bg-foreground transition-colors duration-200" />
@@ -184,7 +188,7 @@ export function PublicShellTopBar({
             <div className="hidden sm:block w-px h-5 bg-border/60 mx-1 shrink-0" aria-hidden />
             <nav className="hidden sm:flex items-center gap-0.5" aria-label="公開頁面導航">
               {tabs.map((tab) => (
-                <TabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} />
+                <TabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} />
               ))}
             </nav>
           </>
@@ -219,14 +223,18 @@ export function PublicShellTopBar({
       </div>
 
       {/* Row 2: mobile inline tabs */}
-      {hasTabs && !mobileTabSwitcher && (
+      {mobileNav ? (
+        <div className="sm:hidden overflow-x-auto" style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}>
+          {mobileNav}
+        </div>
+      ) : hasTabs && !mobileTabSwitcher && (
         <nav
-          className="sm:hidden flex items-center px-2 gap-0.5"
+          className="sm:hidden flex items-center px-2 gap-0.5 overflow-x-auto scrollbar-hide"
           aria-label="公開頁面導航"
           style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}
         >
           {tabs.map((tab) => (
-            <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} />
+            <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} />
           ))}
         </nav>
       )}

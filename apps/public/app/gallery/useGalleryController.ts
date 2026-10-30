@@ -16,12 +16,13 @@ import {
   toAuthorLike,
   toGalleryInput,
   toOrgLike,
-  externalPersonasFromScripts,
   externalOrgsFromScripts,
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
 import { liveApi } from "@/lib/liveApi";
+import { getPublicPersonaTags } from "@/lib/publicPersonaTags";
+import { combinePublicIdentities, hasScriptwriterRole } from "@/lib/publicIdentity";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
 
@@ -148,13 +149,14 @@ export function useGalleryController({
     [externalPublicScripts]
   );
   const allAuthors = useMemo(() => {
-    const map = new Map(authors.map((author) => [author.displayName.trim().toLocaleLowerCase(), author]));
-    for (const externalAuthor of externalPersonasFromScripts(publishedExternalPublicScripts)) {
-      const key = externalAuthor.displayName.trim().toLocaleLowerCase();
-      if (!map.has(key)) map.set(key, externalAuthor);
-    }
-    return Array.from(map.values());
+    return combinePublicIdentities(
+      authors.map((author) => ({ ...author, tags: getPublicPersonaTags(author.tags) })),
+      publishedExternalPublicScripts,
+    );
   }, [authors, publishedExternalPublicScripts]);
+  const scriptwriterAuthors = useMemo(() => {
+    return allAuthors.filter((author) => author.externalHref || hasScriptwriterRole(author, rawScripts, publishedExternalPublicScripts));
+  }, [allAuthors, rawScripts, publishedExternalPublicScripts]);
   const allOrgs = useMemo(() => {
     const map = new Map(orgs.map((org) => [org.name.trim().toLocaleLowerCase(), org]));
     for (const externalOrg of externalOrgsFromScripts(publishedExternalPublicScripts)) {
@@ -163,7 +165,7 @@ export function useGalleryController({
     }
     return Array.from(map.values());
   }, [orgs, publishedExternalPublicScripts]);
-  const galleryAuthors = useMemo(() => allAuthors.map(toAuthorLike), [allAuthors]);
+  const galleryAuthors = useMemo(() => scriptwriterAuthors.map(toAuthorLike), [scriptwriterAuthors]);
   const galleryOrgs = useMemo(() => allOrgs.map(toOrgLike), [allOrgs]);
   const filteredExternalPublicScripts = useMemo(
     () => filterExternalPublicScripts(
@@ -218,7 +220,7 @@ export function useGalleryController({
         usage: urlState.usage,
         q: urlState.q,
         totalScriptCount: galleryScripts.length + publishedExternalPublicScripts.length,
-        totalAuthorCount: allAuthors.length,
+        totalAuthorCount: scriptwriterAuthors.length,
         totalOrgCount: allOrgs.length,
         termsRequired,
       });
@@ -241,11 +243,12 @@ export function useGalleryController({
       urlState.usage,
       urlState.q,
       filterResult,
+      scriptwriterAuthors,
       externalTags,
       publishedExternalPublicScripts,
       filteredExternalPublicScripts,
       galleryScripts.length,
-      allAuthors.length,
+      scriptwriterAuthors.length,
       allOrgs.length,
       termsRequired,
     ]
@@ -298,7 +301,7 @@ export function useGalleryController({
     bannerSlides,
     externalPublicScripts,
     filteredExternalPublicScripts,
-    authors: allAuthors,
+    authors: scriptwriterAuthors,
     orgs: allOrgs,
     peopleStatus,
     retryPeople,

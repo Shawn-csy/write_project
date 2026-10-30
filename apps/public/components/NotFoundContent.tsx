@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { PublicShellActions } from "@/components/PublicShellActions";
 
 /** The 404 message without the top bar, for pages that already render their own. */
 export function NotFoundBody() {
@@ -23,7 +22,7 @@ export function NotFoundBody() {
 export function NotFoundContent() {
   return (
     <>
-      <PublicTopBar trailing={<PublicShellActions />} />
+      <PublicTopBar />
       <NotFoundBody />
     </>
   );

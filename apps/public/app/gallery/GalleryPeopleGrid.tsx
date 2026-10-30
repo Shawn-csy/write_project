@@ -29,15 +29,16 @@ interface CollapsedTagButtonsProps {
   onTagClick: (tag: string) => void;
   limit: number;
   className?: string;
+  singleRow?: boolean;
 }
 
-function CollapsedTagButtons({ tags, onTagClick, limit, className = "" }: CollapsedTagButtonsProps) {
+function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRow = false }: CollapsedTagButtonsProps) {
   const [expanded, setExpanded] = useState(false);
   const isCollapsed = !expanded && tags.length > limit;
   const visibleTags = isCollapsed ? tags.slice(0, limit) : tags;
 
   return (
-    <div className={`flex flex-wrap gap-1.5 ${className}`}>
+    <div className={`flex gap-1.5 ${singleRow && !expanded ? "flex-nowrap overflow-hidden" : "flex-wrap"} ${className}`}>
       {visibleTags.map((tag) => (
         <button
           key={tag}
@@ -152,8 +153,8 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
   const href = author.externalHref || `/author/${author.id}`;
   const isExternal = Boolean(author.externalHref);
   return (
-    <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
-      <a href={href} className="flex items-center gap-3 p-4">
+    <div className="flex flex-col rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
+      <a href={href} className="flex items-center gap-3 p-3">
         <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
           {author.avatar ? (
             isExternal ? <img src={author.avatar} alt={author.displayName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <PublicImage src={author.avatar} alt={author.displayName} preset="avatar" sizes="48px" />
@@ -180,8 +181,9 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
         <CollapsedTagButtons
           tags={author.tags}
           onTagClick={onTagClick}
-          limit={CARD_TAG_VISIBLE_COUNT}
-          className="px-4 pb-3"
+          limit={3}
+          singleRow
+          className="max-w-full px-3 pb-2"
         />
       )}
     </div>
@@ -295,7 +297,7 @@ export function GalleryAuthorGrid({
         onToggleTag={onToggleTag}
         onResetFilters={onResetFilters}
       />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {filteredAuthors.map((authorLike) => {
           const author = authors.find((item) => item.id === authorLike.id);
           if (!author) return null;
