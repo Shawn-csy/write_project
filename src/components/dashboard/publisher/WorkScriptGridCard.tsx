@@ -1,5 +1,5 @@
 import React from "react";
-import { Eye, Edit, FilePenLine } from "lucide-react";
+import { Eye, Edit, FilePenLine, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import { Badge } from "../../ui/badge";
@@ -23,6 +23,7 @@ interface WorkScriptGridCardProps {
   readiness: PublishReadiness;
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
+  onDeleteScript?: (script: PublisherScriptItem) => void;
   setEditingScript: (script: PublisherScriptItem) => void;
 }
 
@@ -36,6 +37,7 @@ export function WorkScriptGridCard({
   readiness,
   formatDate,
   onContinueEdit,
+  onDeleteScript,
   setEditingScript,
 }: WorkScriptGridCardProps): React.JSX.Element {
   const { t } = useI18n();
@@ -104,6 +106,18 @@ export function WorkScriptGridCard({
             <Button variant="outline" size="sm" className="h-7 flex-1 justify-start px-2 text-xs" onClick={() => setEditingScript(script)}>
               <Edit className="mr-1 h-3 w-3" /> {readiness.primaryActionLabel}
             </Button>
+            {readiness.status !== "published" && onDeleteScript ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-8 px-0 text-muted-foreground hover:text-destructive"
+                title={t("publisherWorksTab.deleteUnpublished", "刪除未公開作品")}
+                aria-label={`${t("publisherWorksTab.deleteUnpublished", "刪除未公開作品")}：${script.title || "未命名"}`}
+                onClick={() => onDeleteScript(script)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            ) : null}
             {readiness.status === "published" && (
               <Button
                 variant="ghost"

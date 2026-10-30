@@ -7,15 +7,10 @@ export const DEFAULT_MARKER_RULES = [
     type: "block",
     isBlock: true,
     parseAs: "scene_heading",
-    matchMode: "regex",
-    regex: "^\\s*(\\d{1,3})[\\.．、]\\s*(.+)$",
+    matchMode: "prefix",
+    start: "#H",
     mapFields: {
-      text: "$0",
-      number: "$1",
-      title: "$2",
-    },
-    mapCasts: {
-      number: "int",
+      text: "$text",
     },
     priority: 995,
     style: {
@@ -29,9 +24,9 @@ export const DEFAULT_MARKER_RULES = [
     id: "rule-se-performer",
     label: "聲優效果音",
     type: "inline",
-    matchMode: "regex",
-    // 支援 (*) 與 (＊)；同時接受全形括號版本（（*）/（＊））
-    regex: "[\\(（](?:\\*|＊)([^\\)）]*)[\\)）]",
+    matchMode: "enclosure",
+    start: "(*",
+    end: ")",
     priority: 990,
     style: {
       color: "inherit",

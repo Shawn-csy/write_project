@@ -12,6 +12,10 @@ import { usePublisherWorksTabState } from "../../../hooks/publisher/usePublisher
 import type { PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
 import type { PersonaLike } from "../../../types/persona";
 import type { StudioScriptCounts } from "../../../types/api";
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "../../ui/alert-dialog";
 
 interface PublisherWorksTabProps {
     isLoading: boolean;
@@ -30,6 +34,7 @@ interface PublisherWorksTabProps {
         q: string;
         sort: "updated_desc" | "updated_asc" | "title_asc" | "views_desc";
     }) => void;
+    onDeleteScript?: (script: PublisherScriptItem) => Promise<void>;
 }
 
 const filterOptions = [
@@ -52,8 +57,11 @@ export function PublisherWorksTab({
     isLoadingMore = false,
     onLoadMore,
     onQueryChange,
+    onDeleteScript,
 }: PublisherWorksTabProps): React.JSX.Element {
     const { t } = useI18n();
+    const [pendingDelete, setPendingDelete] = React.useState<PublisherScriptItem | null>(null);
+    const [isDeleting, setIsDeleting] = React.useState(false);
     const s = usePublisherWorksTabState({
         scripts,
         personas,
@@ -72,6 +80,7 @@ export function PublisherWorksTab({
         statusBadgeClass: s.statusBadgeClass,
         formatDate,
         onContinueEdit,
+        onDeleteScript: onDeleteScript ? setPendingDelete : undefined,
         setEditingScript,
     };
 
@@ -193,6 +202,36 @@ export function PublisherWorksTab({
                     )}
                 </>
             )}
+            <AlertDialog open={Boolean(pendingDelete)} onOpenChange={(open) => {
+                if (!open && !isDeleting) setPendingDelete(null);
+            }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>刪除此未公開作品？</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            「{pendingDelete?.title || "未命名"}」及其內容會永久刪除，這個動作無法復原。
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                            disabled={isDeleting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={(event) => {
+                                event.preventDefault();
+                                if (!pendingDelete || !onDeleteScript) return;
+                                setIsDeleting(true);
+                                void onDeleteScript(pendingDelete)
+                                    .then(() => setPendingDelete(null))
+                                    .catch(() => undefined)
+                                    .finally(() => setIsDeleting(false));
+                            }}
+                        >
+                            {isDeleting ? "刪除中…" : "確認刪除"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

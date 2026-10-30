@@ -356,6 +356,8 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     loadWorks(false, scriptsNextOffset);
   }, [isLoadingMoreWorks, loadWorks, scriptsNextOffset]);
 
+  const refreshWorks = useCallback(() => loadWorks(false, 0), [loadWorks]);
+
   useEffect(() => {
     if (!selectedPersonaId || personasLoadedAt === 0) return;
     localStorage.setItem("preferredPersonaId", selectedPersonaId);
@@ -472,7 +474,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
     canManageOrgMembers, currentUserId, currentOrgRole,
     tabCounts, renderTabCount,
     parseTags, addTags, getSuggestions, getTagStyle, formatDate,
-    handleWorksQueryChange, handleLoadMoreWorks,
+    handleWorksQueryChange, handleLoadMoreWorks, refreshWorks,
     // CRUD
     isSavingProfile, isSavingOrg, isCreatingPersona, isCreatingOrg,
     handleSaveProfile, handleSaveOrg, handleCreatePersona, handleDeletePersona, handleCreateOrg, handleDeleteOrg,
