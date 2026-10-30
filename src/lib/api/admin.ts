@@ -1,6 +1,12 @@
 import { fetchApi } from "./client";
 import type {
   AdminPaginationQuery,
+  ActivityPage,
+  ActivitySubmissionRecord,
+  AdminVoiceActor,
+  AdminDemoRecord,
+  AdminDemoTarget,
+  AdminDemoMutationPayload,
   BaseScriptApi,
   HomepageBanner,
   OrgData,
@@ -9,12 +15,17 @@ import type {
   PublicFeedbackRecord,
   PublicDemoSubmissionListResponse,
   PublicDemoSubmissionRecord,
+  VoiceActorProfileSubmission,
+  VoiceActorProfileSubmissionListResponse,
+  ExternalAuthorProfileSubmission,
+  ExternalAuthorProfileSubmissionListResponse,
   PublicTermsAcceptanceRecord,
   PublicTermsAcceptancesQuery,
   ScriptMetadataUpdatePayload,
   ScriptMutationResponse,
   SearchUser,
   ExternalPublicScript,
+  ExternalAuthorPageProfile,
 } from "../../types/api";
 import type { MarkerConfig } from "../../types/script";
 
@@ -37,12 +48,14 @@ export const getPublicTermsAcceptances = async ({
 export const getPublicFeedbackAdmin = async ({
   q = "",
   excludeKind,
+  status,
   limit = 100,
   offset = 0,
-}: AdminPaginationQuery & { excludeKind?: string } = {}): Promise<PublicFeedbackListResponse> => {
+}: AdminPaginationQuery & { excludeKind?: string; status?: "new" | "reviewed" | "closed" } = {}): Promise<PublicFeedbackListResponse> => {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (excludeKind) params.set("excludeKind", excludeKind);
+  if (status) params.set("status", status);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   return fetchApi(`/admin/public-feedback?${params.toString()}`) as Promise<PublicFeedbackListResponse>;
@@ -82,6 +95,51 @@ export const updatePublicDemoSubmissionStatusAdmin = async (
   method: "PATCH",
   body: JSON.stringify({ status }),
 }) as Promise<PublicDemoSubmissionRecord>;
+
+export const deletePublicDemoSubmissionAdmin = async (submissionId: string): Promise<ScriptMutationResponse> =>
+  fetchApi(`/admin/public-demo-submissions/${encodeURIComponent(submissionId)}`, { method: "DELETE" }) as Promise<ScriptMutationResponse>;
+
+export const getVoiceActorProfileSubmissionsAdmin = async ({ q = "", status = "pending", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<VoiceActorProfileSubmissionListResponse> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/voice-actor-profile-submissions?${params.toString()}`) as Promise<VoiceActorProfileSubmissionListResponse>;
+};
+
+export const updateVoiceActorProfileSubmissionAdmin = async (submissionId: string, status: "approved" | "rejected", acceptedFields: string[] = []): Promise<VoiceActorProfileSubmission> => fetchApi(`/admin/voice-actor-profile-submissions/${encodeURIComponent(submissionId)}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, acceptedFields }),
+}) as Promise<VoiceActorProfileSubmission>;
+
+export const getExternalAuthorProfileSubmissionsAdmin = async ({ q = "", status = "pending", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<ExternalAuthorProfileSubmissionListResponse> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/external-author-profile-submissions?${params.toString()}`) as Promise<ExternalAuthorProfileSubmissionListResponse>;
+};
+
+export const updateExternalAuthorProfileSubmissionAdmin = async (submissionId: string, status: "approved" | "rejected", acceptedFields: string[] = []): Promise<ExternalAuthorProfileSubmission> => fetchApi(`/admin/external-author-profile-submissions/${encodeURIComponent(submissionId)}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, acceptedFields }),
+}) as Promise<ExternalAuthorProfileSubmission>;
+
+export const getAllDemosAdmin = async ({ q = "", status = "all", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<{ total: number; items: AdminDemoRecord[] }> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/all-demos?${params.toString()}`) as Promise<{ total: number; items: AdminDemoRecord[] }>;
+};
+
+export const getAllDemoTargetsAdmin = async (): Promise<AdminDemoTarget[]> => fetchApi("/admin/all-demos/targets") as Promise<AdminDemoTarget[]>;
+
+export const createAllDemoAdmin = async (payload: AdminDemoMutationPayload): Promise<AdminDemoRecord> => fetchApi("/admin/all-demos", {
+  method: "POST",
+  body: JSON.stringify(payload),
+}) as Promise<AdminDemoRecord>;
+
+export const updateAllDemoAdmin = async (item: AdminDemoRecord, payload: AdminDemoMutationPayload): Promise<AdminDemoRecord> => fetchApi(`/admin/all-demos/${item.sourceKind}/${encodeURIComponent(item.parentId || item.id)}/${encodeURIComponent(item.id)}`, {
+  method: "PUT",
+  body: JSON.stringify(payload),
+}) as Promise<AdminDemoRecord>;
+
+export const deleteAllDemoAdmin = async (item: AdminDemoRecord): Promise<ScriptMutationResponse> => fetchApi(`/admin/all-demos/${item.sourceKind}/${encodeURIComponent(item.parentId || item.id)}/${encodeURIComponent(item.id)}`, { method: "DELETE" }) as Promise<ScriptMutationResponse>;
 
 export const getAdminUsers = async (): Promise<SearchUser[]> => {
   return fetchApi("/admin/admin-users") as Promise<SearchUser[]>;
@@ -129,6 +187,18 @@ export const getAllPersonasAdmin = async ({ q = "", limit = 200, offset = 0 }: A
   params.set("offset", String(offset));
   return fetchApi(`/admin/all-personas?${params.toString()}`) as Promise<PersonaLike[]>;
 };
+
+export const getVoiceActorsAdmin = async (q = ""): Promise<AdminVoiceActor[]> => {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/voice-actors?${params.toString()}`, { cache: "no-store" }) as Promise<AdminVoiceActor[]>;
+};
+
+export const createVoiceActorAdmin = async (displayName: string): Promise<AdminVoiceActor> =>
+  fetchApi("/admin/voice-actors", { method: "POST", body: JSON.stringify({ displayName }) }) as Promise<AdminVoiceActor>;
+
+export const updateVoiceActorAdmin = async (id: string, payload: Pick<AdminVoiceActor, "displayName" | "bio" | "avatar" | "website" | "links" | "voiceActorHidden">): Promise<AdminVoiceActor> =>
+  fetchApi(`/admin/voice-actors/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) }) as Promise<AdminVoiceActor>;
 
 export const getAllScriptsAdmin = async ({ q = "", limit = 300, offset = 0 }: AdminPaginationQuery = {}): Promise<BaseScriptApi[]> => {
   const params = new URLSearchParams();
@@ -234,6 +304,33 @@ export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): P
   }) as Promise<HomepageBanner>;
 };
 
+export type ActivityPagePayload = Pick<ActivityPage, "slug" | "title" | "summary" | "coverUrl" | "coverCrop" | "body" | "scriptIds" | "externalScriptIds" | "acceptingSubmissions" | "status" | "sortOrder">;
+
+export const getActivityPagesAdmin = async (): Promise<ActivityPage[]> =>
+  fetchApi("/admin/activity-pages", { cache: "no-store" }) as Promise<ActivityPage[]>;
+
+export const createActivityPageAdmin = async (payload: ActivityPagePayload): Promise<ActivityPage> =>
+  fetchApi("/admin/activity-pages", { method: "POST", body: JSON.stringify(payload) }) as Promise<ActivityPage>;
+
+export const updateActivityPageAdmin = async (id: string, payload: ActivityPagePayload): Promise<ActivityPage> =>
+  fetchApi(`/admin/activity-pages/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) }) as Promise<ActivityPage>;
+
+export const deleteActivityPageAdmin = async (id: string): Promise<{ success: boolean }> =>
+  fetchApi(`/admin/activity-pages/${encodeURIComponent(id)}`, { method: "DELETE" }) as Promise<{ success: boolean }>;
+
+export const getActivitySubmissionsAdmin = async (pageId: string): Promise<ActivitySubmissionRecord[]> => {
+  const result = await fetchApi(`/admin/activity-pages/${encodeURIComponent(pageId)}/submissions`, { cache: "no-store" }) as { items: ActivitySubmissionRecord[] };
+  return result.items || [];
+};
+
+export const updateActivitySubmissionAdmin = async (pageId: string, item: ActivitySubmissionRecord): Promise<ActivitySubmissionRecord> =>
+  fetchApi(`/admin/activity-pages/${encodeURIComponent(pageId)}/submissions/${item.kind}/${encodeURIComponent(item.id)}`, {
+    method: "PUT", body: JSON.stringify({ title: item.title, summary: item.summary, link: item.link, coverUrl: item.coverUrl, voiceTypes: item.voiceTypes }),
+  }) as Promise<ActivitySubmissionRecord>;
+
+export const deleteActivitySubmissionAdmin = async (pageId: string, item: ActivitySubmissionRecord): Promise<{ success: boolean }> =>
+  fetchApi(`/admin/activity-pages/${encodeURIComponent(pageId)}/submissions/${item.kind}/${encodeURIComponent(item.id)}`, { method: "DELETE" }) as Promise<{ success: boolean }>;
+
 export interface ExternalPublicScriptPreview {
   sourceUrl: string;
   canonicalUrl?: string;
@@ -322,3 +419,18 @@ export const deleteExternalPublicScriptAdmin = async (id: string): Promise<{ suc
     method: "DELETE",
   }) as Promise<{ success: boolean }>;
 };
+
+export const getExternalAuthorPageProfilesAdmin = async (): Promise<ExternalAuthorPageProfile[]> =>
+  fetchApi("/admin/external-author-pages", { cache: "no-store" }) as Promise<ExternalAuthorPageProfile[]>;
+
+export const saveExternalAuthorPageProfileAdmin = async (
+  profile: ExternalAuthorPageProfile,
+): Promise<ExternalAuthorPageProfile> => fetchApi("/admin/external-author-pages", {
+  method: "PUT",
+  body: JSON.stringify(profile),
+}) as Promise<ExternalAuthorPageProfile>;
+
+export const hideExternalAuthorPageAdmin = async (authorKey: string): Promise<ExternalAuthorPageProfile> =>
+  fetchApi(`/admin/external-author-pages?authorKey=${encodeURIComponent(authorKey)}`, {
+    method: "DELETE",
+  }) as Promise<ExternalAuthorPageProfile>;

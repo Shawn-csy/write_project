@@ -253,6 +253,12 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!submitMessage) return;
+    const timeoutId = window.setTimeout(() => setSubmitMessage(""), 7000);
+    return () => window.clearTimeout(timeoutId);
+  }, [submitMessage]);
+
+  useEffect(() => {
     let active = true;
     void liveApi.readJson<{
       scripts?: PublicScript[];
@@ -298,10 +304,10 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   const selectedGroupCoverUrl = selectedGroup
     ? selectedGroup.demos.map((demo) => youtubeThumbnail(demo.url)).find(Boolean) || selectedGroup.coverUrl || ""
     : "";
-  const voiceActors = useMemo(() => personas.filter((persona) =>
+  const voiceActors = useMemo(() => personas.filter((persona) => !persona.voiceActorHidden && (
     hasVoiceActorSelfTag(persona)
     || getPublicVoicePerformances(persona.id, { scripts, externalPublicScripts: externalScripts, demoSubmissions: submissions }).length > 0
-  ).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, scripts, externalScripts, submissions]);
+  )).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, scripts, externalScripts, submissions]);
   const voiceActorNames = useMemo(() => new Set(voiceActors.map((persona) => persona.displayName.trim().toLocaleLowerCase())), [voiceActors]);
   const voiceActorById = useMemo(() => new Map(personas.map((persona) => [persona.id, persona])), [personas]);
   const selectedVoiceActors = voiceActorIds.map((id) => voiceActorById.get(id)).filter((persona): persona is PublicPersona => Boolean(persona));
@@ -414,7 +420,8 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
       setManualVoiceActors([]);
       const consent = formElement.querySelector<HTMLInputElement>('input[name="confirmVoiceActorProfiles"]');
       if (consent) consent.checked = false;
-      setSubmitMessage("已送出，審核通過後會出現在 Demo 專區；名單外聲演會建立對應的身份頁。");
+      setSubmitMessage("Demo 已送出並進入審核；審核通過後會顯示在 Demo 專區。");
+      setShowSubmissionForm(false);
     } catch (error) {
       const message = error instanceof Error ? error.message : "送出失敗，請稍後再試。";
       setSubmitError(message);
@@ -434,6 +441,14 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
           { key: "demos", label: "Demo 專區", href: "/demos" },
         ]}
       />
+      {submitMessage && (
+        <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 z-[60] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-emerald-700/25 bg-background px-4 py-3 text-sm text-foreground shadow-xl sm:left-auto sm:right-6">
+          <span className="min-w-0 flex-1">{submitMessage}</span>
+          <button type="button" onClick={() => setSubmitMessage("")} aria-label="關閉通知" className="-mr-1 -mt-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
+            <X className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+      )}
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {selectedGroup ? (
@@ -673,7 +688,6 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                       </button>
                       {submissionTargets.length === 0 && <span className="text-xs text-muted-foreground">目前沒有可投稿的公開台本。</span>}
                       {submitError && <span role="alert" className="text-sm text-destructive">{submitError}</span>}
-                      {submitMessage && <span role="status" className="text-sm text-emerald-600">{submitMessage}</span>}
                     </div>
                   </form>
                 </Dialog.Content>
