@@ -267,14 +267,14 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
               </div>
               </>}
 
-              {isVoiceActor && !persona.ownerId && (
+              {isVoiceActor && persona.voiceActorCollaborationEnabled !== false && (
                 <div className="pt-1">
                   {!profileFormOpen && !profileFormNotice && <button type="button" disabled={profileFormLoading} onClick={() => void openProfileEditor()} className="rounded-md border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60">{profileFormLoading ? "讀取目前資料…" : "補充／更新聲演資料"}</button>}
                   {profileFormNotice && <p role="status" className="text-sm text-emerald-400">{profileFormNotice}</p>}
                   {profileFormError && <p role="alert" className="mb-2 text-sm text-destructive">{profileFormError}</p>}
                   {profileFormOpen && (
                     <form onSubmit={submitProfile} className="mt-0 w-full max-w-5xl space-y-3 rounded-xl border border-border/70 bg-background p-3 sm:p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/60 pb-3"><div><h2 className="font-semibold">補充／更新聲演頁</h2><p className="mt-1 text-xs text-muted-foreground">可接續補充個人資料、作品與團體；送出後由管理員審核，核准後其他人也能繼續補充。</p></div><span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] text-primary">協作補充</span></div>
+                      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/60 pb-3"><div><h2 className="font-semibold">補充／更新聲演頁</h2><p className="mt-1 text-xs text-muted-foreground">可接續補充個人資料、作品與團體；送出後由{persona.voiceActorClaimed ? "聲演本人" : "管理員"}審核，核准後才會更新公開頁面。</p></div><span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] text-primary">協作補充</span></div>
 
                       <section className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-5">
                         <div className="flex flex-col gap-4 sm:flex-row">

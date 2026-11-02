@@ -52,7 +52,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
 
   const defaultTab = mode === "community" ? "profile" : "works";
   const allowedTabs = mode === "community"
-    ? ["profile", "org", "advertising"]
+    ? ["profile", "org", "voice-actor", "advertising"]
     : ["works", "series", "external"];
 
   const resolveTabFromLocation = useCallback((pathname: string, search: string) => {

@@ -151,7 +151,13 @@ injectInitialLayoutVars();
 
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);
 
-export function SettingsProvider({ children }: { children: React.ReactNode }) {
+export function SettingsProvider({
+  children,
+  loadMarkerDefaults = true,
+}: {
+  children: React.ReactNode;
+  loadMarkerDefaults?: boolean;
+}) {
   // --- Theme (Wrapped) ---
   const { theme: themeMode, resolvedTheme, setTheme } = useTheme();
 
@@ -292,7 +298,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // --- Theme Hook ---
-  const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin));
+  const themes = useMarkerThemes(currentUser, Boolean(profile?.isAdmin), loadMarkerDefaults);
 
   // presentationLayoutConfig lives in the active marker theme, not in global settings
   const presentationLayoutConfig = themes.activeLayoutConfig;

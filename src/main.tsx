@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useLocation } from 'react-router-dom';
 import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/theme-provider';
@@ -12,17 +12,25 @@ import { I18nProvider } from './contexts/I18nContext';
 const staticFooter = document.getElementById('static-footer');
 if (staticFooter) staticFooter.style.display = 'none';
 
+function RouteAwareSettingsProvider({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const loadMarkerDefaults = pathname.startsWith('/edit/')
+    || pathname.startsWith('/read/')
+    || pathname.startsWith('/settings');
+  return <SettingsProvider loadMarkerDefaults={loadMarkerDefaults}>{children}</SettingsProvider>;
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <ThemeProvider defaultTheme="system" storageKey="screenplay-reader-theme">
         <I18nProvider>
           <AuthProvider>
-            <SettingsProvider>
+            <RouteAwareSettingsProvider>
               <ToastProvider>
                 <App />
               </ToastProvider>
-            </SettingsProvider>
+            </RouteAwareSettingsProvider>
           </AuthProvider>
         </I18nProvider>
       </ThemeProvider>

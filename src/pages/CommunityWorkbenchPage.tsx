@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog";
 import { CommunityAdApplicationForm } from "../components/community/CommunityAdApplicationForm";
 import { StudioPage, StudioPageHeader } from "../components/studio/StudioPage";
+import { VoiceActorClaimPanel } from "../components/community/VoiceActorClaimPanel";
 
 const PublisherProfileTabLazy = React.lazy(async () => {
   const mod = await import("../components/dashboard/publisher/PublisherProfileTab");
@@ -62,6 +63,9 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
               </TabsTrigger>
               <TabsTrigger value="org" className={underlineTabClass}>
                 {s.t("publisher.organization")}{s.renderTabCount(s.tabCounts.org)}
+              </TabsTrigger>
+              <TabsTrigger value="voice-actor" className={underlineTabClass}>
+                聲演身份
               </TabsTrigger>
               <TabsTrigger value="advertising" className={underlineTabClass}>
                 推廣申請
@@ -119,6 +123,14 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
                   handleChangeMemberRole={s.handleChangeMemberRole}
                 />
               </Suspense>
+            </TabsContent>
+
+            <TabsContent value="voice-actor" className="mt-0">
+              {currentUser ? (
+                <VoiceActorClaimPanel currentUser={currentUser} />
+              ) : (
+                <div className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">請先登入，再管理聲演身份。</div>
+              )}
             </TabsContent>
 
             <TabsContent value="advertising" className="mt-0 max-w-3xl">

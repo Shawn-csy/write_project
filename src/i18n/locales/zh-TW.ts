@@ -2071,6 +2071,7 @@ const messages = {
     "tabs": {
       "applications": "申請與回報",
       "submissions": "Demo 投稿",
+      "voiceActorClaims": "聲演認領",
       "voiceActorProfiles": "聲演頁面",
       "externalAuthorProfiles": "外部台本師頁面",
       "campaigns": "活動投稿",

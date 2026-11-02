@@ -99,6 +99,20 @@ export const updatePublicDemoSubmissionStatusAdmin = async (
 export const deletePublicDemoSubmissionAdmin = async (submissionId: string): Promise<ScriptMutationResponse> =>
   fetchApi(`/admin/public-demo-submissions/${encodeURIComponent(submissionId)}`, { method: "DELETE" }) as Promise<ScriptMutationResponse>;
 
+export interface VoiceActorClaimRecord {
+  id: string; personaId: string; personaName: string; requesterId: string; requesterName: string;
+  verifiedEmail: string; proofUrl: string; note: string; status: "pending" | "approved" | "rejected";
+  reviewNote: string; reviewedAt?: number | null; createdAt: number;
+}
+export const getVoiceActorClaimsAdmin = async ({ q = "", status = "pending", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<{ total: number; items: VoiceActorClaimRecord[] }> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/voice-actor-claims?${params.toString()}`) as Promise<{ total: number; items: VoiceActorClaimRecord[] }>;
+};
+export const updateVoiceActorClaimAdmin = async (id: string, status: "approved" | "rejected", reviewNote = ""): Promise<VoiceActorClaimRecord> => fetchApi(`/admin/voice-actor-claims/${encodeURIComponent(id)}/status`, {
+  method: "PATCH", body: JSON.stringify({ status, reviewNote }),
+}) as Promise<VoiceActorClaimRecord>;
+
 export const getVoiceActorProfileSubmissionsAdmin = async ({ q = "", status = "pending", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<VoiceActorProfileSubmissionListResponse> => {
   const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
   if (q) params.set("q", q);
@@ -199,6 +213,9 @@ export const createVoiceActorAdmin = async (displayName: string): Promise<AdminV
 
 export const updateVoiceActorAdmin = async (id: string, payload: Pick<AdminVoiceActor, "displayName" | "bio" | "avatar" | "website" | "links" | "voiceActorHidden">): Promise<AdminVoiceActor> =>
   fetchApi(`/admin/voice-actors/${encodeURIComponent(id)}`, { method: "PUT", body: JSON.stringify(payload) }) as Promise<AdminVoiceActor>;
+
+export const deleteVoiceActorAdmin = async (id: string): Promise<{ success: boolean; preservedAuthor?: boolean }> =>
+  fetchApi(`/admin/voice-actors/${encodeURIComponent(id)}`, { method: "DELETE" }) as Promise<{ success: boolean; preservedAuthor?: boolean }>;
 
 export const getAllScriptsAdmin = async ({ q = "", limit = 300, offset = 0 }: AdminPaginationQuery = {}): Promise<BaseScriptApi[]> => {
   const params = new URLSearchParams();

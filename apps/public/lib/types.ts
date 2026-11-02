@@ -196,6 +196,8 @@ export interface PublicPersona {
   roles?: Array<"scriptwriter" | "voice_actor">;
   profileSources?: string[];
   roleProfiles?: Partial<Record<"scriptwriter" | "voice_actor", Record<string, unknown>>>;
+  voiceActorCollaborationEnabled?: boolean;
+  voiceActorClaimed?: boolean;
   voiceActorHidden?: boolean;
   organizationIds?: string[];
   organizations?: PublicOrg[];
