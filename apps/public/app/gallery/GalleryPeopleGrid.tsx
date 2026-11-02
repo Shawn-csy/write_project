@@ -5,6 +5,8 @@ import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { PublicOrg, PublicPersona } from "@/lib/types";
 import { BuildingIcon, LinkIcon } from "./GalleryIcons";
 import { PublicImage } from "@/components/PublicImage";
+import { PublicCardGridSkeleton } from "@/components/PublicSkeleton";
+import { PublicEmptyState } from "@/components/PublicEmptyState";
 
 const AVATAR_COLORS = [
   "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
@@ -251,15 +253,17 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
 type PeopleStatus = "idle" | "loading" | "loaded" | "error";
 
 function PeopleLoading() {
-  return <p className="[font-size:var(--public-font-body)] text-muted-foreground py-16 text-center">載入中...</p>;
+  return <PublicCardGridSkeleton count={8} minCardWidth={240} aspect="aspect-[5/2]" />;
 }
 
 function PeopleError({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="py-16 text-center">
-      <p className="[font-size:var(--public-font-body)] text-muted-foreground">載入失敗</p>
-      <button type="button" onClick={onRetry} className="mt-2 [font-size:var(--public-font-body)] text-primary underline">重試</button>
-    </div>
+    <PublicEmptyState
+      title="載入失敗"
+      description="可能是網路不穩，請重新載入，或稍後再試。"
+      primaryAction={{ label: "重試", onClick: onRetry }}
+      secondaryAction={{ label: "回到台本首頁", href: "/" }}
+    />
   );
 }
 

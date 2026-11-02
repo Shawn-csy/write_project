@@ -2,11 +2,13 @@
 
 import { Fragment, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { BookOpen, ChevronLeft, ExternalLink, Loader2, Play, Plus, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ExternalLink, Play, Plus, X } from "lucide-react";
 import { PublicHeroMarquee, type HeroSlide, type HeroImageRenderer } from "@write/public-ui";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { HeroImage } from "@/components/HeroImage";
 import { PublicImage } from "@/components/PublicImage";
+import { PublicListSkeleton } from "@/components/PublicSkeleton";
+import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { liveApi } from "@/lib/liveApi";
 import type { ActivityPage, ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
 
@@ -276,12 +278,19 @@ export function ActivityHubClient() {
   return <div className="flex min-h-screen flex-col bg-background">
     <PublicTopBar activeTab="activities" />
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-      {isLoading ? <div className="flex min-h-64 items-center justify-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />載入活動專區…</div>
+      {isLoading ? <PublicListSkeleton rows={4} className="mx-auto max-w-3xl pt-4" />
         : selectedPage ? <article>
           {pages.length > 1 && <button type="button" onClick={backToEvents} className="mb-4 inline-flex h-9 items-center gap-1 rounded-md border border-border/70 px-3 text-sm text-muted-foreground hover:bg-muted/60"><ChevronLeft className="h-4 w-4" />所有活動</button>}
           <div className="-mx-4 -mt-7 sm:-mx-6 lg:-mx-8"><PublicHeroMarquee slides={activityHero} fullBleed renderImage={activityHeroImage as HeroImageRenderer} labels={{ region: "活動主視覺" }} /></div>
-          {selectedPage.body && <section className="mx-auto mt-8 max-w-3xl space-y-4">{renderContent(selectedPage.body)}</section>}
-          {selectedPage.acceptingSubmissions && <div className="mt-6 flex flex-wrap justify-end gap-2"><button type="button" onClick={() => { setSubmissionMode("demo"); setVoiceActorEntryMode("custom"); setSubmissionTarget(""); setSubmissionError(""); setSubmissionMessage(""); }} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-semibold hover:bg-muted"><Plus className="h-3.5 w-3.5" />投稿 Demo</button><button type="button" onClick={() => { setSubmissionMode("script"); setSubmissionTarget(""); setSubmissionError(""); setSubmissionMessage(""); }} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:bg-primary/90"><Plus className="h-3.5 w-3.5" />投稿台本</button></div>}
+          {selectedPage.body && <section className="mt-8 max-w-3xl space-y-4">{renderContent(selectedPage.body)}</section>}
+          {selectedPage.acceptingSubmissions && <aside aria-label="投稿" className="mt-6 flex flex-col gap-3 rounded-xl border border-primary/30 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="min-w-0"><p className="text-base font-semibold">想參加這個活動？</p><p className="mt-0.5 text-sm text-muted-foreground">投稿 Demo 或台本，審核後會加入下方活動列表。</p></div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <button type="button" onClick={() => { setSubmissionMode("demo"); setVoiceActorEntryMode("custom"); setSubmissionTarget(""); setSubmissionError(""); setSubmissionMessage(""); }} className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-4 text-sm font-semibold hover:bg-muted sm:flex-none"><Plus className="h-4 w-4" />投稿 Demo</button>
+              <button type="button" onClick={() => { setSubmissionMode("script"); setSubmissionTarget(""); setSubmissionError(""); setSubmissionMessage(""); }} className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 sm:flex-none"><Plus className="h-4 w-4" />投稿台本</button>
+            </div>
+          </aside>}
+          {selectedWorks.length === 0 && <PublicEmptyState className="mt-6 rounded-xl border border-dashed border-border/70" title="這個活動還沒有台本或 Demo" description={selectedPage.acceptingSubmissions ? "成為第一位投稿的人吧。" : "活動內容公開後會顯示在這裡。"} primaryAction={pages.length > 1 ? { label: "查看其他活動", onClick: backToEvents } : { label: "回到台本首頁", href: "/" }} />}
           {selectedWorks.length > 0 && <section className="mt-10">
             <div className="mb-4"><h2 className="text-xl font-semibold">活動台本與 Demo</h2></div>
             <div className="space-y-3">{selectedWorks.map((work) => <article key={`${work.source}:${work.id}`} data-feedback-target={`activity-script-${work.source === "本站台本" ? "internal" : "external"}`} data-feedback-title={work.title} className={`grid min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card/40 ${work.demos.length ? "lg:grid-cols-[minmax(17rem,0.34fr)_minmax(0,0.66fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.28fr)]"}`}>
@@ -315,7 +324,7 @@ export function ActivityHubClient() {
           </section>}
         </article>
         : pages.length > 0 ? <section><p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">活動專區</p><h1 className="mt-1 font-serif text-3xl font-bold">主題企劃與活動</h1><p className="mt-2 text-sm text-muted-foreground">瀏覽目前公開的活動頁與主題台本。</p><div className="mt-6 grid gap-4 sm:grid-cols-2">{pages.map((page) => <button key={page.id} type="button" onClick={() => openPage(page.slug)} className="overflow-hidden rounded-xl border border-border/70 bg-card/50 text-left transition-colors hover:border-primary/40">{page.coverUrl && <div className="relative aspect-[16/8] overflow-hidden bg-muted"><PublicImage src={page.coverUrl} alt={`${page.title}封面`} preset="script-cover" crop={page.coverCrop} /></div>}<div className="p-4"><h2 className="text-lg font-semibold">{page.title}</h2>{page.summary && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{page.summary}</p>}<span className="mt-3 inline-block text-xs font-semibold text-primary">查看活動 →</span></div></button>)}</div></section>
-        : <div className="rounded-xl border border-dashed p-10 text-center"><h1 className="font-serif text-2xl font-bold">目前沒有公開活動</h1><p className="mt-2 text-sm text-muted-foreground">活動內容發布後會顯示在這裡。</p></div>}
+        : <PublicEmptyState className="rounded-xl border border-dashed border-border/70" title="目前沒有公開活動" description="活動內容發布後會顯示在這裡，先逛逛公開台本吧。" primaryAction={{ label: "瀏覽公開台本", href: "/" }} secondaryAction={{ label: "看看 Demo 專區", href: "/demos" }} />}
     </main>
     {submissionMode && selectedPage && <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-3 sm:p-6" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setSubmissionMode(null); setSubmissionMessage(""); } }}>
       <section role="dialog" aria-modal="true" aria-labelledby="activity-submit-title" className="flex max-h-[calc(100dvh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">

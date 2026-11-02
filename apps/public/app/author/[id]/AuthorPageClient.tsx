@@ -1,5 +1,6 @@
 "use client";
 
+import { partitionContacts } from "@/lib/publicContactPrivacy";
 import { useMemo, useState } from "react";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
 import { buildAuthorEntityModel } from "@/lib/publicEntityPageModel";
@@ -70,7 +71,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     ...(isVoiceActor ? ["聲演"] : []),
   ];
   const externalWriterUrl = externalScripts.find((script) => script.authorUrl?.trim())?.authorUrl?.trim() || "";
-  const contactItems = [
+  const allContactItems = [
     ...(identity.website
       ? [{ label: "網站", value: identity.website }]
       : []),
@@ -79,11 +80,15 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
       .map((link) => ({
         label: String(link.label || "聯絡方式").trim() || "聯絡方式",
         value: String(link.url || "").trim(),
+        isPublic: (link as { isPublic?: boolean; public?: boolean }).isPublic === true || (link as { public?: boolean }).public === true,
       })),
     ...(externalWriterUrl && !links.some((link) => link.url?.trim() === externalWriterUrl)
       ? [{ label: "社群", value: externalWriterUrl }]
       : []),
   ];
+  // Email / Discord stay hidden until the visitor asks, unless the owner flagged them public.
+  const { visible: contactItems, hidden: privateContactItems } = partitionContacts(allContactItems);
+  const [showPrivateContacts, setShowPrivateContacts] = useState(false);
   const [profileFormOpen, setProfileFormOpen] = useState(false);
   const [profileFormBusy, setProfileFormBusy] = useState(false);
   const [profileFormLoading, setProfileFormLoading] = useState(false);
@@ -240,6 +245,21 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
               <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
                 {contactItems.map((item, i) => (
                   <span key={`${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
+                    <span className="font-medium text-foreground/80">{item.label}：</span>
+                    <span>{item.value}</span>
+                  </span>
+                ))}
+                {privateContactItems.length > 0 && !showPrivateContacts && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPrivateContacts(true)}
+                    className="inline-flex h-8 items-center rounded-md border border-border/60 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                  >
+                    顯示聯絡方式
+                  </button>
+                )}
+                {showPrivateContacts && privateContactItems.map((item, i) => (
+                  <span key={`private-${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
                     <span className="font-medium text-foreground/80">{item.label}：</span>
                     <span>{item.value}</span>
                   </span>

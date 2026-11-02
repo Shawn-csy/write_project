@@ -86,7 +86,8 @@ function buildAuthorOptions(bundle: {
 
 export function PublicFeedbackDialog() {
   const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<FeedbackKind>("bug");
+  const [kind, setKind] = useState<FeedbackKind | null>(null);
+  const [step, setStep] = useState(0);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [scriptTitle, setScriptTitle] = useState("");
@@ -145,7 +146,8 @@ export function PublicFeedbackDialog() {
   }, [open, authorOptions.length]);
 
   const resetForm = () => {
-    setKind("bug");
+    setKind(null);
+    setStep(0);
     setContactName("");
     setContactEmail("");
     setScriptTitle("");
@@ -283,39 +285,58 @@ export function PublicFeedbackDialog() {
     setAuthorSocialUrl(author.socialUrl);
   };
 
+  const LISTING_STEPS = ["作品", "細節", "確認送出"] as const;
+
+  /** Returns an error message for the given step, or "" when it can proceed. */
+  const validateStep = (target: number): string => {
+    if (kind === "listing") {
+      if (target === 0) {
+        if (!scriptTitle.trim()) return "請填寫台本名稱。";
+        if (!authorName.trim()) return "請選擇或填寫台本作者。";
+        if (!/^https:\/\/\S+$/i.test(documentUrl.trim())) return "請提供有效的 HTTPS 台本文件連結。";
+      }
+      if (target === 1) {
+        if (authorSocialUrl.trim() && !/^https:\/\/\S+$/i.test(authorSocialUrl.trim())) return "作者社群連結請使用 HTTPS 網址。";
+        if (coverUrl.trim() && !/^https:\/\/\S+$/i.test(coverUrl.trim())) return "封面連結請使用 HTTPS 網址。";
+      }
+    }
+    if (kind === "bug" || (kind === "listing" && target === 2)) {
+      if (!contactName.trim() && !contactEmail.trim()) return "請至少填寫聯絡名稱或 Email。";
+      if (contactEmail.trim() && !/^\S+@\S+\.\S+$/.test(contactEmail.trim())) return "請確認 Email 格式。";
+    }
+    if (kind === "bug" && content.trim().length < 5) return "內容至少需要 5 個字。";
+    return "";
+  };
+
+  const goToStep = (target: number) => {
+    setError("");
+    if (target > step) {
+      for (let index = step; index < target; index += 1) {
+        const message = validateStep(index);
+        if (message) {
+          setStep(index);
+          setError(message);
+          return;
+        }
+      }
+    }
+    setStep(Math.max(0, Math.min(LISTING_STEPS.length - 1, target)));
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    if (!contactName.trim() && !contactEmail.trim()) {
-      setError("請至少填寫聯絡名稱或 Email。");
+    if (!kind) return;
+    // Enter inside an early step moves forward instead of submitting a half-filled form.
+    if (kind === "listing" && step < LISTING_STEPS.length - 1) {
+      goToStep(step + 1);
       return;
     }
-    if (contactEmail.trim() && !/^\S+@\S+\.\S+$/.test(contactEmail.trim())) {
-      setError("請確認 Email 格式。");
-      return;
-    }
-    if (kind === "listing" && !authorName.trim()) {
-      setError("請填寫台本作者名稱。");
-      return;
-    }
-    if (kind === "listing" && !scriptTitle.trim()) {
-      setError("請填寫台本名稱。");
-      return;
-    }
-    if (kind === "listing" && !/^https:\/\/\S+$/i.test(documentUrl.trim())) {
-      setError("請提供有效的 HTTPS 台本文件連結。");
-      return;
-    }
-    if (kind === "listing" && authorSocialUrl.trim() && !/^https:\/\/\S+$/i.test(authorSocialUrl.trim())) {
-      setError("作者社群連結請使用 HTTPS 網址。");
-      return;
-    }
-    if (kind === "listing" && coverUrl.trim() && !/^https:\/\/\S+$/i.test(coverUrl.trim())) {
-      setError("封面連結請使用 HTTPS 網址。");
-      return;
-    }
-    if (kind === "bug" && content.trim().length < 5) {
-      setError("內容至少需要 5 個字。");
+    const lastStepError = kind === "listing"
+      ? [0, 1, 2].map(validateStep).find(Boolean) || ""
+      : validateStep(0);
+    if (lastStepError) {
+      setError(lastStepError);
       return;
     }
 
@@ -395,9 +416,9 @@ export function PublicFeedbackDialog() {
         >
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Dialog.Title className="text-lg font-semibold text-foreground">Bug 回報／台本投稿</Dialog.Title>
+              <Dialog.Title className="text-lg font-semibold text-foreground">{kind === "bug" ? "回報問題" : kind === "listing" ? "投稿台本" : "回報／投稿"}</Dialog.Title>
               <Dialog.Description id="public-feedback-description" className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                回報網站問題，或投稿台本加入公開專區。
+                {kind === "bug" ? "告訴我們網站哪裡出了問題，可以直接點選畫面位置。" : kind === "listing" ? "分三步填寫作品資料，送出後會進入審核。" : "請先選擇你要做什麼。"}
               </Dialog.Description>
             </div>
             <Dialog.Close asChild>
@@ -411,7 +432,28 @@ export function PublicFeedbackDialog() {
             </Dialog.Close>
           </div>
 
-          {submitted ? (
+          {!submitted && kind === null ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-2" role="group" aria-label="選擇回報或投稿">
+              <button
+                type="button"
+                onClick={() => { setKind("bug"); setStep(0); setError(""); }}
+                className="rounded-xl border border-border/70 bg-background p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <MousePointer2 className="h-5 w-5 text-primary" aria-hidden />
+                <p className="mt-3 text-sm font-semibold text-foreground">回報問題</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">網站壞掉、內容有誤、想請我們修改某個位置。</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setKind("listing"); setStep(0); setError(""); }}
+                className="rounded-xl border border-border/70 bg-background p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <MessageSquarePlus className="h-5 w-5 text-primary" aria-hidden />
+                <p className="mt-3 text-sm font-semibold text-foreground">投稿台本</p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">把你的台本加入公開專區，分三步完成。</p>
+              </button>
+            </div>
+          ) : submitted ? (
             <div className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-5 text-center">
               <CheckCircle2 className="mx-auto h-8 w-8 text-primary" aria-hidden />
               <p className="mt-3 font-medium text-foreground">{kind === "listing" ? "已收到你的台本投稿" : "已收到你的 Bug 回報"}</p>
@@ -429,23 +471,33 @@ export function PublicFeedbackDialog() {
             <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
               <div className={kind === "listing" ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}>
                 <div className="space-y-4">
-              <div>
-                <label htmlFor="public-feedback-kind" className="mb-1.5 block text-sm font-medium text-foreground">用途</label>
-                <select
-                  id="public-feedback-kind"
-                  value={kind}
-                  onChange={(event) => {
-                    setKind(event.target.value as FeedbackKind);
-                    setError("");
-                  }}
-                  className={inputClass}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setKind(null); setStep(0); setError(""); }}
+                  className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 >
-                  <option value="bug">回報 Bug／網站問題</option>
-                  <option value="listing">投稿台本</option>
-                </select>
+                  ← 換個用途
+                </button>
+                {kind === "listing" && (
+                  <ol className="flex items-center gap-1.5 text-xs" aria-label="投稿步驟">
+                    {LISTING_STEPS.map((label, index) => (
+                      <li key={label} aria-current={index === step ? "step" : undefined} className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => goToStep(index)}
+                          className={`inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium ${index === step ? "bg-primary text-primary-foreground" : index < step ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                        >
+                          <span>{index + 1}</span><span>{label}</span>
+                        </button>
+                        {index < LISTING_STEPS.length - 1 && <span className="text-muted-foreground/50" aria-hidden>›</span>}
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className={kind === "bug" || step === 2 ? "grid gap-4 sm:grid-cols-2" : "hidden"}>
                 <div>
                   <label htmlFor="public-feedback-name" className="mb-1.5 block text-sm font-medium text-foreground">聯絡名稱</label>
                   <input
@@ -473,6 +525,7 @@ export function PublicFeedbackDialog() {
 
               {kind === "listing" ? (
                 <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4">
+                  <div className={step === 0 ? "space-y-4" : "hidden"}>
                   <div>
                     <label htmlFor="public-feedback-title" className="mb-1.5 block text-sm font-medium text-foreground">台本名稱</label>
                     <input id="public-feedback-title" value={scriptTitle} onChange={(event) => setScriptTitle(event.target.value)} className={inputClass} placeholder="公開頁顯示的台本名稱" maxLength={300} required />
@@ -491,20 +544,22 @@ export function PublicFeedbackDialog() {
                     ) : null}
                   </div>
                   <div>
-                    <label htmlFor="public-feedback-author-bio" className="mb-1.5 block text-sm font-medium text-foreground">作者介紹 <span className="font-normal text-muted-foreground">（選填）</span></label>
-                    <textarea id="public-feedback-author-bio" value={authorBio} onChange={(event) => setAuthorBio(event.target.value)} className={`${inputClass} min-h-20 resize-y`} placeholder="選擇台本師後會帶入已有介紹，也可以自行調整" maxLength={4000} />
-                  </div>
-                  <div>
                     <label htmlFor="public-feedback-summary" className="mb-1.5 block text-sm font-medium text-foreground">台本介紹 <span className="font-normal text-muted-foreground">（選填）</span></label>
                     <textarea id="public-feedback-summary" value={scriptSummary} onChange={(event) => setScriptSummary(event.target.value)} className={`${inputClass} min-h-24 resize-y`} placeholder="簡短介紹作品內容，會顯示在台本頁面" maxLength={4000} />
                   </div>
                   <div>
-                    <label htmlFor="public-feedback-author-social" className="mb-1.5 block text-sm font-medium text-foreground">作者社群連結 <span className="font-normal text-muted-foreground">（選填）</span></label>
-                    <input id="public-feedback-author-social" type="url" value={authorSocialUrl} onChange={(event) => setAuthorSocialUrl(event.target.value)} className={inputClass} placeholder="https://…" maxLength={2000} />
-                  </div>
-                  <div>
                     <label htmlFor="public-feedback-document" className="mb-1.5 block text-sm font-medium text-foreground">台本文件連結</label>
                     <input id="public-feedback-document" type="url" value={documentUrl} onChange={(event) => setDocumentUrl(event.target.value)} className={inputClass} placeholder="https://…" maxLength={2000} required />
+                  </div>
+                  </div>
+                  <div className={step === 1 ? "space-y-4" : "hidden"}>
+                  <div>
+                    <label htmlFor="public-feedback-author-bio" className="mb-1.5 block text-sm font-medium text-foreground">作者介紹 <span className="font-normal text-muted-foreground">（選填）</span></label>
+                    <textarea id="public-feedback-author-bio" value={authorBio} onChange={(event) => setAuthorBio(event.target.value)} className={`${inputClass} min-h-20 resize-y`} placeholder="選擇台本師後會帶入已有介紹，也可以自行調整" maxLength={4000} />
+                  </div>
+                  <div>
+                    <label htmlFor="public-feedback-author-social" className="mb-1.5 block text-sm font-medium text-foreground">作者社群連結 <span className="font-normal text-muted-foreground">（選填）</span></label>
+                    <input id="public-feedback-author-social" type="url" value={authorSocialUrl} onChange={(event) => setAuthorSocialUrl(event.target.value)} className={inputClass} placeholder="https://…" maxLength={2000} />
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
@@ -524,6 +579,11 @@ export function PublicFeedbackDialog() {
                   <div>
                     <label htmlFor="public-feedback-notes" className="mb-1.5 block text-sm font-medium text-foreground">備註 <span className="font-normal text-muted-foreground">（選填）</span></label>
                     <textarea id="public-feedback-notes" value={notes} onChange={(event) => setNotes(event.target.value)} className={`${inputClass} min-h-24 resize-y`} placeholder="補充作品資訊或上架說明" maxLength={10000} />
+                  </div>
+                  </div>
+                  <div className={step === 2 ? "space-y-1 text-sm" : "hidden"}>
+                    <p className="font-medium text-foreground">確認後送出</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">請確認右側預覽的作品資訊，並在上方填寫聯絡名稱或 Email，方便審核時聯絡你。聯絡資料只供審核使用，不會公開顯示。</p>
                   </div>
                 </div>
               ) : (
@@ -594,6 +654,15 @@ export function PublicFeedbackDialog() {
               {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
               <div className="flex justify-end gap-2 pt-1">
+                {kind === "listing" && step > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => goToStep(step - 1)}
+                    className="rounded-lg border border-border/70 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    上一步
+                  </button>
+                )}
                 <Dialog.Close asChild>
                   <button
                     type="button"
@@ -602,14 +671,24 @@ export function PublicFeedbackDialog() {
                     取消
                   </button>
                 </Dialog.Close>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
-                  {isSubmitting ? "送出中…" : "送出"}
-                </button>
+                {kind === "listing" && step < LISTING_STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => goToStep(step + 1)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    下一步
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
+                    {isSubmitting ? "送出中…" : kind === "listing" ? "送出投稿" : "送出回報"}
+                  </button>
+                )}
               </div>
             </form>
           )}

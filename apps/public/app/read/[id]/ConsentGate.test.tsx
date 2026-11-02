@@ -179,4 +179,38 @@ describe("ConsentGate", () => {
     expect(body.acceptedChecks).toContain("final_agreement");
     expect(body.termsVersion).toBe(MOCK_CONFIG.version);
   });
+
+  it("explains why the accept button is disabled and clears the hint once ticked", async () => {
+    const user = userEvent.setup();
+    global.fetch = makeFetch();
+    await act(async () => {
+      render(
+        <ConsentGate scriptId="s1">
+          <div>script content</div>
+        </ConsentGate>
+      );
+    });
+    await waitFor(() => expect(screen.queryByText("我同意")).not.toBeNull());
+    expect(screen.getByRole("status").textContent).toContain("還差 1 項");
+    expect(screen.getByRole("button", { name: "同意並進入閱讀" }).getAttribute("aria-describedby")).toBe("consent-disabled-hint");
+    await user.click(screen.getByText("我同意"));
+    expect(screen.queryByText(/還差/)).toBeNull();
+  });
+
+  it("condenses license sections into an accordion on small screens", async () => {
+    const user = userEvent.setup();
+    global.fetch = makeFetch();
+    await act(async () => {
+      render(
+        <ConsentGate scriptId="s1">
+          <div>script content</div>
+        </ConsentGate>
+      );
+    });
+    await waitFor(() => expect(screen.queryByText("授權聲明")).not.toBeNull());
+    // jsdom has no matchMedia match => condensed
+    expect(screen.queryByText("內容一")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "條款一" }));
+    expect(screen.queryByText("內容一")).not.toBeNull();
+  });
 });

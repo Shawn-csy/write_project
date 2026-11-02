@@ -43,7 +43,11 @@ export function useProgressiveLimit(initial: number): number {
   return limit;
 }
 
-const CARD_WIDTH = "min-w-[160px] w-[160px] sm:min-w-[180px] sm:w-[180px]";
+// Whole-card lanes: widths are fractions of the lane so N full cards always fit
+// (2 on phones with a peek of the third, 3-6 as the viewport grows) and every
+// card snaps to the lane edge instead of being sliced in half.
+const CARD_WIDTH =
+  "shrink-0 snap-start w-[calc((100%-1rem)/2.3)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] 2xl:w-[calc((100%-5rem)/6)]";
 const FEATURED_HOMEPAGE_TAG = "清淡校園練習";
 
 type MixedGalleryEntry =
@@ -168,7 +172,7 @@ function laneSortMode(id: string): "latest" | "top" | undefined {
   return id === "latest" || id === "top" ? id : undefined;
 }
 
-type AllScriptsSort = "latest" | "top";
+type AllScriptsSort = "latest" | "top" | "random";
 type AllScriptsItem =
   | { kind: "local"; item: EnrichedGalleryScript }
   | { kind: "external"; item: ExternalPublicScript }
@@ -182,6 +186,7 @@ function sortAllScripts(
   scripts: EnrichedGalleryScript[],
   externalItems: ExternalPublicScript[],
   sort: AllScriptsSort,
+  randomSeed = 0.314159,
 ): AllScriptsItem[] {
   const items: AllScriptsItem[] = [
     ...scripts.map((item) => ({ kind: "local" as const, item })),
@@ -189,6 +194,8 @@ function sortAllScripts(
       ? { kind: "external" as const, item: entry.item }
       : { kind: "external-series" as const, entry: entry.entry }),
   ];
+
+  if (sort === "random") return seededShuffle(items, randomSeed);
 
   return items.sort((a, b) => {
     const aViews = a.kind === "local"
@@ -247,7 +254,7 @@ interface GalleryScriptResultsProps {
   onResetFilters: () => void;
   onTagClick: (tag: string) => void;
   externalItems?: ExternalPublicScript[];
-  onOpenAll: (sort?: "latest" | "top") => void;
+  onOpenAll: (sort?: "latest" | "top" | "random") => void;
   allScriptsSort?: AllScriptsSort | null;
 }
 
@@ -315,8 +322,8 @@ export function GalleryScriptResults({
     [mergedEntries]
   );
   const allScripts = useMemo(
-    () => sortAllScripts(model.filteredScripts, externalItems, allScriptsSort || "latest"),
-    [model.filteredScripts, externalItems, allScriptsSort]
+    () => sortAllScripts(model.filteredScripts, externalItems, allScriptsSort || "latest", randomSeed),
+    [model.filteredScripts, externalItems, allScriptsSort, randomSeed]
   );
   const revealDeps = [viewMode, mergedEntries.length, showLanes, renderLimit];
   const compactRef = useScrollReveal(revealDeps) as React.RefObject<HTMLDivElement>;
@@ -363,6 +370,17 @@ export function GalleryScriptResults({
         style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}
         aria-live="polite"
       >
+        {allScriptsSort === "random" && allScripts.length > 0 && (
+          <div className="col-span-full flex justify-end">
+            <button
+              type="button"
+              onClick={() => setRandomSeed(Math.random())}
+              className="inline-flex h-8 items-center rounded-md border border-border/60 bg-background/40 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+            >
+              重新隨機
+            </button>
+          </div>
+        )}
         {allScripts.map((entry) => {
           if (entry.kind === "external") {
             return <ExternalPublicScriptCard key={`external:${entry.item.id}`} item={entry.item} onTagClick={onTagClick} />;
@@ -461,7 +479,7 @@ export function GalleryScriptResults({
   return (
     <div className="space-y-8 sm:space-y-9">
       {randomEntries.length > 0 && (
-        <HorizontalScrollLane key="random" title="隨機推薦">
+        <HorizontalScrollLane key="random" title="隨機推薦" actionLabel="換一批" onAction={() => setRandomSeed(Math.random())}>
           {randomEntries.map((entry) => (
             <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
               {entry.kind === "external"

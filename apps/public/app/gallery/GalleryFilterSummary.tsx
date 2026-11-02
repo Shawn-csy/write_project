@@ -15,6 +15,7 @@ interface GalleryFilterSummaryProps {
 }
 
 const SEGMENT_LABELS: Record<string, string> = {
+  "all-ages": "全年齡向",
   allAges: "全年齡向",
   adult: "成人向",
   male: "男性向",

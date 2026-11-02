@@ -21,12 +21,14 @@ import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
 import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
 import { GallerySearchField } from "./gallery/GallerySearchField";
+import { GallerySortControl, type GallerySortValue } from "./gallery/GallerySortControl";
 import { GalleryFilterSummary, type ActiveGalleryFilterChip } from "./gallery/GalleryFilterSummary";
 import { buildHomepageHeroSlides, type BrandHeroSlide } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
 import { PublicFooter } from "@/components/PublicFooter";
+import { PublicAnnouncementBar } from "@/components/PublicAnnouncementBar";
 
 interface Props {
   initialScripts: PublicScript[];
@@ -77,12 +79,11 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
   const { view } = homepageModel;
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
   const [showList, setShowList] = useState(false);
-  const [allScriptsSort, setAllScriptsSort] = useState<"latest" | "top" | null>(null);
-  const openAllScripts = (sort?: "latest" | "top") => {
+  const [allScriptsSort, setAllScriptsSort] = useState<GallerySortValue | null>(null);
+  const openAllScripts = (sort?: GallerySortValue) => {
     setAllScriptsSort(sort ?? "latest");
   };
-  const closeAllScripts = () => setAllScriptsSort(null);
-  const handleTabChange = (nextTab: typeof tab) => {
+    const handleTabChange = (nextTab: typeof tab) => {
     if (nextTab !== "scripts") setAllScriptsSort(null);
     setTab(nextTab);
   };
@@ -124,6 +125,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PublicAnnouncementBar />
       <GalleryTopBar
         activeTab={tab}
         onTabChange={handleTabChange}
@@ -134,7 +136,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         {view === "scripts" && heroSlides.length > 0 && (
           <PublicHeroMarquee
             slides={heroSlides}
-            compact
+            fullBleed
             renderImage={heroImageRenderer}
             renderSlideContent={heroSlideContentRenderer}
           />
@@ -156,7 +158,15 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
-              <GalleryFilterPanel {...filterPanelProps} variant="sidebar" showSearch={false} />
+              <GalleryFilterPanel
+                {...filterPanelProps}
+                variant="sidebar"
+                showSearch={false}
+                segment={segment}
+                onSegmentChange={setSegment}
+                sort={allScriptsSort}
+                onSortChange={setAllScriptsSort}
+              />
             </div>
           </aside>
         )}
@@ -221,16 +231,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
 
               {/* ViewMode + list row — desktop only */}
               <div className="relative z-50 hidden md:flex items-center justify-end gap-3 py-2.5 pointer-events-auto">
-                {allScriptsSort && (
-                  <button
-                    type="button"
-                    onClick={closeAllScripts}
-                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg [font-size:var(--public-font-meta)] font-medium border text-foreground border-primary/60 bg-primary/10 transition-all duration-150"
-                    aria-label="返回分區瀏覽"
-                  >
-                    ← 返回分區
-                  </button>
-                )}
+                <GallerySortControl value={allScriptsSort} onChange={setAllScriptsSort} />
                 <button
                   type="button"
                   onClick={() => setShowList(true)}
@@ -308,6 +309,13 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         setUsage={setUsage}
         viewModeValue={viewMode}
         setViewMode={setViewMode}
+        segment={segment}
+        onSegmentChange={setSegment}
+        sort={allScriptsSort}
+        onSortChange={setAllScriptsSort}
+        chips={homepageModel.filterChips}
+        onRemoveChip={removeFilter}
+        resultCount={homepageModel.resultCount}
       />
 
       <PublicFooter />

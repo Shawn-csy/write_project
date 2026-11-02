@@ -77,8 +77,8 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: H
       >
         {showLeft && (
           <div
-            className={`absolute -left-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
-              isLaneHovered ? "opacity-100" : "opacity-0"
+            className={`absolute left-0 md:-left-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
+              isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
             }`}
           >
             <button
@@ -95,15 +95,15 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: H
         <div
           ref={scrollRef}
           onScroll={checkScroll}
-          className="flex gap-4 overflow-x-auto pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory scroll-smooth px-2"
+          className="flex gap-4 overflow-x-auto pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory scroll-smooth px-2 scroll-px-2 [&>*]:snap-start"
         >
           {children}
         </div>
 
         {showRight && (
           <div
-            className={`absolute -right-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
-              isLaneHovered ? "opacity-100" : "opacity-0"
+            className={`absolute right-0 md:-right-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
+              isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
             }`}
           >
             <button

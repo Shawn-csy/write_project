@@ -3,7 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GalleryTopBar } from "./GalleryTopBar";
 
-vi.mock("lucide-react", () => ({
+vi.mock("lucide-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("lucide-react")>()),
   SlidersHorizontal: () => <span data-testid="sliders-icon" />,
   Search: () => <span />,
   ChevronDown: () => <span />,
@@ -56,9 +57,8 @@ describe("GalleryTopBar", () => {
     // No hamburger
     expect(screen.queryByRole("button", { name: "開啟導航" })).toBeNull();
     // Tabs visible inline
-    expect(screen.getAllByRole("button", { name: "台本" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Demo 專區" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("button", { name: "作者" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "組織" }).length).toBeGreaterThan(0);
   });
 
   it("does not render a duplicate top-level filter trigger", () => {

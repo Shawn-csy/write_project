@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Search, X } from "lucide-react";
 import { GalleryFilterPanel } from "./GalleryFilterPanel";
 import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
+import { GallerySortControl, type GallerySortValue } from "./GallerySortControl";
+import { GalleryFilterSummary, type ActiveGalleryFilterChip } from "./GalleryFilterSummary";
 
 interface GalleryMobileSheetProps {
   open: boolean;
@@ -23,6 +25,15 @@ interface GalleryMobileSheetProps {
   setUsage: (v: string) => void;
   viewModeValue: "standard" | "compact";
   setViewMode: (v: "standard" | "compact") => void;
+  segment?: string;
+  onSegmentChange?: (v: string) => void;
+  sort?: GallerySortValue | null;
+  onSortChange?: (v: GallerySortValue | null) => void;
+  /** Active filter chips (same list shown on the page) so the sheet is the single filter surface. */
+  chips?: ActiveGalleryFilterChip[];
+  onRemoveChip?: (chip: ActiveGalleryFilterChip) => void;
+  /** Result count for the sticky "看結果" button. */
+  resultCount?: number;
 }
 
 export function GalleryMobileSheet({
@@ -32,6 +43,13 @@ export function GalleryMobileSheet({
   setUsage,
   viewModeValue,
   setViewMode,
+  segment,
+  onSegmentChange,
+  sort,
+  onSortChange,
+  chips,
+  onRemoveChip,
+  resultCount,
   ...filterProps
 }: GalleryMobileSheetProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -39,6 +57,7 @@ export function GalleryMobileSheet({
   const advancedCount =
     filterProps.selectedTags.length +
     (usage !== "all" ? 1 : 0) +
+    (segment && segment !== "all" ? 1 : 0) +
     (viewModeValue !== "standard" ? 1 : 0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -160,6 +179,17 @@ export function GalleryMobileSheet({
             </div>
           </div>
 
+          {chips && chips.length > 0 && onRemoveChip && (
+            <GalleryFilterSummary chips={chips} onRemove={onRemoveChip} onClear={filterProps.onResetFilters} />
+          )}
+
+          {sort !== undefined && onSortChange && (
+            <div>
+              <p className="editorial-dim mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]">排序</p>
+              <GallerySortControl value={sort} onChange={onSortChange} />
+            </div>
+          )}
+
           {/* Advanced filters */}
           <div className="rounded-xl border border-border/45 bg-card/45 overflow-hidden">
             <button
@@ -196,6 +226,8 @@ export function GalleryMobileSheet({
                   {...filterProps}
                   usage={usage}
                   onUsageChange={setUsage}
+                  segment={segment}
+                  onSegmentChange={onSegmentChange}
                   showSearch={false}
                   onResetFilters={() => {
                     filterProps.onResetFilters();
@@ -206,8 +238,18 @@ export function GalleryMobileSheet({
             )}
           </div>
 
-          {/* Safe area bottom spacer */}
-          <div className="h-4" aria-hidden />
+          <div className="h-2" aria-hidden />
+        </div>
+
+        {/* Sticky footer: always reachable apply button */}
+        <div className="shrink-0 border-t border-border/40 bg-background px-5 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="h-11 w-full rounded-lg bg-primary [font-size:var(--public-font-meta)] font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            {typeof resultCount === "number" ? `查看 ${resultCount} 筆結果` : "完成"}
+          </button>
         </div>
       </div>
     </div>
