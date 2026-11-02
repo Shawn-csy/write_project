@@ -1,6 +1,7 @@
 import React, { Suspense, useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
+import { FileX } from "lucide-react";
+import { Skeleton, FormSkeleton } from "../components/studio/StudioSkeleton";
 import { StudioPage, StudioPageHeader } from "../components/studio/StudioPage";
 import { StudioEmptyStateCard } from "../components/common/StudioEmptyStateCard";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
@@ -16,13 +17,17 @@ const isPublicScript = (script: Partial<BaseScriptApi> | null): boolean =>
   script?.status === "Public" || Boolean((script as { isPublic?: boolean } | null)?.isPublic);
 
 const loadingView = (
-  <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-    <Loader2 className="mr-2 h-4 w-4 animate-spin" />載入作品資料中…
+  <div className="studio-density h-full overflow-hidden bg-background px-4 pt-6 sm:px-6 lg:px-10" role="status" aria-busy="true" aria-label="載入作品資料中">
+    <Skeleton className="h-4 w-16" />
+    <Skeleton className="mt-4 h-8 w-64 max-w-full" />
+    <Skeleton className="mt-6 h-9 w-full max-w-md rounded-full" />
+    <FormSkeleton blocks={3} className="mx-auto mt-6 max-w-3xl" />
   </div>
 );
 
 export default function WorkManagePage(): React.JSX.Element {
   const { id = "" } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const s = usePublisherDashboardState({ mode: "studio" });
   const [script, setScript] = useState<Partial<BaseScriptApi> | null>(null);
   const [loadError, setLoadError] = useState("");
@@ -51,7 +56,13 @@ export default function WorkManagePage(): React.JSX.Element {
     return (
       <StudioPage width="narrow">
         <StudioPageHeader back={{ to: "/works", label: "作品" }} title="作品管理" />
-        <StudioEmptyStateCard title="無法開啟作品" description={loadError} />
+        <StudioEmptyStateCard
+          icon={FileX}
+          title="無法開啟作品"
+          description={loadError}
+          actionLabel="回到作品列表"
+          onAction={() => navigate("/works")}
+        />
       </StudioPage>
     );
   }

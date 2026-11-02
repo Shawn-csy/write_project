@@ -538,7 +538,9 @@ const messages = {
     "continueWriting": "編集",
     "editInfo": "情報を編集",
     "viewPublicPage": "公開ページを見る",
-    "loadMore": "さらに読み込む"
+    "loadMore": "さらに読み込む",
+    "emptyCreateAction": "最初の台本を作成",
+    "clearFilters": "絞り込みを解除"
   },
   "markerSettingsGuide": {
     "sampleMarker": "サンプルマーカー",
@@ -918,6 +920,7 @@ const messages = {
     "selectRuleToTest": "ルールを選ぶと、一致する行が表示されます。",
     "readingPreview": "閲覧時の表示",
     "previewUsesDraft": "プレビューは未保存のルールを使います。保存後に作品へ適用されます。",
+    "previewPaperNote": "プレビューは常に明るい紙面で表示され、ダークモードでもルールの色を確認できます。",
     "rules": "マーカールール",
     "add": "追加",
     "filterByType": "種類で絞り込み",
@@ -1260,7 +1263,13 @@ const messages = {
     "script": "台本",
     "downloadFountain": ".fountain をダウンロード",
     "rename": "名前変更",
-    "dragging": "ドラッグ中..."
+    "dragging": "ドラッグ中...",
+    "statusPublic": "公開中",
+    "statusPrivate": "非公開",
+    "view": "表示",
+    "edit": "編集",
+    "emptyFolderHint": "台本の作成、フォルダの追加、既存原稿のインポートから始めましょう。",
+    "createScript": "台本を追加"
   },
   "scriptMetadataDialog": {
     "checkTitle": "タイトル",
@@ -1286,10 +1295,14 @@ const messages = {
     "recommended": "推奨（未入力でも公開可）",
     "goFix": "今すぐ修正: {label}",
     "fixLater": "後で修正: {label}",
-    "tabBasic": "基本",
+    "tabBasic": "基本情報",
     "tabDetails": "詳細",
     "tabLicense": "ライセンス",
-    "tabAdvanced": "上級",
+    "tabAdvanced": "詳細設定",
+    "tabPublish": "公開設定",
+    "tabExposure": "表示と分類",
+    "tabActivity": "企画・告知",
+    "tabDemo": "試聴サンプル",
     "confirmSave": "保存",
     "guide": "ガイド",
     "guideSkip": "スキップ",
@@ -1697,6 +1710,19 @@ const messages = {
     "saved": "表示名を更新しました",
     "saveFailed": "表示名の保存に失敗しました"
   },
+  "markerLayoutEditor": {
+    "fields": "列",
+    "fieldsHint": "名前・順序・幅を調整すると、プレビューに反映されます。",
+    "preview": "プレビュー",
+    "width": "幅",
+    "moveUp": "上へ",
+    "moveDown": "下へ",
+    "onlyColumn": "表示中の唯一の列です。幅は自動で全体に広がります。",
+    "hidden": "非表示：プレビューと閲覧ページには表示されません。",
+    "rowGrouping": "台詞の並び",
+    "noEnabled": "表示中の列がありません。列をオンにするとプレビューできます。",
+    "scrollHint": "プレビューは横にスワイプして全列を確認できます。"
+  },
   "appearance": {
     "title": "外観と閲覧",
     "subtitle": "テーマ、文字サイズ、レイアウトを調整",
@@ -2027,6 +2053,61 @@ const messages = {
     "rangeBlockHint": "区間は複数行ブロックのため、元の行内には埋め込めません。",
     "groupingMismatchWarning": "同期区間が有効ですが、現在の行グループ化モードが marker_dialogue ではないため、同一行に揃いません。",
     "goFixLayout": "レイアウト設定で修正"
+  },
+  "adminConsole": {
+    "title": "管理コンソール",
+    "subtitle": "投稿の審査、公開コンテンツとサイト全体のデータを管理します。",
+    "adminLabel": "管理者",
+    "noAccessTitle": "スーパー管理者権限がありません",
+    "noAccessDesc": "スーパー管理者リストに登録されたアカウントでログインしてください。",
+    "groupNavLabel": "管理カテゴリ",
+    "tabNavLabel": "サブページ",
+    "groups": {
+      "review": "審査",
+      "activities": "アクティビティ",
+      "content": "コンテンツ",
+      "external": "外部リソース",
+      "directory": "サイト名簿",
+      "platform": "プラットフォーム"
+    },
+    "tabs": {
+      "applications": "申請・報告",
+      "submissions": "デモ投稿",
+      "voiceActorProfiles": "声優ページ",
+      "externalAuthorProfiles": "外部作者ページ",
+      "campaigns": "活動投稿",
+      "activityPages": "活動ページ",
+      "homepage": "トップバナー",
+      "demos": "デモ管理",
+      "externalScripts": "外部台本",
+      "externalAuthorPages": "外部作者ページ",
+      "voiceActors": "声優",
+      "scripts": "台本",
+      "orgs": "組織",
+      "personas": "作者",
+      "users": "ユーザー",
+      "admins": "管理者アカウント",
+      "signatures": "ライセンス署名記録"
+    },
+    "pendingCount": "{n} 件対応待ち",
+    "reload": "再読み込み",
+    "filterPlaceholder": "名前またはオーナーで絞り込み",
+    "userFilterPlaceholder": "名前 / メール / ID で絞り込み",
+    "showing": "{shown} / {total} 件表示",
+    "empty": "一致する結果はありません",
+    "filterAll": "すべて",
+    "filterPublic": "公開",
+    "filterPrivate": "非公開",
+    "owner": "オーナー",
+    "untitled": "(無題)",
+    "settings": "設定",
+    "transfer": "移管",
+    "delete": "削除",
+    "createOrgTitle": "組織を作成",
+    "directoryHint": "名前・ID・オーナーで検索して再読み込み",
+    "adminAccountsDesc": "プラットフォーム管理者アカウントの追加・削除",
+    "signaturesDesc": "ユーザーがライセンス条項に同意した記録",
+    "applicationsDesc": "広告・掲載申請と報告"
   }
 };
 

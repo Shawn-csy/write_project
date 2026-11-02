@@ -47,8 +47,8 @@ export function MarkerTestPanel({ markerConfigs, selectedConfig, usePresentation
   const ruleName = selectedConfig?.label || t("markerStudio.thisRule", "這條規則");
 
   return (
-    <aside aria-label={t("markerStudio.testTitle", "試寫")} className={`flex min-h-0 flex-col gap-3 overflow-y-auto bg-muted/30 p-4 ${className}`}>
-      <div className="flex items-center justify-between gap-2">
+    <aside aria-label={t("markerStudio.testTitle", "試寫")} className={`flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto bg-muted/30 p-4 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[15px] font-semibold">{t("markerStudio.testTitle", "試寫")}</h2>
         <div className="flex items-center gap-1">
           {sample ? (
@@ -66,7 +66,7 @@ export function MarkerTestPanel({ markerConfigs, selectedConfig, usePresentation
         onChange={(event) => setText(event.target.value)}
         aria-label={t("markerStudio.testInput", "試寫原稿")}
         spellCheck={false}
-        className="min-h-[150px] resize-y rounded-md border border-input bg-background p-3 font-mono text-xs leading-6 focus:outline-none focus:ring-1 focus:ring-ring"
+        className="min-h-[150px] w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-base leading-6 text-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-xs"
       />
       <p className="text-xs text-muted-foreground" role="status">
         {selectedConfig
@@ -76,7 +76,7 @@ export function MarkerTestPanel({ markerConfigs, selectedConfig, usePresentation
           : t("markerStudio.selectRuleToTest", "選擇左側規則，就能看到它比對到哪些行。")}
       </p>
       <h3 className="pt-1 text-[15px] font-semibold">{t("markerStudio.readingPreview", "閱讀時的樣子")}</h3>
-      <div className="min-h-[160px] overflow-hidden rounded-md border border-border bg-background px-3 py-2 text-sm">
+      <div data-testid="marker-test-preview" className="marker-test-paper max-h-[60vh] min-h-[160px] overflow-auto rounded-md border border-border px-3 py-2 text-sm">
         <ScriptViewer
           text={text}
           fontSize={14}
@@ -87,7 +87,7 @@ export function MarkerTestPanel({ markerConfigs, selectedConfig, usePresentation
           presentationLayoutConfig={layoutConfig}
         />
       </div>
-      <p className="text-xs text-muted-foreground">{t("markerStudio.previewUsesDraft", "預覽使用尚未儲存的規則；儲存後才會套用到作品。")}</p>
+      <p className="text-xs text-muted-foreground">{t("markerStudio.previewUsesDraft", "預覽使用尚未儲存的規則；儲存後才會套用到作品。")}{" "}{t("markerStudio.previewPaperNote", "預覽固定使用淺色紙面，深色模式下也能看清規則顏色。")}</p>
     </aside>
   );
 }

@@ -50,6 +50,7 @@ export function useStatusContext() {
 /** Checklist + validation row helpers. Changes on every form field edit. */
 export type ChecklistContextValue = Pick<AllState,
     "completedChecklistItems" | "totalChecklistItems" | "completionPercent" |
+    "completedRecommendedItems" | "totalRecommendedItems" | "requiredChecklist" | "recommendedChecklist" |
     "hasBlockingIssues" | "checklistChipItems" | "maxVisibleChecklistChips" |
     "hiddenChecklistChipCount" | "visibleChecklistChipItems" |
     "showAllChecklistChips" | "setShowAllChecklistChips" |
@@ -185,6 +186,8 @@ export function ScriptMetadataDialogProvider({
         status: allStatus, setStatus, activeTab, setActiveTab,
         collapsedSections, toggleSection, contentScrollRef, isInitializing,
         completedChecklistItems, totalChecklistItems, completionPercent,
+        completedRecommendedItems, totalRecommendedItems,
+        requiredChecklist, recommendedChecklist,
         hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,
@@ -209,6 +212,8 @@ export function ScriptMetadataDialogProvider({
 
     const checklist: ChecklistContextValue = useMemo(() => ({
         completedChecklistItems, totalChecklistItems, completionPercent,
+        completedRecommendedItems, totalRecommendedItems,
+        requiredChecklist, recommendedChecklist,
         hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,
@@ -217,6 +222,8 @@ export function ScriptMetadataDialogProvider({
         renderRowLabel, getRowLabelClass,
     }), [
         completedChecklistItems, totalChecklistItems, completionPercent,
+        completedRecommendedItems, totalRecommendedItems,
+        requiredChecklist, recommendedChecklist,
         hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,
@@ -242,6 +249,8 @@ export function ScriptMetadataDialogProvider({
         status: _st, setStatus: _ss, activeTab: _at, setActiveTab: _sat,
         collapsedSections: _cs, toggleSection: _ts, contentScrollRef: _csr, isInitializing: _ii,
         completedChecklistItems: _cci, totalChecklistItems: _tci, completionPercent: _cp,
+        completedRecommendedItems: _cri, totalRecommendedItems: _tri,
+        requiredChecklist: _rqc, recommendedChecklist: _rcc,
         hasBlockingIssues: _hbi, checklistChipItems: _chci, maxVisibleChecklistChips: _mvcc,
         hiddenChecklistChipCount: _hccc, visibleChecklistChipItems: _vcci,
         showAllChecklistChips: _sacc, setShowAllChecklistChips: _ssacc,

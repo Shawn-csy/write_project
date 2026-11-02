@@ -307,6 +307,8 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
     const {
         requiredErrorMap, recommendedErrorMap,
         completedChecklistItems, totalChecklistItems, completionPercent,
+        completedRecommendedItems, totalRecommendedItems,
+        requiredChecklist, recommendedChecklist,
         hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
         hiddenChecklistChipCount, visibleChecklistChipItems, missingRequiredMap,
         getRowLabelClass, renderRowLabel,
@@ -590,6 +592,8 @@ export function useScriptMetadataDialogState(props: ScriptMetadataDialogProps) {
         isInitializing,
         // checklist
         completedChecklistItems, totalChecklistItems, completionPercent,
+        completedRecommendedItems, totalRecommendedItems,
+        requiredChecklist, recommendedChecklist,
         hasBlockingIssues, checklistChipItems, maxVisibleChecklistChips,
         hiddenChecklistChipCount, visibleChecklistChipItems,
         showAllChecklistChips, setShowAllChecklistChips,

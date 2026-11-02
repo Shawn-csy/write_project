@@ -1,4 +1,5 @@
 import React, { Suspense } from "react";
+import { Skeleton, FormSkeleton } from "../components/studio/StudioSkeleton";
 import { StudioPage, StudioPageHeader } from "../components/studio/StudioPage";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
 import { deriveChapterRows } from "../lib/publisher/seriesEditorModel";
@@ -8,7 +9,18 @@ const PublisherSeriesTabLazy = React.lazy(async () => {
   return { default: mod.PublisherSeriesTab };
 });
 
-const tabFallback = <div className="p-6 text-sm text-muted-foreground">載入中…</div>;
+const tabFallback = (
+  <div className="flex flex-col gap-6 md:flex-row md:gap-8" role="status" aria-busy="true" aria-label="載入系列中">
+    <div className="w-full space-y-2 md:w-72">
+      {Array.from({ length: 4 }).map((_, index) => <Skeleton key={index} className="h-12 w-full" />)}
+    </div>
+    <div className="min-w-0 flex-1 space-y-4">
+      <Skeleton className="h-8 w-48" />
+      <Skeleton className="h-9 w-72 max-w-full" />
+      <FormSkeleton blocks={2} />
+    </div>
+  </div>
+);
 
 export default function SeriesPage(): React.JSX.Element {
   const s = usePublisherDashboardState({ mode: "studio" });
@@ -20,6 +32,7 @@ export default function SeriesPage(): React.JSX.Element {
   return (
     <StudioPage width="wide">
       <StudioPageHeader title="系列" description="把多部作品整理成有順序的章節，公開頁會依此順序呈現。" />
+      {s.isMetaLoading ? tabFallback : (
       <Suspense fallback={tabFallback}>
         <PublisherSeriesTabLazy
           seriesList={s.seriesList}
@@ -41,6 +54,7 @@ export default function SeriesPage(): React.JSX.Element {
           isSaving={s.isSavingSeries}
         />
       </Suspense>
+      )}
     </StudioPage>
   );
 }

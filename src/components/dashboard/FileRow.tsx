@@ -106,7 +106,7 @@ export const FileRow = memo(function FileRow({ icon, title, meta, actions, onCli
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         style={style}
-        className={`group flex cursor-pointer items-center justify-between rounded-md border border-transparent bg-[hsl(var(--surface-1))] px-3 py-2 transition-colors hover:border-border/50 hover:bg-[hsl(var(--surface-2))] ${className}`}
+        className={`group flex cursor-pointer items-center justify-between gap-2 border-b border-border/70 bg-card px-3 py-2.5 transition-colors hover:bg-muted/40 sm:px-4 ${className}`}
     >
         {/* Drag Handle */}
         {dragListeners && (
@@ -120,11 +120,11 @@ export const FileRow = memo(function FileRow({ icon, title, meta, actions, onCli
         )}
 
         <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className={`rounded-md p-1.5 ${isFolder ? 'bg-primary/10 text-primary' : 'bg-muted/80 text-muted-foreground'} transition-colors group-hover:bg-primary/10 group-hover:text-primary`}>
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${isFolder ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
                 {icon}
             </div>
             <div className="min-w-0 flex-1 flex flex-col gap-0.5">
-                <div className="font-medium truncate text-sm">{title}</div>
+                <div className="truncate text-sm font-semibold text-foreground">{title}</div>
                 <div className="flex items-start gap-2 min-w-0">
                     {visibleTags.length > 0 && (
                         <div className="flex flex-wrap gap-1 max-w-full min-w-0">
@@ -158,7 +158,7 @@ export const FileRow = memo(function FileRow({ icon, title, meta, actions, onCli
                             )}
                         </div>
                     )}
-                    {meta && <div className="min-w-0 truncate text-xs text-muted-foreground/85">{meta}</div>}
+                    {meta && <div className="min-w-0 truncate text-xs text-muted-foreground">{meta}</div>}
                 </div>
             </div>
         </div>

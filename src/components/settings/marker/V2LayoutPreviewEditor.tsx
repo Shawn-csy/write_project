@@ -1,7 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, GripVertical, Plus, Share2, Settings2, Trash2 } from "lucide-react";
+import React, { useCallback, useMemo } from "react";
+import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Input } from "../../ui/input";
 import { Switch } from "../../ui/switch";
+import { Slider } from "../../ui/slider";
+import { Button } from "../../ui/button";
 import { EventTextV2 } from "../../renderer/v2/EventTextV2";
 import { cn } from "../../../lib/utils";
 import {
@@ -15,7 +17,6 @@ import {
   type TrackRole,
 } from "../../../lib/v2";
 import type { MarkerConfig } from "../../../types/script";
-import type { MarkerThemeApi } from "../../../types/api";
 
 const SAMPLE_AST = {
   type: "root",
@@ -69,39 +70,42 @@ const buildRangeAst = (markerId: string, label: string) => ({
   ],
 });
 
-interface ThemeBarProps {
-  markerThemes: MarkerThemeApi[];
-  currentThemeId: string;
-  switchTheme: (id: string) => void;
-  onNew: () => void;
-  onDelete: () => void;
-  onShare: () => void;
-  onMore: () => void;
-  canDelete: boolean;
-  isPublic?: boolean;
-  currentUser?: { uid?: string } | null;
-}
-
 interface V2LayoutPreviewEditorProps {
   layoutConfig: LayoutConfig;
   onChange: (config: LayoutConfig) => void;
   markerConfigs: MarkerConfig[];
   selectedConfig?: MarkerConfig | null;
   t: (key: string) => string;
-  themeBar?: ThemeBarProps;
 }
 
+const MIN_SHARE = 0.08;
+const MAX_SHARE = 0.8;
+
+// Neutral tints from tokens; alternating so neighbouring columns stay distinguishable.
+const TRACK_TINTS = ["bg-primary/5", "bg-accent/10", "bg-muted/50"];
+const TRACK_HEAD_TINTS = ["bg-primary/10", "bg-accent/15", "bg-muted"];
+
+const weightOf = (track: TrackConfig): number => {
+  const w = Number(track.desktopWidth);
+  return Number.isFinite(w) && w > 0 ? w : 1;
+};
+
+/**
+ * Column layout editor: a field list (name, visibility, width, order) beside a
+ * read-only preview. Controls live in the list, never inside the narrow preview
+ * columns, so it stays usable on phones.
+ */
 export function V2LayoutPreviewEditor({
   layoutConfig,
   onChange,
   markerConfigs,
   selectedConfig = null,
   t,
-  themeBar,
 }: V2LayoutPreviewEditorProps): React.JSX.Element {
-  const [collapsed, setCollapsed] = useState(false);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const tr = useCallback((key: string, fallback: string) => {
+    const value = t(key);
+    return value && value !== key ? value : fallback;
+  }, [t]);
 
   const config = useMemo(() => normalizeLayoutConfig(layoutConfig), [layoutConfig]);
   const tracks = useMemo(
@@ -151,30 +155,21 @@ export function V2LayoutPreviewEditor({
     return orchestrateDocument(doc);
   }, [layoutConfig, markerConfigs, ast]);
 
-  // Only enabled tracks appear in the preview grid
-  const enabledTracks = useMemo(() => tracks.filter((t) => t.enabled), [tracks]);
+  const enabledTracks = useMemo(() => tracks.filter((track) => track.enabled), [tracks]);
 
   const markerConfigById = useMemo(
     () => new Map(markerConfigs.filter((m) => m.id).map((m) => [m.id, m])),
     [markerConfigs]
   );
 
-  // Compute widths as fractions (normalized) for CSS grid
-  const widths = useMemo(() => {
-    if (enabledTracks.length === 0) return [];
-    const raw = enabledTracks.map((t) => {
-      const w = Number(t.desktopWidth);
-      return Number.isFinite(w) && w > 0 ? w : 1;
-    });
-    const total = raw.reduce((s, w) => s + w, 0) || enabledTracks.length;
-    return raw.map((w) => w / total);
-  }, [enabledTracks]);
+  const totalWeight = useMemo(
+    () => enabledTracks.reduce((sum, track) => sum + weightOf(track), 0) || enabledTracks.length || 1,
+    [enabledTracks]
+  );
+  const shareOf = useCallback((track: TrackConfig) => weightOf(track) / totalWeight, [totalWeight]);
 
-  const trackColumns = widths.length > 0
-    ? widths.map((r) => `minmax(0, ${Math.max(0.12, r).toFixed(4)}fr)`).join(" ")
-    : "minmax(0, 1fr)";
-  // Full grid: line-number gutter + track columns
-  const templateColumns = `32px ${trackColumns}`;
+  // Gutter + one column per enabled track; columns keep a readable minimum and the preview scrolls sideways.
+  const templateColumns = `2rem ${enabledTracks.map((track) => `minmax(9rem, ${Math.max(0.12, shareOf(track)).toFixed(4)}fr)`).join(" ") || "minmax(9rem, 1fr)"}`;
 
   const lineRows = useMemo(() => {
     const rows = new Map<number, Map<string, ScriptEvent[]>>();
@@ -206,13 +201,13 @@ export function V2LayoutPreviewEditor({
   const updateTrack = useCallback((id: string, patch: Partial<TrackConfig>) => {
     emit({
       ...config,
-      tracks: config.tracks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+      tracks: config.tracks.map((track) => (track.id === id ? { ...track, ...patch } : track)),
     });
   }, [config, emit]);
 
   const removeTrack = useCallback((id: string) => {
     if (config.tracks.length <= 1) return;
-    const nextTracks = config.tracks.filter((t) => t.id !== id);
+    const nextTracks = config.tracks.filter((track) => track.id !== id);
     emit({
       ...config,
       fallbackTrackId: config.fallbackTrackId === id
@@ -226,8 +221,8 @@ export function V2LayoutPreviewEditor({
   const addTrack = useCallback(() => {
     let n = config.tracks.length + 1;
     let id = `track-${n}`;
-    while (config.tracks.some((t) => t.id === id)) { n += 1; id = `track-${n}`; }
-    const maxOrder = config.tracks.reduce((max, t) => Math.max(max, Number(t.order) || 0), 0);
+    while (config.tracks.some((track) => track.id === id)) { n += 1; id = `track-${n}`; }
+    const maxOrder = config.tracks.reduce((max, track) => Math.max(max, Number(track.order) || 0), 0);
     emit({
       ...config,
       tracks: [
@@ -245,391 +240,219 @@ export function V2LayoutPreviewEditor({
     });
   }, [config, emit]);
 
-  // Drag-resize handler between columns
-  // dragIndex = index of left column being resized
-  const handleResizeDragStart = useCallback((dragIndex: number, startX: number) => {
-    const startWidths = widths.slice();
-    const containerWidth = containerRef.current?.getBoundingClientRect().width ?? 800;
+  const moveTrack = useCallback((index: number, direction: -1 | 1) => {
+    const a = tracks[index];
+    const b = tracks[index + direction];
+    if (!a || !b) return;
+    emit({
+      ...config,
+      tracks: config.tracks.map((track) => {
+        if (track.id === a.id) return { ...track, order: b.order };
+        if (track.id === b.id) return { ...track, order: a.order };
+        return track;
+      }),
+    });
+  }, [tracks, config, emit]);
 
-    const onMove = (e: PointerEvent) => {
-      const dx = e.clientX - startX;
-      const dRatio = dx / containerWidth;
-      const leftIdx = dragIndex;
-      const rightIdx = dragIndex + 1;
-      const minRatio = 0.08;
-      const newLeft = Math.max(minRatio, startWidths[leftIdx] + dRatio);
-      const newRight = Math.max(minRatio, startWidths[rightIdx] - dRatio);
-      // convert fractions back to absolute desktopWidth values
-      const total = enabledTracks.reduce((s, t) => {
-        const w = Number(t.desktopWidth);
-        return s + (Number.isFinite(w) && w > 0 ? w : 1);
-      }, 0) || enabledTracks.length;
-      const updatedTracks = config.tracks.map((t) => {
-        if (t.id === enabledTracks[leftIdx]?.id) return { ...t, desktopWidth: parseFloat((newLeft * total).toFixed(3)) };
-        if (t.id === enabledTracks[rightIdx]?.id) return { ...t, desktopWidth: parseFloat((newRight * total).toFixed(3)) };
-        return t;
-      });
-      emit({ ...config, tracks: updatedTracks });
-    };
+  // Set a column's share of the row; the other enabled columns keep their weights.
+  const setShare = useCallback((track: TrackConfig, share: number) => {
+    const others = enabledTracks.filter((item) => item.id !== track.id).reduce((sum, item) => sum + weightOf(item), 0);
+    if (others <= 0) return;
+    const clamped = Math.min(MAX_SHARE, Math.max(MIN_SHARE, share));
+    updateTrack(track.id, { desktopWidth: parseFloat(((clamped * others) / (1 - clamped)).toFixed(3)) });
+  }, [enabledTracks, updateTrack]);
 
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [widths, enabledTracks, config, emit]);
-
-  // Drag-reorder handler: drags header left/right to swap column order
-  const handleReorderDragStart = useCallback((dragIdx: number, startX: number) => {
-    let currentOver = dragIdx;
-    setDragOverIdx(dragIdx);
-
-    const onMove = (e: PointerEvent) => {
-      const dx = e.clientX - startX;
-      const colWidth = (containerRef.current?.getBoundingClientRect().width ?? 400) / (enabledTracks.length + 1);
-      const offset = Math.round(dx / colWidth);
-      const targetIdx = Math.max(0, Math.min(enabledTracks.length - 1, dragIdx + offset));
-      if (targetIdx !== currentOver) {
-        currentOver = targetIdx;
-        setDragOverIdx(targetIdx);
-      }
-    };
-
-    const onUp = () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      setDragOverIdx(null);
-      if (currentOver !== dragIdx) {
-        // Swap orders of the two tracks
-        const a = enabledTracks[dragIdx];
-        const b = enabledTracks[currentOver];
-        if (a && b) {
-          emit({
-            ...config,
-            tracks: config.tracks.map((t) => {
-              if (t.id === a.id) return { ...t, order: b.order };
-              if (t.id === b.id) return { ...t, order: a.order };
-              return t;
-            }),
-          });
-        }
-      }
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-  }, [enabledTracks, config, emit]);
-
-  // Track colors for visual distinction
-  const TRACK_COLORS = [
-    "bg-blue-500/8 border-blue-500/20",
-    "bg-violet-500/8 border-violet-500/20",
-    "bg-emerald-500/8 border-emerald-500/20",
-    "bg-amber-500/8 border-amber-500/20",
-    "bg-rose-500/8 border-rose-500/20",
-    "bg-cyan-500/8 border-cyan-500/20",
-  ];
-  const TRACK_HEADER_COLORS = [
-    "bg-blue-500/15",
-    "bg-violet-500/15",
-    "bg-emerald-500/15",
-    "bg-amber-500/15",
-    "bg-rose-500/15",
-    "bg-cyan-500/15",
+  const groupingOptions: Array<{ value: LayoutConfig["rowGrouping"]; label: string; title: string; active: boolean }> = [
+    { value: "line", label: t("appearance.dialogueRowNormal"), title: t("appearance.dialogueRowLayoutDesc"), active: config.rowGrouping !== "adjacent_dialogue" && config.rowGrouping !== "marker_dialogue" },
+    { value: "adjacent_dialogue", label: t("appearance.dialogueRowSideBySide"), title: t("appearance.dialogueRowLayoutDesc"), active: config.rowGrouping === "adjacent_dialogue" },
+    { value: "marker_dialogue", label: t("appearance.dialogueRowMarkerBased"), title: t("appearance.dialogueRowMarkerBasedDesc"), active: config.rowGrouping === "marker_dialogue" },
   ];
 
   return (
-    <div className="border-b border-border/40 bg-background/30 shrink-0">
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/30 px-3 py-1.5">
-        {themeBar ? (
-          <div className="flex min-w-[220px] flex-1 items-center gap-1.5">
-            <span className="shrink-0 text-xs text-muted-foreground">{t("markerThemeHeader.currentTheme")}</span>
-            <select
-              className="h-7 min-w-0 flex-1 rounded border border-input bg-background px-2 text-xs"
-              value={themeBar.currentThemeId}
-              onChange={(e) => themeBar.switchTheme(e.target.value)}
-            >
-              {themeBar.markerThemes.map((theme) => (
-                <option key={theme.id} value={theme.id}>{theme.id === "default" ? "系統預設" : (theme.name || theme.id)}</option>
-              ))}
-            </select>
-            <button type="button" onClick={themeBar.onNew} className="shrink-0 grid h-7 w-7 place-items-center rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground" title={t("markerThemeHeader.newTheme")}>
-              <Plus className="h-3.5 w-3.5" />
-            </button>
-            {themeBar.currentUser && (
-              <button type="button" onClick={themeBar.onShare} className={cn("shrink-0 grid h-7 w-7 place-items-center rounded hover:bg-muted/60", themeBar.isPublic ? "text-sky-500" : "text-muted-foreground hover:text-foreground")} title={themeBar.isPublic ? t("markerThemeHeader.publicTitleOn") : t("markerThemeHeader.publicTitleOff")}>
-                <Share2 className="h-3.5 w-3.5" />
+    <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
+      {/* Field list */}
+      <section aria-label={tr("markerLayoutEditor.fields", "欄位")} className="min-w-0 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <h3 className="text-[15px] font-semibold">{tr("markerLayoutEditor.fields", "欄位")}</h3>
+            <p className="text-xs text-muted-foreground">{tr("markerLayoutEditor.fieldsHint", "調整名稱、順序與寬度，右側即時預覽。")}</p>
+          </div>
+          <Button type="button" variant="outline" size="sm" className="h-10 shrink-0 sm:h-8" onClick={addTrack} aria-label={t("appearance.addTrack")}>
+            <Plus className="h-4 w-4" />
+            {t("appearance.addTrack")}
+          </Button>
+        </div>
+
+        <ul className="space-y-2">
+          {tracks.map((track, index) => {
+            const share = Math.round(shareOf(track) * 100);
+            return (
+              <li key={track.id} className={cn("rounded-[10px] border border-border bg-card p-3", !track.enabled && "opacity-70")}>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={track.name}
+                    onChange={(e) => updateTrack(track.id, { name: e.target.value })}
+                    className="h-10 min-w-0 flex-1 text-sm font-medium sm:h-9"
+                    aria-label={`${track.id} name`}
+                  />
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Switch
+                      checked={track.enabled}
+                      onCheckedChange={(checked) => updateTrack(track.id, { enabled: checked })}
+                      aria-label={`${track.name} enabled`}
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  {track.enabled && enabledTracks.length > 1 ? (
+                    <label className="flex min-w-[10rem] flex-1 items-center gap-2 text-xs text-muted-foreground">
+                      <span className="shrink-0">{tr("markerLayoutEditor.width", "寬度")}</span>
+                      <Slider
+                        min={Math.round(MIN_SHARE * 100)}
+                        max={Math.round(MAX_SHARE * 100)}
+                        step={1}
+                        value={[Math.min(Math.round(MAX_SHARE * 100), Math.max(Math.round(MIN_SHARE * 100), share))]}
+                        onValueChange={([value]) => setShare(track, (value ?? share) / 100)}
+                        aria-label={`${track.name} ${tr("markerLayoutEditor.width", "寬度")}`}
+                      />
+                      <span className="w-9 shrink-0 text-right tabular-nums text-foreground">{share}%</span>
+                    </label>
+                  ) : (
+                    <span className="flex-1 text-xs text-muted-foreground">
+                      {track.enabled ? tr("markerLayoutEditor.onlyColumn", "唯一的顯示欄位，寬度自動填滿。") : tr("markerLayoutEditor.hidden", "已隱藏，不會出現在預覽與閱讀頁。")}
+                    </span>
+                  )}
+                  <div className="ml-auto flex items-center gap-1">
+                    <Button type="button" variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" disabled={index === 0} onClick={() => moveTrack(index, -1)} aria-label={`${track.name} ${tr("markerLayoutEditor.moveUp", "上移")}`}>
+                      <ArrowUp className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" disabled={index === tracks.length - 1} onClick={() => moveTrack(index, 1)} aria-label={`${track.name} ${tr("markerLayoutEditor.moveDown", "下移")}`}>
+                      <ArrowDown className="h-4 w-4" />
+                    </Button>
+                    {tracks.length > 1 ? (
+                      <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8" onClick={() => removeTrack(track.id)} aria-label={`${track.name} remove`}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div>
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground">{tr("markerLayoutEditor.rowGrouping", "對白排列")}</div>
+          <div role="radiogroup" aria-label={tr("markerLayoutEditor.rowGrouping", "對白排列")} className="grid grid-cols-3 gap-0.5 rounded-lg bg-muted p-[3px]">
+            {groupingOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="radio"
+                aria-checked={option.active}
+                title={option.title}
+                onClick={() => updateRowGrouping(option.value)}
+                className={cn(
+                  "min-h-10 rounded-md px-1.5 text-xs transition-colors sm:min-h-8",
+                  option.active ? "bg-background font-semibold text-foreground shadow-[0_0_0_1px_hsl(var(--border))]" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {option.label}
               </button>
-            )}
-            <button type="button" onClick={themeBar.onMore} className="shrink-0 grid h-7 w-7 place-items-center rounded text-muted-foreground hover:bg-muted/60 hover:text-foreground" title={t("markerThemeHeader.moreSettings")}>
-              <Settings2 className="h-3.5 w-3.5" />
-            </button>
-            {themeBar.canDelete && (
-              <button type="button" onClick={themeBar.onDelete} className="shrink-0 grid h-7 w-7 place-items-center rounded text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive" title={t("markerThemeHeader.delete")}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            )}
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Preview */}
+      <section aria-label={tr("markerLayoutEditor.preview", "預覽")} className="min-w-0 lg:sticky lg:top-3">
+        <h3 className="mb-2 text-[15px] font-semibold">{tr("markerLayoutEditor.preview", "預覽")}</h3>
+        {enabledTracks.length === 0 ? (
+          <div className="rounded-[10px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
+            {tr("markerLayoutEditor.noEnabled", "沒有顯示中的欄位，開啟左側任一欄位即可預覽。")}
           </div>
         ) : (
-          <div className="min-w-[120px] flex-1 text-xs font-medium text-foreground/80">
-            {t("markerSettingsHeader.viewLayout")}
-          </div>
-        )}
-
-        <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-          <button
-            type="button"
-            onClick={() => updateRowGrouping('line')}
-            className={cn(
-              "h-7 rounded px-2.5 text-xs transition-colors",
-              config.rowGrouping !== 'adjacent_dialogue' && config.rowGrouping !== 'marker_dialogue' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-            title={t("appearance.dialogueRowLayoutDesc")}
-          >
-            {t("appearance.dialogueRowNormal")}
-          </button>
-          <button
-            type="button"
-            onClick={() => updateRowGrouping('adjacent_dialogue')}
-            className={cn(
-              "h-7 rounded px-2.5 text-xs transition-colors",
-              config.rowGrouping === 'adjacent_dialogue' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-            title={t("appearance.dialogueRowLayoutDesc")}
-          >
-            {t("appearance.dialogueRowSideBySide")}
-          </button>
-          <button
-            type="button"
-            onClick={() => updateRowGrouping('marker_dialogue')}
-            className={cn(
-              "h-7 rounded px-2.5 text-xs transition-colors",
-              config.rowGrouping === 'marker_dialogue' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-            )}
-            title={t("appearance.dialogueRowMarkerBasedDesc")}
-          >
-            {t("appearance.dialogueRowMarkerBased")}
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={addTrack}
-          className="flex h-7 items-center gap-1.5 rounded border border-dashed border-border/50 px-2 text-xs text-muted-foreground transition-colors hover:border-border hover:bg-muted/30 hover:text-foreground"
-          aria-label={t("appearance.addTrack")}
-        >
-          <Plus className="h-3 w-3" />
-          <span>{t("appearance.addTrack")}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCollapsed((p) => !p)}
-          className="ml-auto flex h-7 shrink-0 items-center gap-1 rounded px-2 text-xs text-muted-foreground hover:bg-muted/40 hover:text-foreground"
-        >
-          <span>{collapsed ? t("appearance.trackPreviewExpand") : t("appearance.trackPreviewCollapse")}</span>
-          {collapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-        </button>
-      </div>
-
-      {!collapsed && (
-        <div className="space-y-2 px-3 pb-3 pt-2">
-          {/* Main preview+edit grid */}
-          <div
-            ref={containerRef}
-            className="overflow-hidden rounded-md border border-border/50 select-none"
-          >
-            {/* Column headers with resize handles */}
-            <div
-              className="grid"
-              style={{ gridTemplateColumns: templateColumns }}
-            >
-              {/* Gutter header placeholder */}
-              <div className="border-r border-border/30 bg-muted/10" />
-              {enabledTracks.map((track, idx) => (
-                  <div
-                    key={track.id}
-                    className={cn(
-                      "relative px-2 pt-2 pb-1.5 border-r last:border-r-0 border-border/30 transition-opacity",
-                      TRACK_HEADER_COLORS[idx % TRACK_HEADER_COLORS.length],
-                      dragOverIdx !== null && dragOverIdx === idx && dragOverIdx !== enabledTracks.findIndex((t) => t.id === track.id) && "ring-2 ring-primary/60"
-                    )}
-                  >
-                    {/* Name + controls row */}
-                    <div className="flex items-center gap-1 mb-1">
-                      {/* Grip for reorder drag */}
-                      <div
-                        className="shrink-0 cursor-grab active:cursor-grabbing text-muted-foreground/40 hover:text-muted-foreground"
-                        onPointerDown={(e) => {
-                          // Only start reorder if not on resize handle
-                          e.preventDefault();
-                          handleReorderDragStart(idx, e.clientX);
-                        }}
-                      >
-                        <GripVertical className="h-3 w-3" />
-                      </div>
-                      <Input
-                        value={track.name}
-                        onChange={(e) => updateTrack(track.id, { name: e.target.value })}
-                        className="h-6 flex-1 min-w-0 text-xs font-semibold border-0 bg-transparent focus:bg-background/60 focus:border focus:border-border/40 p-0 px-1"
-                        aria-label={`${track.id} name`}
-                      />
-                      <Switch
-                        checked={track.enabled}
-                        onCheckedChange={(checked) => updateTrack(track.id, { enabled: checked })}
-                        className="h-4 w-7 shrink-0 [&>span]:h-3 [&>span]:w-3 data-[state=checked]:[&>span]:translate-x-3"
-                        aria-label={`${track.name} enabled`}
-                      />
-                      {tracks.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeTrack(track.id)}
-                          className="shrink-0 grid h-5 w-5 place-items-center rounded text-muted-foreground/60 hover:bg-destructive/10 hover:text-destructive"
-                          aria-label={`${track.name} remove`}
-                        >
-                          <Trash2 className="h-2.5 w-2.5" />
-                        </button>
-                      )}
-                    </div>
-                    {/* Resize handle on right edge (not last) */}
-                    {idx < enabledTracks.length - 1 && (
-                      <div
-                        className="absolute top-0 right-0 w-1.5 h-full cursor-col-resize hover:bg-primary/40 active:bg-primary/60 z-10"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleResizeDragStart(idx, e.clientX);
-                        }}
-                      />
-                    )}
+          <div className="marker-test-paper overflow-x-auto rounded-[10px] border border-border">
+            <div className="min-w-max">
+              <div className="grid border-b border-border" style={{ gridTemplateColumns: templateColumns }}>
+                <div className="border-r border-border bg-muted" />
+                {enabledTracks.map((track, idx) => (
+                  <div key={track.id} className={cn("truncate border-r border-border px-2 py-1.5 text-xs font-semibold last:border-r-0", TRACK_HEAD_TINTS[idx % TRACK_HEAD_TINTS.length])} title={track.name}>
+                    {track.name}
                   </div>
                 ))}
-            </div>
-
-            {/* Preview rows */}
-            <div className="divide-y divide-border/20">
-              {lineRows.map((row) => {
-                const isRange = selectedConfig?.matchMode === "range";
-                // range: lines 2 and 4 are marker rows; line 3 is inside the range
-                const isMarkerRow = selectedLine !== null && (
-                  isRange ? (row.line === 2 || row.line === 4) : row.line === selectedLine
-                );
-                const isRangeInside = isRange && row.line === 3;
-                const isRangeStart = isRange && row.line === 2;
-                const isRangeEnd = isRange && row.line === 4;
-                return (
-                <div
-                  key={row.line}
-                  className={cn("grid", isMarkerRow && "bg-primary/5")}
-                  style={{ gridTemplateColumns: templateColumns }}
-                >
-                  {/* Line number gutter */}
-                  <div className={cn(
-                    "border-r border-border/20 bg-muted/5 flex items-start justify-center pt-2 min-h-[2rem]",
-                    isMarkerRow && "bg-primary/10",
-                    isRangeInside && "bg-primary/5"
-                  )}>
-                    <span className={cn("text-[10px] font-mono", isMarkerRow ? "text-primary font-bold" : "text-muted-foreground/50")}>
-                      {isMarkerRow ? "▶" : `L${row.line}`}
-                    </span>
-                  </div>
-                  {enabledTracks.map((track, idx) => {
-                    const events = row.eventsByTrackId.get(track.id) ?? [];
-                    // Identify which track the selected range marker belongs to
-                    const selectedMarkerTrackId = selectedConfig?.v2TrackId;
-                    const isRangeMarkerTrack = isRange && selectedMarkerTrackId
-                      ? track.id === selectedMarkerTrackId
-                      : isRange && events.some((e) => e.markerId === selectedConfig?.id);
-                    const rangeInsideFill = isRangeInside && isRangeMarkerTrack;
-                    const selectedMarkerStyle = selectedConfig?.style && typeof selectedConfig.style === "object"
-                      ? selectedConfig.style as React.CSSProperties
-                      : undefined;
-                    return (
-                      <div
-                        key={`${row.line}-${track.id}`}
-                        className={cn(
-                          "px-2 py-1.5 border-r last:border-r-0 border-border/20 min-h-[2rem]",
-                          !isRangeMarkerTrack && TRACK_COLORS[idx % TRACK_COLORS.length],
-                          events.length === 0 && !rangeInsideFill && "opacity-0"
-                        )}
-                        style={rangeInsideFill && selectedMarkerStyle?.backgroundColor
-                          ? { backgroundColor: selectedMarkerStyle.backgroundColor, opacity: 0.4 }
-                          : undefined
-                        }
-                      >
-                        {events.map((event) => {
-                          const mCfg = event.markerId ? markerConfigById.get(String(event.markerId)) : undefined;
-                          const rawStyle = mCfg?.style && typeof mCfg.style === "object" ? mCfg.style as React.CSSProperties : undefined;
-                          // Range: start row rounds top, end row rounds bottom, inside has no rounding and no top/bottom border
-                          const rangeStyle: React.CSSProperties | undefined = rawStyle && isRange && event.markerId === selectedConfig?.id ? {
-                            ...rawStyle,
-                            borderRadius: isRangeStart ? "4px 4px 0 0" : isRangeEnd ? "0 0 4px 4px" : "0",
-                            marginBottom: isRangeStart ? 0 : undefined,
-                            marginTop: isRangeEnd ? 0 : undefined,
-                          } : rawStyle;
-                          return (
-                            <div
-                              key={event.id}
-                              className="text-xs leading-relaxed px-1 min-w-0 break-words"
-                              style={rangeStyle}
-                            >
-                              {event.speakerId
-                                ? <span className="text-muted-foreground text-[10px] mr-1">{event.speakerId}</span>
-                                : null
-                              }
-                              <EventTextV2
-                                text={event.text}
-                                markerConfigs={markerConfigs}
-                                hiddenMarkerIds={[]}
-                                markerTooltipPrefix="標記"
-                              />
-                            </div>
-                          );
-                        })}
+              </div>
+              <div className="divide-y divide-border/60">
+                {lineRows.map((row) => {
+                  const isRange = selectedConfig?.matchMode === "range";
+                  const isMarkerRow = selectedLine !== null && (
+                    isRange ? (row.line === 2 || row.line === 4) : row.line === selectedLine
+                  );
+                  const isRangeInside = isRange && row.line === 3;
+                  const isRangeStart = isRange && row.line === 2;
+                  const isRangeEnd = isRange && row.line === 4;
+                  return (
+                    <div key={row.line} className={cn("grid", isMarkerRow && "bg-primary/5")} style={{ gridTemplateColumns: templateColumns }}>
+                      <div className={cn("flex min-h-[2rem] items-start justify-center border-r border-border/60 bg-muted/40 pt-2", isMarkerRow && "bg-primary/10")}>
+                        <span className={cn("font-mono text-[10px]", isMarkerRow ? "font-bold text-primary" : "text-muted-foreground")}>
+                          {isMarkerRow ? "▶" : `L${row.line}`}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-                );
-              })}
+                      {enabledTracks.map((track, idx) => {
+                        const events = row.eventsByTrackId.get(track.id) ?? [];
+                        const selectedMarkerTrackId = selectedConfig?.v2TrackId;
+                        const isRangeMarkerTrack = isRange && selectedMarkerTrackId
+                          ? track.id === selectedMarkerTrackId
+                          : isRange && events.some((e) => e.markerId === selectedConfig?.id);
+                        const rangeInsideFill = isRangeInside && isRangeMarkerTrack;
+                        const selectedMarkerStyle = selectedConfig?.style && typeof selectedConfig.style === "object"
+                          ? selectedConfig.style as React.CSSProperties
+                          : undefined;
+                        return (
+                          <div
+                            key={`${row.line}-${track.id}`}
+                            className={cn(
+                              "min-h-[2rem] min-w-0 border-r border-border/60 px-2 py-1.5 last:border-r-0",
+                              !isRangeMarkerTrack && TRACK_TINTS[idx % TRACK_TINTS.length],
+                              events.length === 0 && !rangeInsideFill && "opacity-0"
+                            )}
+                            style={rangeInsideFill && selectedMarkerStyle?.backgroundColor
+                              ? { backgroundColor: selectedMarkerStyle.backgroundColor, opacity: 0.4 }
+                              : undefined}
+                          >
+                            {events.map((event) => {
+                              const mCfg = event.markerId ? markerConfigById.get(String(event.markerId)) : undefined;
+                              const rawStyle = mCfg?.style && typeof mCfg.style === "object" ? mCfg.style as React.CSSProperties : undefined;
+                              const rangeStyle: React.CSSProperties | undefined = rawStyle && isRange && event.markerId === selectedConfig?.id ? {
+                                ...rawStyle,
+                                borderRadius: isRangeStart ? "4px 4px 0 0" : isRangeEnd ? "0 0 4px 4px" : "0",
+                                marginBottom: isRangeStart ? 0 : undefined,
+                                marginTop: isRangeEnd ? 0 : undefined,
+                              } : rawStyle;
+                              return (
+                                <div key={event.id} className="min-w-0 break-words px-1 text-xs leading-relaxed" style={rangeStyle}>
+                                  {event.speakerId ? <span className="mr-1 text-[10px] text-muted-foreground">{event.speakerId}</span> : null}
+                                  <EventTextV2
+                                    text={event.text}
+                                    markerConfigs={markerConfigs}
+                                    hiddenMarkerIds={[]}
+                                    markerTooltipPrefix="標記"
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
-
-          {/* Disabled tracks row */}
-          {tracks.filter((t) => !t.enabled).length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {tracks.filter((t) => !t.enabled).map((track) => (
-                <div
-                  key={track.id}
-                  className="flex items-center gap-1.5 rounded border border-border/30 bg-muted/20 px-2 py-1 text-xs text-muted-foreground"
-                >
-                  <span>{track.name}</span>
-                  <span className="font-mono text-[10px] opacity-60">({track.id})</span>
-                  <Switch
-                    checked={false}
-                    onCheckedChange={() => updateTrack(track.id, { enabled: true })}
-                    className="h-4 w-7 shrink-0 [&>span]:h-3 [&>span]:w-3"
-                    aria-label={`${track.name} enabled`}
-                  />
-                  {tracks.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeTrack(track.id)}
-                      className="grid h-4 w-4 place-items-center rounded text-muted-foreground/60 hover:text-destructive"
-                      aria-label={`${track.name} remove`}
-                    >
-                      <Trash2 className="h-2.5 w-2.5" />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-        </div>
-      )}
+        )}
+        <p className="mt-2 text-xs text-muted-foreground lg:hidden">{tr("markerLayoutEditor.scrollHint", "預覽可左右滑動查看所有欄位。")}</p>
+      </section>
     </div>
   );
 }

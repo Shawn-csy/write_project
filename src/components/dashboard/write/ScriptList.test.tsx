@@ -96,6 +96,47 @@ describe("ScriptList", () => {
 
     expect(screen.getByText("My Script")).toBeInTheDocument();
   });
+
+  it("shows the shared status pill instead of an English PRIVATE label", () => {
+    render(
+      <ScriptList
+        readOnly={false}
+        sortKey="custom"
+        sortDir="desc"
+        currentPath="/"
+        expandedPaths={new Set()}
+        markerThemes={[]}
+        onSelectScript={vi.fn()}
+        onToggleExpand={vi.fn()}
+        onGoUp={vi.fn()}
+        sensors={[]}
+        setScripts={vi.fn()}
+        loading={false}
+        visibleItems={[
+          { id: "s1", type: "script", title: "Draft", folder: "/", isPublic: false, lastModified: Date.now(), createdAt: Date.now() },
+          { id: "s2", type: "script", title: "Live", folder: "/", isPublic: true, lastModified: Date.now(), createdAt: Date.now() },
+        ]}
+      />
+    );
+    expect(screen.queryByText(/^private$/i)).toBeNull();
+    expect(screen.queryByText(/^public$/i)).toBeNull();
+    expect(screen.getAllByText("未公開").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("已公開").length).toBeGreaterThan(0);
+    expect(document.querySelector("select")).toBeNull();
+  });
+
+  it("renders a skeleton while loading and an actionable empty state when empty", () => {
+    const base = {
+      readOnly: false, sortKey: "custom", sortDir: "desc" as const, currentPath: "/", expandedPaths: new Set<string>(),
+      markerThemes: [], onSelectScript: vi.fn(), onToggleExpand: vi.fn(), onGoUp: vi.fn(), sensors: [], setScripts: vi.fn(),
+    };
+    const { rerender } = render(<ScriptList {...base} loading={true} visibleItems={[]} />);
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    rerender(<ScriptList {...base} loading={false} visibleItems={[]} />);
+    expect(screen.getByText("此資料夾為空")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /新增台本/ })).toBeInTheDocument();
+  });
+
   it("opens a Dialog from the row menu without the two focus traps recursing, and leaves the page clickable", async () => {
     const user = userEvent.setup();
     const item = {
@@ -143,7 +184,7 @@ describe("ScriptList", () => {
     }
     render(<Harness />);
 
-    await user.click(document.querySelector('[aria-haspopup="menu"]') as HTMLElement);
+    await user.click(screen.getByRole("button", { name: "操作選項" }));
     await user.click(await screen.findByText("common.remove"));
     await user.click(await screen.findByText("confirm"));
     await act(async () => { await new Promise((r) => setTimeout(r, 400)); });

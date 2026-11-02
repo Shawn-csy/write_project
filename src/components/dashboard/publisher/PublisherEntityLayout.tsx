@@ -144,12 +144,14 @@ export function PublisherEntityListItem({
 }
 
 export function PublisherEmptyState({
+  icon = null,
   title,
   description = "",
   actionLabel = "",
   onAction = null,
   className = "",
 }: {
+  icon?: React.ComponentType<{ className?: string }> | null;
   title: React.ReactNode;
   description?: React.ReactNode;
   actionLabel?: React.ReactNode;
@@ -159,6 +161,7 @@ export function PublisherEmptyState({
   const { openEditor } = usePublisherPanelNavigation();
   return (
     <StudioEmptyStateCard
+      icon={icon}
       title={title}
       description={description}
       actionLabel={actionLabel}

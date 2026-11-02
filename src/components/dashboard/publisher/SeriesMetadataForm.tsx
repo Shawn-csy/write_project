@@ -20,7 +20,7 @@ type SeriesMetadataFormProps = {
   isSaving: boolean;
 } & (
   | { isEditing: false; onCreateSeries: () => void; onUpdateSeries?: never }
-  | { isEditing: true; onUpdateSeries: () => void; onCreateSeries?: never }
+  | { isEditing: true; onUpdateSeries?: () => void; onCreateSeries?: never }
 );
 
 export function SeriesMetadataForm({
@@ -29,7 +29,6 @@ export function SeriesMetadataForm({
   isEditing,
   isSaving,
   onCreateSeries,
-  onUpdateSeries,
 }: SeriesMetadataFormProps): React.JSX.Element {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = React.useState<boolean>(false);
   const [coverPreviewFailed, setCoverPreviewFailed] = React.useState<boolean>(false);
@@ -97,19 +96,15 @@ export function SeriesMetadataForm({
         </div>
       </PublisherFormRow>
 
-      <PublisherFormRow label="操作">
-        <div className="flex items-center gap-2 pt-1">
-          {!isEditing ? (
+      {!isEditing ? (
+        <PublisherFormRow label="操作">
+          <div className="flex items-center gap-2 pt-1">
             <Button disabled={isSaving || !seriesDraft.name.trim()} onClick={onCreateSeries}>
               建立系列
             </Button>
-          ) : (
-            <Button disabled={isSaving || !seriesDraft.name.trim()} onClick={onUpdateSeries}>
-              儲存變更
-            </Button>
-          )}
-        </div>
-      </PublisherFormRow>
+          </div>
+        </PublisherFormRow>
+      ) : null /* editing saves from the sticky save bar */}
 
       <MediaPicker
         open={isMediaPickerOpen}
