@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useRef, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown } from "lucide-react";
+import { Trash2, Folder, ChevronRight, FileText, MoreHorizontal, Settings, Globe, FolderInput, ArrowUpDown, ChevronDown, FolderOpen, Plus } from "lucide-react";
 import { Button } from "../../ui/button";
 import { FileRow, SortableFileRow } from "../FileRow";
 import {
@@ -30,6 +30,8 @@ import { updateScript } from "../../../lib/api/scripts";
 import { isDefaultLikeTheme } from "../../../lib/themeNameUtils";
 import { useI18n } from "../../../contexts/I18nContext";
 import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
+import { StatusPill } from "../../studio/StatusPill";
+import { ListRowsSkeleton } from "../../studio/StudioSkeleton";
 import type { WriteScriptItem } from "../../../types/write";
 
 interface MarkerThemeOption {
@@ -106,8 +108,10 @@ const ScriptListRow = memo(function ScriptListRow({
 
     const isChild = (item.depth || 0) > 0;
     const rowClassName = isSelected
-        ? "bg-primary/12 ring-1 ring-inset ring-primary/45 border-l-4 border-l-primary"
-        : (isChild ? "bg-muted/20 border-l border-l-border/50" : "");
+        ? "!bg-primary/10 shadow-[inset_3px_0_0_hsl(var(--primary))]"
+        : (isChild ? "bg-muted/20" : "");
+    const statusLabel = item.isPublic ? t("scriptList.statusPublic", "已公開") : t("scriptList.statusPrivate", "未公開");
+    const themeLabel = selectableMarkerThemes.find((th) => th.id === (item.markerThemeId || "default"))?.name || t("scriptList.defaultTheme", "(預設主題)");
 
     const isFolderExpanded = item.type === 'folder' &&
         expandedPaths.has((item.folder === '/' ? '' : item.folder) + '/' + item.title);
@@ -140,12 +144,15 @@ const ScriptListRow = memo(function ScriptListRow({
                                         {item._themeName || t("scriptList.theme")}
                                     </span>
                                 )}
-                                <span
-                                    onClick={(e: React.MouseEvent<HTMLSpanElement>) => onStatusClick(e, item)}
-                                    className={`px-1.5 py-0.5 rounded text-[10px] border ${item.isPublic ? 'border-[color:var(--license-selected-border)] bg-[color:var(--license-selected-bg)] text-[color:var(--license-selected-fg)]' : 'border-border bg-[hsl(var(--surface-2))] text-foreground/75'} ${!readOnly ? "cursor-pointer active:scale-95 transition-transform" : ""}`}
+                                <button
+                                    type="button"
+                                    onClick={(e) => onStatusClick(e, item)}
+                                    disabled={readOnly}
+                                    className="inline-flex"
+                                    aria-label={statusLabel}
                                 >
-                                    {item.isPublic ? 'Public' : 'Private'}
-                                </span>
+                                    <StatusPill status={item.isPublic ? "live" : "draft"}>{statusLabel}</StatusPill>
+                                </button>
                             </div>
                         </div>
                     )
@@ -169,45 +176,59 @@ const ScriptListRow = memo(function ScriptListRow({
                             <>
                                 <div className="w-24 hidden md:block"></div>
                                 <div className="w-32 hidden md:block"></div>
-                                <div className="w-28 hidden md:block"></div>
+                                <div className="hidden w-32 md:block"></div>
                             </>
                         )}
 
                         {/* Theme Selector (Desktop Only) */}
                         {item.type !== 'folder' && !readOnly && (
-                            <div className="w-28 text-center hidden md:block" onClick={e => e.stopPropagation()}>
-                                <select
-                                    id={`script-theme-${item.id}`}
-                                    name={`scriptTheme-${item.id}`}
-                                    aria-label={t("scriptList.scriptMarkerTheme")}
-                                    className="w-full h-6 text-[10px] rounded border border-input bg-background px-1"
-                                    value={item.markerThemeId || "default"}
-                                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => onThemeChange(item.id, e.target.value, item.markerThemeId)}
-                                >
-                                    {selectableMarkerThemes.map(th => (
-                                        <option key={th.id} value={th.id}>{th.name}</option>
-                                    ))}
-                                </select>
+                            <div className="hidden w-32 md:block" onClick={e => e.stopPropagation()}>
+                                <DropdownMenu modal={false}>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="h-8 w-full justify-between gap-1 px-2 text-xs font-normal"
+                                            aria-label={`${t("scriptList.scriptMarkerTheme", "劇本標記主題")}：${themeLabel}`}
+                                        >
+                                            <span className="truncate">{themeLabel}</span>
+                                            <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-48">
+                                        <DropdownMenuRadioGroup
+                                            value={item.markerThemeId || "default"}
+                                            onValueChange={(val) => onThemeChange(item.id, val, item.markerThemeId)}
+                                        >
+                                            {selectableMarkerThemes.map(th => (
+                                                <DropdownMenuRadioItem key={th.id} value={th.id}>{th.name}</DropdownMenuRadioItem>
+                                            ))}
+                                        </DropdownMenuRadioGroup>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         )}
 
-                        {/* Public Status (Desktop Only or Icon) */}
-                        <div className="w-20 flex justify-center hidden md:flex">
+                                                {/* Public Status (Desktop Only or Icon) */}
+                        <div className="hidden w-24 justify-center md:flex">
                             {item.type !== 'folder' && (
-                                <div
+                                <button
+                                    type="button"
                                     onClick={(e) => onStatusClick(e, item)}
-                                    className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${!readOnly ? "cursor-pointer hover:opacity-85 active:scale-95 transition-all" : ""} ${item.isPublic ? 'border-[color:var(--license-selected-border)] bg-[color:var(--license-selected-bg)] text-[color:var(--license-selected-fg)]' : 'border-border bg-[hsl(var(--surface-2))] text-foreground/75'}`}
-                                    title={readOnly ? "" : t("scriptList.clickToManagePublish")}
+                                    disabled={readOnly}
+                                    title={readOnly ? "" : t("scriptList.clickToManagePublish", "點擊管理發布設定")}
+                                    className="inline-flex rounded-full disabled:cursor-default"
+                                    aria-label={statusLabel}
                                 >
-                                    {item.isPublic ? "Public" : "Private"}
-                                </div>
+                                    <StatusPill status={item.isPublic ? "live" : "draft"}>{statusLabel}</StatusPill>
+                                </button>
                             )}
                         </div>
 
                         {/* Actions Dropdown */}
                         {item.type !== 'folder' && (
-                            <Button variant="ghost" size="sm" className="h-11 shrink-0 px-2 text-xs sm:h-8" onClick={(e) => { e.stopPropagation(); onOpenScript(item); }}>
-                                {readOnly ? "檢視" : "編輯"}
+                            <Button variant="outline" size="sm" className="h-10 shrink-0 px-3 sm:h-8" onClick={(e) => { e.stopPropagation(); onOpenScript(item); }}>
+                                {readOnly ? t("scriptList.view", "檢視") : t("scriptList.edit", "編輯")}
                             </Button>
                         )}
                         <div className="w-10 flex justify-end items-center" onClick={e => e.stopPropagation()}>
@@ -217,7 +238,7 @@ const ScriptListRow = memo(function ScriptListRow({
                                 // recurse until the stack overflows, freezing the page.
                                 <DropdownMenu modal={false}>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                        <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-foreground sm:h-8 sm:w-8" aria-label={t("scriptList.actions", "操作選項")}>
                                             <MoreHorizontal className="w-4 h-4" />
                                         </Button>
                                     </DropdownMenuTrigger>
@@ -414,14 +435,17 @@ export const ScriptList = memo(function ScriptList({
     }, [onSelectScript]);
 
     if (loading) {
-        return <div className="flex justify-center p-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+        return <ListRowsSkeleton label={t("common.loading", "載入中")} />;
     }
 
     if (visibleItems.length === 0) {
         return (
             <StudioEmptyStateCard
-                title={t("scriptList.emptyFolder")}
-                description={t("writeTab.guideDemoDesc", "你可以建立新劇本、資料夾，或匯入既有稿件。")}
+                icon={FolderOpen}
+                title={t("scriptList.emptyFolder", "此資料夾為空")}
+                description={t("scriptList.emptyFolderHint", "建立新台本、新增資料夾，或匯入既有稿件，開始整理你的作品。")}
+                actionLabel={readOnly ? "" : (<><Plus className="mr-1 h-4 w-4" />{t("scriptList.createScript", "新增台本")}</>)}
+                onAction={readOnly ? null : () => window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type: "create-script" } }))}
             />
         );
     }
@@ -438,9 +462,9 @@ export const ScriptList = memo(function ScriptList({
                 items={visibleItems.map(i => i.id)}
                 strategy={verticalListSortingStrategy}
             >
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col">
                     {/* Header Row */}
-                    <div className="sticky top-0 z-10 flex items-center rounded-md border border-border/60 bg-gradient-to-r from-muted/70 via-muted/45 to-background px-4 py-2 text-xs font-medium text-muted-foreground shadow-sm">
+                    <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground sm:px-4">
                         <div className="flex-1">
                             <button
                                 type="button"
@@ -464,8 +488,9 @@ export const ScriptList = memo(function ScriptList({
                                 {sortKey === "lastModified" && <span>{sortDir === "asc" ? "↑" : "↓"}</span>}
                             </button>
                         </div>
-                        <div className="w-28 text-center hidden md:block">{t("scriptList.markerTheme")}</div>
-                        <div className="w-20 text-center hidden md:block">{t("scriptList.status")}</div>
+                        <div className="hidden w-32 md:block">{t("scriptList.markerTheme")}</div>
+                        <div className="hidden w-24 text-center md:block">{t("scriptList.status")}</div>
+                        <div className="hidden w-14 md:block"></div>
                         <div className="w-10"></div>
                     </div>
 
@@ -473,7 +498,7 @@ export const ScriptList = memo(function ScriptList({
                     {currentPath !== "/" && (
                         <div
                             onClick={onGoUp}
-                            className="flex cursor-pointer items-center rounded-md border border-border/50 bg-background px-4 py-3 text-muted-foreground transition-colors hover:bg-muted/40"
+                            className="flex cursor-pointer items-center gap-1 border-b border-border/70 bg-card px-3 py-3 text-muted-foreground transition-colors hover:bg-muted/40 sm:px-4"
                         >
                             <div className="mr-3 p-1">
                                 <ChevronRight className="w-4 h-4 rotate-180" />

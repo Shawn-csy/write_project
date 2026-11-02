@@ -538,7 +538,9 @@ const messages = {
     "continueWriting": "編輯",
     "editInfo": "編輯資訊",
     "viewPublicPage": "查看公開頁",
-    "loadMore": "載入更多"
+    "loadMore": "載入更多",
+    "emptyCreateAction": "新增第一部台本",
+    "clearFilters": "清除篩選"
   },
   "markerSettingsGuide": {
     "sampleMarker": "範例標記",
@@ -918,6 +920,7 @@ const messages = {
     "selectRuleToTest": "選擇左側規則，就能看到它比對到哪些行。",
     "readingPreview": "閱讀時的樣子",
     "previewUsesDraft": "預覽使用尚未儲存的規則；儲存後才會套用到作品。",
+    "previewPaperNote": "預覽固定使用淺色紙面，深色模式下也能看清規則顏色。",
     "rules": "標記規則",
     "add": "新增",
     "filterByType": "依類型篩選",
@@ -1257,7 +1260,13 @@ const messages = {
     "script": "script",
     "downloadFountain": "下載 .fountain",
     "rename": "重新命名",
-    "dragging": "Dragging..."
+    "dragging": "Dragging...",
+    "statusPublic": "已公開",
+    "statusPrivate": "未公開",
+    "view": "檢視",
+    "edit": "編輯",
+    "emptyFolderHint": "建立新台本、新增資料夾，或匯入既有稿件，開始整理你的作品。",
+    "createScript": "新增台本"
   },
   "scriptMetadataDialog": {
     "checkTitle": "作品標題",
@@ -1283,10 +1292,14 @@ const messages = {
     "recommended": "建議填寫（不影響發布）",
     "goFix": "前往補齊：{label}",
     "fixLater": "稍後補上：{label}",
-    "tabBasic": "基本資訊",
+    "tabBasic": "基本資料",
     "tabDetails": "詳細設定",
     "tabLicense": "授權",
-    "tabAdvanced": "進階",
+    "tabAdvanced": "進階設定",
+    "tabPublish": "發布設定",
+    "tabExposure": "展示與分類",
+    "tabActivity": "活動宣傳",
+    "tabDemo": "試聽範例",
     "confirmSave": "確認儲存",
     "guide": "教學",
     "guideSkip": "略過",
@@ -1694,6 +1707,19 @@ const messages = {
     "saved": "顯示名稱已更新",
     "saveFailed": "儲存顯示名稱失敗"
   },
+  "markerLayoutEditor": {
+    "fields": "欄位",
+    "fieldsHint": "調整名稱、順序與寬度，右側即時預覽。",
+    "preview": "預覽",
+    "width": "寬度",
+    "moveUp": "上移",
+    "moveDown": "下移",
+    "onlyColumn": "唯一的顯示欄位，寬度自動填滿。",
+    "hidden": "已隱藏，不會出現在預覽與閱讀頁。",
+    "rowGrouping": "對白排列",
+    "noEnabled": "沒有顯示中的欄位，開啟任一欄位即可預覽。",
+    "scrollHint": "預覽可左右滑動查看所有欄位。"
+  },
   "appearance": {
     "title": "外觀與閱讀",
     "subtitle": "自訂介面主題、字體大小與排版樣式",
@@ -2025,6 +2051,61 @@ const messages = {
     "rangeBlockHint": "區間為跨行區塊，內容無法與原句同一行內嵌。",
     "groupingMismatchWarning": "已啟用同步區間，但目前欄位分組模式不是 marker_dialogue，不會同列對齊。",
     "goFixLayout": "前往版面設定修正"
+  },
+  "adminConsole": {
+    "title": "超管後台",
+    "subtitle": "審核投稿、管理公開內容與全站資料。",
+    "adminLabel": "管理員",
+    "noAccessTitle": "沒有超級管理員權限",
+    "noAccessDesc": "請使用已列入超管名單的帳號登入。",
+    "groupNavLabel": "後台分類",
+    "tabNavLabel": "子頁面",
+    "groups": {
+      "review": "審核",
+      "activities": "活動",
+      "content": "內容",
+      "external": "外部資源",
+      "directory": "全站名錄",
+      "platform": "平台"
+    },
+    "tabs": {
+      "applications": "申請與回報",
+      "submissions": "Demo 投稿",
+      "voiceActorProfiles": "聲演頁面",
+      "externalAuthorProfiles": "外部台本師頁面",
+      "campaigns": "活動投稿",
+      "activityPages": "活動頁面",
+      "homepage": "首頁 Banner",
+      "demos": "Demo 管理",
+      "externalScripts": "外部台本",
+      "externalAuthorPages": "外部作者頁",
+      "voiceActors": "聲演",
+      "scripts": "劇本",
+      "orgs": "組織",
+      "personas": "台本師",
+      "users": "使用者",
+      "admins": "超管帳號",
+      "signatures": "授權簽署紀錄"
+    },
+    "pendingCount": "{n} 筆待處理",
+    "reload": "重新載入",
+    "filterPlaceholder": "篩選名稱或 owner",
+    "userFilterPlaceholder": "篩選名稱 / email / ID",
+    "showing": "顯示 {shown} / {total}",
+    "empty": "沒有符合的結果",
+    "filterAll": "全部",
+    "filterPublic": "公開",
+    "filterPrivate": "私人",
+    "owner": "擁有者",
+    "untitled": "(無標題)",
+    "settings": "設定",
+    "transfer": "移轉",
+    "delete": "刪除",
+    "createOrgTitle": "建立新組織",
+    "directoryHint": "搜尋名稱、ID 或 owner 後重新載入",
+    "adminAccountsDesc": "新增或移除平台超管帳號",
+    "signaturesDesc": "使用者簽署授權條款的紀錄",
+    "applicationsDesc": "廣告、上架申請與回報"
   }
 };
 

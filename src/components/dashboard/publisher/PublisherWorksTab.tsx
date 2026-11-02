@@ -1,10 +1,11 @@
 import React from "react";
-import { Loader2, Grid3X3, Rows3, Search } from "lucide-react";
+import { Loader2, Grid3X3, Rows3, Search, FilePlus2, SearchX } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
 import { useI18n } from "../../../contexts/I18nContext";
-import { PublisherEmptyState } from "./PublisherEntityLayout";
+import { StudioEmptyStateCard } from "../../common/StudioEmptyStateCard";
+import { ListRowsSkeleton } from "../../studio/StudioSkeleton";
 import { WorkScriptGridCard } from "./WorkScriptGridCard";
 import { WorkScriptListCard, WORK_ROW_GRID } from "./WorkScriptListCard";
 import { SegmentedControl } from "../../studio/SegmentedControl";
@@ -135,14 +136,18 @@ export function PublisherWorksTab({
             </div>
 
             {isLoading ? (
-                <div className="flex justify-center rounded-[10px] border border-border p-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+                <ListRowsSkeleton label={t("common.loading", "載入中")} />
             ) : !s.hasAnyScripts && !s.hasActiveFilters ? (
-                <PublisherEmptyState
+                <StudioEmptyStateCard
+                    icon={FilePlus2}
                     title={t("publisherWorksTab.emptyDemoTitle", "還沒有作品")}
                     description={t("publisherWorksTab.emptyDemoDesc", "建立第一部作品後，這裡會顯示公開狀態、封面、授權檢查與編輯入口。")}
+                    actionLabel={t("publisherWorksTab.emptyCreateAction", "新增第一部台本")}
+                    onAction={() => window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type: "create-script" } }))}
                 />
             ) : s.sortedScripts.length === 0 ? (
-                <PublisherEmptyState
+                <StudioEmptyStateCard
+                    icon={SearchX}
                     title={s.filter === "all"
                         ? t("publisherWorksTab.emptyAll")
                         : s.filter === "needs_work"
@@ -151,6 +156,8 @@ export function PublisherWorksTab({
                                 ? "沒有可公開作品"
                                 : "沒有已公開作品"}
                     description="調整篩選條件後再試一次。"
+                    actionLabel={t("publisherWorksTab.clearFilters", "清除篩選")}
+                    onAction={s.hasActiveFilters ? s.clearFilters : null}
                 />
             ) : (
                 <>

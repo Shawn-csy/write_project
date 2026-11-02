@@ -9,6 +9,7 @@ import { useStudioShell } from "../studio/StudioShellContext";
 import { cn } from "../../lib/utils";
 import { ScriptMetadataDialogHeader } from "./metadata/ScriptMetadataDialogHeader";
 import { ScriptMetadataDialogBody } from "./metadata/ScriptMetadataDialogBody";
+import { METADATA_SECTIONS } from "./metadata/metadataSections";
 import { ScriptMetadataDialogOverlays } from "./metadata/ScriptMetadataDialogOverlays";
 import { PublicReaderLayout } from "../reader/PublicReaderLayout";
 import { buildPrefaceItemsFromSections, buildPublicReaderProjection } from "../../lib/publicReaderProjection";
@@ -366,15 +367,6 @@ export function ScriptMetadataDialog(props: ScriptMetadataDialogProps) {
 }
 
 
-const PAGE_SECTIONS = [
-    { key: "basic", label: "基本資料" },
-    { key: "publish", label: "發布設定" },
-    { key: "exposure", label: "展示與分類" },
-    { key: "activity", label: "活動宣傳" },
-    { key: "demo", label: "試聽範例" },
-    { key: "advanced", label: "進階設定" },
-] as const;
-
 interface ScriptMetadataPageExtraProps {
     /** Whether the work is currently live on the public site (saved state, not the pending choice). */
     isPublished: boolean;
@@ -382,78 +374,146 @@ interface ScriptMetadataPageExtraProps {
     editHref?: string | null;
 }
 
-function PublishChecklistPanel({ compact = false }: { compact?: boolean }) {
+/**
+ * Pre-publish check as one vertical flow: required steps first (they decide
+ * whether the work can go public), recommended steps after. Progress counts
+ * required items only.
+ */
+export function PublishChecklistPanel() {
     const { status } = useStatusContext();
-    const { checklistChipItems, completedChecklistItems, totalChecklistItems, completionPercent, handleJumpToChecklistItem } = useChecklistContext();
-    const required = checklistChipItems.filter((item) => item.type === "required");
-    const recommended = checklistChipItems.filter((item) => item.type !== "required");
-    const heading = required.length > 0 ? `還差 ${required.length} 項必填` : status === "Public" ? "資料完整，儲存後公開" : "必填資料已完成";
+    const {
+        requiredChecklist = [], recommendedChecklist = [],
+        completedChecklistItems, totalChecklistItems, completionPercent,
+        completedRecommendedItems = 0, totalRecommendedItems = 0,
+        handleJumpToChecklistItem,
+    } = useChecklistContext();
+    const missingRequired = requiredChecklist.filter((item) => !item.ok);
+    const allRequiredDone = missingRequired.length === 0;
+    const heading = !allRequiredDone ? `還差 ${missingRequired.length} 項必填` : status === "Public" ? "資料完整，儲存後公開" : "必填資料已完成";
 
-    if (compact) {
-        if (required.length === 0) return null;
-        return (
+    const renderStep = (item: { key: string; label: string; ok?: boolean }, index: number, required: boolean) => (
+        <li key={item.key}>
             <button
                 type="button"
-                onClick={() => handleJumpToChecklistItem(required[0].key)}
-                className="flex w-full items-center gap-2.5 rounded-[10px] border border-[hsl(var(--status-ready-fg))]/25 bg-[hsl(var(--status-ready-bg))] px-3.5 py-3 text-left text-sm text-[hsl(var(--status-ready-fg))]"
+                onClick={() => handleJumpToChecklistItem(item.key)}
+                className="flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-muted"
             >
-                <AlertCircle className="h-4 w-4 shrink-0" />
-                <span className="flex-1">還差 {required.length} 項必填：{required.map((item) => item.label).join("、")}</span>
-                <span className="font-semibold">前往</span>
+                {item.ok ? (
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-[hsl(var(--status-live-fg))]" aria-hidden="true" />
+                ) : required ? (
+                    <AlertCircle className="h-5 w-5 shrink-0 text-[hsl(var(--status-ready-fg))]" aria-hidden="true" />
+                ) : (
+                    <Circle className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                )}
+                <span className="min-w-0 flex-1">
+                    <span className="text-muted-foreground tabular-nums">{index + 1}. </span>
+                    <span className={cn(item.ok && "text-muted-foreground")}>{item.label}</span>
+                </span>
+                <span className={cn("shrink-0 text-xs", item.ok ? "text-muted-foreground" : "font-semibold text-primary")}>
+                    {item.ok ? "已完成" : "前往填寫"}
+                </span>
             </button>
-        );
-    }
+        </li>
+    );
 
     return (
-        <div className="rounded-[10px] border border-border bg-card p-4">
-            <div className="flex items-center justify-between gap-2">
-                <strong className="text-[15px]">{heading}</strong>
-                <span className="text-xs tabular-nums text-muted-foreground">{completedChecklistItems} / {totalChecklistItems}</span>
+        <section aria-labelledby="publish-check-title" className="rounded-xl border border-border bg-card p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 id="publish-check-title" className="text-base font-semibold">發布前檢查</h2>
+                <span className="text-xs text-muted-foreground">
+                    {status === "Public" ? "儲存後會立即更新公開頁" : "目前為私人，儲存後不會出現在公開站"}
+                </span>
             </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+
+            <div className="mt-3 flex items-center justify-between gap-2">
+                <strong className={cn("text-sm", allRequiredDone ? "text-[hsl(var(--status-live-fg))]" : "text-foreground")}>{heading}</strong>
+                <span className="text-xs tabular-nums text-muted-foreground" aria-label={`必填 ${completedChecklistItems} / ${totalChecklistItems}`}>
+                    必填 {completedChecklistItems} / {totalChecklistItems}
+                </span>
+            </div>
+            <div
+                className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={completionPercent}
+                aria-label="必填資料完成度"
+            >
                 <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${completionPercent}%` }} />
             </div>
-            {required.length > 0 ? (
-                <div className="mt-3">
-                    <div className="px-2 text-xs font-semibold text-[hsl(var(--status-ready-fg))]">必填</div>
-                    {required.map((item) => (
-                        <button key={item.key} type="button" onClick={() => handleJumpToChecklistItem(item.key)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] hover:bg-muted">
-                            <AlertCircle className="h-4 w-4 shrink-0 text-[hsl(var(--status-ready-fg))]" />
-                            <span className="flex-1">{item.label}</span>
-                            <span className="text-primary">前往</span>
-                        </button>
-                    ))}
+
+            <ol className="mt-3 space-y-0.5" aria-label="必填項目">
+                {requiredChecklist.map((item, index) => renderStep(item, index, true))}
+            </ol>
+
+            {recommendedChecklist.length > 0 ? (
+                <div className="mt-4 border-t border-border pt-3">
+                    <div className="flex items-center justify-between px-2 text-xs font-semibold text-muted-foreground">
+                        <span>建議補充（不影響公開）</span>
+                        <span className="tabular-nums">{completedRecommendedItems} / {totalRecommendedItems}</span>
+                    </div>
+                    <ol className="mt-1 space-y-0.5" aria-label="建議項目">
+                        {recommendedChecklist.map((item, index) => renderStep(item, requiredChecklist.length + index, false))}
+                    </ol>
                 </div>
             ) : null}
-            {recommended.length > 0 ? (
-                <div className="mt-2">
-                    <div className="px-2 text-xs font-semibold text-muted-foreground">建議</div>
-                    {recommended.map((item) => (
-                        <button key={item.key} type="button" onClick={() => handleJumpToChecklistItem(item.key)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-[13px] hover:bg-muted">
-                            <Circle className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <span className="flex-1">{item.label}</span>
-                            <span className="text-primary">前往</span>
-                        </button>
-                    ))}
-                </div>
-            ) : null}
-            {checklistChipItems.length === 0 ? (
-                <p className="mt-3 flex items-center gap-2 text-[13px] text-[hsl(var(--status-live-fg))]">
-                    <CheckCircle2 className="h-4 w-4" />所有檢查項目已完成
-                </p>
-            ) : null}
-            <p className="mt-3 text-xs text-muted-foreground">
-                {status === "Public" ? "儲存後會立即更新公開頁。" : "目前設定為私人，儲存後不會出現在公開站。"}
-            </p>
-        </div>
+        </section>
+    );
+}
+
+/** Sticky section chips: the only navigation, on every viewport. */
+function SectionChipNav() {
+    const { t } = useUIContext();
+    const { activeTab } = useStatusContext();
+    const { handleFocusSection, missingRequiredMap } = useChecklistContext();
+    const missingBySection = React.useMemo(() => {
+        const counts: Record<string, number> = {};
+        Object.keys(missingRequiredMap || {}).forEach((key) => {
+            const section = CHECKLIST_ITEM_TO_SECTION[key as keyof typeof CHECKLIST_ITEM_TO_SECTION];
+            if (section) counts[section] = (counts[section] || 0) + 1;
+        });
+        return counts;
+    }, [missingRequiredMap]);
+
+    return (
+        <nav aria-label="表單區段" className="sticky top-0 z-20 shrink-0 border-b border-border bg-background/95 backdrop-blur">
+            <ul className="flex gap-1.5 overflow-x-auto px-4 py-2 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 lg:px-10 [&::-webkit-scrollbar]:hidden">
+                {METADATA_SECTIONS.map((section, index) => {
+                    const active = activeTab === section.key;
+                    const missing = missingBySection[section.key] || 0;
+                    return (
+                        <li key={section.key} className="shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => handleFocusSection(section.key)}
+                                aria-current={active ? "true" : undefined}
+                                className={cn(
+                                    "inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13px] transition-colors sm:h-8",
+                                    active
+                                        ? "border-primary bg-primary/10 font-semibold text-primary"
+                                        : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                                )}
+                            >
+                                <span className="tabular-nums text-muted-foreground">{index + 1}</span>
+                                {t(section.i18nKey, section.fallback)}
+                                {missing > 0 ? (
+                                    <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[hsl(var(--status-ready-bg))] px-1 text-[10px] font-semibold text-[hsl(var(--status-ready-fg))]" aria-label={`${missing} 項必填未完成`}>
+                                        {missing}
+                                    </span>
+                                ) : null}
+                            </button>
+                        </li>
+                    );
+                })}
+            </ul>
+        </nav>
     );
 }
 
 function ScriptMetadataPageInner({ isPublished, backTo, editHref }: ScriptMetadataPageExtraProps) {
     const { isSaving, handleSave } = useUIContext();
-    const { status, activeTab } = useStatusContext();
+    const { status } = useStatusContext();
     const { title } = useFormContext();
-    const { handleFocusSection } = useChecklistContext();
     const { openMobileMenu } = useStudioShell();
     const [previewOpen, setPreviewOpen] = React.useState(false);
 
@@ -486,31 +546,13 @@ function ScriptMetadataPageInner({ isPublished, backTo, editHref }: ScriptMetada
                 </div>
             </header>
 
-            <div className="flex min-h-0 flex-1">
-                <nav aria-label="表單區段" className="hidden w-48 shrink-0 flex-col gap-0.5 overflow-y-auto py-6 pl-10 pr-2 lg:flex">
-                    {PAGE_SECTIONS.map((section) => (
-                        <button
-                            key={section.key}
-                            type="button"
-                            onClick={() => handleFocusSection(section.key)}
-                            aria-current={activeTab === section.key ? "true" : undefined}
-                            className={cn(
-                                "rounded-md px-3 py-2 text-left text-[13px] transition-colors",
-                                activeTab === section.key ? "bg-muted font-semibold text-foreground" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                            )}
-                        >
-                            {section.label}
-                        </button>
-                    ))}
-                </nav>
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                    <div className="px-4 pt-4 sm:px-6 xl:hidden"><PublishChecklistPanel compact /></div>
-                    <ScriptMetadataDialogBody className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 lg:px-8" />
-                </div>
-                <aside aria-label="發布檢查" className="hidden w-80 shrink-0 overflow-y-auto py-6 pl-2 pr-10 xl:block">
-                    <PublishChecklistPanel />
-                </aside>
-            </div>
+            <SectionChipNav />
+
+            <ScriptMetadataDialogBody
+                stepNumbers
+                leading={<PublishChecklistPanel />}
+                className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-5 sm:px-6 lg:px-10"
+            />
 
             <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border bg-background px-4 py-3 sm:px-6 lg:px-10">
                 <span className="hidden text-xs text-muted-foreground sm:inline">

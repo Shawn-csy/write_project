@@ -41,8 +41,12 @@ export function useScriptMetadataChecklistUI({
   const recommendedTotal = publishChecklist.recommended.length;
   const completedRequired = requiredTotal - publishChecklist.missingRequired.length;
   const completedRecommended = recommendedTotal - publishChecklist.missingRecommended.length;
-  const totalChecklistItems = requiredTotal + recommendedTotal;
-  const completedChecklistItems = completedRequired + completedRecommended;
+  // Progress counts required items only; recommended items are reported separately
+  // so "必填資料已完成" can never read as "7/8" while every required field is filled.
+  const totalChecklistItems = requiredTotal;
+  const completedChecklistItems = completedRequired;
+  const totalRecommendedItems = recommendedTotal;
+  const completedRecommendedItems = completedRecommended;
   const completionPercent = totalChecklistItems > 0 ? Math.round((completedChecklistItems / totalChecklistItems) * 100) : 0;
   const hasBlockingIssues = status === "Public" && publishChecklist.missingRequired.length > 0;
 
@@ -93,6 +97,10 @@ export function useScriptMetadataChecklistUI({
     completedChecklistItems,
     totalChecklistItems,
     completionPercent,
+    completedRecommendedItems,
+    totalRecommendedItems,
+    requiredChecklist: publishChecklist.required as Array<{ key: string; label: string; ok?: boolean }>,
+    recommendedChecklist: publishChecklist.recommended as Array<{ key: string; label: string; ok?: boolean }>,
     hasBlockingIssues,
     checklistChipItems,
     maxVisibleChecklistChips,

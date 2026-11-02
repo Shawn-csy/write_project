@@ -1,4 +1,5 @@
 import React from "react";
+import { Layers } from "lucide-react";
 import {
   PublisherEntityListPane,
   PublisherEntityListItem,
@@ -39,13 +40,13 @@ function ReadinessDot({ level }: { level: "ready" | "partial" | "empty" }) {
     level === "ready" ? "可公開" : level === "partial" ? "待補齊" : "空系列";
   const cls =
     level === "ready"
-      ? "border-green-500 text-green-700 bg-green-50"
+      ? "bg-[hsl(var(--status-live-bg))] text-[hsl(var(--status-live-fg))]"
       : level === "partial"
-        ? "border-amber-400 text-amber-700 bg-amber-50"
-        : "border-muted-foreground/30 text-muted-foreground bg-muted/30";
+        ? "bg-[hsl(var(--status-ready-bg))] text-[hsl(var(--status-ready-fg))]"
+        : "bg-[hsl(var(--status-draft-bg))] text-[hsl(var(--status-draft-fg))]";
   return (
     <span
-      className={`inline-block shrink-0 rounded border px-1 py-px text-[9px] font-medium leading-tight ${cls}`}
+      className={`inline-block shrink-0 rounded-full px-1.5 py-px text-[10px] font-medium leading-tight ${cls}`}
       aria-label={`readiness: ${label}`}
     >
       {label}
@@ -141,6 +142,7 @@ export function SeriesListPane({
           <p className="px-3 py-4 text-center text-xs text-muted-foreground">無符合結果。</p>
         ) : (
           <PublisherEmptyState
+            icon={Layers}
             title="尚未建立系列。"
             description="建立系列後，可集中管理封面、摘要與作品順序。"
             className="mx-1"
@@ -149,11 +151,11 @@ export function SeriesListPane({
       ) : null}
 
       {pendingAction && (
-        <div className="mx-2 mb-1 rounded-md border border-amber-400 bg-amber-50 px-3 py-2 text-xs text-amber-800 space-y-2">
+        <div className="mx-2 mb-1 rounded-md border border-[hsl(var(--status-ready-fg))]/30 bg-[hsl(var(--status-ready-bg))] px-3 py-2 text-xs text-[hsl(var(--status-ready-fg))] space-y-2">
           <p className="font-medium">有未儲存的變更，確定要捨棄？</p>
           <div className="flex gap-2">
             <button
-              className="rounded border border-amber-500 px-2 py-0.5 text-[11px] font-medium hover:bg-amber-100"
+              className="rounded border border-[hsl(var(--status-ready-fg))]/40 px-2 py-0.5 text-[11px] font-medium hover:bg-background/60"
               onClick={confirmDiscard}
             >
               捨棄變更並繼續

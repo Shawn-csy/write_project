@@ -538,7 +538,9 @@ const messages = {
     "continueWriting": "Edit",
     "editInfo": "Edit Info",
     "viewPublicPage": "View Public Page",
-    "loadMore": "Load More"
+    "loadMore": "Load More",
+    "emptyCreateAction": "Create your first script",
+    "clearFilters": "Clear filters"
   },
   "markerSettingsGuide": {
     "sampleMarker": "Sample Marker",
@@ -918,6 +920,7 @@ const messages = {
     "selectRuleToTest": "Select a rule to see which lines it matches.",
     "readingPreview": "Reading preview",
     "previewUsesDraft": "The preview uses your unsaved rules; works use them after you save.",
+    "previewPaperNote": "The preview always uses a light page so rule colors stay readable in dark mode.",
     "rules": "Marker rules",
     "add": "Add",
     "filterByType": "Filter by type",
@@ -1257,7 +1260,13 @@ const messages = {
     "script": "script",
     "downloadFountain": "Download .fountain",
     "rename": "Rename",
-    "dragging": "Dragging..."
+    "dragging": "Dragging...",
+    "statusPublic": "Published",
+    "statusPrivate": "Private",
+    "view": "View",
+    "edit": "Edit",
+    "emptyFolderHint": "Create a script, add a folder or import a draft to get started.",
+    "createScript": "New script"
   },
   "scriptMetadataDialog": {
     "checkTitle": "Title",
@@ -1283,10 +1292,14 @@ const messages = {
     "recommended": "Recommended (does not block publishing)",
     "goFix": "Fix now: {label}",
     "fixLater": "Fix later: {label}",
-    "tabBasic": "Basic",
+    "tabBasic": "Basic info",
     "tabDetails": "Details",
     "tabLicense": "License",
     "tabAdvanced": "Advanced",
+    "tabPublish": "Publishing",
+    "tabExposure": "Display & categories",
+    "tabActivity": "Campaign",
+    "tabDemo": "Audio demo",
     "confirmSave": "Save",
     "guide": "Guide",
     "guideSkip": "Skip",
@@ -1694,6 +1707,19 @@ const messages = {
     "saved": "Display name updated",
     "saveFailed": "Failed to save display name"
   },
+  "markerLayoutEditor": {
+    "fields": "Columns",
+    "fieldsHint": "Adjust name, order and width; the preview updates live.",
+    "preview": "Preview",
+    "width": "Width",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "onlyColumn": "The only visible column; it fills the full width.",
+    "hidden": "Hidden: not shown in the preview or reader.",
+    "rowGrouping": "Dialogue layout",
+    "noEnabled": "No visible columns. Turn one on to see the preview.",
+    "scrollHint": "Swipe the preview sideways to see every column."
+  },
   "appearance": {
     "title": "Appearance & Reading",
     "subtitle": "Customize theme, font size, and layout styles",
@@ -2025,6 +2051,61 @@ const messages = {
     "rangeBlockHint": "Range is a multi-line block; content cannot be embedded inline within the original line.",
     "groupingMismatchWarning": "Row sync is enabled, but the current row grouping mode is not marker_dialogue, so rows will not align.",
     "goFixLayout": "Open layout settings to fix"
+  },
+  "adminConsole": {
+    "title": "Admin console",
+    "subtitle": "Review submissions and manage public content and site-wide data.",
+    "adminLabel": "Admin",
+    "noAccessTitle": "No super admin access",
+    "noAccessDesc": "Sign in with an account on the super admin list.",
+    "groupNavLabel": "Admin sections",
+    "tabNavLabel": "Sub pages",
+    "groups": {
+      "review": "Review",
+      "activities": "Activities",
+      "content": "Content",
+      "external": "External",
+      "directory": "Directory",
+      "platform": "Platform"
+    },
+    "tabs": {
+      "applications": "Applications & reports",
+      "submissions": "Demo submissions",
+      "voiceActorProfiles": "Voice actor pages",
+      "externalAuthorProfiles": "External author pages",
+      "campaigns": "Campaign submissions",
+      "activityPages": "Activity pages",
+      "homepage": "Homepage banner",
+      "demos": "Demo management",
+      "externalScripts": "External scripts",
+      "externalAuthorPages": "External author pages",
+      "voiceActors": "Voice actors",
+      "scripts": "Scripts",
+      "orgs": "Organizations",
+      "personas": "Authors",
+      "users": "Users",
+      "admins": "Admin accounts",
+      "signatures": "License signatures"
+    },
+    "pendingCount": "{n} pending",
+    "reload": "Reload",
+    "filterPlaceholder": "Filter by name or owner",
+    "userFilterPlaceholder": "Filter by name / email / ID",
+    "showing": "Showing {shown} / {total}",
+    "empty": "No matching results",
+    "filterAll": "All",
+    "filterPublic": "Public",
+    "filterPrivate": "Private",
+    "owner": "Owner",
+    "untitled": "(Untitled)",
+    "settings": "Settings",
+    "transfer": "Transfer",
+    "delete": "Delete",
+    "createOrgTitle": "Create organization",
+    "directoryHint": "Search by name, ID or owner, then reload",
+    "adminAccountsDesc": "Add or remove platform admin accounts",
+    "signaturesDesc": "Records of users accepting the license terms",
+    "applicationsDesc": "Ad, listing requests and reports"
   }
 };
 

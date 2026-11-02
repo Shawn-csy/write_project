@@ -29,28 +29,28 @@
 
 @layer base {
   :root {
-    --background: 250 40% 98%;
-    --foreground: 221 39% 11%;
+    --background: 40 18% 97%;
+    --foreground: 220 15% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 221 39% 11%;
-    --muted: 220 14% 96%;
-    --muted-strong: 220 14% 92%;
-    --muted-stronger: 220 14% 88%;
-    --muted-foreground: 220 9% 42%;
-    --border: 221 13% 88%;
+    --card-foreground: 220 15% 12%;
+    --muted: 220 10% 95%;
+    --muted-strong: 220 8% 90%;
+    --muted-stronger: 220 7% 84%;
+    --muted-foreground: 220 8% 46%;
+    --border: 220 9% 88%;
     /* Morandi primary (light): steel blue */
-    --primary: 200 24% 40%;
-    --primary-foreground: 210 20% 96%;
+    --primary: 215 25% 38%;
+    --primary-foreground: 210 30% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --accent: 160 84% 39%;
+    --accent: 195 40% 46%;
     --accent-foreground: 154 44% 16%;
-    --accent-muted: 160 60% 92%;
-    --accent-strong: 160 78% 34%;
-    --surface-1: 250 40% 98%;
-    --surface-2: 220 14% 96%;
-    --surface-3: 220 14% 92%;
-    --surface-4: 220 14% 88%;
+    --accent-muted: 195 30% 93%;
+    --accent-strong: 215 28% 32%;
+    --surface-1: 40 18% 97%;
+    --surface-2: 220 10% 95%;
+    --surface-3: 220 8% 90%;
+    --surface-4: 220 7% 84%;
     --paper-bg: #ffffff;
     --paper-border: #e2e8f0;
     --paper-shadow: rgba(0, 0, 0, 0.12);
@@ -83,7 +83,7 @@
     --status-ready-fg: 32 100% 27%;
     --status-live-bg: 156 50% 92%;
     --status-live-fg: 160 79% 24%;
-    --studio-nav-bg: 225 20% 96%;
+    --studio-nav-bg: 40 12% 95%;
   }
 
   @media (min-width: 1024px) {
@@ -93,27 +93,27 @@
   }
 
   .dark {
-    --background: 220 8% 10%;
-    --foreground: 210 15% 92%;
-    --card: 220 8% 12%;
-    --card-foreground: 210 15% 92%;
-    --muted: 220 6% 16%;
-    --muted-strong: 220 6% 22%;
-    --muted-stronger: 220 6% 28%;
-    --muted-foreground: 220 10% 68%;
-    --border: 220 6% 24%;
+    --background: 222 12% 8%;
+    --foreground: 210 14% 91%;
+    --card: 222 10% 11%;
+    --card-foreground: 210 14% 91%;
+    --muted: 222 8% 15%;
+    --muted-strong: 222 7% 21%;
+    --muted-stronger: 222 6% 27%;
+    --muted-foreground: 215 8% 58%;
+    --border: 222 7% 20%;
     /* Morandi primary (dark): soft steel */
-    --primary: 200 32% 70%;
-    --primary-foreground: 210 18% 14%;
+    --primary: 215 40% 62%;
+    --primary-foreground: 222 12% 8%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
     --accent-foreground: 210 24% 94%;
-    --accent-muted: 160 20% 18%;
-    --accent-strong: 160 72% 60%;
-    --surface-1: 220 8% 10%;
-    --surface-2: 220 6% 16%;
-    --surface-3: 220 6% 22%;
-    --surface-4: 220 6% 28%;
+    --accent-muted: 215 15% 16%;
+    --accent-strong: 195 50% 65%;
+    --surface-1: 222 12% 8%;
+    --surface-2: 222 8% 15%;
+    --surface-3: 222 7% 21%;
+    --surface-4: 222 6% 27%;
     --paper-bg: #0d0d0f;
     --paper-border: #1f1f24;
     --paper-shadow: rgba(0, 0, 0, 0.4);
@@ -383,6 +383,19 @@
 }
 .dark .reader-surface {
   background: color-mix(in srgb, hsl(var(--background)) 70%, hsl(var(--muted)) 30%);
+}
+
+/* Marker rules ship with literal dark ink (#000, #333 ...) meant for a light page.
+   The test panel previews them on a fixed light paper so they stay readable in dark mode. */
+.marker-test-paper {
+  --background: 40 18% 97%;
+  --foreground: 220 15% 12%;
+  --muted: 220 10% 95%;
+  --muted-foreground: 220 8% 46%;
+  --border: 220 9% 88%;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  color-scheme: light;
 }
 
 .cm-highlight-line {

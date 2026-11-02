@@ -146,6 +146,8 @@ function renderTab({
       onDeleteSeries={vi.fn()}
     />
   );
+  // Chapters live on their own tab; most tests exercise the chapter manager.
+  fireEvent.click(screen.getByRole("tab", { name: /章節/ }));
   return { onReorderScript, onAttachScript, onDetachScript, onBatchReorderScripts };
 }
 
@@ -344,7 +346,58 @@ describe("up/down chapter move", () => {
         onDeleteSeries={vi.fn()}
       />
     );
+    fireEvent.click(screen.getByRole("tab", { name: /章節/ }));
     expect(screen.getByRole("button", { name: "Chapter 1 下移" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Chapter 2 上移" })).toBeDisabled();
+  });
+});
+
+
+describe("series editor tabs and save bar", () => {
+  function renderEditor(props: { isDirty?: boolean; onUpdateSeries?: () => void } = {}) {
+    const onUpdateSeries = props.onUpdateSeries ?? vi.fn();
+    render(
+      <PublisherSeriesTab
+        seriesList={[SERIES]}
+        selectedSeriesId="s1"
+        setSelectedSeriesId={vi.fn()}
+        seriesDraft={DRAFT}
+        setSeriesDraft={vi.fn()}
+        isDirty={props.isDirty}
+        seriesScripts={[makeRow({ id: "c1", title: "Chapter 1" })]}
+        onCreateSeries={vi.fn()}
+        onUpdateSeries={onUpdateSeries}
+        onDeleteSeries={vi.fn()}
+      />
+    );
+    return { onUpdateSeries };
+  }
+
+  it("splits basics, chapters and public preview into tabs", () => {
+    renderEditor();
+    expect(screen.getByRole("tab", { name: "基本資料" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByDisplayValue("Star Voyage")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Chapter 1 章節順序")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /章節/ }));
+    expect(screen.getByLabelText("Chapter 1 章節順序")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Star Voyage")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "公開預覽" }));
+    expect(screen.queryByLabelText("Chapter 1 章節順序")).not.toBeInTheDocument();
+  });
+
+  it("keeps the save bar on every tab and only enables it when dirty", () => {
+    const { onUpdateSeries } = renderEditor({ isDirty: true });
+    expect(screen.getByText("有尚未儲存的變更")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /章節/ }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存變更" }));
+    expect(onUpdateSeries).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables saving when nothing changed", () => {
+    renderEditor({ isDirty: false });
+    expect(screen.getByText("所有變更已儲存")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "儲存變更" })).toBeDisabled();
   });
 });
