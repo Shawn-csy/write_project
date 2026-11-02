@@ -1,14 +1,20 @@
 "use client";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { CheckCircle2, Loader2, MessageSquarePlus, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CheckCircle2, Loader2, MessageSquarePlus, MousePointer2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { liveApi } from "@/lib/liveApi";
 import type { ExternalPublicScript, PublicPersona, PublicScript } from "@/lib/types";
 
 type FeedbackKind = "bug" | "listing";
 interface AuthorOption { id: string; name: string; bio: string; socialUrl: string; }
+interface FeedbackTarget {
+  title: string;
+  excerpt: string;
+  selector: string;
+  pageUrl: string;
+}
 
 const inputClass =
   "w-full rounded-lg border border-border/70 bg-background/70 px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
@@ -102,6 +108,20 @@ export function PublicFeedbackDialog() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [isPickingTarget, setIsPickingTarget] = useState(false);
+  const [selectedTargets, setSelectedTargets] = useState<FeedbackTarget[]>([]);
+  const [requestedAction, setRequestedAction] = useState("修改");
+  const [requestedResolution, setRequestedResolution] = useState("");
+  const hoveredElement = useRef<HTMLElement | null>(null);
+
+  const stopPicking = useCallback(() => {
+    setIsPickingTarget(false);
+    const previous = hoveredElement.current;
+    if (previous) {
+      previous.removeAttribute("data-feedback-pick-hover");
+      hoveredElement.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (open) setPageUrl(getInitialPageUrl());
@@ -140,6 +160,9 @@ export function PublicFeedbackDialog() {
     setSeriesName("");
     setNotes("");
     setContent("");
+    setSelectedTargets([]);
+    setRequestedAction("修改");
+    setRequestedResolution("");
     setHoneypot("");
     setError("");
     setSubmitted(false);
@@ -149,6 +172,96 @@ export function PublicFeedbackDialog() {
     setOpen(nextOpen);
     if (!nextOpen) resetForm();
   };
+
+  const startTargetPicking = () => {
+    if (kind !== "bug") return;
+    setError("");
+    setOpen(false);
+    setIsPickingTarget(true);
+    window.dispatchEvent(new CustomEvent("public-feedback-start-target-picking"));
+  };
+
+  useEffect(() => {
+    if (!isPickingTarget) return;
+    const getElement = (eventTarget: EventTarget | null): HTMLElement | null => {
+      const baseElement = eventTarget instanceof HTMLElement
+        ? eventTarget
+        : eventTarget instanceof Element ? eventTarget.parentElement : null;
+      if (!baseElement) return null;
+      const element = baseElement.closest<HTMLElement>("[data-feedback-target]")
+        || baseElement.closest<HTMLElement>("article, section, main, header, footer, nav, h1, h2, h3, p, li, button, a, img, figure, [role='button']")
+        || baseElement;
+      if (element.closest("[data-feedback-picker-ignore], [data-radix-portal]")) return null;
+      return element;
+    };
+    const onPointerMove = (event: PointerEvent) => {
+      const next = getElement(event.target);
+      if (next === hoveredElement.current) return;
+      const previous = hoveredElement.current;
+      if (previous) {
+        previous.removeAttribute("data-feedback-pick-hover");
+      }
+      hoveredElement.current = next;
+      if (next) {
+        next.setAttribute("data-feedback-pick-hover", "true");
+      }
+    };
+    const onClick = (event: MouseEvent) => {
+      const element = getElement(event.target);
+      if (!element) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      const marked = element.closest<HTMLElement>("[data-feedback-target]");
+      const heading = marked?.querySelector("h1, h2, h3, h4") || element.querySelector("h1, h2, h3, h4");
+      const text = (marked || element).innerText?.replace(/\s+/g, " ").trim() || "";
+      const title = marked?.dataset.feedbackTitle
+        || heading?.textContent?.trim()
+        || element.getAttribute("aria-label")
+        || element.getAttribute("title")
+        || text.slice(0, 90)
+        || `${element.tagName.toLocaleLowerCase()} 區塊`;
+      const excerpt = text.slice(0, 400);
+      const path: string[] = [];
+      let cursor: HTMLElement | null = marked || element;
+      while (cursor && cursor !== document.body && path.length < 5) {
+        let segment = cursor.tagName.toLocaleLowerCase();
+        if (cursor.id) segment += `#${cursor.id}`;
+        else if (cursor.dataset.feedbackTarget) segment += `[data-feedback-target="${cursor.dataset.feedbackTarget}"]`;
+        else if (cursor.classList.length) segment += `.${Array.from(cursor.classList).slice(0, 2).join(".")}`;
+        path.unshift(segment);
+        cursor = cursor.parentElement;
+      }
+      const picked: FeedbackTarget = {
+        title: title.slice(0, 160),
+        excerpt,
+        selector: path.join(" > "),
+        pageUrl: getInitialPageUrl(),
+      };
+      stopPicking();
+      setSelectedTargets((current) => current.some((target) => target.pageUrl === picked.pageUrl && target.selector === picked.selector)
+        ? current
+        : [...current, picked]);
+      setPageUrl(picked.pageUrl);
+      setOpen(true);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") stopPicking();
+    };
+    document.addEventListener("pointermove", onPointerMove, true);
+    document.addEventListener("click", onClick, true);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      document.removeEventListener("pointermove", onPointerMove, true);
+      document.removeEventListener("click", onClick, true);
+      document.removeEventListener("keydown", onKeyDown, true);
+      const previous = hoveredElement.current;
+      if (previous) {
+        previous.removeAttribute("data-feedback-pick-hover");
+        hoveredElement.current = null;
+      }
+    };
+  }, [isPickingTarget, stopPicking]);
 
   const handleAuthorChange = (authorId: string) => {
     setSelectedAuthorId(authorId);
@@ -225,8 +338,18 @@ export function PublicFeedbackDialog() {
           categories: categoriesText.split(/[,，、]/).map((value) => value.trim()).filter(Boolean),
           seriesName: seriesName.trim(),
           notes: notes.trim(),
-          content: kind === "listing" ? notes.trim() : content.trim(),
-          pageUrl,
+          content: kind === "listing" ? notes.trim() : [
+            selectedTargets.length ? "【點選位置回報】" : "",
+            selectedTargets.length ? `希望處理：${requestedAction}` : "",
+            requestedResolution.trim() ? `希望處理說明：${requestedResolution.trim()}` : "",
+            ...selectedTargets.flatMap((target, index) => [
+              `位置 ${index + 1}：${target.title}`,
+              `畫面文字 ${index + 1}：${target.excerpt || "（此區塊沒有可擷取文字）"}`,
+              `頁面位置 ${index + 1}：${target.selector}`,
+            ]),
+            content.trim(),
+          ].filter(Boolean).join("\n"),
+          pageUrl: selectedTargets[0]?.pageUrl || pageUrl,
           website: honeypot,
         }),
       });
@@ -243,6 +366,14 @@ export function PublicFeedbackDialog() {
   };
 
   return (
+    <>
+    {isPickingTarget && (
+      <div data-feedback-picker-ignore className="fixed inset-x-3 top-3 z-[120] mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-primary/50 bg-card/95 px-4 py-3 text-sm text-foreground shadow-xl backdrop-blur sm:top-5">
+        <div className="flex min-w-0 items-center gap-2"><MousePointer2 className="h-4 w-4 shrink-0 text-primary" aria-hidden /><span>點選頁面上有問題的區塊；按 Esc 可取消。</span></div>
+        <button type="button" onClick={stopPicking} className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">取消</button>
+      </div>
+    )}
+    <style>{`[data-feedback-pick-hover="true"]{outline:2px solid hsl(var(--primary))!important;outline-offset:2px!important;box-shadow:0 0 0 5px hsl(var(--primary)/.18)!important;cursor:crosshair!important}`}</style>
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
       <Dialog.Trigger asChild>
         <button
@@ -397,6 +528,19 @@ export function PublicFeedbackDialog() {
                 </div>
               ) : (
                 <div>
+                  <div className="mb-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">回報位置 <span className="font-normal text-muted-foreground">（選填）</span></p>
+                      </div>
+                      <button type="button" onClick={startTargetPicking} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-primary/40 px-3 text-xs font-medium text-primary hover:bg-primary/10"><MousePointer2 className="h-3.5 w-3.5" aria-hidden />{selectedTargets.length ? "再選一個位置" : "點選頁面位置"}</button>
+                    </div>
+                    {selectedTargets.length > 0 && <div className="mt-3 space-y-2">{selectedTargets.map((target, index) => <div key={`${target.pageUrl}:${target.selector}`} className="rounded-lg border border-border/60 bg-background/70 p-2.5 text-xs"><div className="flex items-start justify-between gap-2"><p className="font-medium text-foreground">位置 {index + 1}：{target.title}</p><button type="button" onClick={() => setSelectedTargets((current) => current.filter((_, targetIndex) => targetIndex !== index))} className="shrink-0 rounded px-2 py-0.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={`移除位置 ${index + 1}`}>移除</button></div><p className="mt-1 line-clamp-2 text-muted-foreground">{target.excerpt || "沒有可擷取的文字內容"}</p></div>)}</div>}
+                  </div>
+                  <div className="mb-3 space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-medium text-foreground">希望怎麼處理</p></div><select aria-label="希望怎麼處理" value={requestedAction} onChange={(event) => setRequestedAction(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground"><option>修改</option><option>刪除</option><option>確認／補充</option><option>其他</option></select></div>
+                    <textarea aria-label="處理方式補充說明" value={requestedResolution} onChange={(event) => setRequestedResolution(event.target.value)} className={`${inputClass} min-h-20 resize-y`} placeholder="補充希望如何修改或處理，例如：請移除這段，或將文字更正為……" maxLength={4000} />
+                  </div>
                   <label htmlFor="public-feedback-content" className="mb-1.5 block text-sm font-medium text-foreground">問題描述</label>
                   <textarea
                     id="public-feedback-content"
@@ -472,5 +616,6 @@ export function PublicFeedbackDialog() {
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+    </>
   );
 }

@@ -382,6 +382,11 @@ def create_public_demo_submission(
         createdAt=now_ms,
     )
     db.add(row)
+    if activity and payload.manualVoiceActors:
+        # Activity submissions are published immediately, so attach newly
+        # declared voice actors now instead of waiting for admin approval.
+        from routers.admin import _ensure_manual_voice_actor_personas
+        _ensure_manual_voice_actor_personas(db, row)
     db.commit()
     if activity:
         from routers import public_bundle

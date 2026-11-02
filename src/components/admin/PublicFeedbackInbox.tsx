@@ -41,6 +41,32 @@ function getAdBannerUrl(item: PublicFeedbackRecord): string | null {
   }
 }
 
+function parseTargetedReport(content: string) {
+  if (!content.startsWith("【點選位置回報】")) return null;
+  const readLine = (label: string) => content.match(new RegExp(`^${label}：(.+)$`, "m"))?.[1]?.trim() || "";
+  const indexedTargets = [...content.matchAll(/^位置 (\d+)：(.+)$/gm)].map((match) => {
+    const index = match[1];
+    return {
+      title: match[2].trim(),
+      excerpt: content.match(new RegExp(`^畫面文字 ${index}：(.+)$`, "m"))?.[1]?.trim() || "",
+      selector: content.match(new RegExp(`^頁面位置 ${index}：(.+)$`, "m"))?.[1]?.trim() || "",
+    };
+  });
+  const targets = indexedTargets.length ? indexedTargets : (readLine("所在區塊") ? [{
+    title: readLine("所在區塊"), excerpt: readLine("畫面文字"), selector: readLine("頁面位置"),
+  }] : []);
+  const description = content.split("\n").filter((line) =>
+    !line.startsWith("【點選位置回報】")
+    && !/^(希望處理(?:說明)?|處理方式|所在區塊|畫面文字|頁面位置)(?: \d+)?：/.test(line),
+  ).join("\n").trim();
+  return {
+    action: readLine("希望處理") || readLine("處理方式"),
+    resolution: readLine("希望處理說明"),
+    targets,
+    description,
+  };
+}
+
 export function PublicFeedbackInbox() {
   const [items, setItems] = useState<PublicFeedbackRecord[]>([]);
   const [total, setTotal] = useState(0);
@@ -175,6 +201,7 @@ export function PublicFeedbackInbox() {
       <div className="space-y-2">
         {items.map((item) => {
           const bannerUrl = getAdBannerUrl(item);
+          const targetedReport = item.kind === "bug" ? parseTargetedReport(item.content) : null;
           return (
             <article key={item.id} className="rounded-lg border border-border/70 bg-background/60 p-3 text-sm">
             <div className="flex items-start justify-between gap-3">
@@ -253,7 +280,17 @@ export function PublicFeedbackInbox() {
                 </div>
               </div>
             )}
-            {item.kind !== "listing" && <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed text-foreground">{item.content}</p>}
+            {targetedReport ? (
+              <div className="mt-3 space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3 text-xs">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">點選位置回報</Badge>
+                  {targetedReport.action && <span className="text-muted-foreground">希望處理：{targetedReport.action}</span>}
+                </div>
+                {targetedReport.resolution && <p className="whitespace-pre-wrap break-words rounded border border-border/50 bg-background/50 p-2 text-foreground">處理方式補充：{targetedReport.resolution}</p>}
+                {targetedReport.targets.map((target, index) => <div key={`${target.title}-${index}`} className="space-y-1 rounded border border-border/50 bg-background/50 p-2"><p className="font-medium text-foreground">位置 {index + 1}：{target.title}</p>{target.excerpt && <p className="whitespace-pre-wrap break-words text-muted-foreground">畫面文字：{target.excerpt}</p>}{target.selector && <details><summary className="cursor-pointer text-muted-foreground">查看頁面區塊路徑</summary><code className="mt-1 block break-all rounded bg-background/70 p-2 text-[11px]">{target.selector}</code></details>}</div>)}
+                {targetedReport.description && <p className="whitespace-pre-wrap break-words border-t border-border/60 pt-2 leading-relaxed text-foreground">{targetedReport.description}</p>}
+              </div>
+            ) : item.kind !== "listing" && <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed text-foreground">{item.content}</p>}
             {bannerUrl && (
               <a href={bannerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full flex-col gap-1 text-xs text-primary hover:underline">
                 <img src={bannerUrl} alt="申請的廣告 Banner" className="max-h-40 max-w-full rounded-md border object-contain" />

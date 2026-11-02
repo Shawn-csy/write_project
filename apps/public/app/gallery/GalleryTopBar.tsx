@@ -47,11 +47,15 @@ function MobileActionSheet({ onClose, hasPublishedActivity }: { onClose: () => v
       }
     }
 
+    const onStartFeedbackPicking = () => onClose();
+
     document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("public-feedback-start-target-picking", onStartFeedbackPicking);
     const rafId = requestAnimationFrame(() => closeButtonRef.current?.focus());
 
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("public-feedback-start-target-picking", onStartFeedbackPicking);
       cancelAnimationFrame(rafId);
       document.body.style.overflow = prevOverflow;
     };
@@ -110,13 +114,13 @@ function MobileActionSheet({ onClose, hasPublishedActivity }: { onClose: () => v
             {hasPublishedActivity && <a href="/activities" className="flex h-10 items-center justify-center rounded-lg border border-border/50 text-sm font-medium hover:bg-muted/60">活動專區</a>}
           </div>
         </section>
-        <div className="px-5 pt-4 pb-3 shrink-0">
+        <div className="px-5 pt-2 pb-3 shrink-0">
           <a
             href={studioUrl()}
-            className="flex items-center justify-center h-11 w-full rounded-lg text-[0.8125rem] font-semibold text-primary-foreground hover:opacity-90 transition-opacity duration-150"
-            style={{ background: "hsl(var(--primary))" }}
+            aria-label="進入工作室"
+            className="flex items-center h-11 w-full rounded-lg px-1 text-[0.8125rem] text-muted-foreground hover:text-foreground transition-colors duration-150"
           >
-            進入工作室
+            工作室
           </a>
         </div>
 

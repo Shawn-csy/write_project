@@ -134,7 +134,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         {view === "scripts" && heroSlides.length > 0 && (
           <PublicHeroMarquee
             slides={heroSlides}
-            fullBleed
+            compact
             renderImage={heroImageRenderer}
             renderSlideContent={heroSlideContentRenderer}
           />
@@ -156,7 +156,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
-              <GalleryFilterPanel {...filterPanelProps} variant="sidebar" />
+              <GalleryFilterPanel {...filterPanelProps} variant="sidebar" showSearch={false} />
             </div>
           </aside>
         )}
@@ -221,25 +221,25 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
 
               {/* ViewMode + list row — desktop only */}
               <div className="relative z-50 hidden md:flex items-center justify-end gap-3 py-2.5 pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={() => allScriptsSort ? closeAllScripts() : openAllScripts()}
-                  className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] [font-size:var(--public-font-caption)] font-medium border transition-all duration-150 ${allScriptsSort ? "text-foreground border-primary/60 bg-primary/10" : "text-primary border-primary/35 bg-primary/5 hover:border-primary/60 hover:bg-primary/10"}`}
-                  aria-pressed={Boolean(allScriptsSort)}
-                  aria-label={allScriptsSort ? "返回分區瀏覽" : "查看更多公開台本"}
-                >
-                  {allScriptsSort ? "返回分區" : "查看更多"}
-                </button>
+                {allScriptsSort && (
+                  <button
+                    type="button"
+                    onClick={closeAllScripts}
+                    className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg [font-size:var(--public-font-meta)] font-medium border text-foreground border-primary/60 bg-primary/10 transition-all duration-150"
+                    aria-label="返回分區瀏覽"
+                  >
+                    ← 返回分區
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowList(true)}
-                  className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-[5px] [font-size:var(--public-font-caption)] font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg [font-size:var(--public-font-meta)] font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
                   aria-label="開啟台本一覽表"
                 >
                   <List className="w-3.5 h-3.5" />
                   一覽表
                 </button>
-                <span className="[font-size:var(--public-font-caption)] text-muted-foreground">顯示模式</span>
                 <GalleryViewModeToggle value={viewMode} onChange={setViewMode} compact />
               </div>
 

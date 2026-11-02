@@ -14,12 +14,30 @@ import { mediaOriginsFromEnv, toFallbackMediaUrl } from "@/lib/mediaSources";
 export function MediaFallbackBridge() {
   useEffect(() => {
     const origins = mediaOriginsFromEnv();
-    if (!origins.primary || !origins.fallback) return;
+    if (!origins.primary || !origins.fallback) {
+      const onPlainError = (event: Event) => {
+        if (event.target instanceof HTMLImageElement) event.target.dataset.mediaFailed = "1";
+      };
+      window.addEventListener("error", onPlainError, true);
+      return () => window.removeEventListener("error", onPlainError, true);
+    }
+
+    // An image that cannot load from either origin is hidden (see globals.css) so
+    // the browser's broken-image glyph and clipped alt text never reach the layout.
+    const markFailed = (img: HTMLImageElement) => {
+      img.dataset.mediaFailed = "1";
+    };
 
     const swap = (img: HTMLImageElement) => {
-      if (img.dataset.mediaFallback) return;
+      if (img.dataset.mediaFallback) {
+        markFailed(img);
+        return;
+      }
       const fallback = toFallbackMediaUrl(img.currentSrc || img.src, origins);
-      if (!fallback) return;
+      if (!fallback) {
+        markFailed(img);
+        return;
+      }
       img.dataset.mediaFallback = "1";
       img.removeAttribute("srcset");
       img.src = fallback;

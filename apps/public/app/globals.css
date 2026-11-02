@@ -388,3 +388,8 @@
     opacity: 1;
   }
 }
+
+/* Images that failed on every media origin: hide the broken glyph and alt text. */
+img[data-media-failed="1"] {
+  visibility: hidden;
+}
