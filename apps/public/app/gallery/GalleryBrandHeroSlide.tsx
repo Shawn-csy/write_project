@@ -45,14 +45,14 @@ export function GalleryBrandHeroSlide({ slide }: { slide?: BrandHeroSlide }) {
       {/* Fine grain texture */}
       <div className="absolute inset-0 pointer-events-none editorial-grain" aria-hidden />
 
-      <div className="relative z-10 h-full flex flex-col justify-center mx-auto max-w-5xl px-6 sm:px-10 py-5 sm:py-8">
+      <div className="relative z-10 h-full flex flex-col justify-center mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
         {/* Eyebrow */}
-        <p className="hero-reveal editorial-eyebrow mb-2 text-xs font-semibold tracking-[0.2em] uppercase" style={{ animationDelay: "0ms" }}>
+        <p className="hero-reveal editorial-eyebrow mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ animationDelay: "0ms" }}>
           {eyebrow}
         </p>
 
         {/* Main headline */}
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold leading-[1.15] text-foreground">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
           {titleParts.length === 2 ? (
             <>
               <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
@@ -71,12 +71,12 @@ export function GalleryBrandHeroSlide({ slide }: { slide?: BrandHeroSlide }) {
         </h1>
 
         {/* Sub-copy — hidden on mobile to keep hero compact */}
-        <p className="hero-reveal hidden sm:block mt-3 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
+        <p className="hero-reveal hidden sm:block mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
           {contentLines[0] || "僅收錄公開台本，如果有喜歡的歡迎委託台本師"}
         </p>
 
         {/* Decorative rule — hidden on mobile */}
-        <div className="hero-reveal hidden lg:flex mt-4 items-center gap-5" style={{ animationDelay: "320ms" }}>
+        <div className="hero-reveal hidden sm:flex mt-6 items-center gap-5" style={{ animationDelay: "320ms" }}>
           <div className="h-px flex-1 max-w-[3rem] editorial-rule" aria-hidden />
           <span className="editorial-dim text-[11px] tracking-[0.15em] uppercase">
             {contentLines.slice(1).join(" ") || "如果需要上架或下架作品請直接與我們聯繫。"}

@@ -169,7 +169,7 @@ function Tags({
   if (primaryTags.length === 0) return null;
 
   const renderTag = (tag: string, key: string, hidden?: boolean) => {
-    const cls = `${hidden ? "hidden sm:inline-flex" : ""} max-w-[110px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground rounded-[4px] truncate` + " " + "border border-border/40 bg-muted/40";
+    const cls = `${hidden ? "hidden sm:inline-flex" : ""} shrink-0 max-w-[96px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground rounded-[4px] truncate` + " " + "border border-border/40 bg-muted/40";
     if (tagHref) {
       return <a key={key} href={tagHref(tag)} className={`${cls} hover:bg-secondary no-underline`} title={tag}>{tag}</a>;
     }
@@ -192,11 +192,11 @@ function Tags({
   }
 
   return (
-    <div className="flex flex-wrap gap-1 pt-1">
+    <div className="flex flex-nowrap items-center gap-1 overflow-hidden pt-1">
       {primaryTags.map((tag, i) => renderTag(tag, `p-${i}`))}
       {secondaryTags.map((tag, i) => renderTag(tag, `s-${i}`, true))}
-      {totalCount > 2 && <span className="sm:hidden [font-size:var(--public-font-caption)] text-muted-foreground self-center">+{totalCount - 2}</span>}
-      {totalCount > 3 && <span className="hidden sm:inline [font-size:var(--public-font-caption)] text-muted-foreground self-center">+{totalCount - 3}</span>}
+      {totalCount > 2 && <span className="shrink-0 sm:hidden [font-size:var(--public-font-caption)] text-muted-foreground self-center">+{totalCount - 2}</span>}
+      {totalCount > 3 && <span className="hidden shrink-0 sm:inline [font-size:var(--public-font-caption)] text-muted-foreground self-center">+{totalCount - 3}</span>}
     </div>
   );
 }

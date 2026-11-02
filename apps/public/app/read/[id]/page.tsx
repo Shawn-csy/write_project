@@ -126,7 +126,7 @@ export default async function ScriptReaderPage({
   const showToc = toc.length > 0 && !isAdultScript(script);
 
   const summary = (
-    <div data-seo-excerpt className="px-4 py-6 max-w-2xl mx-auto">
+    <div data-seo-excerpt className="px-4 py-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">{script.title}</h1>
       {(excerpt.synopsis || description) && (
         <p className="text-muted-foreground mb-3 whitespace-pre-line">{excerpt.synopsis || description}</p>

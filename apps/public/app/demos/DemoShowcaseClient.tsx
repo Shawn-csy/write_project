@@ -1,5 +1,6 @@
 "use client";
 
+import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { BookOpen, ChevronLeft, ExternalLink, Play, Plus, Search, X } from "lucide-react";
@@ -449,8 +450,8 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
           </button>
         </div>
       )}
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
+        <div className="mb-6 flex flex-col gap-4 border-b border-border/50 pb-5 sm:flex-row sm:items-end sm:justify-between">
           {selectedGroup ? (
             <div className="flex min-w-0 items-start gap-3">
               <button type="button" onClick={returnToScriptList} className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md border border-border/70 px-2.5 py-2 text-sm hover:bg-muted/60" aria-label="返回台本清單">
@@ -469,14 +470,14 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
               <p className="mt-2 text-sm text-muted-foreground">選一部台本，查看對應的演出與錄音。</p>
             </div>
           )}
-          <div className="flex w-full gap-2 sm:w-auto sm:max-w-xl">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:max-w-xl sm:flex-row sm:items-center">
             {!selectedGroup && (
               <label className="relative block min-w-0 flex-1 sm:w-80">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  className="h-10 w-full rounded-lg border border-border/70 bg-card pl-9 pr-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
+                  className="h-11 w-full rounded-lg border border-border/70 bg-card pl-9 pr-3 sm:h-10 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
                   placeholder="搜尋台本或台本師"
                   aria-label="搜尋台本或台本師"
                 />
@@ -484,7 +485,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
             )}
             <Dialog.Root open={showSubmissionForm} onOpenChange={setShowSubmissionForm}>
               <Dialog.Trigger asChild>
-                <button type="button" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border/70 bg-card px-3 text-sm font-medium hover:bg-muted/60">
+                <button type="button" className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-10">
                   <Plus className="h-4 w-4" aria-hidden />投稿 Demo
                 </button>
               </Dialog.Trigger>
@@ -697,13 +698,22 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
         </div>
 
         {scriptGroups.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-16 text-center">
-            <h2 className="font-semibold">目前還沒有公開 Demo</h2>
-            <p className="mt-2 text-sm text-muted-foreground">台本與對應的範例會在審核後出現在這裡。</p>
-          </div>
+          <PublicEmptyState
+            className="rounded-xl border border-dashed border-border/70 bg-card/40"
+            title="目前還沒有公開 Demo"
+            description="台本與對應的範例會在審核後出現在這裡。你也可以成為第一位投稿的人。"
+            primaryAction={{ label: "投稿 Demo", onClick: () => setShowSubmissionForm(true) }}
+            secondaryAction={{ label: "瀏覽公開台本", href: "/" }}
+          />
         ) : !selectedGroup ? (
           visibleGroups.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-12 text-center text-sm text-muted-foreground">找不到符合的台本或 Demo。</div>
+            <PublicEmptyState
+              className="rounded-xl border border-dashed border-border/70 bg-card/40"
+              title="找不到符合的台本或 Demo"
+              description="換個關鍵字試試，或清除搜尋看看全部。"
+              primaryAction={{ label: "清除搜尋", onClick: () => setQuery("") }}
+              secondaryAction={{ label: "投稿 Demo", onClick: () => setShowSubmissionForm(true) }}
+            />
           ) : (
             <section>
               <div className="mb-3 flex items-center justify-between">

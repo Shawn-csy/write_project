@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { Search, X } from "lucide-react";
+import { GallerySortControl, type GallerySortValue } from "./GallerySortControl";
+
+const SEGMENT_OPTIONS = [
+  { value: "all", label: "全部" },
+  { value: "all-ages", label: "全年齡向" },
+  { value: "adult", label: "成人向" },
+  { value: "male", label: "男性向" },
+  { value: "female", label: "女性向" },
+] as const;
 
 /** Maximum tags shown before collapse. */
 export const DEFAULT_VISIBLE_TAG_COUNT = 8;
@@ -26,6 +35,12 @@ interface GalleryFilterPanelProps {
   /** Usage filter value (moved from inline controls bar). */
   usage?: string;
   onUsageChange?: (v: string) => void;
+  /** Optional: 作品分類 (segment) lives in the same panel so every entry point shares one state. */
+  segment?: string;
+  onSegmentChange?: (v: string) => void;
+  /** Optional: 排序. null = 分區瀏覽. */
+  sort?: GallerySortValue | null;
+  onSortChange?: (v: GallerySortValue | null) => void;
   /** "sidebar" wraps content in a rounded card surface. "sheet" renders flat (for mobile drawers). */
   variant?: "sidebar" | "sheet";
   /** Mobile sheet owns the primary search field and reuses this panel for advanced filters only. */
@@ -46,6 +61,10 @@ export function GalleryFilterPanel({
   onResetFilters,
   usage,
   onUsageChange,
+  segment,
+  onSegmentChange,
+  sort,
+  onSortChange,
   variant = "sheet",
   showSearch = true,
 }: GalleryFilterPanelProps) {
@@ -103,6 +122,37 @@ export function GalleryFilterPanel({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Segment */}
+      {segment !== undefined && onSegmentChange && (
+        <div className={showSearch ? divider : ""}>
+          <p className={sectionLabel}>作品分類</p>
+          <div className="flex flex-wrap gap-1.5">
+            {SEGMENT_OPTIONS.map((opt) => {
+              const active = segment === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => onSegmentChange(opt.value)}
+                  className={`${chipBase} ${active ? activeChip : idleChip}`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Sort */}
+      {sort !== undefined && onSortChange && (
+        <div className={divider}>
+          <p className={sectionLabel}>排序</p>
+          <GallerySortControl value={sort} onChange={onSortChange} />
         </div>
       )}
 

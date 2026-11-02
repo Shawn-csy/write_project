@@ -58,11 +58,6 @@ export interface PublicHeroMarqueeProps {
    */
   fallbackToDefault?: boolean;
   fullBleed?: boolean;
-  /**
-   * Contained, fixed-height banner (200–232px) aligned with the page gutter, so the
-   * first screen still shows works. Takes precedence over fullBleed.
-   */
-  compact?: boolean;
   /** Accessible labels — provide localised strings from host */
   labels?: {
     region?: string;
@@ -94,7 +89,6 @@ export function PublicHeroMarquee({
   intervalMs = 4500,
   fallbackToDefault = false,
   fullBleed = false,
-  compact = false,
   labels,
   renderImage,
   renderSlideContent,
@@ -139,9 +133,7 @@ export function PublicHeroMarquee({
     <section className="w-full border-b border-border/60 bg-background/50" aria-label={regionLabel}>
       <div
         className={
-          compact
-            ? "w-full px-4 sm:px-5 lg:px-8 pt-4 sm:pt-6 pb-0"
-            : fullBleed
+          fullBleed
             ? "w-full px-0 py-0"
             : "w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5"
         }
@@ -149,7 +141,7 @@ export function PublicHeroMarquee({
         <div
           className={cn(
             "relative overflow-hidden border border-border/70",
-            compact ? "rounded-2xl" : fullBleed ? "rounded-none border-x-0" : "rounded-xl"
+            fullBleed ? "rounded-none border-x-0" : "rounded-xl"
           )}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -157,8 +149,7 @@ export function PublicHeroMarquee({
           <div
             className={cn(
               "relative w-full aspect-[3/1] min-h-[140px] sm:min-h-[180px] max-h-[44vh]",
-              fullBleed && !compact && "min-h-[200px] sm:min-h-[280px] lg:min-h-[340px] max-h-[54vh]",
-              compact && "aspect-auto h-[176px] min-h-0 max-h-none sm:h-[232px]"
+              fullBleed && "min-h-[200px] sm:min-h-[280px] lg:min-h-[340px] max-h-[54vh]"
             )}
           >
             {safeSlides.map((slide, index) =>

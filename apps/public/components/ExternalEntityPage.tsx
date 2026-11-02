@@ -1,5 +1,6 @@
 "use client";
 
+import { partitionContacts } from "@/lib/publicContactPrivacy";
 import { useState } from "react";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
@@ -50,7 +51,8 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
     || (items[0] && (kind === "author" ? items[0].authorAvatarUrl : items[0].organizationAvatarUrl))
     || socialAvatarUrl(profileUrl);
   const isAuthor = kind === "author";
-  const approvedLinks = supplement?.links || [];
+  // Email / Discord supplements are never published on the page unless explicitly marked public.
+  const approvedLinks = partitionContacts(supplement?.links || []).visible;
   const approvedOrganizations = supplement?.organizations || [];
   const approvedWorks = supplement?.works || [];
   const submitProfile = async (event: React.FormEvent<HTMLFormElement>) => {
