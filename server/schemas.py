@@ -126,6 +126,8 @@ class PersonaPublic(Persona):
     roles: List[Literal["scriptwriter", "voice_actor"]] = []
     profileSources: List[str] = []
     roleProfiles: Dict[str, Any] = {}
+    voiceActorCollaborationEnabled: bool = True
+    voiceActorClaimed: bool = False
 
 
 class AdminVoiceActorRecord(Persona):
@@ -206,6 +208,41 @@ class VoiceActorProfileSubmissionResponse(BaseModel):
     success: bool
     submissionId: str
     createdAt: int
+
+
+class VoiceActorClaimRequestCreate(BaseModel):
+    personaId: str
+    proofUrl: str = ""
+    note: str = ""
+
+
+class VoiceActorClaimRequestStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected"]
+    reviewNote: str = ""
+
+
+class VoiceActorClaimRequestRecord(BaseModel):
+    id: str
+    personaId: str
+    personaName: str = ""
+    requesterId: str
+    requesterName: str = ""
+    verifiedEmail: str = ""
+    proofUrl: str = ""
+    note: str = ""
+    status: Literal["pending", "approved", "rejected"]
+    reviewNote: str = ""
+    reviewedAt: Optional[int] = None
+    createdAt: int
+
+
+class VoiceActorClaimRequestListResponse(BaseModel):
+    total: int
+    items: List[VoiceActorClaimRequestRecord]
+
+
+class VoiceActorCollaborationUpdate(BaseModel):
+    enabled: bool
 
 
 class ExternalAuthorProfileSubmissionCreate(BaseModel):

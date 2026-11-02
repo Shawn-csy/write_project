@@ -2073,6 +2073,7 @@ const messages = {
     "tabs": {
       "applications": "申請・報告",
       "submissions": "デモ投稿",
+      "voiceActorClaims": "声優の認領",
       "voiceActorProfiles": "声優ページ",
       "externalAuthorProfiles": "外部作者ページ",
       "campaigns": "活動投稿",

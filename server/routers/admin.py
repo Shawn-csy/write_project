@@ -55,6 +55,16 @@ def _queue_demo_revalidation(background_tasks: BackgroundTasks | None, *paths: s
         background_tasks.add_task(_send_public_paths_revalidation, list(paths))
 
 
+def _voice_actor_claim_record(row: models.VoiceActorClaimRequest) -> schemas.VoiceActorClaimRequestRecord:
+    return schemas.VoiceActorClaimRequestRecord(
+        id=row.id, personaId=row.personaId,
+        personaName=row.persona.displayName if row.persona else "（身份已刪除）",
+        requesterId=row.requesterId, requesterName=row.requester.displayName if row.requester else "",
+        verifiedEmail=row.verifiedEmail, proofUrl=row.proofUrl or "", note=row.note or "",
+        status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+    )
+
+
 def _delete_scripts_owned_by(db: Session, owner_id: str):
     scripts = db.query(models.Script).filter(models.Script.ownerId == owner_id).all()
     for script in scripts:
@@ -1675,6 +1685,88 @@ def update_voice_actor_admin(
     return item
 
 
+@router.delete("/voice-actors/{persona_id}")
+def delete_voice_actor_admin(
+    persona_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    """Remove a voice-actor identity while preserving shared author identities and demo history."""
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="找不到聲演身份")
+
+    scripts = db.query(models.Script).filter(models.Script.personaId == persona_id).count()
+    writer_role = db.query(models.PersonaRole).filter_by(personaId=persona_id, role="scriptwriter").first()
+    writer_tags = {"作者", "台本師", "scriptwriter", "script writer"}
+    is_also_writer = scripts > 0 or writer_role is not None or any(
+        str(tag).strip().casefold() in writer_tags for tag in crud._ensure_list(persona.tags)
+    )
+
+    # Detach the structured identity references but keep the credited name on
+    # existing demos, so removing a profile does not erase historical credits.
+    for demo in db.query(models.PublicDemoSubmission).all():
+        voice_actor_ids = crud._ensure_list(demo.voiceActorIds)
+        manual_actors = crud._ensure_list(demo.manualVoiceActors)
+        matched_manual = [
+            actor for actor in manual_actors
+            if isinstance(actor, dict) and str(actor.get("personaId") or "") == persona_id
+        ]
+        referenced = (
+            str(demo.voiceActorPersonaId or "") == persona_id
+            or any(str(value) == persona_id for value in voice_actor_ids)
+            or bool(matched_manual)
+        )
+        if not referenced:
+            continue
+
+        preserved_actors = []
+        preserved_names = set()
+        for actor in manual_actors:
+            if isinstance(actor, dict) and str(actor.get("personaId") or "") == persona_id:
+                preserved = {key: value for key, value in actor.items() if key != "personaId"}
+                name = str(preserved.get("name") or persona.displayName or "").strip()
+                if name:
+                    preserved["name"] = name
+                    preserved_names.add(name.casefold())
+                preserved_actors.append(preserved)
+            else:
+                preserved_actors.append(actor)
+                if isinstance(actor, dict) and actor.get("name"):
+                    preserved_names.add(str(actor["name"]).strip().casefold())
+
+        display_name = str(persona.displayName or "").strip()
+        if display_name and display_name.casefold() not in preserved_names:
+            preserved_actors.append({"name": display_name})
+        demo.voiceActorPersonaId = None if str(demo.voiceActorPersonaId or "") == persona_id else demo.voiceActorPersonaId
+        demo.voiceActorIds = [value for value in voice_actor_ids if str(value) != persona_id]
+        demo.manualVoiceActors = preserved_actors
+
+    if is_also_writer:
+        # Persona is shared with the writer profile. Remove only its voice-actor
+        # role and voice-actor classification; the author and authored scripts stay.
+        voice_tags = ("聲演", "配音", "voice actor", "voice-actor", "voiceactor")
+        persona.tags = [
+            tag for tag in crud._ensure_list(persona.tags)
+            if not any(marker in str(tag).casefold() for marker in voice_tags)
+        ]
+        db.query(models.PersonaRole).filter_by(personaId=persona_id, role="voice_actor").delete(synchronize_session=False)
+        persona.updatedAt = int(time.time() * 1000)
+        db.commit()
+    else:
+        # For a voice-actor-only identity, fully remove the profile and its
+        # dependent voice-actor submissions after preserving demo name credits.
+        crud.delete_persona(db, persona_id)
+
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, "/voice-actors", "/demos", f"/author/{persona_id}")
+    return {"success": True, "preservedAuthor": is_also_writer}
+
+
 @router.post("/voice-actors", response_model=schemas.AdminVoiceActorRecord)
 def create_voice_actor_admin(
     payload: schemas.AdminVoiceActorCreate,
@@ -1720,6 +1812,97 @@ def create_voice_actor_admin(
     return item
 
 
+@router.get("/voice-actor-claims", response_model=schemas.VoiceActorClaimRequestListResponse)
+def list_voice_actor_claims_admin(
+    q: Optional[str] = None,
+    status: str = "pending",
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    query = db.query(models.VoiceActorClaimRequest)
+    if status != "all":
+        if status not in {"pending", "approved", "rejected"}:
+            raise HTTPException(status_code=400, detail="無效的審核狀態")
+        query = query.filter(models.VoiceActorClaimRequest.status == status)
+    if q and q.strip():
+        needle = f"%{q.strip()}%"
+        persona_ids = [item[0] for item in db.query(models.Persona.id).filter(models.Persona.displayName.ilike(needle)).all()]
+        query = query.filter((models.VoiceActorClaimRequest.verifiedEmail.ilike(needle)) | (models.VoiceActorClaimRequest.requesterId.ilike(needle)) | (models.VoiceActorClaimRequest.personaId.in_(persona_ids)))
+    total = query.count()
+    rows = query.order_by(models.VoiceActorClaimRequest.createdAt.desc()).offset(max(0, offset)).limit(min(max(limit, 1), 200)).all()
+    return schemas.VoiceActorClaimRequestListResponse(total=total, items=[_voice_actor_claim_record(row) for row in rows])
+
+
+@router.patch("/voice-actor-claims/{claim_id}/status", response_model=schemas.VoiceActorClaimRequestRecord)
+def review_voice_actor_claim_admin(
+    claim_id: str,
+    payload: schemas.VoiceActorClaimRequestStatusUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.VoiceActorClaimRequest).filter_by(id=claim_id).with_for_update().first()
+    if not row:
+        raise HTTPException(status_code=404, detail="找不到聲演認領申請")
+    if row.status != "pending":
+        raise HTTPException(status_code=409, detail="這筆認領申請已完成審核")
+    persona = db.query(models.Persona).filter_by(id=row.personaId).first()
+    if not persona:
+        raise HTTPException(status_code=404, detail="聲演身份已不存在")
+    now_ms = int(time.time() * 1000)
+    if payload.status == "approved":
+        if persona.ownerId:
+            raise HTTPException(status_code=409, detail="此身份已由其他帳戶管理，不能直接覆寫；請先處理身份移轉")
+        claimed = db.query(models.Persona).filter(
+            models.Persona.id == persona.id,
+            models.Persona.ownerId.is_(None),
+        ).update({models.Persona.ownerId: row.requesterId}, synchronize_session=False)
+        if claimed != 1:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="此身份已由其他帳戶管理，請重新整理審核列表")
+        user = db.query(models.User).filter_by(id=row.requesterId).first()
+        if not user:
+            user = models.User(id=row.requesterId, email=row.verifiedEmail, createdAt=now_ms, lastLogin=now_ms)
+            db.add(user)
+        persona.ownerId = row.requesterId
+        persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
+        persona.updatedAt = now_ms
+        role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+        if not role:
+            role = models.PersonaRole(id=str(uuid.uuid4()), personaId=persona.id, role="voice_actor", isVisible=not persona.voiceActorHidden, sourceTypes=["claim"], profile={"collaborationEnabled": True}, createdAt=now_ms, updatedAt=now_ms)
+            db.add(role)
+        else:
+            role_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
+            role_profile.setdefault("collaborationEnabled", True)
+            role.profile = role_profile
+            role.updatedAt = now_ms
+        db.query(models.VoiceActorClaimRequest).filter(
+            models.VoiceActorClaimRequest.personaId == persona.id,
+            models.VoiceActorClaimRequest.id != row.id,
+            models.VoiceActorClaimRequest.status == "pending",
+        ).update({
+            models.VoiceActorClaimRequest.status: "rejected",
+            models.VoiceActorClaimRequest.reviewNote: "另一筆認領申請已核准。",
+            models.VoiceActorClaimRequest.reviewedAt: now_ms,
+            models.VoiceActorClaimRequest.reviewedBy: ownerId,
+        }, synchronize_session=False)
+    row.status = payload.status
+    row.reviewNote = payload.reviewNote.strip()[:1000]
+    row.reviewedAt = now_ms
+    row.reviewedBy = ownerId
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", "/voice-actors")
+    return _voice_actor_claim_record(row)
+
+
 @router.get("/voice-actor-profile-submissions", response_model=schemas.VoiceActorProfileSubmissionListResponse)
 def list_voice_actor_profile_submissions_admin(
     q: Optional[str] = None,
@@ -1731,7 +1914,10 @@ def list_voice_actor_profile_submissions_admin(
 ):
     if not is_admin_user(db, ownerId):
         raise HTTPException(status_code=403, detail="Not authorized")
-    query = db.query(models.VoiceActorProfileSubmission)
+    query = db.query(models.VoiceActorProfileSubmission).join(
+        models.Persona,
+        models.Persona.id == models.VoiceActorProfileSubmission.personaId,
+    ).filter(models.Persona.ownerId.is_(None))
     if status != "all":
         if status not in {"pending", "approved", "rejected"}:
             raise HTTPException(status_code=400, detail="無效的審核狀態")
@@ -1784,10 +1970,14 @@ def review_voice_actor_profile_submission_admin(
     persona = db.query(models.Persona).filter(models.Persona.id == row.personaId).first()
     if not persona:
         raise HTTPException(status_code=404, detail="原聲演身份已不存在")
+    if persona.ownerId:
+        raise HTTPException(status_code=409, detail="此聲演已由本人管理，請由本人審核這筆資料補充")
     now_ms = int(time.time() * 1000)
     if payload.status == "approved":
         profile = row.profile if isinstance(row.profile, dict) else {}
-        accepted_fields = set(payload.acceptedFields or ["displayName", "bio", "avatar", "website", "links", "organizations", "works", "contributorName"])
+        accepted_fields = set(payload.acceptedFields)
+        if not accepted_fields:
+            raise HTTPException(status_code=400, detail="請至少選擇一個要採用的資料欄位")
         if "displayName" in accepted_fields:
             persona.displayName = str(profile.get("displayName") or persona.displayName or "").strip()[:120]
         if "bio" in accepted_fields:
@@ -1802,11 +1992,10 @@ def review_voice_actor_profile_submission_admin(
             persona.voiceActorOrganizations = [item for item in profile.get("organizations", []) if isinstance(item, dict)][:20]
         if "works" in accepted_fields:
             persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
-        contributors = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
-        contributor_name = str(profile.get("contributorName") or "").strip()[:120]
-        public_contributor = contributor_name if "contributorName" in accepted_fields and contributor_name else "訪客協作者"
-        contributors = [*contributors, {"name": public_contributor, "contributedAt": now_ms}]
-        persona.voiceActorContributors = contributors[:100]
+        if "contributorName" in accepted_fields:
+            contributors = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
+            contributor_name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
+            persona.voiceActorContributors = [*contributors, {"name": contributor_name, "contributedAt": now_ms}][:100]
         persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
         persona.updatedAt = now_ms
         role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
@@ -1828,6 +2017,9 @@ def review_voice_actor_profile_submission_admin(
             if "profile_submission" not in sources:
                 sources.append("profile_submission")
             role.sourceTypes = sources
+            existing_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
+            if "collaborationEnabled" in existing_profile:
+                role_profile["collaborationEnabled"] = existing_profile["collaborationEnabled"]
             role.profile = role_profile
             role.isVisible = not persona.voiceActorHidden
             role.updatedAt = now_ms

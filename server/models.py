@@ -372,6 +372,27 @@ class VoiceActorProfileSubmission(Base):
     persona = relationship("Persona")
 
 
+class VoiceActorClaimRequest(Base):
+    """A verified account's request to take ownership of an unclaimed voice actor identity."""
+
+    __tablename__ = "voice_actor_claim_requests"
+
+    id = Column(String, primary_key=True, index=True)
+    personaId = Column(String, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False, index=True)
+    requesterId = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    verifiedEmail = Column(String, nullable=False, default="")
+    proofUrl = Column(Text, nullable=False, default="")
+    note = Column(Text, nullable=False, default="")
+    status = Column(String, nullable=False, default="pending", index=True)
+    reviewNote = Column(Text, nullable=False, default="")
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000), index=True)
+
+    persona = relationship("Persona")
+    requester = relationship("User")
+
+
 class AdminUser(Base):
     __tablename__ = "admin_users"
 

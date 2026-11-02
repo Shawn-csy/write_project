@@ -27,7 +27,11 @@ export interface MarkerTheme {
 
 type ThemeCreateOptions = { initialConfigs?: MarkerConfig[]; isPublic?: boolean; description?: string };
 
-export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined, isAdmin = false) {
+export function useMarkerThemes(
+    currentUser: CurrentUserLike | null | undefined,
+    isAdmin = false,
+    loadRemoteDefaults = true,
+) {
     const [systemDefaultConfigs, setSystemDefaultConfigs] = useState(NORMALIZED_DEFAULT_CONFIGS);
     const defaultTheme = useMemo(
         () => ({ id: DEFAULT_THEME_ID, name: '預設主題 (Default)', configs: systemDefaultConfigs }),
@@ -75,6 +79,7 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
     }, [markerThemes, currentThemeId, systemDefaultConfigs]);
 
     useEffect(() => {
+        if (!loadRemoteDefaults) return;
         let active = true;
         const loadDefaultConfigs = async () => {
             try {
@@ -94,7 +99,7 @@ export function useMarkerThemes(currentUser: CurrentUserLike | null | undefined,
         };
         loadDefaultConfigs();
         return () => { active = false; };
-    }, [isAdmin, currentUser]);
+    }, [isAdmin, currentUser, loadRemoteDefaults]);
 
     // Actions
     const setMarkerThemes = useCallback((val: MarkerTheme[]) => {

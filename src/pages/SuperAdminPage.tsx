@@ -19,10 +19,11 @@ import { PublicFeedbackInbox } from "../components/admin/PublicFeedbackInbox";
 import { PublicDemoSubmissionInbox } from "../components/admin/PublicDemoSubmissionInbox";
 import { PublicDemoManagement } from "../components/admin/PublicDemoManagement";
 import { VoiceActorProfileReviewInbox } from "../components/admin/VoiceActorProfileReviewInbox";
+import { VoiceActorClaimReviewInbox } from "../components/admin/VoiceActorClaimReviewInbox";
 import { ExternalAuthorProfileReviewInbox } from "../components/admin/ExternalAuthorProfileReviewInbox";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
-import { getExternalAuthorProfileSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
+import { getExternalAuthorProfileSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorClaimsAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
 import { ADMIN_QUEUE_UPDATED_EVENT } from "../lib/adminNotifications";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useStudioShell } from "../components/studio/StudioShellContext";
@@ -72,6 +73,7 @@ function AdminWorkflowPlaceholder({ title }: { title: string }): React.JSX.Eleme
 export default function SuperAdminPage(): React.JSX.Element {
   const s = useAdminPageState();
   const [pendingDemoCount, setPendingDemoCount] = useState(0);
+  const [pendingVoiceActorClaimCount, setPendingVoiceActorClaimCount] = useState(0);
   const [newFeedbackCount, setNewFeedbackCount] = useState(0);
   const [pendingVoiceActorProfileCount, setPendingVoiceActorProfileCount] = useState(0);
   const [pendingExternalAuthorProfileCount, setPendingExternalAuthorProfileCount] = useState(0);
@@ -113,16 +115,18 @@ export default function SuperAdminPage(): React.JSX.Element {
   const resourceTab = resourceTabs.includes(requestedResourceTab) ? requestedResourceTab : "scripts";
 
   const refreshQueueCounts = useCallback(async () => {
-    const [feedbackResult, demoResult, voiceActorResult, externalAuthorResult] = await Promise.allSettled([
+    const [feedbackResult, demoResult, voiceActorResult, externalAuthorResult, voiceActorClaimResult] = await Promise.allSettled([
       getPublicFeedbackAdmin({ excludeKind: "demo_submission", status: "new", limit: 1, offset: 0 }),
       getPublicDemoSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getVoiceActorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getExternalAuthorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
+      getVoiceActorClaimsAdmin({ status: "pending", limit: 1, offset: 0 }),
     ]);
     if (feedbackResult.status === "fulfilled") setNewFeedbackCount(feedbackResult.value.total || 0);
     if (demoResult.status === "fulfilled") setPendingDemoCount(demoResult.value.total || 0);
     if (voiceActorResult.status === "fulfilled") setPendingVoiceActorProfileCount(voiceActorResult.value.total || 0);
     if (externalAuthorResult.status === "fulfilled") setPendingExternalAuthorProfileCount(externalAuthorResult.value.total || 0);
+    if (voiceActorClaimResult.status === "fulfilled") setPendingVoiceActorClaimCount(voiceActorClaimResult.value.total || 0);
   }, []);
 
   useEffect(() => {
@@ -253,7 +257,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <div className="hidden px-2.5 pb-1 pt-3 text-xs font-semibold text-muted-foreground lg:block">{group.name}</div>
               {group.items.map((item) => (
                 (() => {
-                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
+                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "claims" ? pendingVoiceActorClaimCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
                   return (
                 <button
                   key={item.key}
@@ -569,7 +573,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               </div>
             </TabsContent>
             <TabsContent value="submissions"><PublicDemoSubmissionInbox /></TabsContent>
-            <TabsContent value="claims"><AdminWorkflowPlaceholder title="身份認領" /></TabsContent>
+            <TabsContent value="claims"><VoiceActorClaimReviewInbox /></TabsContent>
             <TabsContent value="voice-actor-profiles"><VoiceActorProfileReviewInbox /></TabsContent>
             <TabsContent value="external-author-profiles"><ExternalAuthorProfileReviewInbox /></TabsContent>
           </Tabs>

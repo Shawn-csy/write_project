@@ -2071,6 +2071,7 @@ const messages = {
     "tabs": {
       "applications": "Applications & reports",
       "submissions": "Demo submissions",
+      "voiceActorClaims": "Voice actor claims",
       "voiceActorProfiles": "Voice actor pages",
       "externalAuthorProfiles": "External author pages",
       "campaigns": "Campaign submissions",

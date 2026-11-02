@@ -8,18 +8,39 @@ import os
 import time
 import uuid
 import unicodedata
+import httpx
 from urllib.parse import urlparse
 import crud_ops as crud
 import schemas
 import models
 from crud_ops.publish_state import is_publicly_visible as _is_publicly_visible_script, has_public_parent_folder as _has_public_parent_folder
-from dependencies import get_db, get_current_user_id
+from dependencies import get_db, get_current_user_id, get_current_user_claims, verified_email_from_claims
 from rate_limit import limiter
 from utils import normalize_homepage_banner_value, safe_json_list
 from services.public_feedback_email import send_public_feedback_notification
 
 router = APIRouter(prefix="/api", tags=["public"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
+_REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
+_REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
+
+
+def _queue_demo_revalidation(background_tasks: BackgroundTasks | None, *paths: str) -> None:
+    if not background_tasks or not _REVALIDATE_URL or not _REVALIDATE_SECRET or not paths:
+        return
+
+    def revalidate() -> None:
+        try:
+            httpx.post(
+                _REVALIDATE_URL,
+                json={"secret": _REVALIDATE_SECRET, "paths": sorted(set(paths))},
+                timeout=5,
+            )
+        except Exception:
+            # Data changes have committed; cache refresh is best effort.
+            pass
+
+    background_tasks.add_task(revalidate)
 
 
 def _normalize_external_author_key(value: str) -> str:
@@ -664,6 +685,9 @@ def _public_identity_projection(
     matching is intentionally not part of this projection.
     """
     result = schemas.PersonaPublic.model_validate(persona)
+    # Public identity payloads must not disclose the account UID that owns a persona.
+    result.ownerId = None
+    result.voiceActorClaimed = bool(persona.ownerId)
     result.organizations = organizations or []
 
     context = context or _build_public_identity_context(db, [persona.id])
@@ -702,6 +726,8 @@ def _public_identity_projection(
         for row in role_records
         if row.isVisible and isinstance(row.profile, dict)
     }
+    voice_actor_profile = role_profiles.get("voice_actor") or {}
+    result.voiceActorCollaborationEnabled = voice_actor_profile.get("collaborationEnabled") is not False
     profile_urls = [str(author.profileUrl or "").strip() for author in linked_authors if str(author.profileUrl or "").strip()]
     scriptwriter_profile = dict(role_profiles.get("scriptwriter") or {})
     if linked_authors:
@@ -758,6 +784,18 @@ def _has_approved_demo_for_persona(db: Session, persona_id: str) -> bool:
         if any(isinstance(actor, dict) and str(actor.get("personaId") or "") == persona_id for actor in actors):
             return True
     return False
+
+
+def _is_public_voice_actor_identity(db: Session, persona: models.Persona) -> bool:
+    """Match claim eligibility to the public identity projection's role rules."""
+    if persona.voiceActorHidden:
+        return False
+    roles = db.query(models.PersonaRole.role, models.PersonaRole.isVisible).filter(
+        models.PersonaRole.personaId == persona.id
+    ).all()
+    if roles:
+        return any(role == "voice_actor" and is_visible for role, is_visible in roles)
+    return _is_voice_actor_persona(persona) or _has_approved_demo_for_persona(db, persona.id)
 
 
 def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
@@ -1068,10 +1106,13 @@ def create_voice_actor_profile_submission(
     if payload.websiteTrap:
         return schemas.VoiceActorProfileSubmissionResponse(success=True, submissionId="", createdAt=now_ms)
     persona = db.query(models.Persona).filter(models.Persona.id == payload.personaId).first()
-    if not persona or persona.voiceActorHidden or not (_is_voice_actor_persona(persona) or _has_approved_demo_for_persona(db, persona.id)):
+    if not persona or not _is_public_voice_actor_identity(db, persona):
         raise HTTPException(status_code=404, detail="找不到公開的聲演身份")
     if persona.ownerId:
-        raise HTTPException(status_code=409, detail="此身份已由本人管理，請聯絡聲演本人更新資料")
+        role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+        role_profile = dict(role.profile) if role and isinstance(role.profile, dict) else {}
+        if role_profile.get("collaborationEnabled") is False:
+            raise HTTPException(status_code=403, detail="此聲演目前未開放協作者補充資料")
     pending = db.query(models.VoiceActorProfileSubmission).filter(
         models.VoiceActorProfileSubmission.personaId == persona.id,
         models.VoiceActorProfileSubmission.status == "pending",
@@ -1102,14 +1143,32 @@ def create_voice_actor_profile_submission(
             "coverUrl": cover_url,
             "description": str(item.get("description") or "").strip()[:1000],
         })
+    avatar_url = _public_profile_url(payload.avatar, image=True) if payload.avatar.strip() else ""
+    website_url = _public_profile_url(payload.website) if payload.website.strip() else ""
+    links = []
+    for item in payload.links[:30]:
+        if not isinstance(item, dict):
+            continue
+        label = str(item.get("label") or "").strip()[:120]
+        url = _public_profile_url(item.get("url")) if str(item.get("url") or "").strip() else ""
+        if label or url:
+            links.append({"label": label, "url": url})
+    organizations = []
+    for item in payload.organizations[:20]:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()[:200]
+        url = _public_profile_url(item.get("url")) if str(item.get("url") or "").strip() else ""
+        if name or url:
+            organizations.append({"name": name, "url": url})
     profile = {
         "displayName": display_name,
         "contributorName": contributor_name,
         "bio": payload.bio.strip()[:4000],
-        "avatar": payload.avatar.strip()[:2000],
-        "website": payload.website.strip()[:2000],
-        "links": [item for item in payload.links if isinstance(item, dict)][:30],
-        "organizations": [item for item in payload.organizations if isinstance(item, dict)][:20],
+        "avatar": avatar_url[:2000],
+        "website": website_url[:2000],
+        "links": links,
+        "organizations": organizations,
         "works": works,
     }
     row = models.VoiceActorProfileSubmission(
@@ -1119,6 +1178,259 @@ def create_voice_actor_profile_submission(
     db.add(row)
     db.commit()
     return schemas.VoiceActorProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now_ms)
+
+
+@router.post("/voice-actor-claims", response_model=schemas.VoiceActorClaimRequestRecord)
+@limiter.limit("3/hour")
+async def create_voice_actor_claim_request(
+    request: Request,
+    payload: schemas.VoiceActorClaimRequestCreate,
+    db: Session = Depends(get_db),
+    claims: dict = Depends(get_current_user_claims),
+):
+    user_id = str(claims.get("uid") or "")
+    email = verified_email_from_claims(claims)
+    if not email:
+        raise HTTPException(status_code=403, detail="請使用已驗證 Email 的 Google 帳戶提出認領")
+    firebase_claims = claims.get("firebase") if isinstance(claims.get("firebase"), dict) else {}
+    if firebase_claims.get("sign_in_provider") != "google.com":
+        raise HTTPException(status_code=403, detail="聲演認領目前需使用 Google 帳戶登入")
+    persona = db.query(models.Persona).filter(models.Persona.id == payload.personaId).first()
+    if not persona or not _is_public_voice_actor_identity(db, persona):
+        raise HTTPException(status_code=404, detail="找不到公開的聲演身份")
+    if persona.ownerId:
+        raise HTTPException(status_code=409, detail="此身份已有人管理，請聯絡管理員處理移轉")
+    pending = db.query(models.VoiceActorClaimRequest).filter_by(personaId=persona.id, status="pending").first()
+    if pending:
+        raise HTTPException(status_code=409, detail="此聲演已有認領申請正在審核")
+    proof_url = _public_profile_url(payload.proofUrl) if payload.proofUrl.strip() else ""
+    note = payload.note.strip()[:2000]
+    if not proof_url and len(note) < 10:
+        raise HTTPException(status_code=400, detail="請提供可核對的公開社群連結，或至少 10 字的身份佐證說明")
+    user = db.query(models.User).filter_by(id=user_id).first()
+    now_ms = int(time.time() * 1000)
+    row = models.VoiceActorClaimRequest(
+        id=str(uuid.uuid4()), personaId=persona.id, requesterId=user_id,
+        verifiedEmail=email, proofUrl=proof_url, note=note,
+        status="pending", createdAt=now_ms,
+    )
+    db.add(row)
+    if not user:
+        db.add(models.User(id=user_id, email=email, displayName=str(claims.get("name") or "")[:120], createdAt=now_ms, lastLogin=now_ms))
+    else:
+        user.email = email
+    db.commit()
+    return schemas.VoiceActorClaimRequestRecord(
+        id=row.id, personaId=persona.id, personaName=persona.displayName or "", requesterId=user_id,
+        requesterName=(user.displayName if user else str(claims.get("name") or "")), verifiedEmail=email,
+        proofUrl=proof_url, note=note, status="pending", reviewNote="", reviewedAt=None, createdAt=now_ms,
+    )
+
+
+@router.get("/voice-actor-claims/candidates")
+def list_voice_actor_claim_candidates(
+    q: str = "",
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    del user_id
+    query = db.query(models.Persona).filter(models.Persona.ownerId.is_(None), models.Persona.voiceActorHidden.is_(False))
+    if q.strip():
+        query = query.filter(models.Persona.displayName.ilike(f"%{q.strip()}%"))
+    approved_demos = db.query(models.PublicDemoSubmission).filter(
+        models.PublicDemoSubmission.status == "approved"
+    ).all()
+    demo_persona_ids: set[str] = set()
+    for demo in approved_demos:
+        if demo.voiceActorPersonaId:
+            demo_persona_ids.add(str(demo.voiceActorPersonaId))
+        demo_persona_ids.update(str(value) for value in crud._ensure_list(demo.voiceActorIds) if value)
+        for actor in crud._ensure_list(demo.manualVoiceActors):
+            persona_id = str(actor.get("personaId") or "").strip() if isinstance(actor, dict) else ""
+            if persona_id:
+                demo_persona_ids.add(persona_id)
+    pending_persona_ids = {
+        str(row[0]) for row in db.query(models.VoiceActorClaimRequest.personaId)
+        .filter(models.VoiceActorClaimRequest.status == "pending").all()
+    }
+    role_rows = db.query(
+        models.PersonaRole.personaId,
+        models.PersonaRole.role,
+        models.PersonaRole.isVisible,
+    ).all()
+    roles_by_persona: dict[str, list[tuple[str, bool]]] = {}
+    for persona_id, role, is_visible in role_rows:
+        roles_by_persona.setdefault(str(persona_id), []).append((str(role), bool(is_visible)))
+    result = []
+    offset = 0
+    while len(result) < 250:
+        rows = query.order_by(models.Persona.displayName.asc()).offset(offset).limit(500).all()
+        if not rows:
+            break
+        page_ids = [persona.id for persona in rows]
+        scriptwriter_ids = {
+            str(row[0]) for row in db.query(models.PersonaRole.personaId)
+            .filter(models.PersonaRole.role == "scriptwriter", models.PersonaRole.personaId.in_(page_ids)).all()
+        }
+        for persona in rows:
+            role_records = roles_by_persona.get(persona.id, [])
+            if role_records:
+                is_public_voice_actor = any(role == "voice_actor" and visible for role, visible in role_records)
+            else:
+                is_public_voice_actor = _is_voice_actor_persona(persona) or persona.id in demo_persona_ids
+            if not is_public_voice_actor:
+                continue
+            if persona.id in pending_persona_ids:
+                continue
+            result.append({"id": persona.id, "displayName": persona.displayName or "", "avatar": persona.avatar or "", "hasScriptwriterRole": persona.id in scriptwriter_ids})
+            if len(result) >= 250:
+                break
+        offset += len(rows)
+        if len(rows) < 500:
+            break
+    return result
+
+
+@router.get("/my-voice-actors")
+def list_my_voice_actor_personas(db: Session = Depends(get_db), user_id: str = Depends(get_current_user_id)):
+    personas = db.query(models.Persona).filter_by(ownerId=user_id).order_by(models.Persona.displayName.asc()).all()
+    items = []
+    for persona in personas:
+        role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+        if not role:
+            continue
+        role_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
+        pending_count = db.query(models.VoiceActorProfileSubmission).filter_by(personaId=persona.id, status="pending").count()
+        items.append({"id": persona.id, "displayName": persona.displayName or "", "collaborationEnabled": role_profile.get("collaborationEnabled") is not False, "pendingSubmissionCount": pending_count})
+    return items
+
+
+@router.get("/voice-actor-claims/mine", response_model=schemas.VoiceActorClaimRequestListResponse)
+async def list_my_voice_actor_claims(
+    status: str = "all",
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    query = db.query(models.VoiceActorClaimRequest).filter_by(requesterId=user_id)
+    if status != "all":
+        query = query.filter_by(status=status)
+    rows = query.order_by(models.VoiceActorClaimRequest.createdAt.desc()).limit(100).all()
+    items = [schemas.VoiceActorClaimRequestRecord(
+        id=row.id, personaId=row.personaId,
+        personaName=row.persona.displayName if row.persona else "（身份已刪除）",
+        requesterId=row.requesterId, requesterName=row.requester.displayName if row.requester else "",
+        verifiedEmail=row.verifiedEmail, proofUrl=row.proofUrl, note=row.note,
+        status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+    ) for row in rows]
+    return schemas.VoiceActorClaimRequestListResponse(total=len(items), items=items)
+
+
+@router.get("/voice-actor-profile-submissions/mine", response_model=schemas.VoiceActorProfileSubmissionListResponse)
+def list_owned_voice_actor_profile_submissions(
+    status: str = "pending",
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    query = db.query(models.VoiceActorProfileSubmission).join(models.Persona).filter(models.Persona.ownerId == user_id)
+    if status != "all":
+        query = query.filter(models.VoiceActorProfileSubmission.status == status)
+    rows = query.order_by(models.VoiceActorProfileSubmission.createdAt.desc()).limit(100).all()
+    records = []
+    for row in rows:
+        persona = row.persona
+        records.append(schemas.VoiceActorProfileSubmissionRecord(
+            id=row.id, personaId=row.personaId, personaName=persona.displayName or "",
+            submitterName=row.submitterName, contactEmail=row.contactEmail,
+            contributorName=str((row.profile or {}).get("contributorName") or ""),
+            collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
+            currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else []},
+            profile=row.profile or {}, acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
+            status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+        ))
+    return schemas.VoiceActorProfileSubmissionListResponse(total=len(records), items=records)
+
+
+@router.put("/voice-actor-collaboration/{persona_id}")
+def update_voice_actor_collaboration(
+    persona_id: str,
+    payload: schemas.VoiceActorCollaborationUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    persona = db.query(models.Persona).filter_by(id=persona_id).first()
+    if not persona or persona.ownerId != user_id:
+        raise HTTPException(status_code=404, detail="找不到你管理的聲演身份")
+    role = db.query(models.PersonaRole).filter_by(personaId=persona_id, role="voice_actor").first()
+    if not role:
+        raise HTTPException(status_code=404, detail="找不到聲演身份資料")
+    profile = dict(role.profile) if isinstance(role.profile, dict) else {}
+    profile["collaborationEnabled"] = payload.enabled
+    role.profile = profile
+    role.updatedAt = int(time.time() * 1000)
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}")
+    return {"success": True, "enabled": payload.enabled}
+
+
+@router.patch("/voice-actor-profile-submissions/{submission_id}/owner-status", response_model=schemas.VoiceActorProfileSubmissionRecord)
+def review_owned_voice_actor_profile_submission(
+    submission_id: str,
+    payload: schemas.VoiceActorProfileSubmissionStatusUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    user_id: str = Depends(get_current_user_id),
+):
+    row = db.query(models.VoiceActorProfileSubmission).filter_by(id=submission_id).first()
+    if not row or not row.persona or row.persona.ownerId != user_id:
+        raise HTTPException(status_code=404, detail="找不到待你審核的資料補充")
+    if row.status != "pending":
+        raise HTTPException(status_code=409, detail="這筆申請已完成審核")
+    persona = row.persona
+    now_ms = int(time.time() * 1000)
+    if payload.status == "approved":
+        profile = row.profile if isinstance(row.profile, dict) else {}
+        accepted = set(payload.acceptedFields)
+        if not accepted:
+            raise HTTPException(status_code=400, detail="請至少選擇一個要採用的資料欄位")
+        if "displayName" in accepted: persona.displayName = str(profile.get("displayName") or persona.displayName or "").strip()[:120]
+        if "bio" in accepted: persona.bio = str(profile.get("bio") or "").strip()[:4000]
+        if "avatar" in accepted: persona.avatar = str(profile.get("avatar") or "").strip()[:2000]
+        if "website" in accepted: persona.website = str(profile.get("website") or "").strip()[:2000]
+        if "links" in accepted: persona.links = [item for item in profile.get("links", []) if isinstance(item, dict)][:30]
+        if "organizations" in accepted: persona.voiceActorOrganizations = [item for item in profile.get("organizations", []) if isinstance(item, dict)][:20]
+        if "works" in accepted: persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
+        if "contributorName" in accepted:
+            name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
+            existing = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
+            persona.voiceActorContributors = [*existing, {"name": name, "contributedAt": now_ms}][:100]
+        role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+        if role:
+            role_data = dict(role.profile) if isinstance(role.profile, dict) else {}
+            role_data.update({"works": persona.voiceActorWorks, "organizations": persona.voiceActorOrganizations, "contributors": persona.voiceActorContributors})
+            role.profile = role_data
+            role.updatedAt = now_ms
+        row.acceptedFields = sorted(accepted)
+    else:
+        row.acceptedFields = []
+    row.status = payload.status
+    row.reviewNote = payload.reviewNote.strip()[:1000]
+    row.reviewedAt = now_ms
+    row.reviewedBy = user_id
+    persona.updatedAt = now_ms
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", "/voice-actors")
+    return schemas.VoiceActorProfileSubmissionRecord(
+        id=row.id, personaId=row.personaId, personaName=persona.displayName or "", submitterName=row.submitterName,
+        contactEmail=row.contactEmail, contributorName=str((row.profile or {}).get("contributorName") or ""),
+        collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
+        currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else []},
+        profile=row.profile or {}, acceptedFields=row.acceptedFields or [], status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+    )
 
 
 @router.get("/public-personas/{persona_id}", response_model=schemas.PersonaPublic)

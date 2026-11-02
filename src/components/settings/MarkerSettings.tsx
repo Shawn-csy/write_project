@@ -46,13 +46,9 @@ function formatSaveStatus({ isSaving, parseError, isDirty, lastSavedAt, t }: For
 
 interface MarkerSettingsProps {
   sectionRef?: React.Ref<HTMLDivElement>;
-  /** Leading header control, e.g. the mobile navigation button on the standalone page. */
-  headerLeading?: React.ReactNode;
-  /** Breadcrumb above the title on the standalone page. */
-  breadcrumb?: React.ReactNode;
 }
 
-export function MarkerSettings({ sectionRef, headerLeading, breadcrumb }: MarkerSettingsProps): React.JSX.Element {
+export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.Element {
   const { t } = useI18n();
   const { profile } = useAuth();
   const isAdmin = Boolean(profile?.isAdmin);
@@ -180,8 +176,6 @@ export function MarkerSettings({ sectionRef, headerLeading, breadcrumb }: Marker
   return (
     <div ref={sectionRef} className="flex h-full min-h-0 flex-col bg-background">
         <MarkerSettingsHeader
-          leading={headerLeading}
-          breadcrumb={breadcrumb}
           viewMode={viewMode}
           setViewMode={setViewMode}
           statusText={statusText}
