@@ -44,11 +44,10 @@ export function useProgressiveLimit(initial: number): number {
   return limit;
 }
 
-// Whole-card lanes: widths are fractions of the lane so N full cards always fit
-// (2 on phones with a peek of the third, 3-6 as the viewport grows) and every
-// card snaps to the lane edge instead of being sliced in half.
+// Whole-card lanes: three full covers on narrow phones, four on wider phones.
+// Every card snaps to the lane edge instead of being sliced in half.
 const CARD_WIDTH =
-  "shrink-0 snap-start w-[calc((100%-1rem)/2.3)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] 2xl:w-[calc((100%-5rem)/6)]";
+  "shrink-0 snap-start w-[calc((100%-2rem)/3)] min-[480px]:w-[calc((100%-3rem)/4)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] 2xl:w-[calc((100%-5rem)/6)]";
 const FEATURED_HOMEPAGE_TAG = "清淡校園練習";
 
 type MixedGalleryEntry =
@@ -365,8 +364,7 @@ export function GalleryScriptResults({
   if (allScriptsSort) {
     return (
       <div
-        className="grid gap-5 sm:gap-6"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}
+        className="grid grid-cols-3 gap-3 min-[480px]:grid-cols-4 sm:grid-cols-[repeat(auto-fill,minmax(165px,1fr))] sm:gap-6 [&>*]:min-w-0 [&>*]:overflow-hidden"
         aria-live="polite"
       >
         {allScriptsSort === "random" && allScripts.length > 0 && (
@@ -451,8 +449,7 @@ export function GalleryScriptResults({
     return (
       <div
         ref={gridRef}
-        className="grid gap-5 sm:gap-6"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(165px, 1fr))" }}
+        className="grid grid-cols-3 gap-3 min-[480px]:grid-cols-4 sm:grid-cols-[repeat(auto-fill,minmax(165px,1fr))] sm:gap-6 [&>*]:min-w-0 [&>*]:overflow-hidden"
       >
         {mergedEntries.slice(0, renderLimit).map((entry) => (
           <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>

@@ -53,6 +53,12 @@ describe("parseGalleryUrlState — valid values", () => {
   it("segment=male", () => expect(parse("segment=male").segment).toBe("male"));
   it("segment=female", () => expect(parse("segment=female").segment).toBe("female"));
   it("usage=commercial", () => expect(parse("usage=commercial").usage).toBe("commercial"));
+  it("demo=1", () => expect(parse("demo=1").demoOnly).toBe(true));
+  it("ignores other demo values", () => expect(parse("demo=yes").demoOnly).toBe(false));
+  it("serializes only the active Demo filter", () => {
+    expect(serialize({ ...DEFAULT_URL_STATE, demoOnly: true })).toBe("?demo=1");
+    expect(isDefaultGalleryUrlState({ ...DEFAULT_URL_STATE, demoOnly: true })).toBe(false);
+  });
   it("mode=compact", () => expect(parse("mode=compact").mode).toBe("compact"));
   it("lane=top", () => expect(parse("lane=top").lane).toBe("top"));
   it("lane=featured", () => expect(parse("lane=featured").lane).toBe("featured"));
@@ -121,6 +127,7 @@ describe("round trip — serialize then parse", () => {
       authorTags: ["voice"],
       orgTags: [],
       usage: "commercial",
+      demoOnly: true,
       segment: "adult",
       mode: "compact",
       q: "search term",
@@ -133,6 +140,7 @@ describe("round trip — serialize then parse", () => {
     expect(parsed.authorTags).toEqual(["voice"]);
     expect(parsed.orgTags).toEqual([]);
     expect(parsed.usage).toBe("commercial");
+    expect(parsed.demoOnly).toBe(true);
     expect(parsed.segment).toBe("adult");
     expect(parsed.mode).toBe("compact");
     expect(parsed.q).toBe("search term");

@@ -57,6 +57,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
     setSegment,
     usage,
     setUsage,
+    demoOnly,
+    setDemoOnly,
     viewMode,
     setViewMode,
     bannerSlides,
@@ -96,6 +98,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
       setSegment("all");
     } else if (chip.type === "usage") {
       setUsage("all");
+    } else if (chip.type === "demo") {
+      setDemoOnly(false);
     } else if (view === "authors") {
       onToggleAuthorTag(chip.value);
     } else if (view === "orgs") {
@@ -176,7 +180,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
-            <div className="sticky top-14 z-30 -mx-4 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
+            <div className="sticky top-[100px] z-30 -mx-4 sm:top-14 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
               {/* Segment tabs row — with expand button inlined when collapsed */}
               <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-end">
                 {sidebarCollapsed && (
@@ -203,7 +207,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                   </div>
                 )}
                 <div className="w-full min-w-0 lg:flex-1">
-                  <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
+                  <GallerySegmentBar segment={segment} onSegmentChange={setSegment} demoOnly={demoOnly} onDemoOnlyChange={setDemoOnly} />
                 </div>
                 <GallerySearchField
                   value={filterPanelProps.searchTerm}
@@ -250,7 +254,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
           )}
 
           {view === "scripts" && (
-            <GalleryHoverPreviewProvider resetKey={[viewMode, segment, usage, filterPanelProps.searchTerm, filterPanelProps.selectedTags?.join(",")].join("|")}>
+            <GalleryHoverPreviewProvider resetKey={[viewMode, segment, usage, demoOnly, filterPanelProps.searchTerm, filterPanelProps.selectedTags?.join(",")].join("|")}>
               <GalleryScriptResults
                 model={homepageModel}
                 onResetFilters={filterPanelProps.onResetFilters}
@@ -309,6 +313,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         {...filterPanelProps}
         usage={usage}
         setUsage={setUsage}
+        demoOnly={demoOnly}
+        setDemoOnly={setDemoOnly}
         viewModeValue={viewMode}
         setViewMode={setViewMode}
         segment={segment}

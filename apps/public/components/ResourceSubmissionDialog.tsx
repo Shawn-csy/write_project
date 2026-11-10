@@ -59,7 +59,7 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
   }
 
   return <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (next) setCategory(defaultCategory); else { setSubmitted(false); setError(""); } }}>
-    <Dialog.Trigger asChild><button type="button" className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:opacity-90"><Plus className="h-4 w-4" aria-hidden />投稿資源</button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:opacity-90 sm:h-10 sm:gap-1.5 sm:px-4"><Plus className="h-4 w-4" aria-hidden />投稿資源</button></Dialog.Trigger>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
       <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border/70 bg-background p-5 shadow-2xl sm:p-6">

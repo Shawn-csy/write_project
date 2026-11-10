@@ -14,9 +14,11 @@ const SEGMENT_OPTIONS: { value: SegmentKey; label: string }[] = [
 interface GallerySegmentBarProps {
   segment: string;
   onSegmentChange: (v: string) => void;
+  demoOnly?: boolean;
+  onDemoOnlyChange?: (enabled: boolean) => void;
 }
 
-export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBarProps) {
+export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, onDemoOnlyChange }: GallerySegmentBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
@@ -48,7 +50,7 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
 
   return (
     <>
-      <div className="md:hidden">
+      <div className="flex items-center gap-2 md:hidden">
         <label className="sr-only" htmlFor="gallery-segment-select">作品分類</label>
         <select
           id="gallery-segment-select"
@@ -58,6 +60,7 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
         >
           {SEGMENT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
+        {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-10 rounded-lg border px-3 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
       </div>
 
       <div className="hidden overflow-x-auto scrollbar-none editorial-border-b md:block">
@@ -80,6 +83,7 @@ export function GallerySegmentBar({ segment, onSegmentChange }: GallerySegmentBa
               </button>
             );
           })}
+          {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`ml-2 h-9 shrink-0 rounded-md border px-3 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/50 text-muted-foreground hover:text-foreground"}`}>有 Demo</button>}
           {/* Sliding indicator */}
           {ready && indicator && (
             <span

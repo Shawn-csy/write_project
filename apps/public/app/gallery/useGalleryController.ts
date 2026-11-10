@@ -17,6 +17,7 @@ import {
   toGalleryInput,
   toOrgLike,
   externalOrgsFromScripts,
+  hasValidDemoLink,
 } from "@/lib/galleryProjection";
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
@@ -59,6 +60,7 @@ function filterExternalPublicScripts(
   selectedTags: string[],
   segmentFilter: string,
   usageFilter: string,
+  demoOnly: boolean,
 ): ExternalPublicScript[] {
   return items
     .filter((item) => {
@@ -86,7 +88,8 @@ function filterExternalPublicScripts(
         || [...segmentTags, ...segmentAliases].some((tag) => categories.some((category) => category.toLowerCase() === tag));
       // External sources do not carry a verified commercial-use license.
       const matchesUsage = usageFilter !== "commercial";
-      return matchesSearch && matchesTag && matchesSegment && matchesUsage;
+      const matchesDemo = !demoOnly || Boolean(item.hasDemo || hasValidDemoLink(item.demoLinks));
+      return matchesSearch && matchesTag && matchesSegment && matchesUsage && matchesDemo;
     })
     .sort((a, b) =>
       (b.mountedAt || b.createdAt || b.updatedAt || 0) -
@@ -158,7 +161,8 @@ export function useGalleryController({
   }, [urlState.view, peopleStatus]);
 
   // ── Gallery model inputs ───────────────────────────────────────────────────
-  const galleryScripts = useMemo(() => rawScripts.map(toGalleryInput), [rawScripts]);
+  const galleryScripts = useMemo(() => rawScripts.map(toGalleryInput)
+    .filter((script) => !urlState.demoOnly || script.hasDemo), [rawScripts, urlState.demoOnly]);
   const publishedExternalPublicScripts = useMemo(
     () => externalPublicScripts.filter((item) => item.status === "published"),
     [externalPublicScripts]
@@ -189,8 +193,9 @@ export function useGalleryController({
       urlState.tags,
       urlState.segment,
       urlState.usage,
+      urlState.demoOnly,
     ),
-    [publishedExternalPublicScripts, urlState.q, urlState.tags, urlState.segment, urlState.usage]
+    [publishedExternalPublicScripts, urlState.q, urlState.tags, urlState.segment, urlState.usage, urlState.demoOnly]
   );
   const externalTags = useMemo(
     () => Array.from(new Set(publishedExternalPublicScripts.flatMap(externalCategories))),
@@ -233,8 +238,9 @@ export function useGalleryController({
         selectedOrgTags: urlState.orgTags,
         segment: urlState.segment,
         usage: urlState.usage,
+        demoOnly: urlState.demoOnly,
         q: urlState.q,
-        totalScriptCount: galleryScripts.length + publishedExternalPublicScripts.length,
+        totalScriptCount: rawScripts.length + publishedExternalPublicScripts.length,
         totalAuthorCount: scriptwriterAuthors.length,
         totalOrgCount: allOrgs.length,
         termsRequired,
@@ -256,8 +262,10 @@ export function useGalleryController({
       urlState.orgTags,
       urlState.segment,
       urlState.usage,
+      urlState.demoOnly,
       urlState.q,
       filterResult,
+      rawScripts.length,
       scriptwriterAuthors,
       externalTags,
       publishedExternalPublicScripts,
@@ -300,6 +308,8 @@ export function useGalleryController({
     onResetFilters: urlActions.resetFilters,
     usage: urlState.usage,
     onUsageChange: urlActions.setUsage,
+    demoOnly: urlState.demoOnly,
+    onDemoOnlyChange: urlActions.setDemoOnly,
   };
 
   return {
@@ -308,6 +318,8 @@ export function useGalleryController({
     setSegment: urlActions.setSegment,
     usage: urlState.usage,
     setUsage: urlActions.setUsage,
+    demoOnly: urlState.demoOnly,
+    setDemoOnly: urlActions.setDemoOnly,
     viewMode: urlState.mode,
     setViewMode: urlActions.setMode,
     laneMode: urlState.lane,

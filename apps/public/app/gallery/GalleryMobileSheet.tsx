@@ -23,6 +23,8 @@ interface GalleryMobileSheetProps {
   onResetFilters: () => void;
   usage: string;
   setUsage: (v: string) => void;
+  demoOnly?: boolean;
+  setDemoOnly?: (enabled: boolean) => void;
   viewModeValue: "standard" | "compact";
   setViewMode: (v: "standard" | "compact") => void;
   segment?: string;
@@ -41,6 +43,8 @@ export function GalleryMobileSheet({
   onClose,
   usage,
   setUsage,
+  demoOnly,
+  setDemoOnly,
   viewModeValue,
   setViewMode,
   segment,
@@ -57,6 +61,7 @@ export function GalleryMobileSheet({
   const advancedCount =
     filterProps.selectedTags.length +
     (usage !== "all" ? 1 : 0) +
+    (demoOnly ? 1 : 0) +
     (segment && segment !== "all" ? 1 : 0) +
     (viewModeValue !== "standard" ? 1 : 0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -226,6 +231,8 @@ export function GalleryMobileSheet({
                   {...filterProps}
                   usage={usage}
                   onUsageChange={setUsage}
+                  demoOnly={demoOnly}
+                  onDemoOnlyChange={setDemoOnly}
                   segment={segment}
                   onSegmentChange={onSegmentChange}
                   showSearch={false}

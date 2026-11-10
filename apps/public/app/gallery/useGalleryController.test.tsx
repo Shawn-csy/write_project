@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { DEFAULT_URL_STATE } from "@write/public-ui";
+import type { PublicScript, ExternalPublicScript } from "@/lib/types";
 import { useGalleryController } from "./useGalleryController";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 
@@ -58,4 +59,25 @@ it("shows a retry state when the identity projection is incomplete", async () =>
     window.dispatchEvent(new PopStateEvent("popstate"));
   });
   await waitFor(() => expect(result.current.peopleStatus).toBe("error"));
+});
+
+it("filters local and external works to those with a Demo", () => {
+  const initialScripts = [
+    { id: "with-demo", title: "有試聽", hasDemo: true, tags: [] },
+    { id: "without-demo", title: "沒有試聽", hasDemo: false, tags: [] },
+  ] as PublicScript[];
+  const initialExternalPublicScripts = [
+    { id: "external-demo", title: "站外試聽", status: "published", demoLinks: [{ url: "https://example.com/demo" }] },
+    { id: "external-none", title: "站外無試聽", status: "published" },
+  ] as ExternalPublicScript[];
+  const { result } = renderHook(() => useGalleryController({
+    ...baseOptions,
+    initialScripts,
+    initialExternalPublicScripts,
+  }));
+  act(() => result.current.setDemoOnly(true));
+  expect(result.current.homepageModel.filteredScripts.map((script) => script.id)).toEqual(["with-demo"]);
+  expect(result.current.filteredExternalPublicScripts.map((script) => script.id)).toEqual(["external-demo"]);
+  expect(result.current.homepageModel.filterChips).toContainEqual({ type: "demo", label: "有 Demo", value: "1" });
+  expect(window.location.search).toBe("?demo=1");
 });

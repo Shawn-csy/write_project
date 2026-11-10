@@ -23,6 +23,7 @@ export interface PublicHomepageUrlState {
   authorTags: string[];
   orgTags: string[];
   usage: UsageFilter;
+  demoOnly: boolean;
   segment: SegmentKey;
   mode: GalleryViewMode;
   q: string;
@@ -37,6 +38,7 @@ export const DEFAULT_URL_STATE: PublicHomepageUrlState = {
   authorTags: [],
   orgTags: [],
   usage: "all",
+  demoOnly: false,
   segment: SEGMENT_KEYS.all,
   mode: "standard",
   q: "",
@@ -104,6 +106,7 @@ export function parseGalleryUrlState(
     authorTags: safeStringArray(params.getAll("authorTag")),
     orgTags: safeStringArray(params.getAll("orgTag")),
     usage: safeUsage(params.get("usage")),
+    demoOnly: params.get("demo") === "1",
     segment: safeSegment(params.get("segment")),
     mode: safeMode(params.get("mode")),
     q: (params.get("q") ?? "").trim(),
@@ -132,6 +135,9 @@ export function serializeGalleryUrlState(
 
   if (state.usage !== DEFAULT_URL_STATE.usage) {
     params.set("usage", state.usage);
+  }
+  if (state.demoOnly) {
+    params.set("demo", "1");
   }
   if (state.segment !== DEFAULT_URL_STATE.segment) {
     params.set("segment", state.segment);
@@ -176,6 +182,7 @@ export function mergeGalleryUrlState(
     authorTags: patch.authorTags != null ? safeStringArray(patch.authorTags) : current.authorTags,
     orgTags: patch.orgTags != null ? safeStringArray(patch.orgTags) : current.orgTags,
     usage: patch.usage != null ? safeUsage(patch.usage) : current.usage,
+    demoOnly: patch.demoOnly != null ? Boolean(patch.demoOnly) : current.demoOnly,
     segment: patch.segment != null ? safeSegment(patch.segment) : current.segment,
     mode: patch.mode != null ? safeMode(patch.mode) : current.mode,
     q: patch.q != null ? patch.q.trim() : current.q,
@@ -193,6 +200,7 @@ export function isDefaultGalleryUrlState(state: PublicHomepageUrlState): boolean
     state.authorTags.length === 0 &&
     state.orgTags.length === 0 &&
     state.usage === DEFAULT_URL_STATE.usage &&
+    state.demoOnly === DEFAULT_URL_STATE.demoOnly &&
     state.segment === DEFAULT_URL_STATE.segment &&
     state.mode === DEFAULT_URL_STATE.mode &&
     state.q === "" &&

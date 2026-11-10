@@ -46,7 +46,7 @@ export interface ScriptLanes {
 }
 
 export interface FilterChip {
-  type: "tag" | "segment" | "usage" | "q";
+  type: "tag" | "segment" | "usage" | "q" | "demo";
   label: string;
   value: string;
 }
@@ -114,6 +114,7 @@ export interface BuildPublicHomepageModelInput {
   selectedOrgTags: string[];
   segment: string;
   usage: string;
+  demoOnly?: boolean;
   q: string;
 
   /** Total scripts before filtering (used to distinguish no-data vs no-match). */
@@ -159,6 +160,7 @@ export function buildPublicHomepageModel(
     selectedOrgTags,
     segment,
     usage,
+    demoOnly = false,
     q,
     totalScriptCount,
     totalAuthorCount,
@@ -173,7 +175,8 @@ export function buildPublicHomepageModel(
     selectedAuthorTags.length > 0 ||
     selectedOrgTags.length > 0 ||
     segment !== "all" ||
-    usage !== "all";
+    usage !== "all" ||
+    demoOnly;
 
   // ── galleryEntries (series-collapsed flat list) ──────────────────────────
   const galleryEntries = groupScriptsIntoGalleryEntries(filteredScripts);
@@ -195,6 +198,9 @@ export function buildPublicHomepageModel(
   }
   if (usage !== "all") {
     filterChips.push({ type: "usage", label: usage === "commercial" ? "可商用" : usage, value: usage });
+  }
+  if (demoOnly) {
+    filterChips.push({ type: "demo", label: "有 Demo", value: "1" });
   }
   for (const tag of selectedTags) {
     filterChips.push({ type: "tag", label: tag, value: tag });

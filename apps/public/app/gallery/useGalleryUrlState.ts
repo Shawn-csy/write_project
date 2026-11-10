@@ -17,6 +17,7 @@ export interface GalleryUrlStateActions {
   setLane: (lane: GalleryLaneMode) => void;
   setSegment: (segment: string) => void;
   setUsage: (usage: string) => void;
+  setDemoOnly: (enabled: boolean) => void;
   /** Uses history.replaceState — search fires on every keystroke; must not pollute history. */
   setQ: (q: string) => void;
   toggleTag: (tag: string) => void;
@@ -111,6 +112,7 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   const setLane = useCallback((lane: GalleryLaneMode) => nav({ lane }), [nav]);
   const setSegment = useCallback((segment: string) => nav({ segment }), [nav]);
   const setUsage = useCallback((usage: string) => nav({ usage: usage as "all" | "commercial" }), [nav]);
+  const setDemoOnly = useCallback((demoOnly: boolean) => nav({ demoOnly }), [nav]);
   const setQ = useCallback((q: string) => nav({ q }, "replace"), [nav]);
 
   const toggleTag = useCallback(
@@ -147,7 +149,7 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   );
 
   const resetFilters = useCallback(
-    () => nav({ tags: [], authorTags: [], orgTags: [], usage: "all", segment: "all", q: "" }),
+    () => nav({ tags: [], authorTags: [], orgTags: [], usage: "all", demoOnly: false, segment: "all", q: "" }),
     [nav]
   );
 
@@ -161,6 +163,7 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
       setLane,
       setSegment,
       setUsage,
+      setDemoOnly,
       setQ,
       toggleTag,
       toggleAuthorTag,
@@ -169,7 +172,7 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
       resetAuthorTags,
       resetOrgTags,
     }),
-    [setView, setMode, setLane, setSegment, setUsage, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
+    [setView, setMode, setLane, setSegment, setUsage, setDemoOnly, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
   );
 
   return { state, actions };

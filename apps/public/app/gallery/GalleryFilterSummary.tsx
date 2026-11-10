@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 
 export interface ActiveGalleryFilterChip {
-  type: "tag" | "segment" | "usage" | "q";
+  type: "tag" | "segment" | "usage" | "q" | "demo";
   label: string;
   value: string;
 }

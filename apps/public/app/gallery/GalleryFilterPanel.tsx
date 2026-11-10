@@ -35,6 +35,8 @@ interface GalleryFilterPanelProps {
   /** Usage filter value (moved from inline controls bar). */
   usage?: string;
   onUsageChange?: (v: string) => void;
+  demoOnly?: boolean;
+  onDemoOnlyChange?: (enabled: boolean) => void;
   /** Optional: 作品分類 (segment) lives in the same panel so every entry point shares one state. */
   segment?: string;
   onSegmentChange?: (v: string) => void;
@@ -61,6 +63,8 @@ export function GalleryFilterPanel({
   onResetFilters,
   usage,
   onUsageChange,
+  demoOnly,
+  onDemoOnlyChange,
   segment,
   onSegmentChange,
   sort,
@@ -153,6 +157,14 @@ export function GalleryFilterPanel({
         <div className={divider}>
           <p className={sectionLabel}>排序</p>
           <GallerySortControl value={sort} onChange={onSortChange} />
+        </div>
+      )}
+
+      {/* Demo filter */}
+      {onDemoOnlyChange && (
+        <div className={divider}>
+          <p className={sectionLabel}>作品條件</p>
+          <button type="button" aria-pressed={Boolean(demoOnly)} onClick={() => onDemoOnlyChange(!demoOnly)} className={`${chipBase} ${demoOnly ? activeChip : idleChip}`}>有 Demo</button>
         </div>
       )}
 
