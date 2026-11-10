@@ -182,18 +182,18 @@ export function GalleryToolbar({
             id="gallery-sort-select"
             value={sort ?? "overview"}
             onChange={(event) => onSortChange(event.target.value === "overview" ? null : (event.target.value as GallerySortValue))}
-            className="h-9 shrink-0 rounded-full border border-border/60 bg-background pl-3 pr-1 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none md:hidden"
+            className={`h-9 shrink-0 rounded-full border border-border/60 bg-background pl-3 pr-1 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none ${compact ? "xl:hidden" : "md:hidden"}`}
           >
             <option value="overview">{GALLERY_OVERVIEW_LABEL}</option>
             {GALLERY_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
           {/* Desktop: sort moves up into this row once stuck. */}
-          {compact && <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 md:inline-flex" />}
+          {compact && <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 xl:inline-flex" />}
           <GallerySearchField
             value={searchTerm}
             onChange={onSearchChange}
             onFocusChange={setSearchFocused}
-            className={`hidden shrink-0 ${compact ? "w-52 xl:block" : "w-56 md:block lg:w-36 xl:w-64"}`}
+            className={`hidden shrink-0 ${compact ? "w-52 xl:block" : "w-64 xl:block"}`}
           />
           {/* Keep the secondary actions reachable in the single-row sticky state. */}
           {compact && <div ref={actionsRef} className="relative shrink-0">
@@ -241,6 +241,12 @@ export function GalleryToolbar({
               <span className="truncate [font-size:var(--public-font-meta)] text-muted-foreground" aria-live="polite">
                 共 {resultCount.toLocaleString()} 部
               </span>
+              <GallerySearchField
+                value={searchTerm}
+                onChange={onSearchChange}
+                onFocusChange={setSearchFocused}
+                className="hidden shrink-0 md:block md:w-48 lg:w-44 xl:hidden"
+              />
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={TEXT_BUTTON_SM}>
