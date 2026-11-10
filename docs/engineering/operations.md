@@ -174,6 +174,8 @@ bash scripts/migrate-prod-schema.sh --apply
 
 `--apply` 使用獨立容器與資料庫 advisory lock，所有連線套用 250 ms 鎖等待、10 秒單句與閒置交易上限；候選 Backend 仍須以 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=0` 啟動。2026-11-10 已在複本驗證遷移、重跑、併發讀寫及第二個遷移工作被拒絕；正式 `--apply` 也已執行，備份位於 `/Users/shanti/write_project_backups/write_project_20261110_041812.sql.gz`。正式庫的 `--verify` 現為零個 mapped schema gap，原服務與公開首頁仍正常。這個命令只處理 schema，並未切換流量。
 
+0.7.4 的新增資源結構再增加 9 張資料表。2026-11-10 17:38 以同一流程完成正式遷移，遷移前備份為 `/Users/shanti/write_project_backups/write_project_20261110_173802.sql.gz`，`--verify` 再次顯示零個缺口。17:44 先備份 38 張表至 `/Users/shanti/write_project_backups/write_project_20261110_174440.sql.gz`，再把 Dev 的已核准公開目錄固定為單一快照，在正式資料複本排練後用 `scripts/import-prod-public-catalog.py` 匯入正式庫。快照 SHA256 為 `bd56c7acd7fda29860378f95686e232e86a4225d7ae26cb580496379da64e6d1`。匯入後有 227 筆核准音聲作品、8 筆編輯資源、100 筆資源作品關聯及 835 筆音聲製作署名；新版 API 以唯讀連線回應 readiness／bundle 200，公開資料包含 53 筆資源。現行正式入口未切換。
+
 ### 同正式資料的唯讀候選站
 
 ```bash
