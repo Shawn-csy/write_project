@@ -211,7 +211,9 @@ python3 scripts/site-release.py rollback --tag rsc-cache-all-20261110
 
 同日另以 `scripts/relocate-prod-release.sh` 將正式入口、API 與公開站切到 `releases/candidate-date-20261110`：新 API 的 `/app/dist` 及新 Nginx 的靜態檔與設定都掛在持久目錄。預備階段檢查新舊雙入口、九條路徑、Nginx 語法與 IPv6；切流後正式入口及公開網址的主要路徑均回 200，UTC、台灣、洛杉磯三種時區的首頁／作者頁／音聲頁瀏覽器檢查均無 page error，PostgreSQL 和原本服務保持健康。舊 `wp-prod-live-api`／`wp-prod-live-public` 留作臨時回滾來源，舊入口已停止。第一次切流腳本在清理 `--rm` 預覽容器時遇到 Docker 移除競態而回傳非零；正式切流與驗證已成功，清理邏輯已修正，殘留預覽容器已停止。
 
-目前正式入口是 `wp-site-rsc-cache-all-20261110-edge`，回滾使用上方 `site-release.py rollback`，接回仍在運作且掛載持久 `releases/rsc-cache-boundary-v2-20261110` 的上一版入口／API／公開站。第二層回滾版 `firstfold-covers-srcset-20261110` 的三個容器保留但已停止；更早版容器已移除，映像、設定與靜態檔仍留存供人工重建。舊 `wp-prod-live-api`／`wp-prod-live-public` 容器已移除；運作中的容器沒有掛載 `dist/releases`，Vite 已恢復預設的輸出目錄清理。一次性 `relocate-prod-release.sh` 僅保留為遷移歷程，不適用於目前入口。原本寫死容器名稱的 `cutover-prod-release.sh` 已移除；整組 `rollback.sh` 不適用於目前的入口容器組合。
+0.7.4 前的正式入口是 `wp-site-rsc-cache-all-20261110-edge`，掛載持久 `releases/rsc-cache-all-20261110`。更早版的映像、設定與靜態檔仍留存供人工重建。一次性 `relocate-prod-release.sh` 僅保留為遷移歷程；整組 `rollback.sh` 不適用於目前的入口容器組合。
+
+2026-11-10 0.7.4 已切至 `wp-site-v0-7-4-r3-edge`。候選版在隔離入口通過 13 條路徑、22 次手機／平板瀏覽器巡覽、投稿表單必填驗證、讀寫限流及 RSC 快取邊界檢查；切流後公開網址的首頁、作者、資源、資源詳情、Demo、音聲作品、關於、說明及 API 回應 200，手機瀏覽器複查無頁面錯誤。`/resources` 與 `/demos` 的 Nginx 路由是在候選驗收時發現並修正的。回滾使用 `python3 scripts/site-release.py rollback --tag v0-7-4-r3`，會接回上一版 `wp-site-rsc-cache-all-20261110-edge`。資料庫匯入不會隨入口回滾而回復。
 
 ### 後續版本的網站專用發布
 
@@ -229,7 +231,7 @@ python3 scripts/site-release.py activate --tag "$RELEASE_TAG"
 python3 scripts/site-release.py rollback --tag "$RELEASE_TAG"
 ```
 
-`prepare` 從目前佔用雙 loopback `1090` 的入口辨識其 API、公開站、靜態目錄與 Nginx 設定，將候選靜態檔複製到持久 `releases/<tag>`，把控制資料與新 Nginx 設定放在靜態根目錄之外的 `releases/.site-release/<tag>`。它啟動候選 API／公開站及新舊兩條隨機 loopback 預覽入口，檢查 readiness、Nginx 語法、IPv4／IPv6 與九條路徑，不切換正式流量。若 Docker 分配的候選埠不可連入，預覽入口最多重建三次；仍失敗就停止候選且不切流。`activate` 再次驗證兩條入口、舊入口容器 ID 與新舊靜態檔摘要，最後只交接 `1090`；若驗證失敗會重啟原入口。`rollback` 先驗證原入口的預覽及其靜態檔摘要，再交接回原容器；候選容器仍保留供排查。未啟用的預備容器可用 `stop-prepared --tag <tag>` 移除。腳本以鎖避免同時執行兩個發布動作，且不停止 PostgreSQL 或其他服務。每個 tag 只能準備一次，需以新的 tag 重試。
+`prepare` 從目前佔用雙 loopback `1090` 的入口辨識其 API、公開站、靜態目錄與 Nginx 設定，將候選靜態檔複製到持久 `releases/<tag>`，把控制資料與新 Nginx 設定放在靜態根目錄之外的 `releases/.site-release/<tag>`。它啟動候選 API／公開站及新舊兩條隨機 loopback 預覽入口，檢查 readiness、Nginx 語法、IPv4／IPv6 與 13 條路徑，不切換正式流量。若 Docker 分配的候選埠不可連入，預覽入口最多重建三次；仍失敗就停止候選且不切流。`activate` 再次驗證兩條入口、舊入口容器 ID 與新舊靜態檔摘要，最後只交接 `1090`；若驗證失敗會重啟原入口。`rollback` 先驗證原入口的預覽及其靜態檔摘要，再交接回原容器；候選容器仍保留供排查。未啟用的預備容器可用 `stop-prepared --tag <tag>` 移除。腳本以鎖避免同時執行兩個發布動作，且不停止 PostgreSQL 或其他服務。每個 tag 只能準備一次，需以新的 tag 重試。
 
 `prepare` 與 `activate` 現在也會在候選入口自動執行 RSC 快取邊界檢查，從 sitemap 抽樣首頁、台本、作者、社團與系列等頁面。2026-11-10 以現行映像排練 `prepare` 通過；用舊版公開站映像排練時因 RSC 回應仍為公開快取而拒絕，候選容器與控制資料自動清除，正式入口未切換。手動執行上方 `check-rsc-cache-boundary.py` 可在切流前查看同一項結果。
 
