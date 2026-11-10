@@ -1,5 +1,6 @@
 import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { demoScriptOrganization, demoScriptSummary } from "@/lib/demoScriptContext";
+import { externalEntityHref } from "@/lib/externalEntity";
 
 export interface PublicVoiceWorkBundle {
   scripts?: PublicScript[];
@@ -121,14 +122,27 @@ export function getPublicVoicePerformances(personaId: string, bundle: PublicVoic
     seen.add(work.demoUrl);
     return true;
   }).map((work) => {
-    const script = work.scriptType === "internal"
-      ? bundle.scripts?.find((item) => item.id === work.scriptId)
-      : bundle.externalPublicScripts?.find((item) => item.id === work.externalScriptId);
+    const internalScript = work.scriptType === "internal"
+      ? bundle.scripts?.find((item) => item.id === work.scriptId) : undefined;
+    const externalScript = work.scriptType === "external"
+      ? bundle.externalPublicScripts?.find((item) => item.id === work.externalScriptId) : undefined;
+    const script = internalScript || externalScript;
     if (!script) return work;
     const organization = demoScriptOrganization(script, bundle.organizations);
+    const overrideName = internalScript?.authorOverrideName?.trim();
+    const scriptAuthorName = internalScript
+      ? overrideName || internalScript.persona?.displayName || internalScript.owner?.displayName || ""
+      : externalScript?.authorName?.trim() || "";
+    const scriptAuthorHref = internalScript
+      ? overrideName ? "" : internalScript.persona?.id ? `/author/${encodeURIComponent(internalScript.persona.id)}` : ""
+      : externalScript?.authorPersonaId
+        ? `/author/${encodeURIComponent(externalScript.authorPersonaId)}`
+        : scriptAuthorName ? externalEntityHref("author", scriptAuthorName, externalScript?.authorUrl) : "";
     return {
       ...work,
       scriptSummary: demoScriptSummary(script),
+      scriptAuthorName,
+      scriptAuthorHref,
       organizationName: organization?.name,
       organizationHref: organization?.href,
     };

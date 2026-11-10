@@ -169,6 +169,8 @@ export interface PublicDemoSubmission {
   manualVoiceActors?: Array<{ name: string; socialUrl?: string; personaId?: string }>;
   description?: string;
   scriptSummary?: string;
+  scriptAuthorName?: string;
+  scriptAuthorHref?: string;
   organizationName?: string;
   organizationHref?: string;
   displayName?: string;

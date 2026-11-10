@@ -350,6 +350,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                   </div>
                   <div className="p-3">
                     <p className="line-clamp-2 text-sm font-semibold">{demo.scriptTitle}</p>
+                    {demo.scriptAuthorName && <p className="mt-1 text-xs text-muted-foreground">台本師：{demo.scriptAuthorHref ? <a href={demo.scriptAuthorHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{demo.scriptAuthorName}</a> : demo.scriptAuthorName}</p>}
                     {demo.demoName && demo.demoName !== "YouTube 試聽" && <h3 className="mt-1 text-xs text-muted-foreground">{demo.demoName}</h3>}
                     {(demo.scriptSummary || demo.description) && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{demo.scriptSummary || demo.description}</p>}
                     {demo.organizationName && demo.organizationHref && <a href={demo.organizationHref} className="mt-2 inline-block text-xs text-primary hover:underline">{demo.organizationName}</a>}
