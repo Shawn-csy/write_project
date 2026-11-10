@@ -34,6 +34,7 @@ BUNDLE = {
     "demoSubmissions": [],
     "audioWorks": [],
     "activityPages": [],
+    "productionResources": [],
 }
 
 
