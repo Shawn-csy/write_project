@@ -288,6 +288,7 @@ def _build_bundle_sections(db: Session, requested: frozenset[str]) -> dict:
                     "coverUrl": work.coverUrl or "",
                     "creditRole": credit.creditRole,
                     "creditedAs": credit.creditedAs,
+                    "workType": "audio",
                 })
         result["productionResources"] = [{
             "id": row.id,
@@ -327,11 +328,20 @@ def _build_bundle_sections(db: Session, requested: frozenset[str]) -> dict:
             derived[key]["works"].append({
                 "id": work.id, "title": work.title, "url": work.url,
                 "coverUrl": work.coverUrl or "", "creditRole": role,
-                "creditedAs": credit.creditedAs,
+                "creditedAs": credit.creditedAs, "workType": "audio",
             })
         result["productionResources"].extend(derived.values())
         resource_by_id = {item["id"]: item for item in result["productionResources"]}
         if resource_by_id:
+            external_works = db.query(models.ProductionResourceExternalWork).filter(
+                models.ProductionResourceExternalWork.resourceId.in_(resource_by_id)
+            ).order_by(models.ProductionResourceExternalWork.createdAt.desc()).all()
+            for work in external_works:
+                resource_by_id[work.resourceId]["works"].append({
+                    "id": work.id, "title": work.title, "url": work.url,
+                    "coverUrl": work.coverUrl or "", "creditRole": work.creditRole,
+                    "creditedAs": work.creditedAs, "workType": work.workType,
+                })
             enrichments = db.query(models.ProductionResourceEnrichment).filter(
                 models.ProductionResourceEnrichment.id.in_(resource_by_id)
             ).all()

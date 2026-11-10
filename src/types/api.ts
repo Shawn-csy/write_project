@@ -613,7 +613,7 @@ export interface ProductionResourceSubmission {
     avatarUrl: string;
     profileUrl: string;
     links: Array<{ label: string; url: string }>;
-    works: Array<{ title: string; url: string; role: string }>;
+    works: Array<{ title: string; url: string; role: string; workType?: "audio" | "game" | "video" | "other"; coverUrl?: string }>;
   };
   status: "pending" | "approved" | "rejected";
   reviewNote: string;

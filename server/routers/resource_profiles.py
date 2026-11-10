@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api", tags=["public"])
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
 PROFILE_FIELDS = {"displayName", "bio", "avatarUrl", "profileUrl", "links"}
 RESOURCE_ROLES = {"post_production", "cover_art", "recording_studio"}
+WORK_TYPES = {"audio", "game", "video", "other"}
 
 
 def _public_url(value: object, *, image: bool = False) -> str:
@@ -96,7 +97,12 @@ def submit_resource_profile(request: Request, payload: schemas.ProductionResourc
         url = _public_url(work.get("url"))
         if not url:
             raise HTTPException(status_code=400, detail="參與作品需提供網址")
-        works.append({"title": str(work.get("title") or "").strip()[:200], "url": url, "creditRole": role})
+        work_type = str(work.get("workType") or "audio").strip()
+        if work_type not in WORK_TYPES:
+            raise HTTPException(status_code=400, detail="參與作品的類型無效")
+        works.append({"title": str(work.get("title") or "").strip()[:200], "url": url,
+                      "coverUrl": _public_url(work.get("coverUrl"), image=True),
+                      "workType": work_type, "creditRole": role})
     profile = {
         "displayName": name, "bio": payload.bio.strip()[:4000],
         "avatarUrl": _public_url(payload.avatarUrl, image=True),
@@ -154,9 +160,10 @@ def review_resource_profile(submission_id: str, payload: schemas.ProductionResou
         pending_works = []
         if "works" in accepted:
             for work in proposed.get("works", []):
-                match = db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
-                if not match:
-                    raise HTTPException(status_code=400, detail=f"作品尚未收錄於音聲目錄：{work['url']}")
+                match = (db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
+                         if work.get("workType", "audio") == "audio" else None)
+                if not match and not work.get("title"):
+                    raise HTTPException(status_code=400, detail="站外作品請填寫作品名稱")
                 pending_works.append((work, match))
         override = db.query(models.ProductionResourceProfileOverride).filter_by(id=row.resourceId).first()
         if not override:
@@ -176,20 +183,26 @@ def review_resource_profile(submission_id: str, payload: schemas.ProductionResou
         curated = db.query(models.ProductionResource).filter_by(id=row.resourceId, status="published").first()
         for work, audio in pending_works:
             role = work["creditRole"]
-            if any(existing["id"] == audio.id and existing["creditRole"] == role for existing in item["works"]):
+            if any(existing["url"] == work["url"] and existing["creditRole"] == role for existing in item["works"]):
                 continue
-            if curated:
+            if audio and curated:
                 db.add(models.ProductionResourceCredit(
                     resourceId=row.resourceId, audioWorkId=audio.id, creditRole=role,
                     creditedAs=item["name"], createdAt=now,
                 ))
-            else:
+            elif audio:
                 source_role = "recording" if role == "recording_studio" else role
                 credited_as = item["works"][0]["creditedAs"]
                 db.add(models.AudioWorkCredit(
                     audioWorkId=audio.id, role=source_role, sourceRole="訪客補充",
                     creditedAs=credited_as, provenance="visitor_submission",
                     sourceUrl=audio.url, checkedAt=now,
+                ))
+            else:
+                db.add(models.ProductionResourceExternalWork(
+                    resourceId=row.resourceId, title=work["title"], url=work["url"],
+                    coverUrl=work.get("coverUrl") or "", workType=work.get("workType") or "audio",
+                    creditRole=role, creditedAs=item["name"], createdAt=now,
                 ))
         row.acceptedFields = sorted(accepted)
     else:
@@ -244,8 +257,15 @@ def submit_new_resource(request: Request, payload: schemas.ProductionResourceSub
     for work in payload.works[:20]:
         url = _public_url(work.get("url"))
         if url:
-            works.append({"url": url, "title": str(work.get("title") or "").strip()[:200],
-                          "role": str(work.get("role") or "").strip()[:120]})
+            work_type = str(work.get("workType") or "audio").strip()
+            if work_type not in WORK_TYPES:
+                raise HTTPException(status_code=400, detail="參與作品的類型無效")
+            title = str(work.get("title") or "").strip()[:200]
+            if not title:
+                raise HTTPException(status_code=400, detail="請填寫參與作品名稱")
+            works.append({"url": url, "title": title,
+                          "coverUrl": _public_url(work.get("coverUrl"), image=True),
+                          "workType": work_type, "role": str(work.get("role") or "").strip()[:120]})
     if payload.category != "voice_actor" and not works:
         raise HTTPException(status_code=400, detail="請至少提供一部參與作品，才能建立製作資源頁")
     profile = {"name": name, "category": payload.category, "bio": payload.bio.strip()[:4000],
@@ -296,7 +316,7 @@ def review_new_resource(submission_id: str, payload: schemas.ProductionResourceS
                                   avatar=profile.get("avatarUrl") or "", bio=profile.get("bio") or "",
                                   website=profile.get("profileUrl") or "", links=profile.get("links") or [],
                                   voiceActorWorks=[{"title": item.get("title") or "", "role": item.get("role") or "",
-                                                    "url": item["url"], "coverUrl": ""} for item in profile.get("works", [])],
+                                                    "url": item["url"], "coverUrl": item.get("coverUrl") or ""} for item in profile.get("works", [])],
                                   voiceActorContributors=[{"name": row.submitterName, "contributedAt": now}],
                                   createdAt=now, updatedAt=now))
             db.add(models.PersonaRole(personaId=persona_id, role="voice_actor", isVisible=True,
@@ -306,14 +326,13 @@ def review_new_resource(submission_id: str, payload: schemas.ProductionResourceS
             if any(item["name"].casefold() == name.casefold() and category in item.get("categories", [])
                    for item in _resources(db).values()):
                 raise HTTPException(status_code=409, detail="這筆資源已有頁面")
-            matched = []
+            prepared_works = []
             for work in profile.get("works", []):
-                audio = db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
-                if not audio:
-                    raise HTTPException(status_code=400, detail=f"作品尚未收錄於音聲目錄：{work['url']}")
-                matched.append(audio)
-            if not matched:
-                raise HTTPException(status_code=400, detail="需至少有一部已收錄的參與作品")
+                audio = (db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
+                         if work.get("workType", "audio") == "audio" else None)
+                prepared_works.append((work, audio))
+            if not prepared_works:
+                raise HTTPException(status_code=400, detail="需至少有一部參與作品")
             resource_id = str(uuid.uuid4())
             source_url = profile.get("profileUrl") or (profile.get("links") or [{}])[0].get("url", "")
             db.add(models.ProductionResource(id=resource_id, name=name, categories=[category],
@@ -325,9 +344,19 @@ def review_new_resource(submission_id: str, payload: schemas.ProductionResourceS
                                "profileUrl": profile.get("profileUrl") or "", "profileLabel": "官方／委託頁" if profile.get("profileUrl") else (profile.get("links") or [{}])[0].get("label", "聯絡方式"),
                                "links": profile.get("links") or []},
                       contributors=[{"name": row.submitterName, "contributedAt": now}], updatedAt=now))
-            for audio in {item.id: item for item in matched}.values():
-                db.add(models.ProductionResourceCredit(resourceId=resource_id, audioWorkId=audio.id,
-                         creditRole=category, creditedAs=name, createdAt=now))
+            seen_urls = set()
+            for work, audio in prepared_works:
+                if work["url"] in seen_urls:
+                    continue
+                seen_urls.add(work["url"])
+                if audio:
+                    db.add(models.ProductionResourceCredit(resourceId=resource_id, audioWorkId=audio.id,
+                             creditRole=category, creditedAs=name, createdAt=now))
+                else:
+                    db.add(models.ProductionResourceExternalWork(resourceId=resource_id, title=work["title"],
+                             url=work["url"], coverUrl=work.get("coverUrl") or "",
+                             workType=work.get("workType") or "audio", creditRole=category,
+                             creditedAs=name, createdAt=now))
             row.publishedId = resource_id
     row.status = payload.status
     row.reviewNote = payload.reviewNote.strip()[:1000]

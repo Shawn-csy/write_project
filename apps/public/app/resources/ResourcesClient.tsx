@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUpRight, ChevronLeft, ChevronRight, Headphones, Search } from "lucide-react";
+import { ArrowUpRight, ChevronLeft, ChevronRight, Clapperboard, FileText, Gamepad2, Headphones, Search } from "lucide-react";
 import { PublicAvatarImage } from "@/components/PublicAvatarImage";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicFooter } from "@/components/PublicFooter";
@@ -73,6 +73,7 @@ export interface ProductionResource {
     coverUrl: string;
     creditRole: Category;
     creditedAs: string;
+    workType?: "audio" | "game" | "video" | "other";
   }>;
 }
 
@@ -92,7 +93,7 @@ function ResourceWorks({ works }: {
     <div ref={laneRef} className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1" aria-label="橫向瀏覽參與作品">
       {works.map((work, index) => <a key={`${work.id}-${work.creditRole}`} href={work.url} target="_blank" rel="noopener noreferrer" className="group block w-20 shrink-0 snap-start sm:w-24" aria-label={`前往作品：${work.title}`}>
         <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border/70 bg-muted">
-          {work.coverUrl ? <PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" sizes="96px" eager={index < 3} /> : <Headphones className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden />}
+          {work.coverUrl ? <PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" sizes="96px" eager={index < 3} /> : work.workType === "game" ? <Gamepad2 className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden /> : work.workType === "video" ? <Clapperboard className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden /> : work.workType === "other" ? <FileText className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden /> : <Headphones className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden />}
         </div>
         <span className="mt-1 line-clamp-2 [font-size:var(--public-font-caption)] leading-snug text-muted-foreground group-hover:text-primary">{work.title}</span>
       </a>)}

@@ -1,7 +1,8 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import { ResourcesClient, type ProductionResource } from "./ResourcesClient";
+import { liveApi } from "@/lib/liveApi";
 
 const base = {
   categories: ["post_production"], summary: "", websiteUrl: "https://example.com/",
@@ -9,6 +10,29 @@ const base = {
 } satisfies Omit<ProductionResource, "id" | "name" | "works" | "categories"> & { categories: ProductionResource["categories"] };
 
 describe("ResourcesClient", () => {
+  it("submits an independent game credit without requiring audio catalog entry", async () => {
+    const write = vi.spyOn(liveApi, "write").mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    try {
+      render(<ResourcesClient initialPersonas={[]} initialResources={[]} />);
+      fireEvent.click(screen.getByRole("button", { name: "投稿資源" }));
+      const dialog = within(screen.getByRole("dialog"));
+      fireEvent.change(dialog.getByLabelText("資源類別"), { target: { value: "recording_studio" } });
+      fireEvent.change(dialog.getByLabelText("名稱", { exact: true }), { target: { value: "遊戲錄音室" } });
+      fireEvent.change(dialog.getByLabelText("官方／委託頁網址"), { target: { value: "https://example.com/studio" } });
+      fireEvent.change(dialog.getByLabelText("作品名稱 1"), { target: { value: "獨立遊戲" } });
+      fireEvent.change(dialog.getByLabelText("作品網址 1"), { target: { value: "https://example.com/game" } });
+      fireEvent.change(dialog.getByLabelText("作品類型 1"), { target: { value: "game" } });
+      fireEvent.change(dialog.getByLabelText("作品封面網址 1"), { target: { value: "https://example.com/game.jpg" } });
+      fireEvent.change(dialog.getByLabelText("投稿人稱呼"), { target: { value: "投稿者" } });
+      fireEvent.change(dialog.getByLabelText("聯絡 Email（不公開）"), { target: { value: "sender@example.com" } });
+      fireEvent.click(dialog.getByRole("button", { name: "送出審核" }));
+      await waitFor(() => expect(write).toHaveBeenCalledOnce());
+      const payload = JSON.parse(String(write.mock.calls[0][1]?.body));
+      expect(payload.works).toEqual([{ title: "獨立遊戲", url: "https://example.com/game", role: "", workType: "game", coverUrl: "https://example.com/game.jpg" }]);
+      expect(dialog.getByRole("status").textContent).toContain("投稿已送出");
+    } finally { write.mockRestore(); }
+  });
+
   it("shows verified voice actor profile links on the card", () => {
     render(<ResourcesClient initialPersonas={[{
       id: "actor-1", displayName: "一介", avatar: "https://example.com/avatar.jpg",

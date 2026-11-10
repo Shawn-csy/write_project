@@ -14,6 +14,7 @@ const CATEGORY_LABELS: Record<Exclude<ProductionResource["categories"][number], 
   cover_art: "封面",
   recording_studio: "錄音室",
 };
+const WORK_LABELS = { audio: "音聲", game: "遊戲", video: "影片", other: "其他" };
 
 function profileLinks(item: ProductionResource): Array<{ label: string; url: string }> {
   const primaryUrl = item.sourceUrl || item.websiteUrl;
@@ -89,7 +90,7 @@ export function ResourcePageClient({ item: initialItem, refreshOnMount = false }
 
       <PublicProfileSection title="參與作品" count={works.length}>
         {ageConfirmed && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {works.map((work) => <PublicProfileWorkCard key={`${work.id}-${work.creditRole}`} title={work.title} url={work.url} coverUrl={work.coverUrl} subtitle={`${CATEGORY_LABELS[work.creditRole as keyof typeof CATEGORY_LABELS] || "製作"}${work.creditedAs && work.creditedAs !== item.name ? `・${work.creditedAs}` : ""}`} />)}
+          {works.map((work) => <PublicProfileWorkCard key={`${work.id}-${work.creditRole}`} title={work.title} url={work.url} coverUrl={work.coverUrl} workType={work.workType} subtitle={`${CATEGORY_LABELS[work.creditRole as keyof typeof CATEGORY_LABELS] || "製作"}・${WORK_LABELS[work.workType || "audio"]}${work.creditedAs && work.creditedAs !== item.name ? `・${work.creditedAs}` : ""}`} />)}
         </div>}
       </PublicProfileSection>
       </PublicProfileContainer>

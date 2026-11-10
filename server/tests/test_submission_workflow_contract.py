@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import pytest
 
 from main import app
-from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, PersonaRole, ProductionResource, ProductionResourceCredit, ProductionResourceProfileOverride, ProductionResourceSubmission, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, PersonaRole, ProductionResource, ProductionResourceCredit, ProductionResourceExternalWork, ProductionResourceProfileOverride, ProductionResourceSubmission, PublicAudioWorkSubmission, User
 from routers import public as public_router
 from routers import public_bundle as public_bundle_router
 from routers import external_public_scripts as external_router
@@ -102,18 +102,24 @@ def test_new_resource_submission_is_private_until_approved(client, db_session):
                         json={"status": "approved"}, headers={"X-User-ID": "admin-owner"}).status_code == 409
 
 
-def test_new_resource_cannot_publish_without_cataloged_work(client, db_session):
+def test_new_resource_can_publish_a_game_outside_the_audio_catalog(client, db_session):
     payload = {"name": "待收錄封面師", "category": "cover_art", "profileUrl": "https://example.com/artist",
-               "works": [{"title": "未收錄作品", "url": "https://example.com/not-cataloged"}],
+               "works": [{"title": "獨立遊戲", "url": "https://example.com/game", "workType": "game",
+                          "coverUrl": "https://example.com/game-cover.jpg"}],
                "submitterName": "投稿者", "contactEmail": "sender@example.com"}
+    assert client.post("/api/production-resource-submissions", json={**payload, "works": []}).status_code == 400
     created = client.post("/api/production-resource-submissions", json=payload)
     assert created.status_code == 200
     submission_id = created.json()["submissionId"]
     review = client.patch(f"/api/admin/production-resource-submissions/{submission_id}/status",
                           json={"status": "approved"}, headers={"X-User-ID": "admin-owner"})
-    assert review.status_code == 400
-    assert db_session.query(ProductionResourceSubmission).filter_by(id=submission_id).one().status == "pending"
-    assert not any(item["name"] == payload["name"] for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"])
+    assert review.status_code == 200, review.text
+    resource_id = review.json()["publishedId"]
+    assert db_session.query(ProductionResourceExternalWork).filter_by(resourceId=resource_id).count() == 1
+    item = next(item for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"] if item["id"] == resource_id)
+    assert item["works"][0]["title"] == "獨立遊戲"
+    assert item["works"][0]["workType"] == "game"
+    assert item["works"][0]["coverUrl"] == "https://example.com/game-cover.jpg"
 
 
 def test_new_voice_actor_submission_publishes_only_after_approval(client, db_session):
@@ -394,6 +400,31 @@ def test_resource_profile_review_applies_only_accepted_fields(client, db_session
     assert {work["id"] for work in after["works"]} == {first.id, second.id}
     assert after["contributors"][0]["name"] == "協作者"
     assert db_session.query(ProductionResourceProfileOverride).filter_by(id=resource.id).one().profile["bio"] == "新介紹"
+
+
+def test_resource_profile_can_add_non_audio_work(client, db_session):
+    resource = ProductionResource(id="game-studio", name="遊戲配音室", categories=["recording_studio"],
+                                  summary="", websiteUrl="https://example.com/studio", sourceUrl="https://example.com/studio",
+                                  status="published", reviewedAt=1)
+    audio = PublicAudioWorkSubmission(id="existing-audio", title="已收錄音聲", url="https://example.com/audio", status="approved")
+    db_session.add_all([resource, audio])
+    db_session.flush()
+    db_session.add(ProductionResourceCredit(resourceId=resource.id, audioWorkId=audio.id,
+                                          creditRole="recording_studio", creditedAs=resource.name))
+    db_session.commit()
+    created = client.post("/api/production-resource-profile-submissions", json={
+        "resourceId": resource.id, "displayName": resource.name, "works": [{"title": "配音遊戲",
+        "url": "https://example.com/game", "workType": "game", "coverUrl": "https://example.com/game.jpg",
+        "creditRole": "recording_studio"}], "submitterName": "投稿者", "contactEmail": "sender@example.com",
+        "contributorName": "投稿者",
+    })
+    assert created.status_code == 200, created.text
+    reviewed = client.patch(f"/api/admin/production-resource-profile-submissions/{created.json()['submissionId']}/status",
+                            json={"status": "approved", "acceptedFields": ["works"]},
+                            headers={"X-User-ID": "admin-owner"})
+    assert reviewed.status_code == 200, reviewed.text
+    works = next(item["works"] for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"] if item["id"] == resource.id)
+    assert {work["workType"] for work in works} == {"audio", "game"}
 
 
 def test_derived_resource_profile_and_work_can_be_reviewed(client, db_session):

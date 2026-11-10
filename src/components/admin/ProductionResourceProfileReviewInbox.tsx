@@ -73,7 +73,7 @@ export function ProductionResourceProfileReviewInbox(): React.JSX.Element {
   }
 
   return <div className="space-y-3">
-    <div className="rounded-lg border border-border/70 bg-background/60 px-3 py-2"><h2 className="text-sm font-semibold">資源頁面補充審核</h2><p className="mt-1 text-xs text-muted-foreground">逐項比較目前資料與訪客提案，選擇要採用的欄位；新增作品須先存在本站音聲目錄。</p></div>
+    <div className="rounded-lg border border-border/70 bg-background/60 px-3 py-2"><h2 className="text-sm font-semibold">資源頁面補充審核</h2><p className="mt-1 text-xs text-muted-foreground">逐項比較目前資料與訪客提案，選擇要採用的欄位；可加入音聲、遊戲與其他參與作品。</p></div>
     <div className="flex items-center gap-2"><select aria-label="審核狀態" value={status} onChange={(event) => { const next = event.target.value as typeof status; setStatus(next); void load(next); }} className="h-8 rounded-md border border-input bg-background px-2 text-xs"><option value="pending">待審核</option><option value="approved">已核准</option><option value="rejected">已退回</option><option value="all">全部</option></select><Button variant="outline" size="sm" disabled={loading} onClick={() => void load(status)}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}重新整理</Button><span className="text-xs text-muted-foreground">共 {total} 筆</span></div>
     {error && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
     {!loading && items.length === 0 && !error && <p className="py-8 text-center text-sm text-muted-foreground">目前沒有符合的資源資料申請。</p>}

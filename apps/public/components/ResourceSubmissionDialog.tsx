@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 import { liveApi } from "@/lib/liveApi";
 
 const inputClass = "h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+const emptyWork = () => ({ title: "", url: "", role: "", workType: "audio", coverUrl: "" });
 
 export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory: string }) {
   const [open, setOpen] = useState(false);
@@ -13,7 +14,7 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [category, setCategory] = useState(defaultCategory);
-  const [works, setWorks] = useState([{ title: "", url: "", role: "" }]);
+  const [works, setWorks] = useState([emptyWork()]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,6 +22,11 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
     setError("");
     const form = new FormData(event.currentTarget);
     try {
+      const submittedWorks = works.filter((item) => item.url.trim()).map((item) => ({
+        title: item.title.trim(), url: item.url.trim(), role: item.role.trim(),
+        workType: item.workType, coverUrl: item.coverUrl.trim(),
+      }));
+      if (category !== "voice_actor" && submittedWorks.length === 0) throw new Error("請至少提供一部參與作品。");
       const response = await liveApi.write("/api/production-resource-submissions", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -29,7 +35,7 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
           avatarUrl: String(form.get("avatarUrl") || "").trim(),
           profileUrl: String(form.get("profileUrl") || "").trim(),
           links: [{ label: String(form.get("socialLabel") || "").trim() || "社群連結", url: String(form.get("socialUrl") || "").trim() }].filter((item) => item.url),
-          works: works.filter((item) => item.url.trim()).map((item) => ({ title: item.title.trim(), url: item.url.trim(), role: item.role.trim() })),
+          works: submittedWorks,
           submitterName: String(form.get("submitterName") || "").trim(),
           contactEmail: String(form.get("contactEmail") || "").trim(),
           websiteTrap: String(form.get("websiteTrap") || ""),
@@ -59,7 +65,18 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
           <label className="grid gap-1 text-sm sm:col-span-2">頭像或商標圖片網址<input name="avatarUrl" type="url" placeholder="https://…" maxLength={2000} className={inputClass} /></label>
           <label className="grid gap-1 text-sm">其他連結名稱<input name="socialLabel" maxLength={120} placeholder="例如 X、Instagram" className={inputClass} /></label>
           <label className="grid gap-1 text-sm">其他連結網址<input name="socialUrl" type="url" placeholder="https://…" maxLength={2000} className={inputClass} /></label>
-          <div className="sm:col-span-2"><div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">參與作品{category === "voice_actor" ? "（選填）" : "（至少一部）"}</p><button type="button" onClick={() => setWorks([...works, { title: "", url: "", role: "" }])} className="text-sm text-primary hover:underline">新增作品</button></div><p className="mt-1 text-xs text-muted-foreground">製作資源的作品需已收錄於本站音聲作品目錄，管理員才能核准上架。</p>{works.map((work, index) => <div key={index} className="mt-2 grid gap-2 rounded-lg border border-border/70 p-2 sm:grid-cols-2"><input aria-label={`作品名稱 ${index + 1}`} placeholder="作品名稱" maxLength={200} value={work.title} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} className={inputClass} /><input aria-label={`作品網址 ${index + 1}`} type="url" placeholder="作品網址 https://…" maxLength={2000} required={category !== "voice_actor" && index === 0} value={work.url} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, url: e.target.value } : item))} className={inputClass} />{category === "voice_actor" && <input aria-label={`演出角色 ${index + 1}`} placeholder="演出角色（選填）" maxLength={120} value={work.role} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, role: e.target.value } : item))} className={inputClass} />}</div>)}</div>
+          <div className="sm:col-span-2">
+            <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">參與作品{category === "voice_actor" ? "（選填）" : "（至少一部）"}</p><button type="button" onClick={() => setWorks([...works, emptyWork()])} className="text-sm text-primary hover:underline">新增作品</button></div>
+            <p className="mt-1 text-xs text-muted-foreground">可填音聲、遊戲、影片或其他作品；公開頁會顯示審核通過的作品。</p>
+            {works.map((work, index) => <div key={index} className="mt-2 grid gap-2 rounded-lg border border-border/70 p-2 sm:grid-cols-2">
+              <input aria-label={`作品名稱 ${index + 1}`} placeholder="作品名稱" maxLength={200} value={work.title} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} className={inputClass} />
+              <input aria-label={`作品網址 ${index + 1}`} type="url" placeholder="作品網址 https://…" maxLength={2000} value={work.url} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, url: e.target.value } : item))} className={inputClass} />
+              <select aria-label={`作品類型 ${index + 1}`} value={work.workType} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, workType: e.target.value } : item))} className={inputClass}><option value="audio">音聲</option><option value="game">遊戲</option><option value="video">影片</option><option value="other">其他</option></select>
+              <input aria-label={`作品封面網址 ${index + 1}`} type="url" placeholder="封面圖片網址（選填）" maxLength={2000} value={work.coverUrl} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, coverUrl: e.target.value } : item))} className={inputClass} />
+              {category === "voice_actor" && <input aria-label={`演出角色 ${index + 1}`} placeholder="演出角色（選填）" maxLength={120} value={work.role} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, role: e.target.value } : item))} className={inputClass} />}
+              {works.length > 1 && <button type="button" onClick={() => setWorks(works.filter((_, i) => i !== index))} className="text-xs text-muted-foreground hover:text-destructive">移除作品</button>}
+            </div>)}
+          </div>
           <label className="grid gap-1 text-sm">投稿人稱呼<input name="submitterName" required maxLength={120} className={inputClass} /></label><label className="grid gap-1 text-sm">聯絡 Email（不公開）<input name="contactEmail" type="email" required maxLength={320} className={inputClass} /></label>
           <input name="websiteTrap" tabIndex={-1} autoComplete="off" className="absolute -left-[9999px]" aria-hidden="true" />
           {error && <p role="alert" className="text-sm text-destructive sm:col-span-2">{error}</p>}

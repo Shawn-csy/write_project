@@ -1,9 +1,8 @@
 import type { ReactNode } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Clapperboard, FileText, Gamepad2, Headphones } from "lucide-react";
 import { PublicAvatarImage } from "./PublicAvatarImage";
 import type { MediaCropLike } from "@write/media-crop";
 import { PublicImage } from "./PublicImage";
-import { Headphones } from "lucide-react";
 
 /** The same profile frame is used by writers, voice actors, and production resources. */
 export function PublicProfileContainer({ children }: { children: ReactNode }) {
@@ -36,10 +35,10 @@ export function PublicProfileSection({ title, count, children }: { title: string
   </section>;
 }
 
-export function PublicProfileWorkCard({ title, url, coverUrl, subtitle }: { title: string; url: string; coverUrl?: string | null; subtitle?: string }) {
+export function PublicProfileWorkCard({ title, url, coverUrl, subtitle, workType }: { title: string; url: string; coverUrl?: string | null; subtitle?: string; workType?: "audio" | "game" | "video" | "other" }) {
   return <a href={url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/40" aria-label={`前往作品：${title}`}>
     <div className="relative aspect-[4/3] overflow-hidden bg-muted">
-      {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /> : <Headphones className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground/60" aria-hidden />}
+      {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /> : workType === "game" ? <Gamepad2 className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground/60" aria-hidden /> : workType === "video" ? <Clapperboard className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground/60" aria-hidden /> : workType === "other" ? <FileText className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground/60" aria-hidden /> : <Headphones className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground/60" aria-hidden />}
     </div>
     <div className="p-3"><h3 className="line-clamp-2 text-sm font-semibold group-hover:text-primary">{title}</h3>{subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}</div>
   </a>;

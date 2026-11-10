@@ -131,6 +131,22 @@ class ProductionResourceCredit(Base):
     createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
 
 
+class ProductionResourceExternalWork(Base):
+    """Reviewed participation in a work outside the audio catalog."""
+
+    __tablename__ = "production_resource_external_works"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    resourceId = Column(String, nullable=False, index=True)
+    title = Column(String, nullable=False)
+    url = Column(Text, nullable=False)
+    coverUrl = Column(Text, nullable=False, default="")
+    workType = Column(String, nullable=False, default="other")
+    creditRole = Column(String, nullable=False)
+    creditedAs = Column(String, nullable=False)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
 class ProductionResourceEnrichment(Base):
     """Verified profile details sourced from a credit link or an official site."""
 
