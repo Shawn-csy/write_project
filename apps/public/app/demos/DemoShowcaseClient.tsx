@@ -3,7 +3,7 @@
 import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { BookOpen, ChevronLeft, ExternalLink, Play, Plus, Search, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ExternalLink, LayoutGrid, List, Play, Plus, RefreshCw, Search, X } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicTopBar } from "@/components/PublicTopBar";
@@ -27,6 +27,7 @@ interface DemoLink {
   voiceActorIds: string[];
   manualVoiceActors: ManualVoiceActor[];
   description: string;
+  createdAt: number;
 }
 
 interface ManualVoiceActor {
@@ -52,6 +53,21 @@ interface DemoScriptGroup {
   coverUrl: string;
   sourceUrl: string;
   demos: DemoLink[];
+  sortAt: number;
+}
+
+type DemoSort = "newest" | "oldest" | "random";
+type DemoView = "grid" | "list";
+
+function timestamp(value: unknown): number {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) && number > 0 ? number : 0;
+}
+
+function randomRank(key: string, seed: number): number {
+  let hash = seed | 0;
+  for (const char of key) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
+  return hash >>> 0;
 }
 
 interface SubmissionTarget {
@@ -114,6 +130,7 @@ function parseDemoLinks(value: unknown): DemoLink[] {
         })
         : [],
       description: String(item.description || item.desc || "").trim(),
+      createdAt: timestamp(item.createdAt || item.publishedAt),
     }];
   });
 }
@@ -132,8 +149,11 @@ function buildScriptGroups(
   ) => {
     if (demos.length === 0) return;
     const existing = groups.get(key);
-    if (existing) existing.demos.push(...demos);
-    else groups.set(key, { ...group, demos });
+    const sortAt = Math.max(group.sortAt, ...demos.map((demo) => demo.createdAt));
+    if (existing) {
+      existing.demos.push(...demos);
+      existing.sortAt = Math.max(existing.sortAt, sortAt);
+    } else groups.set(key, { ...group, sortAt, demos });
   };
 
   for (const script of scripts) {
@@ -151,6 +171,7 @@ function buildScriptGroups(
       summary: script.synopsis || "",
       coverUrl: script.coverUrl || "",
       sourceUrl: `/read/${encodeURIComponent(script.id)}`,
+      sortAt: timestamp(script.createdAt),
     }, parseDemoLinks(script.activityDemoLinks));
   }
 
@@ -172,6 +193,7 @@ function buildScriptGroups(
       summary: script.summary || script.remoteSummary || "",
       coverUrl: script.coverUrlOverride || script.coverUrl || script.remoteCoverUrl || "",
       sourceUrl: script.sourceUrl,
+      sortAt: timestamp(script.mountedAt || script.createdAt || script.sourceCreatedAt),
     }, parseDemoLinks(script.demoLinks));
   }
 
@@ -208,6 +230,7 @@ function buildScriptGroups(
         ? linkedExternalScript?.coverUrlOverride || linkedExternalScript?.coverUrl || linkedExternalScript?.remoteCoverUrl || ""
         : linkedInternalScript?.coverUrl || "",
       sourceUrl: submission.scriptUrl,
+      sortAt: timestamp(submission.createdAt),
     }, [{
       id: submission.id,
       name: submission.demoName || "演出 Demo",
@@ -218,12 +241,12 @@ function buildScriptGroups(
       voiceActorIds: submission.voiceActorIds || [],
       manualVoiceActors: (submission.manualVoiceActors || []).map((actor) => ({ name: actor.name, socialUrl: actor.socialUrl || "", personaId: actor.personaId || "" })),
       description: submission.description || "",
+      createdAt: timestamp(submission.createdAt),
     }]);
   }
 
   return [...groups.values()]
-    .map((group) => ({ ...group, demos: group.demos.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant")) }))
-    .sort((a, b) => a.title.localeCompare(b.title, "zh-Hant"));
+    .map((group) => ({ ...group, demos: group.demos.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant")) }));
 }
 
 function demoActors(demo: DemoLink, personasById: Map<string, PublicPersona>): PublicPersona[] {
@@ -261,6 +284,9 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   const [bannerSlides, setBannerSlides] = useState<HeroSlide[]>(initialBannerSlides || []);
   const [liveBundleLoaded, setLiveBundleLoaded] = useState(false);
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<DemoSort>("newest");
+  const [view, setView] = useState<DemoView>("grid");
+  const [randomSeed, setRandomSeed] = useState(0);
   const [visibleCount, setVisibleCount] = useState(24);
   const [selectedScriptKey, setSelectedScriptKey] = useState("");
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
@@ -309,14 +335,25 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
 
   const scriptGroups = useMemo(() => buildScriptGroups(scripts, externalScripts, submissions, organizations), [scripts, externalScripts, submissions, organizations]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
-  const visibleGroups = useMemo(() => normalizedQuery
-    ? scriptGroups.filter((group) => [
+  const visibleGroups = useMemo(() => {
+    const filtered = normalizedQuery ? scriptGroups.filter((group) => [
       group.title,
       group.authorName,
       group.summary,
       ...group.demos.flatMap((demo) => [demo.name, demo.cast, demo.description, ...demo.manualVoiceActors.map((actor) => actor.name)]),
-    ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery)))
-    : scriptGroups, [scriptGroups, normalizedQuery]);
+    ].some((value) => value.toLocaleLowerCase().includes(normalizedQuery))) : scriptGroups;
+    return [...filtered].sort((a, b) => {
+      if (sort === "random") return randomRank(a.key, randomSeed) - randomRank(b.key, randomSeed) || a.key.localeCompare(b.key);
+      return (sort === "newest" ? b.sortAt - a.sortAt : a.sortAt - b.sortAt)
+        || a.title.localeCompare(b.title, "zh-Hant");
+    });
+  }, [scriptGroups, normalizedQuery, sort, randomSeed]);
+
+  const changeSort = (next: DemoSort) => {
+    if (next === "random") setRandomSeed(Date.now());
+    setSort(next);
+    setVisibleCount(24);
+  };
 
   useEffect(() => {
     const syncSelectionFromUrl = () => setSelectedScriptKey(new URL(window.location.href).searchParams.get("script") || "");
@@ -717,6 +754,34 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
           </div>
         </div>
 
+        {!selectedGroup && scriptGroups.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-5">
+            <span className="hidden [font-size:var(--public-font-meta)] text-muted-foreground sm:inline" aria-live="polite">{visibleGroups.length} 部 Demo 台本</span>
+            <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+              <select
+                value={sort}
+                onChange={(event) => changeSort(event.target.value as DemoSort)}
+                aria-label="Demo 排序"
+                className="h-9 rounded-lg border border-border/70 bg-card px-2 [font-size:var(--public-font-meta)] text-foreground sm:hidden"
+              >
+                <option value="newest">最新</option>
+                <option value="oldest">最舊</option>
+                <option value="random">隨機</option>
+              </select>
+              <div role="group" aria-label="Demo 排序" className="hidden h-9 items-center gap-0.5 rounded-lg border border-border/70 bg-card/60 p-0.5 sm:flex">
+                {([ ["newest", "最新"], ["oldest", "最舊"], ["random", "隨機"] ] as const).map(([value, label]) => (
+                  <button key={value} type="button" onClick={() => changeSort(value)} aria-pressed={sort === value} className={`h-8 rounded-md px-3 [font-size:var(--public-font-meta)] font-medium ${sort === value ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
+                ))}
+              </div>
+              {sort === "random" && <button type="button" onClick={() => { setRandomSeed(Date.now()); setVisibleCount(24); }} aria-label="重新隨機排序" title="重新隨機排序" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:text-foreground"><RefreshCw className="h-4 w-4" aria-hidden /></button>}
+              <div role="group" aria-label="展示方式" className="flex h-9 items-center gap-0.5 rounded-lg border border-border/70 bg-card/60 p-0.5">
+                <button type="button" onClick={() => setView("grid")} aria-label="卡片模式" aria-pressed={view === "grid"} title="卡片模式" className={`inline-flex h-8 items-center gap-1 rounded-md px-2 [font-size:var(--public-font-meta)] ${view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}><LayoutGrid className="h-4 w-4" aria-hidden /><span className="hidden md:inline">卡片</span></button>
+                <button type="button" onClick={() => setView("list")} aria-label="橫條模式" aria-pressed={view === "list"} title="橫條模式" className={`inline-flex h-8 items-center gap-1 rounded-md px-2 [font-size:var(--public-font-meta)] ${view === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}><List className="h-4 w-4" aria-hidden /><span className="hidden md:inline">橫條</span></button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {scriptGroups.length === 0 ? (
           <PublicEmptyState
             className="rounded-xl border border-dashed border-border/70 bg-card/40"
@@ -736,7 +801,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
             />
           ) : (
             <section aria-label="Demo 作品">
-              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+              <div data-demo-view={view} className={view === "list" ? "grid grid-cols-1 gap-2.5" : "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3"}>
                 {visibleGroups.slice(0, visibleCount).map((group) => {
                   const firstDemo = group.demos[0];
                   const artwork = demoArtwork(firstDemo.url, firstDemo.coverUrl, group.coverUrl);
@@ -749,21 +814,21 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                   });
                   const cardTitle = group.demos.find((demo) => demo.name.includes("｜") && /PV|試聽/.test(demo.name))?.name || group.title;
                   return (
-                    <article key={group.key} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card/40 transition-colors hover:border-primary/40">
-                      <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className="group relative aspect-video overflow-hidden bg-muted/40 text-left">
+                    <article key={group.key} className={`${view === "list" ? "grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[12rem_minmax(0,1fr)]" : "flex flex-col"} min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card/40 transition-colors hover:border-primary/40`}>
+                      <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className={`group relative overflow-hidden bg-muted/40 text-left ${view === "list" ? "h-full min-h-28" : "aspect-video"}`}>
                         <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
                         {artwork && <PublicImage src={artwork} alt={`${cardTitle}演出圖片`} preset="script-cover" className="transition-transform duration-300 group-hover:scale-[1.03]" />}
                         {group.demos.length > 1 && <span className="absolute bottom-1.5 left-1.5 right-1.5 rounded-md bg-black/75 px-1 py-1 text-center [font-size:var(--public-font-caption)] text-white sm:bottom-2 sm:left-auto sm:right-2 sm:px-2 sm:text-xs">多個版本</span>}
                       </button>
-                      <div className="flex min-w-0 flex-1 flex-col p-2.5 sm:p-4">
-                        <button type="button" onClick={() => openScript(group.key)} className="line-clamp-2 text-left text-xs font-semibold leading-5 hover:text-primary sm:min-h-10 sm:text-sm">{cardTitle}</button>
+                      <div className={`flex min-w-0 flex-1 flex-col p-2.5 ${view === "list" ? "sm:px-4 sm:py-3" : "sm:p-4"}`}>
+                        <button type="button" onClick={() => openScript(group.key)} className={`text-left text-xs font-semibold leading-5 hover:text-primary sm:text-sm ${view === "list" ? "line-clamp-1 sm:line-clamp-2" : "line-clamp-2 sm:min-h-10"}`}>{cardTitle}</button>
                         {group.authorName && <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><span className="shrink-0">台本師：</span><span className="min-w-0 truncate"><DemoAuthorName group={group} /></span></p>}
                         {group.organizationName && group.organizationHref && <p className="mt-1 truncate text-xs text-muted-foreground">組織：<a href={group.organizationHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{group.organizationName}</a></p>}
-                        {names.length > 0 && <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground"><span>聲演：</span>{names.map((name, index) => {
+                        {names.length > 0 && <p className={`mt-1 flex min-w-0 items-center gap-x-1 text-xs text-muted-foreground ${view === "list" ? "overflow-hidden whitespace-nowrap" : "flex-wrap"}`}><span className="shrink-0">聲演：</span>{names.map((name, index) => {
                           const href = actorHrefs.get(name);
-                          return <span key={`${name}-${index}`} className="inline-flex items-center whitespace-nowrap rounded-md bg-muted/40 px-1.5">{href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex min-h-7 items-center text-primary underline underline-offset-2 hover:text-primary/80">{name}</a> : <span>{name}</span>}</span>;
+                          return <span key={`${name}-${index}`} className={`inline-flex min-w-0 items-center whitespace-nowrap rounded-md bg-muted/40 px-1.5 ${view === "list" ? "truncate" : ""}`}>{href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex min-h-7 items-center text-primary underline underline-offset-2 hover:text-primary/80">{name}</a> : <span>{name}</span>}</span>;
                         })}</p>}
-                        <div className="mt-auto hidden pt-3 sm:block">
+                        <div className={`mt-auto hidden pt-3 sm:block ${view === "list" ? "sm:pt-1" : ""}`}>
                           <button type="button" onClick={() => openScript(group.key)} className="inline-flex min-h-9 items-center rounded-md bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20">{group.demos.length > 1 ? "查看演出版本" : "查看演出"}</button>
                         </div>
                       </div>
