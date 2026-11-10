@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { List, MoreHorizontal, Search, SlidersHorizontal } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { FilePlus2, List, MoreHorizontal, Search, SlidersHorizontal } from "lucide-react";
 import type { GalleryViewMode } from "@write/public-ui";
+import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
+import { PublicFeedbackTrigger } from "@/components/PublicFeedbackTrigger";
 import { GallerySegmentBar } from "./GallerySegmentBar";
 import { GallerySearchField } from "./GallerySearchField";
 import { GallerySortControl, GALLERY_OVERVIEW_LABEL, GALLERY_SORT_OPTIONS, type GallerySortValue } from "./GallerySortControl";
@@ -29,8 +31,6 @@ interface GalleryToolbarProps {
   sidebarCollapsed: boolean;
   onExpandSidebar: () => void;
   onOpenList: () => void;
-  /** 投稿台本 trigger. A render function because it is placed once per breakpoint. */
-  renderSubmitAction?: () => ReactNode;
 }
 
 const ICON_BUTTON =
@@ -79,7 +79,6 @@ export function GalleryToolbar({
   sidebarCollapsed,
   onExpandSidebar,
   onOpenList,
-  renderSubmitAction,
 }: GalleryToolbarProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -87,6 +86,7 @@ export function GalleryToolbar({
   const [stuck, setStuck] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [submitOpen, setSubmitOpen] = useState(false);
 
   // The sentinel sits above the bar, so its position never depends on the bar's
   // own height — collapsing the bar cannot flip the state back.
@@ -158,7 +158,7 @@ export function GalleryToolbar({
             <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" title="一覽表" className={`${ICON_BUTTON_MOBILE} max-[359px]:hidden`}>
               <List className="h-4 w-4" aria-hidden />
             </button>
-            {renderSubmitAction?.()}
+            <PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} />
           </div>
         )}
 
@@ -215,9 +215,9 @@ export function GalleryToolbar({
               <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
                 <List className="h-4 w-4" aria-hidden />台本一覽表
               </button>
-              {renderSubmitAction && <div onClick={() => setActionsOpen(false)} className="[&_button]:w-full [&_button]:justify-start [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-3 [&_button]:shadow-none [&_span]:inline">
-                {renderSubmitAction()}
-              </div>}
+              <button type="button" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                <FilePlus2 className="h-4 w-4" aria-hidden />投稿台本
+              </button>
             </div>}
           </div>}
           {/* Filter sheet stays available at tablet widths before the bar sticks. */}
@@ -230,7 +230,7 @@ export function GalleryToolbar({
             <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />篩選
             <CountBadge count={filterCount} />
           </button>}
-          {!compact && renderSubmitAction && <div className="hidden shrink-0 md:block lg:[&_button]:w-10 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline">{renderSubmitAction()}</div>}
+          {!compact && <div className="hidden shrink-0 md:block lg:[&_button]:w-10 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline"><PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} /></div>}
         </div>
 
         {/* Desktop row 2 — how to browse. Dropped once stuck. */}
@@ -254,6 +254,7 @@ export function GalleryToolbar({
 
         {!compact && <GalleryFilterSummary chips={chips} onRemove={onRemoveChip} onClear={onClearFilters} />}
       </div>
+      <LazyPublicFeedbackDialog mode="listing" hideTrigger open={submitOpen} onOpenChange={setSubmitOpen} />
     </>
   );
 }

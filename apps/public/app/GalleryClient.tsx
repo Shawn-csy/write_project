@@ -17,7 +17,6 @@ import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
-import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
 import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
 import type { GallerySortValue } from "./gallery/GallerySortControl";
 import type { ActiveGalleryFilterChip } from "./gallery/GalleryFilterSummary";
@@ -192,7 +191,6 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
               sidebarCollapsed={sidebarCollapsed}
               onExpandSidebar={() => setSidebarCollapsed(false)}
               onOpenList={() => setShowList(true)}
-              renderSubmitAction={() => <LazyPublicFeedbackDialog mode="listing" compactAtMobile />}
             />
           )}
 
