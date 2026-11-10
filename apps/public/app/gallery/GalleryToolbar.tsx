@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { List, Search, SlidersHorizontal } from "lucide-react";
+import { List, MoreHorizontal, Search, SlidersHorizontal } from "lucide-react";
 import type { GalleryViewMode } from "@write/public-ui";
 import { GallerySegmentBar } from "./GallerySegmentBar";
 import { GallerySearchField } from "./GallerySearchField";
@@ -83,8 +83,10 @@ export function GalleryToolbar({
 }: GalleryToolbarProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   // The sentinel sits above the bar, so its position never depends on the bar's
   // own height — collapsing the bar cannot flip the state back.
@@ -108,6 +110,26 @@ export function GalleryToolbar({
   // Never collapse underneath someone who is typing.
   const compact = stuck && !searchFocused;
   const filterCount = chips.length;
+
+  useEffect(() => {
+    if (!compact) setActionsOpen(false);
+  }, [compact]);
+
+  useEffect(() => {
+    if (!actionsOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!actionsRef.current?.contains(event.target as Node)) setActionsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActionsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [actionsOpen]);
 
   return (
     <>
@@ -165,13 +187,6 @@ export function GalleryToolbar({
             <option value="overview">{GALLERY_OVERVIEW_LABEL}</option>
             {GALLERY_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
-          {compact && (
-            <button type="button" onClick={onOpenFilterSheet} aria-label="搜尋與篩選" className={`${ICON_BUTTON_SM} md:hidden`}>
-              <Search className="h-4 w-4" aria-hidden />
-              <CountBadge count={filterCount} floating />
-            </button>
-          )}
-
           {/* Desktop: sort moves up into this row once stuck. */}
           {compact && <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 md:inline-flex" />}
           <GallerySearchField
@@ -180,17 +195,41 @@ export function GalleryToolbar({
             onFocusChange={setSearchFocused}
             className={`hidden shrink-0 ${compact ? "w-52 xl:block" : "w-56 md:block lg:w-36 xl:w-64"}`}
           />
-          {/* Sheet entry: always below lg (no sidebar there); when stuck below xl it also stands in for the hidden search. */}
-          <button
+          {/* Keep the secondary actions reachable in the single-row sticky state. */}
+          {compact && <div ref={actionsRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setActionsOpen((open) => !open)}
+              aria-label="更多操作"
+              aria-expanded={actionsOpen}
+              aria-controls="gallery-toolbar-actions"
+              className={`${ICON_BUTTON_SM} md:h-10 md:w-10 md:rounded-lg`}
+            >
+              <MoreHorizontal className="h-4 w-4" aria-hidden />
+              <CountBadge count={filterCount} floating />
+            </button>
+            {actionsOpen && <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border/70 bg-background p-1.5 shadow-xl">
+              <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                <Search className="h-4 w-4" aria-hidden />搜尋與篩選
+              </button>
+              <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                <List className="h-4 w-4" aria-hidden />台本一覽表
+              </button>
+              {renderSubmitAction && <div onClick={() => setActionsOpen(false)} className="[&_button]:w-full [&_button]:justify-start [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-3 [&_button]:shadow-none [&_span]:inline">
+                {renderSubmitAction()}
+              </div>}
+            </div>}
+          </div>}
+          {/* Filter sheet stays available at tablet widths before the bar sticks. */}
+          {!compact && <button
             type="button"
             onClick={onOpenFilterSheet}
             aria-label="搜尋與篩選"
-            className={`${compact ? ICON_BUTTON : TEXT_BUTTON} hidden ${compact ? "md:inline-flex xl:hidden" : "md:inline-flex lg:hidden"}`}
+            className={`${TEXT_BUTTON} hidden md:inline-flex lg:hidden`}
           >
-            {compact ? <Search className="h-4 w-4" aria-hidden /> : <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />}
-            {!compact && "篩選"}
-            <CountBadge count={filterCount} floating={compact} />
-          </button>
+            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />篩選
+            <CountBadge count={filterCount} />
+          </button>}
           {!compact && renderSubmitAction && <div className="hidden shrink-0 md:block lg:[&_button]:w-10 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline">{renderSubmitAction()}</div>}
         </div>
 
