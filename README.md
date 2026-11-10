@@ -2,7 +2,7 @@
 
 最後更新：2026-11-10（v0.7.4）
 
-本專案是一個台本創作、發布與公開閱讀平台。現在的前端已拆成兩個 runtime：
+本專案是一個台本創作、發布與公開閱讀平台。正式版為 **v0.7.4**；公開網站與工作室分別由兩個前端提供：
 
 - `src/`：Vite 工作室/editor。負責創作、發布工作室、後台管理、匯入匯出與編輯器預覽。
 - `apps/public/`：Next.js 公開站。負責 SEO、SSR/ISR、公開首頁、作者/組織/系列/標籤頁與公開閱讀器。
@@ -11,7 +11,9 @@
 
 ## 目前產品面
 
-- 公開站：首頁 gallery、作者頁、組織頁、系列頁、標籤頁、公開閱讀器、靜態內容頁。
+- 公開站：首頁作品目錄、作者／組織／系列／標籤頁、公開閱讀器、音聲作品、Demo、資源名錄及說明頁。
+- 製作資源：聲演、後製、封面與錄音室共用名錄與詳情頁，呈現聯絡方式、參與作品及作品連結；參與作品可包含站外作品。
+- 公開投稿：台本、音聲作品、Demo 與製作資源由訪客提交，經管理員審核後公開；已刊登資源也可提交補充或修正。
 - 外部公開台本：管理員可只匯入外部作品的標題、摘要、封面、作者與分類，完整內容仍由原網站提供。
 - 閱讀器：marker-driven presentation renderer，支援一般閱讀、系列章節導航、marker 顯示控制、閱讀偏好、分享與 PDF 匯出。
 - 工作室：作品管理、系列管理、作者/組織管理、metadata 編輯、marker/theme 設定、匯入與匯出。
@@ -69,9 +71,12 @@ scripts/                  development and maintenance scripts
 | `/org/external/[name]` | 外部組織頁 | 依公開資料快取 |
 | `/series/[name]` | 系列頁 | 1 hour |
 | `/tag/[name]` | 標籤集合頁 | 1 hour |
+| `/authors`, `/audio-works`, `/demos`, `/resources` | 公開名錄 | 依頁面資料快取 |
+| `/resources/[id]` | 製作資源詳情與參與作品 | 依公開資料快取 |
 | `/about`, `/help`, `/license`, `/privacy`, `/terms` | 靜態內容頁 | static |
 
 Public app BFF routes live under `apps/public/app/api/*` and proxy backend data through same-origin APIs.
+工作室 Demo 管理頁使用 `/studio/demos`；公開 `/demos` 由 Next.js 提供。
 
 ## 架構邊界
 
@@ -130,6 +135,8 @@ npm run test:e2e         # Playwright E2E
 - `apps/public/Dockerfile` 建置 Next public app，並納入 workspace packages。
 - Vite studio build output 仍由 root build 流程產生。
 - Nginx 設定見 `nginx.conf`。
+- `main` 是目前的維護與發布分支。2026-11-10 的 v0.7.4 已發布於 [正式網站](https://open-scripts.shawnup.com/)；正式入口目前使用 `v0-7-4-r5`，保留前一版供回滾。
+- 正式資料庫已完成資源結構遷移，並匯入 Dev 已核准的音聲、資源、Demo 與外部作者公開資料；詳細驗證與回滾方式見 [維運紀錄](./docs/engineering/operations.md)。
 
 ## 主要文件入口
 

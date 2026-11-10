@@ -217,6 +217,8 @@ python3 scripts/site-release.py rollback --tag rsc-cache-all-20261110
 
 2026-11-10 0.7.4 已切至 `wp-site-v0-7-4-r3-edge`。候選版在隔離入口通過 13 條路徑、22 次手機／平板瀏覽器巡覽、投稿表單必填驗證、讀寫限流及 RSC 快取邊界檢查；切流後公開網址的首頁、作者、資源、資源詳情、Demo、音聲作品、關於、說明及 API 回應 200，手機瀏覽器複查無頁面錯誤。`/resources` 與 `/demos` 的 Nginx 路由是在候選驗收時發現並修正的。回滾使用 `python3 scripts/site-release.py rollback --tag v0-7-4-r3`，會接回上一版 `wp-site-rsc-cache-all-20261110-edge`。資料庫匯入不會隨入口回滾而回復。
 
+同日將修正版切至 `wp-site-v0-7-4-r5-edge`。此版把工作室 Demo 管理移至 `/studio/demos`，公開 `/demos` 保持由 Next.js 提供；修正 CI 在新版 FastAPI 的路由檢查及後端缺少 `mcp` 依賴。首次候選建置因未帶入 Vite 公開登入設定，瀏覽器檢查發現 Firebase 錯誤，已停止該候選版並用正式設定重建。`r5` 預備檢查通過 14 條路徑、IPv4／IPv6、RSC 快取邊界；寫入與讀取限流檢查通過，375px 與 811px 的公開 Demo、資源及工作室管理頁沒有頁面錯誤或橫向溢出。正式網址複查三頁回應 200 且無瀏覽器錯誤；main 的兩組 CI 均通過，前端 2,515 項測試通過。現在回滾請用 `python3 scripts/site-release.py rollback --tag v0-7-4-r5`，直接回到 `r3`。資料庫不會隨入口回滾而回復。
+
 ### 後續版本的網站專用發布
 
 新版本需先有相同 tag 的 `write_project-backend:<tag>`、`write_project-public:<tag>` 映像，以及 `dist/releases/<tag>/index.html`。設定新的 release tag 後執行：
@@ -233,7 +235,7 @@ python3 scripts/site-release.py activate --tag "$RELEASE_TAG"
 python3 scripts/site-release.py rollback --tag "$RELEASE_TAG"
 ```
 
-`prepare` 從目前佔用雙 loopback `1090` 的入口辨識其 API、公開站、靜態目錄與 Nginx 設定，將候選靜態檔複製到持久 `releases/<tag>`，把控制資料與新 Nginx 設定放在靜態根目錄之外的 `releases/.site-release/<tag>`。它啟動候選 API／公開站及新舊兩條隨機 loopback 預覽入口，檢查 readiness、Nginx 語法、IPv4／IPv6 與 13 條路徑，不切換正式流量。若 Docker 分配的候選埠不可連入，預覽入口最多重建三次；仍失敗就停止候選且不切流。`activate` 再次驗證兩條入口、舊入口容器 ID 與新舊靜態檔摘要，最後只交接 `1090`；若驗證失敗會重啟原入口。`rollback` 先驗證原入口的預覽及其靜態檔摘要，再交接回原容器；候選容器仍保留供排查。未啟用的預備容器可用 `stop-prepared --tag <tag>` 移除。腳本以鎖避免同時執行兩個發布動作，且不停止 PostgreSQL 或其他服務。每個 tag 只能準備一次，需以新的 tag 重試。
+`prepare` 從目前佔用雙 loopback `1090` 的入口辨識其 API、公開站、靜態目錄與 Nginx 設定，將候選靜態檔複製到持久 `releases/<tag>`，把控制資料與新 Nginx 設定放在靜態根目錄之外的 `releases/.site-release/<tag>`。它啟動候選 API／公開站及新舊兩條隨機 loopback 預覽入口，檢查 readiness、Nginx 語法、IPv4／IPv6 與 14 條路徑，不切換正式流量。若 Docker 分配的候選埠不可連入，預覽入口最多重建三次；仍失敗就停止候選且不切流。`activate` 再次驗證兩條入口、舊入口容器 ID 與新舊靜態檔摘要，最後只交接 `1090`；若驗證失敗會重啟原入口。`rollback` 先驗證原入口的預覽及其靜態檔摘要，再交接回原容器；候選容器仍保留供排查。未啟用的預備容器可用 `stop-prepared --tag <tag>` 移除。腳本以鎖避免同時執行兩個發布動作，且不停止 PostgreSQL 或其他服務。每個 tag 只能準備一次，需以新的 tag 重試。
 
 `prepare` 與 `activate` 現在也會在候選入口自動執行 RSC 快取邊界檢查，從 sitemap 抽樣首頁、台本、作者、社團與系列等頁面。2026-11-10 以現行映像排練 `prepare` 通過；用舊版公開站映像排練時因 RSC 回應仍為公開快取而拒絕，候選容器與控制資料自動清除，正式入口未切換。手動執行上方 `check-rsc-cache-boundary.py` 可在切流前查看同一項結果。
 
