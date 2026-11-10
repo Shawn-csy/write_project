@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
 import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
 import { PublicInfoSection } from "@/components/info/PublicInfoSection";
-import {
-  PublicInfoDocument,
-  PublicInfoLead,
-  PublicInfoBelowFold,
-} from "@/components/info/PublicInfoDocument";
+import { PublicInfoDocument, PublicInfoLead, PublicInfoBelowFold } from "@/components/info/PublicInfoDocument";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { studioUrl } from "@/lib/studioUrl";
 
 export const revalidate = 3600;
 
+const description = "公開台本、音聲作品、Demo 與創作資源的瀏覽、投稿及資料補充說明。";
+const linkClass = "font-medium text-primary underline underline-offset-2 hover:text-primary/80";
+
 export const metadata: Metadata = {
   title: "使用說明｜泛用型產品作坊",
-  description: "泛用型產品作坊音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
+  description,
   alternates: { canonical: `${BASE_URL}/help` },
   openGraph: {
     title: "使用說明｜泛用型產品作坊",
-    description: "泛用型產品作坊音聲台本平台使用說明：如何閱讀台本、發布作品、使用編輯器功能。",
+    description,
     url: `${BASE_URL}/help`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",
@@ -32,19 +32,18 @@ export default function HelpPage() {
     mainEntity: [
       {
         "@type": "Question",
-        name: "如何撰寫音聲台本或 ASMR 劇本？",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "音聲台本需要把聽覺細節寫清楚，包含角色動作、音效 SFX、距離感、情緒起伏與停頓，連貫性。常見主題包含哄睡、戀愛情境、日常對話、奇幻冒險與恐怖驚悚。",
-        },
+        name: "瀏覽與投稿需要登入嗎？",
+        acceptedAnswer: { "@type": "Answer", text: "瀏覽公開頁面，以及使用公開台本、音聲作品、Demo 和資源投稿表單，不需登入。管理自己創作的台本請進入工作室。" },
       },
       {
         "@type": "Question",
-        name: "可以在哪裡找免費公開台本？",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text: "泛用型產品作坊首頁提供免費公開台本、音聲台本與配音台本列表。閱讀前請確認每部作品的授權條款，包含商業使用、衍生創作與特殊條款。",
-        },
+        name: "投稿後為什麼沒有立刻顯示？",
+        acceptedAnswer: { "@type": "Answer", text: "公開投稿會先由管理員核對資料；審核通過後才會出現在對應頁面。已有頁面的資料可在該頁送出補充或更新。" },
+      },
+      {
+        "@type": "Question",
+        name: "外部收錄的台本可以直接使用嗎？",
+        acceptedAnswer: { "@type": "Answer", text: "請先開啟原始來源，確認作者在來源頁公布的授權與使用條件。本站收錄作品資訊不代表取得演出、改作或商業使用許可。" },
       },
     ],
   };
@@ -52,103 +51,64 @@ export default function HelpPage() {
   return (
     <PublicInfoPageShell
       title="使用說明"
-      activeKey="help"
       relatedLinks={[
-        { href: "/", label: "← 返回台本列表" },
+        { href: "/", label: "← 返回公開台本" },
         { href: "/about", label: "關於我們" },
         { href: "/license", label: "授權說明" },
       ]}
     >
       <JsonLdScript data={faqData} />
       <PublicInfoDocument>
-        {/* Lead — three-step summary, first viewport */}
         <PublicInfoLead>
-          <p>泛用型產品作坊提供免費音聲台本，公開台本與 ASMR 台本、配音台本，並可管理作品。</p>
-          <ol className="list-decimal pl-5 space-y-2 text-foreground/90">
-            <li>
-              <strong>找台本</strong>——在首頁瀏覽公開台本、音聲台本與配音台本，不需登入。
-              點擊封面或標題進入閱讀頁，可調整字體、行距與主題色。
-            </li>
-            <li>
-              <strong>閱讀與分享</strong>——閱讀頁支援目錄導覽（場景跳轉），
-              可複製台本連結分享給他人。
-            </li>
-            <li>
-              <strong>建立與發布</strong>——登入後進入工作室，新增台本、填寫標題與標籤，
-              設定公開後即可在首頁被發現。
-            </li>
+          <p>本站可瀏覽公開台本、音聲作品、演出 Demo，以及聲演、後製、封面和錄音室等創作資源。瀏覽公開內容與使用投稿表單不需登入。</p>
+          <ol className="list-decimal space-y-2 pl-5 text-foreground/90">
+            <li><strong>找內容</strong>：從首頁、音聲作品、Demo 或資源頁搜尋與篩選。</li>
+            <li><strong>看來源與授權</strong>：本站台本可進入閱讀頁；外部收錄作品請開啟原始來源，確認使用條件。</li>
+            <li><strong>投稿或補充</strong>：各頁的投稿表單會將資料送交管理員，核准後才會公開。</li>
           </ol>
         </PublicInfoLead>
 
-        {/* Below fold — detailed help sections */}
         <PublicInfoBelowFold>
-          <PublicInfoSection title="台本語法">
-            <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
-              <p>編輯器支援自訂劇本標記語法：</p>
-              <ul className="list-disc pl-5 space-y-1 text-foreground/90">
-                <li><code className="bg-muted px-1 rounded text-xs">&lt;t&gt; 場景名稱</code> — 場景標題</li>
-                <li><code className="bg-muted px-1 rounded text-xs">/sfx 效果描述</code> — 音效說明</li>
-                <li><code className="bg-muted px-1 rounded text-xs">/d 舞台指示</code> — 方向指示</li>
-                <li>角色台詞直接輸入即可</li>
-              </ul>
+          <PublicInfoSection title="公開台本：搜尋與閱讀">
+            <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+              <p>在<a href="/" className={linkClass}>公開台本首頁</a>選擇全年齡向、成人向、男性向或女性向，搜尋標題、作者或標籤；「有 Demo」可只看附有演出試聽的台本。</p>
+              <p>點選本站台本的封面或標題即可閱讀。閱讀頁提供文字顯示設定與作品資訊；部分內容會先顯示年齡或授權確認。外部收錄的台本會導向原始來源，閱讀方式依來源網站而定。</p>
             </div>
           </PublicInfoSection>
 
-          <PublicInfoSection title="音聲台本與 ASMR 劇本 以下摘錄ai說明">
-            <div className="text-sm text-muted-foreground leading-relaxed space-y-3">
-              <p>
-                音聲台本與 ASMR 劇本不只寫台詞，需要把聽得到的畫面標註清楚。
-                所以會在台詞旁補上角色動作、距離感、音效（SFX）、情緒起伏與停頓，
-                讓聲優、配音員或創作者能直接理解錄製節奏，也讓後製清楚該怎麼做。
-                但就算不加也沒關係，就是個人習慣的一種表現方式。
-              </p>
-              <ul className="list-disc pl-5 space-y-1 text-foreground/90">
-                <li><strong>聽覺細節(音效)</strong>：耳語、腳步、翻頁、雨聲、衣料摩擦、環境音。</li>
-                <li><strong>角色狀態(情緒)</strong>：溫柔、撒嬌、緊張、壓低聲音、靠近或遠離麥克風。</li>
-                <li><strong>常見類型(主題)</strong>：哄睡、戀愛情境、日常對話、奇幻冒險、恐怖驚悚。</li>
-                <li><strong>授權標註</strong>：若作品可供 YouTube、直播、配音或音聲投稿使用，請在授權欄位清楚標示。</li>
-              </ul>
+          <PublicInfoSection title="投稿公開台本與管理自己的作品">
+            <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+              <p>首頁的「投稿台本」可提供台本名稱、作者與公開文件連結，並補充介紹、封面等資料。送出後由管理員核對，核准才會出現在公開列表；投稿表單不會直接建立可編輯的工作室台本。</p>
+              <p>如果要建立或管理自己的台本，請使用導覽列的<a href={studioUrl()} className={linkClass}>工作室</a>。公開頁上的作者與組織資料，也可能包含本站收錄的外部創作者資訊。</p>
             </div>
           </PublicInfoSection>
 
-          <PublicInfoSection title="尋找免費公開台本">
-            <div className="text-sm text-muted-foreground leading-relaxed space-y-3">
-              <p>
-                首頁會列出公開作品，包含一般台本、音聲台本、配音台本、ASMR 台本與廣播劇劇本。
-                你可以依標籤、作者、組織或系列尋找適合朗讀、配音、直播或錄音的內容。
-              </p>
-              <p>
-                每部作品的閱讀頁都會顯示授權資訊。使用前請確認是否允許商業使用、
-                衍生創作、改作通知，以及作者填寫的特殊條款。
-              </p>
+          <PublicInfoSection title="音聲作品與 Demo">
+            <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+              <p><a href="/audio-works" className={linkClass}>音聲作品</a>頁依社團瀏覽作品，可能連往第三方試聽或販售頁。進入頁面前需確認已年滿 18 歲；作品可能分為免費與付費。使用「投稿作品」提供作品與來源連結，審核通過後才會公開。</p>
+              <p><a href="/demos" className={linkClass}>Demo</a> 頁展示與公開台本對應的演出試聽。投稿時先選擇對應台本，再填入公開 Demo 連結及聲演資料；名單外聲演也可一併提供。審核通過後會連到對應台本與聲演身份頁。</p>
             </div>
           </PublicInfoSection>
 
-          <PublicInfoSection title="作者頁面與組織">
-            <div className="text-sm text-muted-foreground leading-relaxed space-y-2">
-              <p>登入後可在設定頁建立作者頁面（Persona）：</p>
-              <ul className="list-disc pl-5 space-y-1 text-foreground/90">
-                <li>設定筆名、頭像、個人簡介與社群連結</li>
-                <li>作者頁面會顯示所有公開台本</li>
-                <li>可加入或建立組織，與其他創作者合作</li>
-              </ul>
+          <PublicInfoSection title="創作資源：新增與補充資料">
+            <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+              <p><a href="/resources" className={linkClass}>資源頁</a>收錄聲演、後製、封面與錄音室，可搜尋名稱、查看聯絡連結與參與作品。參與作品可為音聲、遊戲、影片或其他類型；部分作品圖片會在年齡確認後顯示。</p>
+              <p>新增資源請使用「投稿資源」。聲演的參與作品可選填；其他類別至少需要一部有名稱與網址的參與作品，並提供官方、委託或社群連結。已有資源頁時，請進入該頁使用「補充／更新資源資料」。兩種提交都須經管理員審核。</p>
+            </div>
+          </PublicInfoSection>
+
+          <PublicInfoSection title="授權與資料更正">
+            <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+              <p>閱讀、演出、轉載或改作前，請查看每部台本的<a href="/license" className={linkClass}>授權資訊</a>及特殊條款。外部收錄作品以原始來源公布的條件為準；本站展示作品或資源資料，不代表授予使用許可。</p>
+              <p>如果作者、作品或資源資料有誤，可在相關頁面送出補充；若涉及權益、下架或其他問題，請透過<a href="/about" className={linkClass}>聯絡方式</a>告知我們。</p>
             </div>
           </PublicInfoSection>
 
           <PublicInfoSection title="常見問題">
             <div className="space-y-4 text-sm text-muted-foreground">
-              <div>
-                <p className="font-medium text-foreground">台本無法顯示？</p>
-                <p>請確認台本已設為「公開」狀態。私人台本只有本人登入後才可看見。</p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground">如何匯出台本？</p>
-                <p>進入編輯器後，點選右上角「匯出」，支援純文字（.txt）格式下載。</p>
-              </div>
-              <div>
-                <p className="font-medium text-foreground">成人向台本如何管理？</p>
-                <p>設定目標觀眾為「成人向」後，閱讀頁會顯示年齡確認提示。</p>
-              </div>
+              <div><p className="font-medium text-foreground">瀏覽與投稿需要登入嗎？</p><p>公開頁面與投稿表單可直接使用；管理自己建立的台本請進入工作室。</p></div>
+              <div><p className="font-medium text-foreground">投稿後為什麼沒有立刻顯示？</p><p>新投稿與資料補充都會先經過審核，核准後才會更新公開頁面。</p></div>
+              <div><p className="font-medium text-foreground">外部收錄的台本可以直接使用嗎？</p><p>請先查看原始來源的授權與作者要求；本站收錄不等於取得使用許可。</p></div>
             </div>
           </PublicInfoSection>
         </PublicInfoBelowFold>

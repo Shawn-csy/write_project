@@ -57,7 +57,7 @@ describe("PublicInfoMenu", () => {
     const user = userEvent.setup();
     render(<PublicInfoMenu />);
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
-    expect(screen.getByText("閱讀、發布與工作室操作")).toBeTruthy();
+    expect(screen.getByText("瀏覽、投稿與資料補充")).toBeTruthy();
     expect(screen.getByText("台本使用、改作與商業使用規則")).toBeTruthy();
   });
 

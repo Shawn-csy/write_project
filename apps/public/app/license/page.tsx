@@ -36,7 +36,6 @@ export default function LicensePage() {
   return (
     <PublicInfoPageShell
       title="授權說明"
-      activeKey="license"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },
         { href: "/about", label: "關於我們" },
@@ -48,13 +47,13 @@ export default function LicensePage() {
         {/* Lead — plain text overview */}
         <PublicInfoLead>
           <p>
-            泛用型產品作坊上的台本與音聲台本由創作者自行設定授權條款。
-            平台提供標準化的授權選項，讓使用者能清楚了解每部台本的使用範圍。
-            未特別標示時，所有台本版權歸原作者所有，未經授權不得轉載或改作。
+            本站發布的台本可顯示作者設定的授權選項與特殊條款；
+            外部收錄台本及音聲作品則應查看原始來源公布的使用條件。
+            找不到明確授權時，請先向權利人確認。
           </p>
           <p>
-            台本閱讀頁會顯示作者設定的授權資訊，包含商業使用、衍生創作、修改通知與特殊條款。
-            如需使用台本，請仔細閱讀授權資訊，並在必要時取得作者同意。
+            本站台本的閱讀頁會顯示商業使用、衍生創作、修改通知與特殊條款等資訊。
+            收錄資訊或試聽連結本身不代表取得演出、改作或商業使用許可。
           </p>
         </PublicInfoLead>
 
@@ -65,7 +64,7 @@ export default function LicensePage() {
               <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
                 <h3 className="font-semibold text-sm mb-1">保留所有權利（All Rights Reserved）</h3>
                 <p className="text-sm text-muted-foreground">
-                  預設狀態。未經作者明確許可，不得複製、改作、演出或商業使用。
+                  若作品標示保留所有權利，使用前請取得權利人許可。
                 </p>
               </div>
               <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
@@ -101,6 +100,12 @@ export default function LicensePage() {
                 <li><strong>特殊條款</strong>：作者附加的特定使用規定</li>
               </ul>
             </div>
+          </PublicInfoSection>
+
+          <PublicInfoSection title="外部收錄作品">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              外部台本、音聲作品與 Demo 可能連往第三方網站。本站展示標題、封面或來源連結，是為了方便查找；使用條件以原始來源及權利人的說明為準。來源頁沒有明確授權時，請先聯繫權利人。
+            </p>
           </PublicInfoSection>
 
           <PublicInfoSection title="平台免責聲明">

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { PublicInfoTopBar } from "@/components/info/PublicInfoTopBar";
+import { PublicTopBar } from "@/components/PublicTopBar";
 import { PublicFooter } from "@/components/PublicFooter";
 
 interface RelatedLink {
@@ -11,7 +11,6 @@ interface RelatedLink {
 export interface PublicInfoPageShellProps {
   title: string;
   description?: string;
-  activeKey?: "about" | "help" | "license" | "privacy" | "terms";
   children: ReactNode;
   relatedLinks?: RelatedLink[];
 }
@@ -19,13 +18,12 @@ export interface PublicInfoPageShellProps {
 export function PublicInfoPageShell({
   title,
   description,
-  activeKey,
   children,
   relatedLinks,
 }: PublicInfoPageShellProps) {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <PublicInfoTopBar activeKey={activeKey as "about" | "help" | "license" | undefined} />
+      <PublicTopBar />
 
       <main className="max-w-3xl mx-auto px-6 py-16">
         {/* Hero */}

@@ -16,16 +16,16 @@ export const revalidate = 3600;
 const webPageJsonLd = createPublicInfoWebPageJsonLd({
   path: "/about",
   name: "關於｜泛用型產品作坊",
-  description: "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
+  description: "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
 });
 
 export const metadata: Metadata = {
   title: "關於｜泛用型產品作坊",
-  description: "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
+  description: "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
   alternates: { canonical: `${BASE_URL}/about` },
   openGraph: {
     title: "關於｜泛用型產品作坊",
-    description: "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀平台，讓創作者輕鬆發布與分享台本作品。",
+    description: "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
     url: `${BASE_URL}/about`,
     siteName: "泛用型產品作坊",
     locale: "zh_TW",
@@ -37,7 +37,6 @@ export default function AboutPage() {
   return (
     <PublicInfoPageShell
       title="關於泛用型產品作坊"
-      activeKey="about"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },
         { href: "/help", label: "使用說明" },
@@ -49,19 +48,22 @@ export default function AboutPage() {
         {/* Lead — plain text, first viewport */}
         <PublicInfoLead>
           <p>
-            泛用型產品作坊由台灣獨立開發者打造，為台本、音聲台本、配音台本、劇本與小說創作者提供一個免費、開放的展覽與閱讀空間。
+            泛用型產品作坊由台灣獨立開發者打造，提供公開台本的閱讀與分享，也整理音聲作品、演出 Demo 及創作資源，方便讀者與創作者找到作品及合作夥伴。
           </p>
           <ul className="list-disc pl-5 space-y-2 text-foreground/90">
-            <li><strong>公開閱讀</strong>：所有公開台本可免費瀏覽，不需登入。</li>
-            <li><strong>創作者頁面</strong>：每位作者都有專屬的公開展示頁面。</li>
-            <li><strong>創作工作室</strong>：登入後可使用台本編輯與管理功能。</li>
-            <li><strong>專業編輯器</strong>：支援分場、角色標記、封面設計、匯出等功能。</li>
+            <li><strong>公開台本</strong>：瀏覽本站台本與外部收錄作品，並查看來源和授權資訊。</li>
+            <li><strong>音聲與 Demo</strong>：探索社團作品，以及與台本對應的演出試聽。</li>
+            <li><strong>創作資源</strong>：尋找聲演、後製、封面創作者及錄音室，查看參與作品與聯絡方式。</li>
+            <li><strong>工作室</strong>：創作者可進入工作室管理自己的台本。</li>
           </ul>
           <p>
             平台持續開發中，歡迎回報問題或建議。聯絡方式請見下方。
           </p>
           <p>
-            如果有任何侵犯權益，或不希望作品在網站上公開，請隨時與我們聯繫，我們會馬上下架。若有想上架的作品或希望新增作品大類，也歡迎來信討論。
+            若作品或資料涉及權益問題，或希望更正、移除收錄內容，請透過下方聯絡方式告知我們。新增台本、音聲作品、Demo 或資源，可先使用各頁的投稿表單送交審核。
+          </p>
+          <p>
+            如果希望網站新增或調整功能，或有程式開發委託，也歡迎透過下方 Discord 私訊或 Email 聯絡。合作費用可依內容討論，也可以作品抵銷。
           </p>
         </PublicInfoLead>
 
@@ -77,38 +79,24 @@ export default function AboutPage() {
           <PublicInfoSection title="近期更新" icon="↻" card>
             <ul className="space-y-3 text-sm">
               <li className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">2026 年 11 月</div>
+                <div className="mt-1 font-medium text-foreground">創作資源與投稿流程</div>
+                <div className="mt-1 text-muted-foreground">
+                  資源頁整合聲演、後製、封面與錄音室；新資料與既有頁面的補充可提交審核。
+                </div>
+              </li>
+              <li className="rounded-lg border bg-muted/20 p-3">
+                <div className="text-xs text-muted-foreground">2026 年 11 月</div>
+                <div className="mt-1 font-medium text-foreground">音聲作品與演出 Demo</div>
+                <div className="mt-1 text-muted-foreground">
+                  可依社團瀏覽音聲作品，並查看台本對應的公開演出試聽及聲演身份。
+                </div>
+              </li>
+              <li className="rounded-lg border bg-muted/20 p-3">
                 <div className="text-xs text-muted-foreground">2026 年 10 月</div>
-                <div className="mt-1 font-medium text-foreground">v{SITE_VERSION}・收錄更多公開台本</div>
+                <div className="mt-1 font-medium text-foreground">收錄更多公開台本</div>
                 <div className="mt-1 text-muted-foreground">
-                  支援收錄各平台的公開台本，保留來源連結、作者、封面、摘要與標籤資訊。
-                </div>
-              </li>
-              <li className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-xs text-muted-foreground">2026 年 7 月</div>
-                <div className="mt-1 font-medium text-foreground">介面全面重設計</div>
-                <div className="mt-1 text-muted-foreground">
-                  台本列表與閱讀頁採用全新視覺設計，行動版導覽與操作介面同步更新。
-                </div>
-              </li>
-              <li className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-xs text-muted-foreground">2026 年 6 月</div>
-                <div className="mt-1 font-medium text-foreground">SEO 架構升級</div>
-                <div className="mt-1 text-muted-foreground">
-                  遷移至 Next.js SSR，台本頁面現可被 Google 與 AI 搜尋引擎完整索引。
-                </div>
-              </li>
-              <li className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-xs text-muted-foreground">2026 年 5 月</div>
-                <div className="mt-1 font-medium text-foreground">封面設計器</div>
-                <div className="mt-1 text-muted-foreground">
-                  全新封面設計工具，支援 Figma 風格縮放、背景與文字排版。
-                </div>
-              </li>
-              <li className="rounded-lg border bg-muted/20 p-3">
-                <div className="text-xs text-muted-foreground">2026 年 4 月</div>
-                <div className="mt-1 font-medium text-foreground">匯出功能</div>
-                <div className="mt-1 text-muted-foreground">
-                  支援匯出至 PDF、Google Docs，以及自訂 metadata 選擇。
+                  公開台本列表也展示外部來源作品，保留作者、封面、摘要與原始連結。
                 </div>
               </li>
             </ul>

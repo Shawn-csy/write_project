@@ -9,7 +9,7 @@ vi.mock("@/components/PublicFooter", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode; className?: string; "aria-current"?: "page" }) => (
+  default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: React.ReactNode; className?: string; "aria-current"?: "page"; prefetch?: boolean }) => (
     <a href={href} {...props}>{children}</a>
   ),
 }));
@@ -95,22 +95,17 @@ describe("PublicInfoPageShell", () => {
     }
   });
 
-  it("renders /about /help /license nav links", () => {
+  it("uses the public section links in the top navigation", () => {
     render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
-    const links = screen.getAllByRole("link");
-    const hrefs = Array.from(links).map((l) => l.getAttribute("href"));
-    expect(hrefs).toContain("/about");
-    expect(hrefs).toContain("/help");
-    expect(hrefs).toContain("/license");
+    const nav = screen.getAllByRole("navigation", { name: "公開頁面導航" })[0];
+    const hrefs = Array.from(nav.querySelectorAll("a")).map((link) => link.getAttribute("href"));
+    expect(hrefs).toEqual(["/authors", "/resources", "/audio-works", "/demos"]);
   });
 
-  it("active tab has aria-current=page", () => {
-    render(<PublicInfoPageShell title="T" activeKey="help"><p>c</p></PublicInfoPageShell>);
-    const activeLinks = screen
-      .getAllByRole("link")
-      .filter((l) => l.getAttribute("aria-current") === "page");
-    expect(activeLinks.length).toBeGreaterThan(0);
-    expect(activeLinks[0].getAttribute("href")).toBe("/help");
+  it("does not add information pages as extra top tabs", () => {
+    render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
+    const nav = screen.getAllByRole("navigation", { name: "公開頁面導航" })[0];
+    expect(nav.querySelector('a[href="/about"], a[href="/help"], a[href="/license"]')).toBeNull();
   });
 
   it("does not render PublicShellTopBar or PublicShellActions", () => {

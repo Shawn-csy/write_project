@@ -9,7 +9,7 @@ const HELP_LINKS = [
   {
     href: "/help",
     label: "使用說明",
-    description: "閱讀、發布與工作室操作",
+    description: "瀏覽、投稿與資料補充",
   },
   {
     href: "/license",
