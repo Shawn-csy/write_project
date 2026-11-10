@@ -23,10 +23,11 @@ def _install_spa_template(monkeypatch, tmp_path):
 
 
 def test_route_classifier_accepts_only_real_workspace_routes():
-    for route in ("/login", "/dashboard", "/studio", "/admin", "/works", "/works/work-id", "/works/external", "/settings", "/settings/markers", "/identity", "/demos", "/series", "/edit/script-id"):
+    for route in ("/login", "/dashboard", "/studio", "/studio/demos", "/admin", "/works", "/works/work-id", "/works/external", "/settings", "/settings/markers", "/identity", "/series", "/edit/script-id"):
         assert is_workspace_spa_path(route)
 
     for route in (
+        "/demos",
         "/p3",
         "/settings/not-a-route",
         "/dashboard/not-a-route",
@@ -48,7 +49,7 @@ def test_route_classifier_limits_legacy_public_html_shapes():
 def test_backend_serves_spa_only_for_workspace_allowlist(client, monkeypatch, tmp_path):
     _install_spa_template(monkeypatch, tmp_path)
 
-    for route in ("/login", "/dashboard", "/studio", "/admin", "/works", "/works/work-id", "/settings", "/identity", "/edit/script-id"):
+    for route in ("/login", "/dashboard", "/studio", "/studio/demos", "/admin", "/works", "/works/work-id", "/settings", "/identity", "/edit/script-id"):
         response = client.get(route)
         assert response.status_code == 200, route
         assert '<div id="root"></div>' in response.text

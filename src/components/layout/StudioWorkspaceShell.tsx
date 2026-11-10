@@ -88,7 +88,7 @@ export default function StudioWorkspaceShell() {
               <Route path="works/external" element={<Suspense fallback={routeFallback}><ExternalWorksPage /></Suspense>} />
               <Route path="works/:id" element={<Suspense fallback={routeFallback}><WorkManageRoute /></Suspense>} />
               <Route path="series" element={<Suspense fallback={routeFallback}><SeriesPage /></Suspense>} />
-              <Route path="demos" element={<Suspense fallback={routeFallback}><DemoManagementPage /></Suspense>} />
+              <Route path="studio/demos" element={<Suspense fallback={routeFallback}><DemoManagementPage /></Suspense>} />
               <Route path="settings" element={<Suspense fallback={routeFallback}><SettingsPage /></Suspense>} />
               <Route path="settings/markers" element={<Suspense fallback={routeFallback}><MarkerSettingsPage /></Suspense>} />
               <Route path="dashboard" element={<LegacyDashboardRedirect />} />

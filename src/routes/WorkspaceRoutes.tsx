@@ -244,7 +244,7 @@ export function renderWorkspaceRoutes({
                       }
                     />
                     <Route
-                      path="demos"
+                      path="studio/demos"
                       element={
                         <Suspense fallback={routeFallback}>
                           <DemoManagementPage />

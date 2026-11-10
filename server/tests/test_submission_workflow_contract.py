@@ -58,15 +58,15 @@ def test_every_intake_has_a_lifecycle_test():
 
 def test_all_public_intake_routes_are_registered():
     intake_routes = {
-        route.path
-        for route in app.routes
-        if "POST" in getattr(route, "methods", set())
-        and route.path.startswith("/api/")
-        and not route.path.startswith("/api/admin/")
+        path
+        for path, methods in app.openapi()["paths"].items()
+        if "post" in methods
+        and path.startswith("/api/")
+        and not path.startswith("/api/admin/")
         and (
-            route.path.endswith("-submissions")
-            or route.path.endswith("-claims")
-            or route.path == "/api/public-feedback"
+            path.endswith("-submissions")
+            or path.endswith("-claims")
+            or path == "/api/public-feedback"
         )
     }
     assert intake_routes == {workflow.create for workflow in WORKFLOWS}
@@ -155,7 +155,7 @@ def test_new_voice_actor_submission_publishes_only_after_approval(client, db_ses
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda item: item.name)
 def test_every_workflow_has_creation_and_moderation_routes(workflow):
-    routes = {(route.path, method) for route in app.routes for method in getattr(route, "methods", set())}
+    routes = {(path, method.upper()) for path, methods in app.openapi()["paths"].items() for method in methods}
     assert (workflow.create, "POST") in routes
     assert (workflow.review, workflow.review_method) in routes
 

@@ -9,7 +9,7 @@ const StudioWorkspaceShell = lazyWithRefreshRetry(
 );
 
 const studioPaths = [
-  "/identity", "/series", "/demos", "/settings", "/superadmin",
+  "/identity", "/series", "/studio/demos", "/settings", "/superadmin",
   "/dashboard", "/studio", "/community", "/admin", "/works/external",
 ];
 

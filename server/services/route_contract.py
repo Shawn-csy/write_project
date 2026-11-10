@@ -8,7 +8,7 @@ import re
 # These routes are rendered by the authenticated Vite workspace.
 WORKSPACE_EXACT_PATHS = frozenset({
     "login", "dashboard", "studio", "admin", "community", "superadmin",
-    "works", "works/external", "series", "demos", "settings",
+    "works", "works/external", "series", "studio/demos", "settings",
     "settings/markers", "identity",
 })
 _WORKSPACE_ENTITY_PATH = re.compile(r"^(edit|works)/[^/]+$")
