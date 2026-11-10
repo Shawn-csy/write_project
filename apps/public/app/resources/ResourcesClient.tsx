@@ -108,7 +108,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
   const [resources, setResources] = useState(initialResources);
   const [category, setCategory] = useState<Category>("voice_actor");
   const [query, setQuery] = useState("");
-  const { confirmed: ageConfirmed, confirm: confirmAge } = useResourceAgeGate();
+  const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("category");
@@ -156,7 +156,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 w-full rounded-lg border border-border/60 bg-background/70 pl-9 pr-3 [font-size:var(--public-font-meta)] outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:h-10" placeholder="搜尋資源" aria-label="搜尋資源" />
         </label>
       } />
-      {!ageConfirmed && <ResourceAgeGate onConfirm={confirmAge} />}
+      {ageGateReady && !ageConfirmed && <ResourceAgeGate onConfirm={confirmAge} />}
       <nav aria-label="資源類別" className="mb-5 flex flex-wrap gap-1.5">
         {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className={`h-6 rounded-md border px-2.5 [font-size:var(--public-font-caption)] font-medium transition-colors ${category === item.key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"}`}>{item.label}</button>)}
       </nav>

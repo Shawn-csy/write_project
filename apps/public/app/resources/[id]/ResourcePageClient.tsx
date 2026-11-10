@@ -51,7 +51,7 @@ export function ResourcePageClient({ item: initialItem, refreshOnMount = false }
       }).catch(() => {});
     return () => { active = false; };
   }, [initialItem.id, refreshOnMount]);
-  const { confirmed: ageConfirmed, confirm: confirmAge } = useResourceAgeGate();
+  const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("category");
@@ -66,7 +66,7 @@ export function ResourcePageClient({ item: initialItem, refreshOnMount = false }
   return <div className="flex min-h-screen flex-col bg-background">
     <PublicTopBar activeTab="resources" showBack backHref={backHref} backLabel="返回資源名錄" />
     <main className="w-full flex-1 px-3 pb-20 sm:px-5 lg:px-8">
-      {!ageConfirmed && <div className="mt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
+      {ageGateReady && !ageConfirmed && <div className="mt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
       <div className="mt-6 rounded-xl border border-border/60 bg-card p-6 shadow-sm md:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-background bg-muted shadow sm:h-36 sm:w-36">

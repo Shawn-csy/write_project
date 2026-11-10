@@ -68,7 +68,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
   const profileBio = identity.bio || "";
   const links = parseLinks(identity.links);
   const isVoiceActor = persona.roles?.includes("voice_actor") || hasVoiceActorSelfTag(persona) || performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
-  const { confirmed: ageConfirmed, confirm: confirmAge } = useResourceAgeGate();
+  const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
   const hasVoiceWorks = performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
   const isScriptwriter = persona.roles?.includes("scriptwriter") || hasScriptwriterRole(persona, scripts, externalScripts);
   const roles = [
@@ -181,7 +181,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
       )}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
-        {isVoiceActor && hasVoiceWorks && !ageConfirmed && <div className="pt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
+        {isVoiceActor && hasVoiceWorks && ageGateReady && !ageConfirmed && <div className="pt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
         {/* Profile header */}
         <div className={`relative mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${persona.bannerUrl ? "-mt-16" : "mt-6 sm:mt-8"}`}>
           <div className="flex flex-col md:flex-row items-start gap-6">
