@@ -163,7 +163,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
         </label>
       </div>
       {ageGateReady && !ageConfirmed && <ResourceAgeGate onConfirm={confirmAge} />}
-      <nav aria-label="資源類別" className="sticky top-[100px] z-30 -mx-4 mb-3 flex gap-1 overflow-x-auto border-b border-border/50 bg-background/95 px-4 py-1.5 backdrop-blur-md sm:top-14 sm:mx-0 sm:mb-5 sm:gap-1.5 sm:px-0">
+      <nav aria-label="資源類別" className="sticky top-[82px] z-30 -mx-4 mb-3 flex gap-1 overflow-x-auto border-b border-border/50 bg-background/95 px-4 py-1.5 backdrop-blur-md sm:top-14 sm:mx-0 sm:mb-5 sm:gap-1.5 sm:px-0">
         {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className={`h-8 shrink-0 rounded-md border px-2.5 [font-size:var(--public-font-caption)] font-medium transition-colors ${category === item.key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"}`}>{item.label}</button>)}
       </nav>
       {visibleCount === 0 ? <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-14 text-center text-sm text-muted-foreground">{needle ? "找不到符合的資源。" : "這個類別正在收錄中。"}</div> :

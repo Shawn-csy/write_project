@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useEffect, useMemo, useState, lazy, Suspense } from "react";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
@@ -86,6 +86,13 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
   const [showList, setShowList] = useState(false);
   const [allScriptsSort, setAllScriptsSort] = useState<GallerySortValue | null>(null);
+  const [compactControls, setCompactControls] = useState(false);
+  useEffect(() => {
+    const update = () => setCompactControls(window.scrollY > 180);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
   const openAllScripts = (sort?: GallerySortValue) => {
     setAllScriptsSort(sort ?? "latest");
   };
@@ -151,7 +158,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         {/* Desktop sidebar — only when expanded */}
         {view === "scripts" && !sidebarCollapsed && (
           <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
-            <div className="sticky top-20">
+            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto overscroll-contain">
               <div className="flex items-center justify-between mb-2 px-1">
                 <span className="[font-size:var(--public-font-caption)] font-semibold text-muted-foreground uppercase tracking-widest">篩選</span>
                 <button
@@ -180,9 +187,9 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
-            <div className="relative sticky top-[100px] z-30 -mx-4 mb-4 bg-background/97 px-4 backdrop-blur-md sm:-mx-5 sm:top-14 sm:px-5 lg:mx-0 lg:px-0">
+            <div className="relative sticky top-[82px] z-30 -mx-4 mb-4 bg-background/97 px-4 backdrop-blur-md sm:-mx-5 sm:top-14 sm:px-5 lg:mx-0 lg:px-0">
               {/* Segment tabs row — with expand button inlined when collapsed */}
-              <div className="flex items-center gap-1 md:flex-col md:items-stretch md:gap-2">
+              <div className={`flex items-center gap-1 ${compactControls ? "md:flex-row md:flex-nowrap md:items-center" : "md:flex-col md:items-stretch md:gap-2"}`}>
                 {sidebarCollapsed && (
                   <div className="hidden lg:flex items-center gap-1 shrink-0 pb-0.5">
                     <button
@@ -206,15 +213,16 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                     )}
                   </div>
                 )}
-                <div className="min-w-0 shrink-0 md:w-full">
-                  <GallerySegmentBar segment={segment} onSegmentChange={setSegment} demoOnly={demoOnly} onDemoOnlyChange={setDemoOnly} />
+                <div className={`min-w-0 shrink-0 ${compactControls ? "md:w-auto" : "md:w-full"}`}>
+                  <GallerySegmentBar segment={segment} onSegmentChange={setSegment} demoOnly={demoOnly} onDemoOnlyChange={setDemoOnly} compactDesktop={compactControls} />
                 </div>
-                <div className="min-w-0 flex-1 md:flex md:w-full md:flex-wrap md:items-center md:justify-between md:gap-3">
+                <div className={`min-w-0 flex-1 md:flex md:w-full md:items-center md:justify-between md:gap-3 ${compactControls ? "md:flex-nowrap" : "md:flex-wrap"}`}>
                 <GallerySearchField
                   value={filterPanelProps.searchTerm}
                   onChange={filterPanelProps.onSearchChange}
                   onOpenFilters={openMobileFilter}
                   activeFilterCount={activeFilterCount}
+                  compactDesktop={compactControls}
                   trailingAction={<LazyPublicFeedbackDialog mode="listing" compactAtMobile />}
                   mobileActions={
                     <button
@@ -228,7 +236,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                     </button>
                   }
                 />
-                <div className="relative z-50 ml-auto hidden shrink-0 items-center gap-2 md:flex">
+                <div className={`relative z-50 ml-auto hidden shrink-0 items-center gap-2 ${compactControls ? "" : "md:flex"}`}>
                   <GallerySortControl value={allScriptsSort} onChange={setAllScriptsSort} />
                   <button
                     type="button"
@@ -244,11 +252,11 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                 </div>
               </div>
 
-              <GalleryFilterSummary
+              {!compactControls && <GalleryFilterSummary
                 chips={homepageModel.filterChips}
                 onRemove={removeFilter}
                 onClear={filterPanelProps.onResetFilters}
-              />
+              />}
 
             </div>
           )}

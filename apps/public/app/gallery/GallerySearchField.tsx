@@ -10,15 +10,16 @@ interface GallerySearchFieldProps {
   activeFilterCount?: number;
   mobileActions?: ReactNode;
   trailingAction?: ReactNode;
+  compactDesktop?: boolean;
 }
 
-export function GallerySearchField({ value, onChange, onOpenFilters, activeFilterCount = 0, mobileActions, trailingAction }: GallerySearchFieldProps) {
+export function GallerySearchField({ value, onChange, onOpenFilters, activeFilterCount = 0, mobileActions, trailingAction, compactDesktop = false }: GallerySearchFieldProps) {
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const mobileInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { if (mobileSearchOpen) mobileInputRef.current?.focus(); }, [mobileSearchOpen]);
 
   return (
-    <div className="flex min-w-0 flex-1 items-center justify-end gap-1 md:min-w-[24rem] md:justify-start md:gap-2">
+    <div className={`flex min-w-0 flex-1 items-center justify-end gap-1 md:justify-start md:gap-2 ${compactDesktop ? "md:min-w-0" : "md:min-w-[24rem]"}`}>
       <button type="button" aria-label="搜尋台本" aria-expanded={mobileSearchOpen} aria-controls="gallery-mobile-search" onClick={() => setMobileSearchOpen((open) => !open)} className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border md:hidden ${mobileSearchOpen || value ? "border-primary/50 text-primary" : "border-border/60 text-muted-foreground"}`}>
         <Search className="h-4 w-4" aria-hidden />
       </button>

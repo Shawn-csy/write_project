@@ -16,9 +16,10 @@ interface GallerySegmentBarProps {
   onSegmentChange: (v: string) => void;
   demoOnly?: boolean;
   onDemoOnlyChange?: (enabled: boolean) => void;
+  compactDesktop?: boolean;
 }
 
-export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, onDemoOnlyChange }: GallerySegmentBarProps) {
+export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, onDemoOnlyChange, compactDesktop = false }: GallerySegmentBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
@@ -63,7 +64,15 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
         {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-9 shrink-0 rounded-lg border px-2 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
       </div>
 
-      <div className="hidden overflow-x-auto scrollbar-none editorial-border-b md:block">
+      {compactDesktop && <div className="hidden items-center gap-2 md:flex">
+        <label className="sr-only" htmlFor="gallery-compact-segment-select">作品分類</label>
+        <select id="gallery-compact-segment-select" value={segment} onChange={(event) => onSegmentChange(event.target.value)} className="h-9 w-28 rounded-lg border border-border/60 bg-background px-2 text-[0.8125rem] font-medium text-foreground">
+          {SEGMENT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+        </select>
+        {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-9 shrink-0 rounded-lg border px-2 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
+      </div>}
+
+      <div className={`hidden overflow-x-auto scrollbar-none editorial-border-b ${compactDesktop ? "" : "md:block"}`}>
         <div ref={containerRef} className="relative flex items-end gap-0.5 min-w-max px-0.5 pb-0">
           {SEGMENT_OPTIONS.map((opt) => {
             const active = segment === opt.value;

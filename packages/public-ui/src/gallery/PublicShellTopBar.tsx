@@ -104,7 +104,7 @@ function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShe
 
 function MobileTabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
-    "relative flex items-center justify-center h-11 px-4 text-[0.8125rem] whitespace-nowrap transition-all duration-150",
+    "relative flex h-9 items-center justify-center px-3.5 text-[0.8125rem] whitespace-nowrap transition-all duration-150",
     isActive && activeTabStyle === "pill"
       ? "rounded-md bg-primary text-primary-foreground font-medium"
       : isActive && activeTabStyle === "subtle"
@@ -166,7 +166,7 @@ export function PublicShellTopBar({
       style={{ borderBottom: "1px solid hsl(var(--border) / 0.6)" }}
     >
       {/* Row 1: brand + actions */}
-      <div className="relative flex h-[3.5rem] items-center px-4 sm:px-6 lg:px-8 w-full gap-2">
+      <div className="relative flex h-11 items-center px-4 sm:h-[3.5rem] sm:px-6 lg:px-8 w-full gap-2">
 
         {/* Brand — left-aligned */}
         {brandLeading}
