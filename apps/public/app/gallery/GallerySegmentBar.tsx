@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { SEGMENT_KEYS, type SegmentKey } from "@write/public-ui";
 
-const SEGMENT_OPTIONS: { value: SegmentKey; label: string }[] = [
+export const SEGMENT_OPTIONS: { value: SegmentKey; label: string }[] = [
   { value: SEGMENT_KEYS.all, label: "全部" },
   { value: SEGMENT_KEYS.allAges, label: "全年齡向" },
   { value: SEGMENT_KEYS.adult, label: "成人向" },

@@ -5,7 +5,7 @@ import { FilePlus2, List, MoreHorizontal, Search, SlidersHorizontal } from "luci
 import type { GalleryViewMode } from "@write/public-ui";
 import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
 import { PublicFeedbackTrigger } from "@/components/PublicFeedbackTrigger";
-import { GallerySegmentBar } from "./GallerySegmentBar";
+import { GallerySegmentBar, SEGMENT_OPTIONS } from "./GallerySegmentBar";
 import { GallerySearchField } from "./GallerySearchField";
 import { GallerySortControl, GALLERY_OVERVIEW_LABEL, GALLERY_SORT_OPTIONS, type GallerySortValue } from "./GallerySortControl";
 import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
@@ -42,6 +42,33 @@ const ICON_BUTTON_SM = ICON_BUTTON.replace("h-10 w-10", "h-9 w-9").replace("roun
 const ICON_BUTTON_MOBILE = ICON_BUTTON.replace("h-10 w-10", "h-9 w-9");
 const TEXT_BUTTON_SM = TEXT_BUTTON;
 
+function CategorySelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label="作品分類"
+      className="h-9 w-28 min-w-0 rounded-lg border border-border/60 bg-background px-2 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none"
+    >
+      {SEGMENT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  );
+}
+
+function SortSelect({ value, onChange }: { value: GallerySortValue | null; onChange: (value: GallerySortValue | null) => void }) {
+  return (
+    <select
+      value={value ?? "overview"}
+      onChange={(event) => onChange(event.target.value === "overview" ? null : event.target.value as GallerySortValue)}
+      aria-label="排序"
+      className="h-9 w-20 shrink-0 rounded-lg border border-border/60 bg-background px-2 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none"
+    >
+      <option value="overview">{GALLERY_OVERVIEW_LABEL}</option>
+      {GALLERY_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+    </select>
+  );
+}
+
 function CountBadge({ count, floating = false }: { count: number; floating?: boolean }) {
   if (count <= 0) return null;
   return (
@@ -53,13 +80,7 @@ function CountBadge({ count, floating = false }: { count: number; floating?: boo
   );
 }
 
-/**
- * Homepage gallery toolbar: quick switches (分類 / 排序 / 搜尋) live here and stay
- * reachable while scrolling; deep filters live in the sidebar or the filter sheet.
- *
- * At rest it shows every control. Once it sticks under the top bar it collapses
- * to a single row without swapping control types, so nothing jumps.
- */
+/** Homepage gallery controls, with a full browsing layout and a one-row sticky layout. */
 export function GalleryToolbar({
   segment,
   onSegmentChange,
@@ -142,123 +163,111 @@ export function GalleryToolbar({
           compact ? "border-b border-border/60 shadow-[0_10px_18px_-16px_rgba(0,0,0,0.5)]" : ""
         }`}
       >
-        {/* Mobile row A — search and actions. Dropped once stuck. */}
-        {!compact && (
-          <div className="flex items-center gap-2 pb-1 md:hidden">
-            <GallerySearchField
-              value={searchTerm}
-              onChange={onSearchChange}
-              onFocusChange={setSearchFocused}
-              className="flex-1"
-            />
-            <button type="button" onClick={onOpenFilterSheet} aria-label="開啟篩選" className={ICON_BUTTON_MOBILE}>
-              <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              <CountBadge count={filterCount} floating />
-            </button>
-            <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" title="一覽表" className={`${ICON_BUTTON_MOBILE} max-[359px]:hidden`}>
-              <List className="h-4 w-4" aria-hidden />
-            </button>
-            <PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} />
+        {compact ? (
+          <div className="flex h-12 min-w-0 items-center gap-2">
+            {sidebarCollapsed && (
+              <button type="button" onClick={onExpandSidebar} aria-label="展開篩選欄" className={`${ICON_BUTTON_SM} hidden lg:inline-flex`}>
+                <SlidersHorizontal className="h-4 w-4" aria-hidden />
+              </button>
+            )}
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
+              <div className="shrink-0 md:hidden"><CategorySelect value={segment} onChange={onSegmentChange} /></div>
+              <div className="hidden min-w-0 flex-1 md:block">
+                <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
+              </div>
+            </div>
+            <div className="xl:hidden"><SortSelect value={sort} onChange={onSortChange} /></div>
+            <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 xl:inline-flex" />
+            <div ref={actionsRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setActionsOpen((open) => !open)}
+                aria-label="更多操作"
+                aria-expanded={actionsOpen}
+                aria-controls="gallery-toolbar-actions"
+                className={`${ICON_BUTTON_SM} md:h-10 md:w-10 md:rounded-lg`}
+              >
+                <MoreHorizontal className="h-4 w-4" aria-hidden />
+                <CountBadge count={filterCount} floating />
+              </button>
+              {actionsOpen && (
+                <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border/70 bg-background p-1.5 shadow-xl">
+                  <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                    <Search className="h-4 w-4" aria-hidden />搜尋與篩選
+                  </button>
+                  <button type="button" onClick={() => { onDemoOnlyChange(!demoOnly); setActionsOpen(false); }} aria-pressed={demoOnly} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60 md:hidden">
+                    <span aria-hidden className="w-4 text-center">{demoOnly ? "✓" : ""}</span>有 Demo
+                  </button>
+                  <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                    <List className="h-4 w-4" aria-hidden />台本一覽表
+                  </button>
+                  <button type="button" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                    <FilePlus2 className="h-4 w-4" aria-hidden />投稿台本
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-
-        {/* Main row — 分類 on every breakpoint; the rest joins depending on width and stuck state. */}
-        <div className={`flex items-center gap-2 md:h-12 md:gap-3 ${compact ? "py-1.5 md:py-0" : "pb-1 md:border-b md:border-border/40 md:pb-0"}`}>
-          {sidebarCollapsed && (
-            <button type="button" onClick={onExpandSidebar} aria-label={filterCount > 0 ? `展開篩選欄，已選 ${filterCount} 個篩選` : "展開篩選欄"} className={`${TEXT_BUTTON} hidden lg:inline-flex`}>
-              <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
-              篩選
-              <CountBadge count={filterCount} />
-            </button>
-          )}
-
-          <div className="min-w-0 flex-1 md:self-end">
-            <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
-          </div>
-
-          {/* Mobile: 排序 as a native select — four options, thumb friendly, no extra row. */}
-          <label className="sr-only" htmlFor="gallery-sort-select">排序</label>
-          <select
-            id="gallery-sort-select"
-            value={sort ?? "overview"}
-            onChange={(event) => onSortChange(event.target.value === "overview" ? null : (event.target.value as GallerySortValue))}
-            className={`h-9 shrink-0 rounded-full border border-border/60 bg-background pl-3 pr-1 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none ${compact ? "xl:hidden" : "md:hidden"}`}
-          >
-            <option value="overview">{GALLERY_OVERVIEW_LABEL}</option>
-            {GALLERY_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          {/* Desktop: sort moves up into this row once stuck. */}
-          {compact && <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 xl:inline-flex" />}
-          <GallerySearchField
-            value={searchTerm}
-            onChange={onSearchChange}
-            onFocusChange={setSearchFocused}
-            className={`hidden shrink-0 ${compact ? "w-52 xl:block" : "w-64 xl:block"}`}
-          />
-          {/* Keep the secondary actions reachable in the single-row sticky state. */}
-          {compact && <div ref={actionsRef} className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setActionsOpen((open) => !open)}
-              aria-label="更多操作"
-              aria-expanded={actionsOpen}
-              aria-controls="gallery-toolbar-actions"
-              className={`${ICON_BUTTON_SM} md:h-10 md:w-10 md:rounded-lg`}
-            >
-              <MoreHorizontal className="h-4 w-4" aria-hidden />
-              <CountBadge count={filterCount} floating />
-            </button>
-            {actionsOpen && <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border/70 bg-background p-1.5 shadow-xl">
-              <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
-                <Search className="h-4 w-4" aria-hidden />搜尋與篩選
-              </button>
-              <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
-                <List className="h-4 w-4" aria-hidden />台本一覽表
-              </button>
-              <button type="button" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
-                <FilePlus2 className="h-4 w-4" aria-hidden />投稿台本
-              </button>
-            </div>}
-          </div>}
-          {/* Filter sheet stays available at tablet widths before the bar sticks. */}
-          {!compact && <button
-            type="button"
-            onClick={onOpenFilterSheet}
-            aria-label="搜尋與篩選"
-            className={`${TEXT_BUTTON} hidden md:inline-flex lg:hidden`}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />篩選
-            <CountBadge count={filterCount} />
-          </button>}
-          {!compact && <div className="hidden shrink-0 md:block lg:[&_button]:w-10 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline"><PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} /></div>}
-        </div>
-
-        {/* Desktop row 2 — how to browse. Dropped once stuck. */}
-        {!compact && (
-          <div className="hidden items-center justify-between gap-3 py-1.5 md:flex">
-            <div className="flex min-w-0 items-center gap-3">
-              <GallerySortControl value={sort} onChange={onSortChange} showOverview />
-              <span className="truncate [font-size:var(--public-font-meta)] text-muted-foreground" aria-live="polite">
-                共 {resultCount.toLocaleString()} 部
-              </span>
+        ) : (
+          <>
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b border-border/40 pb-1.5 md:gap-x-3 md:gap-y-1 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
               <GallerySearchField
                 value={searchTerm}
                 onChange={onSearchChange}
                 onFocusChange={setSearchFocused}
-                className="hidden shrink-0 md:block md:w-48 lg:w-44 xl:hidden"
+                className="col-start-1 row-start-1 md:hidden xl:col-start-2 xl:row-start-1 xl:block"
               />
+              <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 md:row-start-1">
+                {sidebarCollapsed && (
+                  <button type="button" onClick={onExpandSidebar} aria-label="展開篩選欄" className={`${ICON_BUTTON} hidden lg:inline-flex`}>
+                    <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                  </button>
+                )}
+                <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                  <div className="shrink-0 md:hidden"><CategorySelect value={segment} onChange={onSegmentChange} /></div>
+                  <button type="button" onClick={() => onDemoOnlyChange(!demoOnly)} aria-pressed={demoOnly} className={`h-9 shrink-0 rounded-lg border px-2 [font-size:var(--public-font-meta)] font-medium md:hidden ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>
+                    有 Demo
+                  </button>
+                  <div className="hidden min-w-0 flex-1 md:block">
+                    <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
+                  </div>
+                </div>
+              </div>
+              <div className="col-start-2 row-start-1 flex shrink-0 items-center gap-2 xl:col-start-3">
+                <button type="button" onClick={onOpenFilterSheet} aria-label="開啟篩選" className={`${ICON_BUTTON_MOBILE} lg:hidden`}>
+                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
+                  <CountBadge count={filterCount} floating />
+                </button>
+                <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={`${ICON_BUTTON_MOBILE} hidden min-[360px]:inline-flex md:hidden`}>
+                  <List className="h-4 w-4" aria-hidden />
+                </button>
+                <div className="[&_button]:h-9 lg:[&_button]:w-10 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline">
+                  <PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} />
+                </div>
+              </div>
+              <div className="col-start-2 row-start-2 md:hidden"><SortSelect value={sort} onChange={onSortChange} /></div>
+              <div className="col-span-2 col-start-1 row-start-2 hidden min-w-0 items-center gap-3 md:flex xl:col-span-3">
+                <GallerySearchField
+                  value={searchTerm}
+                  onChange={onSearchChange}
+                  onFocusChange={setSearchFocused}
+                  className="min-w-0 flex-1 xl:hidden"
+                />
+                <div className="flex shrink-0 items-center gap-3">
+                  <GallerySortControl value={sort} onChange={onSortChange} showOverview />
+                  <span className="whitespace-nowrap [font-size:var(--public-font-meta)] text-muted-foreground" aria-live="polite">共 {resultCount.toLocaleString()} 部</span>
+                </div>
+                <div className="ml-auto flex shrink-0 items-center gap-2">
+                  <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={TEXT_BUTTON_SM}>
+                    <List className="h-3.5 w-3.5" aria-hidden />一覽表
+                  </button>
+                  <GalleryViewModeToggle value={viewMode} onChange={onViewModeChange} compact />
+                </div>
+              </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={TEXT_BUTTON_SM}>
-                <List className="h-3.5 w-3.5" aria-hidden />
-                一覽表
-              </button>
-              <GalleryViewModeToggle value={viewMode} onChange={onViewModeChange} compact />
-            </div>
-          </div>
+            <GalleryFilterSummary chips={chips} onRemove={onRemoveChip} onClear={onClearFilters} />
+          </>
         )}
-
-        {!compact && <GalleryFilterSummary chips={chips} onRemove={onRemoveChip} onClear={onClearFilters} />}
       </div>
       <LazyPublicFeedbackDialog mode="listing" hideTrigger open={submitOpen} onOpenChange={setSubmitOpen} />
     </>
