@@ -180,9 +180,9 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         <main className="flex-1 min-w-0">
           {/* Segment + controls bar — scripts view only */}
           {view === "scripts" && (
-            <div className="sticky top-[100px] z-30 -mx-4 sm:top-14 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
+            <div className="relative sticky top-[100px] z-30 -mx-4 mb-4 bg-background/97 px-4 backdrop-blur-md sm:-mx-5 sm:top-14 sm:px-5 lg:mx-0 lg:px-0">
               {/* Segment tabs row — with expand button inlined when collapsed */}
-              <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-end">
+              <div className="flex items-center gap-1 md:flex-col md:items-stretch md:gap-2">
                 {sidebarCollapsed && (
                   <div className="hidden lg:flex items-center gap-1 shrink-0 pb-0.5">
                     <button
@@ -206,9 +206,10 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                     )}
                   </div>
                 )}
-                <div className="w-full min-w-0 lg:flex-1">
+                <div className="min-w-0 shrink-0 md:w-full">
                   <GallerySegmentBar segment={segment} onSegmentChange={setSegment} demoOnly={demoOnly} onDemoOnlyChange={setDemoOnly} />
                 </div>
+                <div className="min-w-0 flex-1 md:flex md:w-full md:flex-wrap md:items-center md:justify-between md:gap-3">
                 <GallerySearchField
                   value={filterPanelProps.searchTerm}
                   onChange={filterPanelProps.onSearchChange}
@@ -219,7 +220,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                     <button
                       type="button"
                       onClick={() => setShowList(true)}
-                      className="inline-flex h-10 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+                      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-transparent text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                       aria-label="開啟台本一覽表"
                       title="一覽表"
                     >
@@ -227,6 +228,20 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                     </button>
                   }
                 />
+                <div className="relative z-50 ml-auto hidden shrink-0 items-center gap-2 md:flex">
+                  <GallerySortControl value={allScriptsSort} onChange={setAllScriptsSort} />
+                  <button
+                    type="button"
+                    onClick={() => setShowList(true)}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border/50 bg-transparent px-3 [font-size:var(--public-font-meta)] font-medium text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                    aria-label="開啟台本一覽表"
+                  >
+                    <List className="h-3.5 w-3.5" />
+                    一覽表
+                  </button>
+                  <GalleryViewModeToggle value={viewMode} onChange={setViewMode} compact />
+                </div>
+                </div>
               </div>
 
               <GalleryFilterSummary
@@ -234,21 +249,6 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                 onRemove={removeFilter}
                 onClear={filterPanelProps.onResetFilters}
               />
-
-              {/* ViewMode + list row — desktop only */}
-              <div className="relative z-50 hidden md:flex items-center justify-end gap-3 py-2.5 pointer-events-auto">
-                <GallerySortControl value={allScriptsSort} onChange={setAllScriptsSort} />
-                <button
-                  type="button"
-                  onClick={() => setShowList(true)}
-                  className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg [font-size:var(--public-font-meta)] font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
-                  aria-label="開啟台本一覽表"
-                >
-                  <List className="w-3.5 h-3.5" />
-                  一覽表
-                </button>
-                <GalleryViewModeToggle value={viewMode} onChange={setViewMode} compact />
-              </div>
 
             </div>
           )}

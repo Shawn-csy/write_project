@@ -56,11 +56,11 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
           id="gallery-segment-select"
           value={segment}
           onChange={(event) => onSegmentChange(event.target.value)}
-          className="h-10 w-[5.5rem] rounded-lg border border-border/60 bg-background/70 px-2.5 text-[0.8125rem] font-medium text-foreground focus:outline-none focus:border-primary/50"
+          className="h-9 w-[4.5rem] rounded-lg border border-border/60 bg-background/70 px-2 text-[0.8125rem] font-medium text-foreground focus:outline-none focus:border-primary/50 min-[360px]:w-[5.5rem]"
         >
           {SEGMENT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
         </select>
-        {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-10 rounded-lg border px-3 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
+        {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-9 shrink-0 rounded-lg border px-2 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
       </div>
 
       <div className="hidden overflow-x-auto scrollbar-none editorial-border-b md:block">

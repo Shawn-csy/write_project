@@ -167,7 +167,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
         {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className={`h-8 shrink-0 rounded-md border px-2.5 [font-size:var(--public-font-caption)] font-medium transition-colors ${category === item.key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"}`}>{item.label}</button>)}
       </nav>
       {visibleCount === 0 ? <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-14 text-center text-sm text-muted-foreground">{needle ? "找不到符合的資源。" : "這個類別正在收錄中。"}</div> :
-        <div className="grid gap-2 sm:grid-cols-2 sm:gap-2.5 lg:grid-cols-3">
+        <div className="grid gap-2 min-[480px]:grid-cols-2 sm:gap-2.5 lg:grid-cols-3">
           {category === "voice_actor" ? actors.map((persona) => <article key={persona.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)]">
             <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="flex min-w-0 items-center gap-2.5 p-2.5 sm:gap-3 sm:p-3">
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full sm:h-12 sm:w-12"><PublicAvatarImage src={persona.avatar} name={persona.displayName} sizes="48px" fallbackClassName={publicAvatarColor(persona.displayName)} /></div>

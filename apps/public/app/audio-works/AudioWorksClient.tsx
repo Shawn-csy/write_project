@@ -201,12 +201,12 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
         </main>
       ) : (
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-        <div className="mb-7 flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-5">
+        <div className="mb-5 flex flex-col gap-3 border-b border-border/70 pb-4 sm:mb-7 sm:flex-row sm:items-center sm:justify-between sm:pb-5">
           <div className="flex min-w-0 items-center gap-3">
             {selected && <button type="button" onClick={() => select(null)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-muted" aria-label="返回音聲作品總覽"><ArrowLeft className="h-4 w-4" /></button>}
             <h1 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">{selected?.org.name || "音聲作品"}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <AudioWorkSubmissionDialog organizations={organizations} />
             <AudioWorkAdApplicationDialog />
           </div>
@@ -258,8 +258,7 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
         ) : (
           <div className="space-y-8">
             <section aria-label="音聲作品組織">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div><p className="text-sm font-semibold">探索社團</p><p className="mt-1 text-xs text-muted-foreground">{groups.grouped.length} 間社團 · {works.length} 件作品 · 社團順序隨機呈現</p></div>
+              <div className="mb-5">
                 <label className="relative block w-full sm:w-64">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
                   <input type="search" value={studioQuery} onChange={(event) => setStudioQuery(event.target.value)} placeholder="搜尋社團" aria-label="搜尋社團" className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground" />
