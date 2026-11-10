@@ -176,6 +176,8 @@ bash scripts/migrate-prod-schema.sh --apply
 
 0.7.4 的新增資源結構再增加 9 張資料表。2026-11-10 17:38 以同一流程完成正式遷移，遷移前備份為 `/Users/shanti/write_project_backups/write_project_20261110_173802.sql.gz`，`--verify` 再次顯示零個缺口。17:44 先備份 38 張表至 `/Users/shanti/write_project_backups/write_project_20261110_174440.sql.gz`，再把 Dev 的已核准公開目錄固定為單一快照，在正式資料複本排練後用 `scripts/import-prod-public-catalog.py` 匯入正式庫。快照 SHA256 為 `bd56c7acd7fda29860378f95686e232e86a4225d7ae26cb580496379da64e6d1`。匯入後有 227 筆核准音聲作品、8 筆編輯資源、100 筆資源作品關聯及 835 筆音聲製作署名；新版 API 以唯讀連線回應 readiness／bundle 200，公開資料包含 53 筆資源。現行正式入口未切換。
 
+切至 0.7.4 後發現第一輪匯入未包含 Demo 與外部作者公開資料。17:56 先備份至 `/Users/shanti/write_project_backups/write_project_20261110_175610.sql.gz`，再用 SHA256 `1e2f94a81418ea04ee91708e5454dd6e9a347fd06e35a9ee4e6f92d306482a61` 的補充快照於正式複本排練並匯入：2 筆已核准 Demo、2 筆外部作者資料頁及 20 篇外部台本的 Demo 連結。完成後重新驗證新版公開資料包：Dev 與正式站都顯示 2 筆 Demo、19 篇公開外部台本含 Demo 連結；正式站原有的 15 篇額外外部台本保留。Dev 的私人測試台本、拒絕投稿與測試橫幅沒有匯入。已通知 Next.js 清除 `/demos`、`/authors`、`/resources` 與 sitemap 快取。
+
 ### 同正式資料的唯讀候選站
 
 ```bash

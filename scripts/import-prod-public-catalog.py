@@ -20,7 +20,9 @@ TABLES = (
     ("organizations", "TRUE"),
     ("personas", "TRUE"),
     ("persona_roles", "TRUE"),
+    ("external_author_page_profiles", "\"isHidden\" = false"),
     ("public_audio_work_submissions", "status = 'approved'"),
+    ("public_demo_submissions", "status = 'approved'"),
     ("production_resources", "status = 'published'"),
     ("audio_work_credits", "TRUE"),
     ("production_resource_credits", "TRUE"),
@@ -42,8 +44,19 @@ def query(container, user, database, sql):
 def export(path):
     payload = {}
     for table, condition in TABLES:
-        sql = f"SELECT row_to_json(t) FROM (SELECT * FROM {table} WHERE {condition} ORDER BY id) t"
+        key = "\"authorKey\"" if table == "external_author_page_profiles" else "id"
+        sql = f"SELECT row_to_json(t) FROM (SELECT * FROM {table} WHERE {condition} ORDER BY {key}) t"
         payload[table] = [json.loads(line) for line in query(*DEV, sql)]
+    payload["external_script_demo_links"] = [
+        {"id": row["id"], "demoLinks": row["demoLinks"]}
+        for row in (
+            json.loads(line) for line in query(
+                *DEV,
+                'SELECT row_to_json(t) FROM (SELECT id, "demoLinks" FROM external_public_scripts '
+                'WHERE "demoLinks" IS NOT NULL AND "demoLinks" <> \'\' ORDER BY id) t',
+            )
+        )
+    ]
     audio = {row["id"] for row in payload["public_audio_work_submissions"]}
     resources = {row["id"] for row in payload["production_resources"]}
     orgs = {row["id"] for row in payload["organizations"]}
@@ -53,17 +66,19 @@ def export(path):
     assert all(row["audioWorkId"] in audio for table in ("audio_work_credits", "production_resource_credits") for row in payload[table])
     assert all(row["resourceId"] in resources for row in payload["production_resource_credits"])
     assert all(row["personaId"] in personas for row in payload["persona_roles"])
+    assert all(not row["linkedPersonaId"] or row["linkedPersonaId"] in personas for row in payload["external_author_page_profiles"])
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
     with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as handle:
         handle.write(data)
     print(f"Snapshot SHA256 {hashlib.sha256(data).hexdigest()}")
     print("Source rows:", ", ".join(f"{table}={len(payload[table])}" for table, _ in TABLES))
+    print("External script Demo links:", len(payload["external_script_demo_links"]))
 
 
 def apply(path, target, user, database, commit):
     data = path.read_bytes()
     payload = json.loads(data)
-    if set(payload) != {table for table, _ in TABLES}:
+    if set(payload) != {table for table, _ in TABLES} | {"external_script_demo_links"}:
         raise SystemExit("Snapshot table set differs from the importer")
     if target == PROD[0] and commit and os.environ.get("CONFIRM_PROD_CATALOG_IMPORT") != "1":
         raise SystemExit("Set CONFIRM_PROD_CATALOG_IMPORT=1 after rehearsal and backup")
@@ -80,6 +95,16 @@ def apply(path, target, user, database, commit):
             f"INSERT INTO {table} SELECT * FROM jsonb_populate_recordset(NULL::{table}, "
             f"${tag}${encoded}${tag}$::jsonb) ON CONFLICT DO NOTHING;"
         )
+    links = payload["external_script_demo_links"]
+    if links:
+        encoded = json.dumps(links, ensure_ascii=False, separators=(",", ":"))
+        if f"${tag}$" in encoded:
+            raise SystemExit("Snapshot contains SQL delimiter")
+        sql.append(
+            'UPDATE external_public_scripts AS target SET "demoLinks" = source."demoLinks" '
+            f'FROM jsonb_to_recordset(${tag}${encoded}${tag}$::jsonb) AS source(id text, "demoLinks" text) '
+            'WHERE target.id = source.id AND (target."demoLinks" IS NULL OR target."demoLinks" = \'\');'
+        )
     sql.append("COMMIT;" if commit else "ROLLBACK;")
     result = subprocess.run(
         ["docker", "exec", "-i", target, "psql", "-X", "-v", "ON_ERROR_STOP=1", "-U", user, "-d", database],
@@ -95,12 +120,21 @@ def apply(path, target, user, database, commit):
             if table == "persona_roles":
                 source_keys = {(row["personaId"], row["role"]) for row in payload[table]}
                 target_keys = {tuple(line.split("|", 1)) for line in query(target, user, database, 'SELECT "personaId", role FROM persona_roles')}
+            elif table == "external_author_page_profiles":
+                source_keys = {row["authorKey"] for row in payload[table]}
+                target_keys = set(query(target, user, database, 'SELECT "authorKey" FROM external_author_page_profiles'))
             else:
                 source_keys = {row["id"] for row in payload[table]}
                 target_keys = set(query(target, user, database, f"SELECT id FROM {table}"))
             missing = source_keys - target_keys
             if missing:
                 raise SystemExit(f"Missing {len(missing)} rows after import in {table}")
+        actual_links = {
+            json.loads(line)["id"]: json.loads(line)["demoLinks"]
+            for line in query(target, user, database, 'SELECT row_to_json(t) FROM (SELECT id, "demoLinks" FROM external_public_scripts) t')
+        }
+        if any(actual_links.get(row["id"]) != row["demoLinks"] for row in links):
+            raise SystemExit("External script Demo links differ after import")
         print("Verified all source IDs in the target database")
 
 
