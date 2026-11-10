@@ -21,7 +21,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CONTROL_ROOT = ROOT / "releases" / ".site-release"
 NETWORK = "write_project_default"
-ROUTES = ("/healthz", "/api/health/ready", "/api/public-bundle", "/", "/authors", "/audio-works", "/voice-actors", "/activities", "/login")
+ROUTES = ("/healthz", "/api/health/ready", "/api/public-bundle", "/", "/authors", "/audio-works", "/voice-actors", "/activities", "/demos", "/resources", "/help", "/license", "/login")
 ORIGIN = "http://127.0.0.1:1090"
 
 
