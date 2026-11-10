@@ -16,10 +16,14 @@ interface GallerySegmentBarProps {
   onSegmentChange: (v: string) => void;
   demoOnly?: boolean;
   onDemoOnlyChange?: (enabled: boolean) => void;
-  compactDesktop?: boolean;
 }
 
-export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, onDemoOnlyChange, compactDesktop = false }: GallerySegmentBarProps) {
+/**
+ * One set of segment buttons for every breakpoint: scrollable pills on mobile,
+ * underlined tabs from `md` up. Keeping a single DOM set avoids swapping to a
+ * native select when the toolbar sticks.
+ */
+export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, onDemoOnlyChange }: GallerySegmentBarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [indicator, setIndicator] = useState<{ left: number; width: number } | null>(null);
@@ -49,64 +53,63 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
     return () => ro.disconnect();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep the active pill in view when the strip scrolls horizontally (mobile).
+  useEffect(() => {
+    buttonRefs.current[segment]?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [segment]);
+
   return (
-    <>
-      <div className="flex items-center gap-2 md:hidden">
-        <label className="sr-only" htmlFor="gallery-segment-select">作品分類</label>
-        <select
-          id="gallery-segment-select"
-          value={segment}
-          onChange={(event) => onSegmentChange(event.target.value)}
-          className="h-9 w-[4.5rem] rounded-lg border border-border/60 bg-background/70 px-2 text-[0.8125rem] font-medium text-foreground focus:outline-none focus:border-primary/50 min-[360px]:w-[5.5rem]"
-        >
-          {SEGMENT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-        </select>
-        {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-9 shrink-0 rounded-lg border px-2 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
+    <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="作品分類">
+      <div ref={containerRef} className="relative flex min-w-max items-center gap-1.5 md:items-end md:gap-0.5">
+        {SEGMENT_OPTIONS.map((opt) => {
+          const active = segment === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              aria-pressed={active}
+              ref={(el) => { buttonRefs.current[opt.value] = el; }}
+              onClick={() => onSegmentChange(opt.value)}
+              className={`h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 [font-size:var(--public-font-meta)] transition-colors duration-150 md:h-10 md:rounded-none md:rounded-t-md md:border-transparent ${
+                active
+                  ? "border-foreground bg-foreground font-semibold text-background md:bg-muted/50 md:text-foreground"
+                  : "border-border/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+        {onDemoOnlyChange && (
+          <>
+            <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border md:mb-3" />
+            <button
+              type="button"
+              aria-pressed={demoOnly}
+              onClick={() => onDemoOnlyChange(!demoOnly)}
+              className={`h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 [font-size:var(--public-font-meta)] font-medium transition-colors duration-150 md:mb-1 md:h-8 md:rounded-md md:px-3 ${
+                demoOnly
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              有 Demo
+            </button>
+          </>
+        )}
+        {/* Sliding indicator — tabs layout only */}
+        {ready && indicator && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-0 hidden rounded-t-[2px] editorial-indicator md:block"
+            style={{
+              left: indicator.left,
+              width: indicator.width,
+              transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
+            }}
+          />
+        )}
       </div>
-
-      {compactDesktop && <div className="hidden items-center gap-2 md:flex">
-        <label className="sr-only" htmlFor="gallery-compact-segment-select">作品分類</label>
-        <select id="gallery-compact-segment-select" value={segment} onChange={(event) => onSegmentChange(event.target.value)} className="h-9 w-28 rounded-lg border border-border/60 bg-background px-2 text-[0.8125rem] font-medium text-foreground">
-          {SEGMENT_OPTIONS.map((opt) => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-        </select>
-        {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`h-9 shrink-0 rounded-lg border px-2 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>有 Demo</button>}
-      </div>}
-
-      <div className={`hidden overflow-x-auto scrollbar-none editorial-border-b ${compactDesktop ? "" : "md:block"}`}>
-        <div ref={containerRef} className="relative flex items-end gap-0.5 min-w-max px-0.5 pb-0">
-          {SEGMENT_OPTIONS.map((opt) => {
-            const active = segment === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                ref={(el) => { buttonRefs.current[opt.value] = el; }}
-                onClick={() => onSegmentChange(opt.value)}
-                className={`relative h-10 shrink-0 px-3.5 text-[0.8125rem] rounded-t-md transition-colors duration-150 whitespace-nowrap ${
-                  active
-                    ? "text-foreground font-semibold bg-muted/50"
-                    : "text-muted-foreground hover:text-foreground font-normal"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-          {onDemoOnlyChange && <button type="button" aria-pressed={demoOnly} onClick={() => onDemoOnlyChange(!demoOnly)} className={`ml-2 h-9 shrink-0 rounded-md border px-3 text-[0.8125rem] font-medium ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/50 text-muted-foreground hover:text-foreground"}`}>有 Demo</button>}
-          {/* Sliding indicator */}
-          {ready && indicator && (
-            <span
-              aria-hidden
-              className="absolute bottom-0 rounded-t-[2px] pointer-events-none editorial-indicator"
-              style={{
-                left: indicator.left,
-                width: indicator.width,
-                transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
-              }}
-            />
-          )}
-        </div>
-      </div>
-    </>
+    </div>
   );
 }

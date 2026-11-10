@@ -6,7 +6,7 @@ import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
 interface GalleryViewModeToggleProps {
   value: GalleryViewMode;
   onChange: (mode: GalleryViewMode) => void;
-  /** compact=true → h-7 for inline toolbar use; false (default) → min-h-[44px] for mobile sheet */
+  /** compact=true → 40px toolbar group; false (default) → 44px touch targets in the filter sheet */
   compact?: boolean;
 }
 
@@ -33,10 +33,10 @@ function ModeButton({
       type="button"
       onClick={() => onChange(mode.value)}
       aria-pressed={active}
-      className={`rounded-md font-medium transition-all duration-150 ${
+      className={`rounded-md [font-size:var(--public-font-meta)] font-medium transition-all duration-150 ${
         compact
-          ? "h-7 px-2.5 text-[0.7rem]"
-          : "min-h-[44px] px-3.5 text-[0.75rem]"
+          ? "h-8 px-2.5"
+          : "min-h-[44px] px-3.5"
       } ${
         active
           ? "bg-background text-foreground shadow-sm"
@@ -52,12 +52,12 @@ function ModeButton({
 export function GalleryViewModeToggle({ value, onChange, compact = false }: GalleryViewModeToggleProps) {
   return (
     <div
-      className="flex gap-0.5 p-0.5 rounded-lg"
+      className={`flex gap-0.5 rounded-lg ${compact ? "h-10 items-center p-0.5" : "p-0.5"}`}
       role="group"
       aria-label="顯示模式"
       data-testid="gallery-view-mode-toggle"
       style={{
-        background: "hsl(var(--muted))",
+        background: "hsl(var(--muted) / 0.4)",
         border: "1px solid hsl(var(--border) / 0.5)",
       }}
     >
