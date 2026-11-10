@@ -7,6 +7,7 @@ import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicTopBar } from "@/components/PublicTopBar";
+import { ResourceAgeGate, useResourceAgeGate } from "@/components/ResourceAgeGate";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { publicAvatarColor } from "@/components/publicAvatarColor";
 import type { PublicPersona } from "@/lib/types";
@@ -63,6 +64,7 @@ export interface ProductionResource {
   avatarUrl?: string;
   bio?: string;
   links?: Array<{ label: string; url: string }>;
+  contributors?: Array<{ name: string; contributedAt?: number }>;
   works: Array<{
     id: string;
     title: string;
@@ -106,7 +108,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
   const [resources, setResources] = useState(initialResources);
   const [category, setCategory] = useState<Category>("voice_actor");
   const [query, setQuery] = useState("");
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const { confirmed: ageConfirmed, confirm: confirmAge } = useResourceAgeGate();
 
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("category");
@@ -136,7 +138,6 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
       || b.works.filter((work) => work.creditRole === category).length - a.works.filter((work) => work.creditRole === category).length
       || a.name.localeCompare(b.name, "zh-Hant")), [resources, category, needle]);
   const visibleCount = category === "voice_actor" ? actors.length : listings.length;
-  const hasCreditedWorks = category !== "voice_actor" && listings.some((item) => item.works?.some((work) => work.creditRole === category));
 
   function selectCategory(next: Category) {
     setCategory(next);
@@ -155,13 +156,10 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 w-full rounded-lg border border-border/60 bg-background/70 pl-9 pr-3 [font-size:var(--public-font-meta)] outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:h-10" placeholder="搜尋資源" aria-label="搜尋資源" />
         </label>
       } />
+      {!ageConfirmed && <ResourceAgeGate onConfirm={confirmAge} />}
       <nav aria-label="資源類別" className="mb-5 flex flex-wrap gap-1.5">
         {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className={`h-6 rounded-md border px-2.5 [font-size:var(--public-font-caption)] font-medium transition-colors ${category === item.key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"}`}>{item.label}</button>)}
       </nav>
-      {hasCreditedWorks && !ageConfirmed && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card px-4 py-3">
-        <p className="[font-size:var(--public-font-meta)] text-muted-foreground">參與作品可能包含成人向封面與內容。</p>
-        <button type="button" onClick={() => setAgeConfirmed(true)} className="min-h-9 rounded-lg bg-primary px-3 [font-size:var(--public-font-meta)] font-semibold text-primary-foreground hover:bg-primary/90">我已年滿 18 歲，顯示作品</button>
-      </div>}
       {visibleCount === 0 ? <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-14 text-center text-sm text-muted-foreground">{needle ? "找不到符合的資源。" : "這個類別正在收錄中。"}</div> :
         <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {category === "voice_actor" ? actors.map((persona) => <article key={persona.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)]">

@@ -16,7 +16,7 @@ from rate_limit import limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio, health
-from routers import public_bundle, export, external_public_scripts, mcp_demos
+from routers import public_bundle, export, external_public_scripts, mcp_demos, resource_profiles
 from services.route_contract import (
     is_legacy_public_html_path,
     is_workspace_spa_path,
@@ -147,6 +147,7 @@ def create_app() -> FastAPI:
             ("POST", "/api/public-audio-work-submissions"): 16 * 1024,
             ("POST", "/api/external-author-profile-submissions"): 128 * 1024,
             ("POST", "/api/voice-actor-profile-submissions"): 128 * 1024,
+            ("POST", "/api/production-resource-profile-submissions"): 128 * 1024,
             ("POST", "/api/voice-actor-claims"): 8 * 1024,
             ("POST", "/api/my-demo-submissions"): 32 * 1024,
             ("POST", "/api/scripts"): 12 * 1024 * 1024,
@@ -204,6 +205,8 @@ def create_app() -> FastAPI:
     app.include_router(mcp_demos.router)
     app.include_router(public.router)
     app.include_router(public_bundle.router)
+    app.include_router(resource_profiles.router)
+    app.include_router(resource_profiles.admin_router)
     app.include_router(seo.router)
     app.include_router(media.router)
     app.include_router(series.router)

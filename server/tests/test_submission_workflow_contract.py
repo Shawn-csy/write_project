@@ -9,8 +9,9 @@ from dataclasses import dataclass
 import pytest
 
 from main import app
-from models import ExternalAuthor, ExternalPublicScript, Organization, Persona, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, ProductionResource, ProductionResourceCredit, ProductionResourceProfileOverride, PublicAudioWorkSubmission, User
 from routers import public as public_router
+from routers import public_bundle as public_bundle_router
 from routers import external_public_scripts as external_router
 from dependencies import get_current_user_claims
 
@@ -31,6 +32,7 @@ WORKFLOWS = (
     Workflow("音聲作品投稿", "/api/public-audio-work-submissions", "/api/admin/public-audio-work-submissions/{submission_id}/status"),
     Workflow("外部作者資料投稿", "/api/external-author-profile-submissions", "/api/admin/external-author-profile-submissions/{submission_id}/status"),
     Workflow("聲演資料投稿", "/api/voice-actor-profile-submissions", "/api/admin/voice-actor-profile-submissions/{submission_id}/status"),
+    Workflow("資源資料投稿", "/api/production-resource-profile-submissions", "/api/admin/production-resource-profile-submissions/{submission_id}/status"),
     Workflow("聲演身份認領", "/api/voice-actor-claims", "/api/admin/voice-actor-claims/{claim_id}/status"),
 )
 
@@ -41,6 +43,7 @@ LIFECYCLE_TESTS = {
     "/api/public-audio-work-submissions": "test_audio_work_submission_is_private_until_approved",
     "/api/external-author-profile-submissions": "test_external_author_profile_review_applies_only_accepted_fields",
     "/api/voice-actor-profile-submissions": "test_voice_actor_profile_review_applies_only_accepted_fields",
+    "/api/production-resource-profile-submissions": "test_resource_profile_review_applies_only_accepted_fields",
     "/api/voice-actor-claims": "test_voice_actor_claim_requires_verified_google_and_cannot_overwrite_owner",
 }
 
@@ -292,6 +295,68 @@ def test_voice_actor_profile_review_applies_only_accepted_fields(client, db_sess
     assert client.patch(f"/api/admin/voice-actor-profile-submissions/{item_id}/status", json={
         "status": "rejected",
     }, headers={"X-User-ID": "admin-owner"}).status_code == 409
+
+
+def test_resource_profile_review_applies_only_accepted_fields(client, db_session):
+    resource = ProductionResource(
+        id="studio-resource", name="原工作室", categories=["recording_studio"],
+        summary="原介紹", websiteUrl="https://example.com/studio", sourceUrl="https://example.com/studio",
+        status="published", reviewedAt=1,
+    )
+    first = PublicAudioWorkSubmission(id="first-resource-work", title="原作品", url="https://example.com/first", status="approved")
+    second = PublicAudioWorkSubmission(id="second-resource-work", title="新作品", url="https://example.com/second", status="approved")
+    db_session.add_all([resource, first, second])
+    db_session.flush()
+    db_session.add(ProductionResourceCredit(resourceId=resource.id, audioWorkId=first.id, creditRole="recording_studio", creditedAs=resource.name))
+    db_session.commit()
+    payload = {
+        "resourceId": resource.id, "displayName": "新工作室", "bio": "新介紹",
+        "links": [{"label": "X", "url": "https://x.com/studio"}],
+        "works": [{"title": "新作品", "url": second.url, "creditRole": "recording_studio"}],
+        "submitterName": "協作者", "contactEmail": "studio@example.com", "contributorName": "協作者",
+    }
+    created = client.post("/api/production-resource-profile-submissions", json=payload)
+    assert created.status_code == 200, created.text
+    submission_id = created.json()["submissionId"]
+    assert client.post("/api/production-resource-profile-submissions", json=payload).status_code == 409
+    before = client.get("/api/public-bundle?sections=productionResources").json()["productionResources"][0]
+    assert before["name"] == "原工作室"
+    approved = client.patch(f"/api/admin/production-resource-profile-submissions/{submission_id}/status", json={
+        "status": "approved", "acceptedFields": ["bio", "links", "works", "contributorName"],
+    }, headers={"X-User-ID": "admin-owner"})
+    assert approved.status_code == 200, approved.text
+    after = next(item for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"] if item["id"] == resource.id)
+    assert after["name"] == "原工作室"
+    assert after["bio"] == "新介紹"
+    assert after["links"] == [{"label": "X", "url": "https://x.com/studio"}]
+    assert {work["id"] for work in after["works"]} == {first.id, second.id}
+    assert after["contributors"][0]["name"] == "協作者"
+    assert db_session.query(ProductionResourceProfileOverride).filter_by(id=resource.id).one().profile["bio"] == "新介紹"
+
+
+def test_derived_resource_profile_and_work_can_be_reviewed(client, db_session):
+    first = PublicAudioWorkSubmission(id="derived-first", title="原作品", url="https://example.com/derived-first", status="approved")
+    second = PublicAudioWorkSubmission(id="derived-second", title="新作品", url="https://example.com/derived-second", status="approved")
+    db_session.add_all([first, second])
+    db_session.flush()
+    db_session.add(AudioWorkCredit(audioWorkId=first.id, role="cover_art", sourceRole="封面", creditedAs="插畫家甲", provenance="official_page", sourceUrl=first.url, checkedAt=1))
+    db_session.commit()
+    public_bundle_router.invalidate_public_bundle_cache()
+    before = next(item for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"] if item["name"] == "插畫家甲")
+    payload = {
+        "resourceId": before["id"], "displayName": "插畫家甲", "bio": "作品介紹",
+        "works": [{"title": "新作品", "url": second.url, "creditRole": "cover_art"}],
+        "submitterName": "協作者", "contactEmail": "artist@example.com", "contributorName": "協作者",
+    }
+    created = client.post("/api/production-resource-profile-submissions", json=payload)
+    assert created.status_code == 200, created.text
+    approved = client.patch(f"/api/admin/production-resource-profile-submissions/{created.json()['submissionId']}/status", json={
+        "status": "approved", "acceptedFields": ["bio", "works"],
+    }, headers={"X-User-ID": "admin-owner"})
+    assert approved.status_code == 200, approved.text
+    after = next(item for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"] if item["id"] == before["id"])
+    assert after["bio"] == "作品介紹"
+    assert {work["id"] for work in after["works"]} == {first.id, second.id}
 
 
 def test_voice_actor_claim_requires_verified_google_and_cannot_overwrite_owner(client, db_session):

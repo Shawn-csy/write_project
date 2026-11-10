@@ -350,6 +350,18 @@ def _build_bundle_sections(db: Session, requested: frozenset[str]) -> dict:
                 resource_by_id[link.resourceId]["links"].append({
                     "label": link.label, "url": link.url,
                 })
+            overrides = db.query(models.ProductionResourceProfileOverride).filter(
+                models.ProductionResourceProfileOverride.id.in_(resource_by_id)
+            ).all()
+            for override in overrides:
+                resource = resource_by_id[override.id]
+                profile = override.profile if isinstance(override.profile, dict) else {}
+                for field in ("bio", "avatarUrl", "profileUrl", "profileLabel", "links"):
+                    if field in profile:
+                        resource[field] = profile[field]
+                if profile.get("displayName"):
+                    resource["name"] = profile["displayName"]
+                resource["contributors"] = override.contributors if isinstance(override.contributors, list) else []
     if "activityPages" in requested:
         result["activityPages"] = _get_published_activity_pages(db)
     return jsonable_encoder(result)

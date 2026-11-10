@@ -158,6 +158,35 @@ class ProductionResourceLink(Base):
     checkedAt = Column(BigInteger, nullable=False)
 
 
+class ProductionResourceProfileOverride(Base):
+    """Reviewed visitor edits layered over source-backed resource research."""
+
+    __tablename__ = "production_resource_profile_overrides"
+
+    id = Column(String, primary_key=True)
+    profile = Column(JSON, nullable=False, default=dict)
+    contributors = Column(JSON, nullable=False, default=list)
+    updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
+class ProductionResourceProfileSubmission(Base):
+    """Visitor-proposed resource profile changes awaiting administrator review."""
+
+    __tablename__ = "production_resource_profile_submissions"
+
+    id = Column(String, primary_key=True)
+    resourceId = Column(String, nullable=False, index=True)
+    submitterName = Column(String, nullable=False)
+    contactEmail = Column(String, nullable=False)
+    profile = Column(JSON, nullable=False, default=dict)
+    acceptedFields = Column(JSON, nullable=False, default=list)
+    status = Column(String, nullable=False, default="pending", index=True)
+    reviewNote = Column(Text, nullable=False, default="")
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000), index=True)
+
+
 class AudioWorkCredit(Base):
     """A source-backed production credit attached to one audio work."""
 

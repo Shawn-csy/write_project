@@ -43,5 +43,5 @@ export default async function ResourcePage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const item = (await loadResources()).find((resource) => resource.id === id);
   if (!item || !item.works?.length) notFound();
-  return <ResourcePageClient item={item} />;
+  return <ResourcePageClient item={item} refreshOnMount={process.env.CF_STATIC_EXPORT === "1"} />;
 }

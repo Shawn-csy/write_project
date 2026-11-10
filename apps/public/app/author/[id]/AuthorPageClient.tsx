@@ -9,6 +9,7 @@ import { PublicImage } from "@/components/PublicImage";
 import { LinkifiedText } from "@/components/LinkifiedText";
 import { ExternalLink, Plus, Trash2, UserRound, Building2, BriefcaseBusiness, Link2, X } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
+import { ResourceAgeGate, useResourceAgeGate } from "@/components/ResourceAgeGate";
 import { hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
 import { demoArtwork } from "@/lib/demoArtwork";
 import { liveApi } from "@/lib/liveApi";
@@ -66,7 +67,9 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
   const model = buildAuthorEntityModel(identity, scripts);
   const profileBio = identity.bio || "";
   const links = parseLinks(identity.links);
-  const isVoiceActor = persona.roles?.includes("voice_actor") || hasVoiceActorSelfTag(persona) || performances.length > 0;
+  const isVoiceActor = persona.roles?.includes("voice_actor") || hasVoiceActorSelfTag(persona) || performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
+  const { confirmed: ageConfirmed, confirm: confirmAge } = useResourceAgeGate();
+  const hasVoiceWorks = performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
   const isScriptwriter = persona.roles?.includes("scriptwriter") || hasScriptwriterRole(persona, scripts, externalScripts);
   const roles = [
     ...(scripts.length > 0 || isScriptwriter || externalScripts.length > 0 ? ["台本師"] : []),
@@ -178,6 +181,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
       )}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
+        {isVoiceActor && hasVoiceWorks && !ageConfirmed && <div className="pt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
         {/* Profile header */}
         <div className={`relative mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${persona.bannerUrl ? "-mt-16" : "mt-6 sm:mt-8"}`}>
           <div className="flex flex-col md:flex-row items-start gap-6">
@@ -351,7 +355,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
             </section>
         )}
 
-        {performances.length > 0 && (
+        {ageConfirmed && performances.length > 0 && (
           <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
               <h2 className="text-xl font-bold">參與演出</h2>
@@ -380,9 +384,9 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
           </section>
         )}
 
-        {audioWorks.length > 0 && <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6"><h2 className="mb-4 text-xl font-bold">音聲作品</h2><div className="grid grid-cols-2 gap-3 lg:grid-cols-3">{audioWorks.map((work) => <a key={work.id} href={work.url} target="_blank" rel="noopener noreferrer" className="overflow-hidden rounded-lg border border-border/60 bg-background hover:border-primary/50">{work.coverUrl && <div className="relative aspect-[4/3] overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" /></div>}<span className="block p-3 text-sm font-semibold">{work.title}<ExternalLink className="ml-1 inline h-3 w-3" aria-hidden /></span></a>)}</div></section>}
+        {ageConfirmed && audioWorks.length > 0 && <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6"><h2 className="mb-4 text-xl font-bold">音聲作品</h2><div className="grid grid-cols-2 gap-3 lg:grid-cols-3">{audioWorks.map((work) => <a key={work.id} href={work.url} target="_blank" rel="noopener noreferrer" className="overflow-hidden rounded-lg border border-border/60 bg-background hover:border-primary/50">{work.coverUrl && <div className="relative aspect-[4/3] overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" /></div>}<span className="block p-3 text-sm font-semibold">{work.title}<ExternalLink className="ml-1 inline h-3 w-3" aria-hidden /></span></a>)}</div></section>}
 
-        {(persona.voiceActorWorks || []).length > 0 && (
+        {ageConfirmed && (persona.voiceActorWorks || []).length > 0 && (
           <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
             <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3"><h2 className="text-xl font-bold">參演作品</h2><span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{persona.voiceActorWorks!.length} 筆</span></div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{persona.voiceActorWorks!.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/60 bg-background">{work.coverUrl && <div className="relative aspect-video overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} preset="script-cover" /></div>}<div className="p-3"><h3 className="text-sm font-semibold">{work.title || "未命名作品"}</h3>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">查看作品<ExternalLink className="h-3 w-3" aria-hidden /></a>}</div></article>)}</div>

@@ -210,6 +210,53 @@ class VoiceActorProfileSubmissionResponse(BaseModel):
     createdAt: int
 
 
+class ProductionResourceProfileSubmissionCreate(BaseModel):
+    resourceId: str
+    displayName: str
+    bio: str = ""
+    avatarUrl: str = ""
+    profileUrl: str = ""
+    profileLabel: str = ""
+    links: List[Dict[str, Any]] = []
+    works: List[Dict[str, Any]] = []
+    contributorName: str
+    submitterName: str
+    contactEmail: str
+    websiteTrap: str = ""
+
+
+class ProductionResourceProfileSubmissionStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected"]
+    acceptedFields: List[Literal["displayName", "bio", "avatarUrl", "profileUrl", "links", "works", "contributorName"]] = []
+    reviewNote: str = ""
+
+
+class ProductionResourceProfileSubmissionRecord(BaseModel):
+    id: str
+    resourceId: str
+    resourceName: str = ""
+    submitterName: str
+    contactEmail: str
+    currentProfile: Dict[str, Any] = {}
+    profile: Dict[str, Any] = {}
+    acceptedFields: List[str] = []
+    status: Literal["pending", "approved", "rejected"]
+    reviewNote: str = ""
+    reviewedAt: Optional[int] = None
+    createdAt: int
+
+
+class ProductionResourceProfileSubmissionListResponse(BaseModel):
+    total: int
+    items: List[ProductionResourceProfileSubmissionRecord]
+
+
+class ProductionResourceProfileSubmissionResponse(BaseModel):
+    success: bool
+    submissionId: str
+    createdAt: int
+
+
 class VoiceActorClaimRequestCreate(BaseModel):
     personaId: str
     proofUrl: str = ""

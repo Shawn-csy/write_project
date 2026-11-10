@@ -587,6 +587,26 @@ export interface VoiceActorProfileSubmissionListResponse {
   items: VoiceActorProfileSubmission[];
 }
 
+export interface ProductionResourceProfileSubmission {
+  id: string;
+  resourceId: string;
+  resourceName: string;
+  submitterName: string;
+  contactEmail: string;
+  currentProfile: Record<string, unknown>;
+  profile: Record<string, unknown>;
+  acceptedFields: string[];
+  status: "pending" | "approved" | "rejected";
+  reviewNote: string;
+  reviewedAt?: number | null;
+  createdAt: number;
+}
+
+export interface ProductionResourceProfileSubmissionListResponse {
+  total: number;
+  items: ProductionResourceProfileSubmission[];
+}
+
 export interface ExternalAuthorProfileSubmission {
   id: string;
   authorKey: string;

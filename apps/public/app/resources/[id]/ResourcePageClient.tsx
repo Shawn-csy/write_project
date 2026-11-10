@@ -6,8 +6,11 @@ import { PublicAvatarImage } from "@/components/PublicAvatarImage";
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicTopBar } from "@/components/PublicTopBar";
+import { ResourceAgeGate, useResourceAgeGate } from "@/components/ResourceAgeGate";
 import { publicAvatarColor } from "@/components/publicAvatarColor";
+import { readPublicBundle } from "@/lib/readPublicBundle";
 import type { ProductionResource } from "../ResourcesClient";
+import { ResourceContributionForm } from "./ResourceContributionForm";
 
 const CATEGORY_LABELS: Record<Exclude<ProductionResource["categories"][number], "voice_actor">, string> = {
   post_production: "後製",
@@ -34,8 +37,21 @@ function profileLinks(item: ProductionResource): Array<{ label: string; url: str
   });
 }
 
-export function ResourcePageClient({ item }: { item: ProductionResource }) {
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+export function ResourcePageClient({ item: initialItem, refreshOnMount = false }: { item: ProductionResource; refreshOnMount?: boolean }) {
+  const [item, setItem] = useState(initialItem);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  useEffect(() => {
+    if (!refreshOnMount) return;
+    let active = true;
+    void readPublicBundle<{ productionResources?: ProductionResource[] }>(["productionResources"])
+      .then(({ data }) => {
+        const updated = data.productionResources?.find((resource) => resource.id === initialItem.id);
+        if (active && updated) setItem(updated);
+      }).catch(() => {});
+    return () => { active = false; };
+  }, [initialItem.id, refreshOnMount]);
+  const { confirmed: ageConfirmed, confirm: confirmAge } = useResourceAgeGate();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   useEffect(() => {
     const requested = new URLSearchParams(window.location.search).get("category");
@@ -50,6 +66,7 @@ export function ResourcePageClient({ item }: { item: ProductionResource }) {
   return <div className="flex min-h-screen flex-col bg-background">
     <PublicTopBar activeTab="resources" showBack backHref={backHref} backLabel="返回資源名錄" />
     <main className="w-full flex-1 px-3 pb-20 sm:px-5 lg:px-8">
+      {!ageConfirmed && <div className="mt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
       <div className="mt-6 rounded-xl border border-border/60 bg-card p-6 shadow-sm md:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
           <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-background bg-muted shadow sm:h-36 sm:w-36">
@@ -64,8 +81,12 @@ export function ResourcePageClient({ item }: { item: ProductionResource }) {
             {links.length > 0 && <div className="flex flex-wrap gap-2 pt-1" aria-label="聯絡與官方連結">
               {links.map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border/60 bg-background px-3 text-sm font-medium text-primary hover:border-primary/40 hover:bg-primary/5">{link.label}<ArrowUpRight className="h-3.5 w-3.5" aria-hidden /></a>)}
             </div>}
+            {(item.contributors || []).length > 0 && <p className="text-xs text-muted-foreground">資料協力者：{item.contributors!.map((person) => person.name).join("、")}</p>}
+            {!formOpen && !formSubmitted && <button type="button" onClick={() => setFormOpen(true)} className="rounded-md border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10">補充／更新資源資料</button>}
+            {formSubmitted && <p role="status" className="text-sm text-emerald-600">資料已送交審核；核准後會更新公開資源頁。謝謝你協助補充資料。</p>}
           </div>
         </div>
+        {formOpen && <ResourceContributionForm item={item} onClose={() => setFormOpen(false)} onSubmitted={() => { setFormOpen(false); setFormSubmitted(true); }} />}
       </div>
 
       <section className="mt-8" aria-label="參與作品">
@@ -73,10 +94,6 @@ export function ResourcePageClient({ item }: { item: ProductionResource }) {
           <h2 className="font-serif text-2xl font-bold">參與作品</h2>
           <span className="text-sm text-muted-foreground">{works.length} 部</span>
         </div>
-        {!ageConfirmed && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/50 bg-card px-4 py-3">
-          <p className="text-sm text-muted-foreground">參與作品可能包含成人向封面與內容。</p>
-          <button type="button" onClick={() => setAgeConfirmed(true)} className="min-h-9 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90">我已年滿 18 歲，顯示作品</button>
-        </div>}
         {ageConfirmed && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {works.map((work) => <a key={`${work.id}-${work.creditRole}`} href={work.url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-xl border border-border/60 bg-card transition-colors hover:border-primary/40" aria-label={`前往作品：${work.title}`}>
             <div className="relative aspect-[4/3] overflow-hidden bg-muted">

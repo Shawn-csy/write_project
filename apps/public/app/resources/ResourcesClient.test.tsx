@@ -44,4 +44,20 @@ describe("ResourcesClient", () => {
     expect(screen.getByRole("link", { name: "X" }).getAttribute("href")).toBe("https://x.com/oseizyuukou");
     expect(screen.queryByAltText("作品甲封面")).toBeNull();
   });
+
+  it("asks for age confirmation on entry and keeps it for resource details", async () => {
+    window.sessionStorage.clear();
+    const item: ProductionResource = { ...base, id: "studio", name: "製作人甲",
+      works: [{ id: "work-1", title: "作品甲", url: "https://example.com/work", coverUrl: "https://example.com/cover.jpg", creditRole: "post_production", creditedAs: "製作人甲" }],
+    };
+    const listing = render(<ResourcesClient initialPersonas={[]} initialResources={[item]} />);
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲，顯示作品" }));
+    expect(window.sessionStorage.getItem("public-resources-adult-confirmed")).toBe("1");
+    listing.unmount();
+    const { ResourcePageClient } = await import("./[id]/ResourcePageClient");
+    render(<ResourcePageClient item={item} />);
+    expect(screen.queryByRole("button", { name: "我已年滿 18 歲，顯示作品" })).toBeNull();
+    expect(screen.getByRole("link", { name: "前往作品：作品甲" })).toBeTruthy();
+    window.sessionStorage.clear();
+  });
 });
