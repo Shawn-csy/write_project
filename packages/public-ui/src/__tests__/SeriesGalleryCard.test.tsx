@@ -59,6 +59,14 @@ const SERIES = makeSeries();
 // ─── standard variant ─────────────────────────────────────────────────────────
 
 describe("SeriesGalleryCard — standard", () => {
+  it("renders a dense cover card with series name and chapter count", () => {
+    const { container } = render(<SeriesGalleryCard series={SERIES} variant="dense" href="/series/my-series" />);
+    expect(container.querySelector('[data-gallery-card="dense"]')).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "My Series" })).toBeTruthy();
+    expect(screen.getByText("2 部")).toBeTruthy();
+    assertNoNestedInteractive(container);
+  });
+
   it("renders series name in heading", () => {
     render(<SeriesGalleryCard series={SERIES} variant="standard" href="/series/my-series" />);
     expect(screen.getByRole("heading", { name: "My Series" })).toBeDefined();

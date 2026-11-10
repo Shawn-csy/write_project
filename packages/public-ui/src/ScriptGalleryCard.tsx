@@ -73,7 +73,7 @@ export interface PublicLinkConfig {
 
 export interface ScriptGalleryCardProps extends PublicLinkConfig {
   script: ScriptGalleryItem;
-  variant?: "standard" | "compact" | "list";
+  variant?: "standard" | "compact" | "dense" | "list";
   showAgeGate?: boolean;
   coverImageRenderer?: CoverImageRenderer;
   avatarImageRenderer?: AvatarImageRenderer;

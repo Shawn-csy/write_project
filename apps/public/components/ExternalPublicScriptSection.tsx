@@ -66,7 +66,7 @@ export function ExternalPublicScriptCard({
   organizationHref,
 }: {
   item: ExternalPublicScript;
-  variant?: "standard" | "compact" | "list";
+  variant?: "standard" | "compact" | "dense" | "list";
   onTagClick?: (tag: string) => void;
   organizationHref?: string;
 }) {

@@ -13,7 +13,7 @@ import { formatPublicYear } from "../publicDate";
 
 export interface SeriesGalleryCardProps {
   series: PublicSeriesGroup;
-  variant?: "standard" | "compact";
+  variant?: "standard" | "compact" | "dense";
   /** href for the series index page (e.g. /series/[name]). Required for keyboard/a11y. */
   href: string;
   /** href for the primary author page. App-owned so this package stays router-neutral. */
@@ -148,7 +148,31 @@ function SeriesGalleryCardInner({
   const ARTICLE_CLASS =
     "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-[3px] hover:border-border hover:bg-card hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200";
 
-  // ── Compact ──
+  // ── Dense cover grid ──
+  if (variant === "dense") {
+    return (
+      <article className="group relative min-w-0" data-gallery-card="dense" {...hoverPreviewProps}>
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md border border-border/50 bg-muted shadow-sm">
+          {coverWrapEl}
+          {showAgeGate && <>
+            <div className="pointer-events-none absolute inset-0 bg-red-900/25" aria-hidden />
+            <span className="pointer-events-none absolute left-1 top-1 z-10 rounded-sm bg-red-600 px-1 text-[9px] font-bold text-white">R18</span>
+          </>}
+          <span className="pointer-events-none absolute right-1 top-1 z-10 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-medium text-white">{chapterCount} 部</span>
+        </div>
+        <div className="min-w-0 pt-1.5">
+          <h2 className="line-clamp-2 min-h-[2.5em] [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-primary">
+            <a href={href} className="text-inherit no-underline">{name}</a>
+          </h2>
+          {authorName && <div className="mt-0.5 truncate [font-size:var(--public-font-caption)] text-muted-foreground">
+            {authorHref ? <a href={authorHref} className="hover:text-foreground hover:underline">{authorName}</a> : authorName}
+          </div>}
+        </div>
+      </article>
+    );
+  }
+
+  // ── Compact list ──
   if (variant === "compact") {
     return (
       <article className="group relative rounded-xl bg-transparent transition-all duration-200" {...hoverPreviewProps}>

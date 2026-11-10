@@ -44,7 +44,7 @@ export interface CardAuthorDisplay {
 export interface ScriptGalleryCardFrameProps {
   id: string;
   title?: string;
-  variant?: "standard" | "compact" | "list";
+  variant?: "standard" | "compact" | "dense" | "list";
 
   // Cover
   coverUrl?: string | null;
@@ -311,11 +311,11 @@ function SeriesBadge({
 
 // ─── Age gate overlay ─────────────────────────────────────────────────────────
 
-function AgeGateOverlay({ variant }: { variant: "standard" | "compact" | "list" }) {
-  const badgeClass = variant === "compact"
+function AgeGateOverlay({ variant }: { variant: "standard" | "compact" | "dense" | "list" }) {
+  const badgeClass = variant === "compact" || variant === "dense"
     ? "absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide"
     : "absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide";
-  const label = variant === "compact" ? "R18" : "R-18";
+  const label = variant === "compact" || variant === "dense" ? "R18" : "R-18";
   return (
     <>
       <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
@@ -404,9 +404,9 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
       href={demoHref}
       aria-label={`查看「${title || "台本"}」的 Demo`}
       onClick={(event) => event.stopPropagation()}
-      className={`absolute right-2 top-2 z-20 inline-flex items-center justify-center rounded-md border border-white/20 bg-slate-950/85 font-semibold text-white no-underline shadow-md backdrop-blur-sm transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${variant === "list" ? "min-h-7 px-1.5 text-[10px]" : "min-h-9 px-3 text-xs"}`}
+      className={`absolute z-20 inline-flex items-center justify-center rounded-md border border-white/20 bg-slate-950/85 font-semibold text-white no-underline shadow-md backdrop-blur-sm transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${variant === "dense" ? "bottom-1 right-1 min-h-6 px-1.5 text-[10px]" : variant === "list" ? "right-2 top-2 min-h-7 px-1.5 text-[10px]" : "right-2 top-2 min-h-9 px-3 text-xs"}`}
     >
-      {variant === "list" ? "Demo" : "觀看 Demo"}
+      {variant === "list" || variant === "dense" ? "Demo" : "觀看 Demo"}
     </a>
   ) : null;
 
@@ -428,7 +428,35 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     />
   ) : null;
 
-  // ── Compact variant ──
+  // ── Dense cover grid variant ──
+  if (variant === "dense") {
+    const denseAuthorName = author?.displayName || organization?.displayName;
+    const denseAuthorHref = author?.displayName ? authorHref : organizationHref;
+    return (
+      <article className={`group relative min-w-0 ${!href ? "cursor-pointer" : ""}`} onClick={onArticleClick} data-gallery-card="dense" {...articleProps}>
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md border border-border/50 bg-muted shadow-sm">
+          {coverLinkEl}
+          {showAgeGate && <AgeGateOverlay variant="dense" />}
+          {demoBadgeEl}
+          {seriesBadgeEl}
+        </div>
+        <div className="min-w-0 pt-1.5">
+          <h2 className="line-clamp-2 min-h-[2.5em] [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-primary">
+            {href ? <a href={href} {...scriptAnchorProps} className="text-inherit no-underline" onClick={() => onViewTrack?.()}>{title}</a> : title}
+          </h2>
+          {denseAuthorName && (
+            <div className="mt-0.5 truncate [font-size:var(--public-font-caption)] text-muted-foreground">
+              {denseAuthorHref ? <a href={denseAuthorHref} className="hover:text-foreground hover:underline">{denseAuthorName}</a>
+                : onAuthorClick && author?.displayName ? <button type="button" onClick={(event) => { event.stopPropagation(); onAuthorClick(); }} className="truncate hover:text-foreground hover:underline">{denseAuthorName}</button>
+                : denseAuthorName}
+            </div>
+          )}
+        </div>
+      </article>
+    );
+  }
+
+  // ── Compact list variant ──
   if (variant === "compact") {
     return (
       <article

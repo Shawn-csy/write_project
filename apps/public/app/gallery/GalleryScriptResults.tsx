@@ -48,6 +48,8 @@ export function useProgressiveLimit(initial: number): number {
 // Every card snaps to the lane edge instead of being sliced in half.
 const CARD_WIDTH =
   "shrink-0 snap-start w-[calc((100%-2rem)/3)] min-[480px]:w-[calc((100%-3rem)/4)] sm:w-[calc((100%-2rem)/3)] md:w-[calc((100%-3rem)/4)] lg:w-[calc((100%-4rem)/5)] 2xl:w-[calc((100%-5rem)/6)]";
+const STANDARD_GRID = "grid grid-cols-3 gap-3 min-[480px]:grid-cols-4 sm:grid-cols-[repeat(auto-fill,minmax(165px,1fr))] sm:gap-6 [&>*]:min-w-0 [&>*]:overflow-hidden";
+const DENSE_GRID = "grid grid-cols-4 gap-x-2 gap-y-4 min-[480px]:grid-cols-5 sm:grid-cols-[repeat(auto-fill,minmax(104px,1fr))] sm:gap-x-3 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(108px,1fr))] [&>*]:min-w-0";
 const FEATURED_HOMEPAGE_TAG = "清淡校園練習";
 
 type MixedGalleryEntry =
@@ -270,7 +272,7 @@ function CardWithPolicy({
 }: {
   script: EnrichedGalleryScript;
   policy: ScriptNavigationPolicy | undefined;
-  variant: "standard" | "compact" | "list";
+  variant: "standard" | "compact" | "dense" | "list";
   authorHref?: string;
   seriesHref?: string;
   onSeriesClick: (name: string) => void;
@@ -303,6 +305,7 @@ export function GalleryScriptResults({
   allScriptsSort = null,
 }: GalleryScriptResultsProps) {
   const { galleryEntries, lanes, showLanes, viewMode, emptyState, navigationPolicyMap } = model;
+  const dense = viewMode === "compact";
   const allScriptCount = model.filteredScripts.length + externalItems.length;
 
   const mergedEntries = React.useMemo(
@@ -364,7 +367,8 @@ export function GalleryScriptResults({
   if (allScriptsSort) {
     return (
       <div
-        className="grid grid-cols-3 gap-3 min-[480px]:grid-cols-4 sm:grid-cols-[repeat(auto-fill,minmax(165px,1fr))] sm:gap-6 [&>*]:min-w-0 [&>*]:overflow-hidden"
+        className={dense ? DENSE_GRID : STANDARD_GRID}
+        data-gallery-density={dense ? "dense" : "standard"}
         aria-live="polite"
       >
         {allScriptsSort === "random" && allScripts.length > 0 && (
@@ -380,14 +384,14 @@ export function GalleryScriptResults({
         )}
         {allScripts.map((entry) => {
           if (entry.kind === "external") {
-            return <ExternalPublicScriptCard key={`external:${entry.item.id}`} item={entry.item} onTagClick={onTagClick} />;
+            return <ExternalPublicScriptCard key={`external:${entry.item.id}`} item={entry.item} variant={dense ? "dense" : "standard"} onTagClick={onTagClick} />;
           }
           if (entry.kind === "external-series") {
             return (
               <SeriesGalleryCard
                 key={`external-series:${entry.entry.key}`}
                 series={entry.entry}
-                variant="standard"
+                variant={dense ? "dense" : "standard"}
                 href={`/series/${encodeURIComponent(entry.entry.name)}`}
                 authorHref={externalSeriesAuthorHref(entry.entry)}
                 showAgeGate={entry.entry.hasAgeGate}
@@ -402,7 +406,7 @@ export function GalleryScriptResults({
               key={script.id}
               script={script}
               policy={navigationPolicyMap.get(script.id)}
-              variant="standard"
+              variant={dense ? "dense" : "standard"}
               authorHref={authorHref(script)}
               seriesHref={seriesHref(script)}
               onSeriesClick={handleSeriesClick}
@@ -424,21 +428,21 @@ export function GalleryScriptResults({
     );
   }
 
-  // Compact viewMode always shows flat list (filtered or default state)
+  // Dense mode uses a smaller cover grid regardless of active filters.
   if (viewMode === "compact") {
     return (
-      <div ref={compactRef} className="flex flex-col">
+      <div ref={compactRef} className={DENSE_GRID} data-gallery-density="dense">
         {mergedEntries.slice(0, renderLimit).map((entry) => (
-          <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>
+          <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className="min-w-0" data-reveal>
             {entry.kind === "external"
-              ? <ExternalPublicScriptCard item={entry.item} variant="compact" onTagClick={onTagClick} />
+              ? <ExternalPublicScriptCard item={entry.item} variant="dense" onTagClick={onTagClick} />
               : entry.kind === "external-series"
-                ? <SeriesGalleryCard series={entry.entry} variant="compact" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
+                ? <SeriesGalleryCard series={entry.entry} variant="dense" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
                 : renderGalleryEntry(entry.entry, { ...cardRenderOptions, viewMode: "compact" })}
           </div>
         ))}
         {emptyState !== "none" && (
-          <GalleryEmptyState reason={emptyState === "no-match" ? "no-match" : "no-public-scripts"} onResetFilters={onResetFilters} />
+          <GalleryEmptyState reason={emptyState === "no-match" ? "no-match" : "no-public-scripts"} onResetFilters={onResetFilters} className="col-span-full" />
         )}
       </div>
     );
@@ -449,7 +453,7 @@ export function GalleryScriptResults({
     return (
       <div
         ref={gridRef}
-        className="grid grid-cols-3 gap-3 min-[480px]:grid-cols-4 sm:grid-cols-[repeat(auto-fill,minmax(165px,1fr))] sm:gap-6 [&>*]:min-w-0 [&>*]:overflow-hidden"
+        className={STANDARD_GRID}
       >
         {mergedEntries.slice(0, renderLimit).map((entry) => (
           <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} data-reveal>
@@ -590,7 +594,7 @@ function renderGalleryEntry(entry: PublicGalleryEntry, opts: LaneRenderOptions) 
     return (
       <SeriesGalleryCard
         series={entry}
-        variant={opts.viewMode === "compact" ? "compact" : "standard"}
+        variant={opts.viewMode === "compact" ? "dense" : "standard"}
         href={`/series/${encodeURIComponent(entry.name)}`}
         authorHref={opts.authorHref(entry.leadScript)}
         showAgeGate={entry.hasAgeGate}
@@ -603,7 +607,7 @@ function renderGalleryEntry(entry: PublicGalleryEntry, opts: LaneRenderOptions) 
     <CardWithPolicy
       script={entry.script}
       policy={opts.navigationPolicyMap.get(entry.script.id)}
-      variant={opts.viewMode}
+      variant={opts.viewMode === "compact" ? "dense" : opts.viewMode}
       authorHref={opts.authorHref(entry.script)}
       seriesHref={opts.seriesHref(entry.script)}
       onSeriesClick={opts.onSeriesClick}

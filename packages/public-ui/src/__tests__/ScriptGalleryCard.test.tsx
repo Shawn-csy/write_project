@@ -43,6 +43,25 @@ function assertNoNestedInteractive(container: HTMLElement) {
 // ── Standard variant — href mode ─────────────────────────────────────────
 
 describe("ScriptGalleryCard standard — href mode", () => {
+  it("renders the dense cover card with title, author and compact badges", () => {
+    const { container } = render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT_WITH_META, synopsis: "Long summary", hasDemo: true }}
+        variant="dense"
+        scriptHref="/read/s2"
+        authorHref="/author/a1"
+        showAgeGate
+      />
+    );
+    expect(container.querySelector('[data-gallery-card="dense"]')).not.toBeNull();
+    expect(screen.getByRole("link", { name: "Rich Script" }).getAttribute("href")).toBe("/read/s2");
+    expect(screen.getByRole("link", { name: "Alice" }).getAttribute("href")).toBe("/author/a1");
+    expect(screen.getByRole("link", { name: "查看「Rich Script」的 Demo" })).toBeTruthy();
+    expect(screen.queryByText("Long summary")).toBeNull();
+    expect(screen.getByText("R18")).toBeTruthy();
+    assertNoNestedInteractive(container);
+  });
+
   it("opens the matching external Demo detail from the badge while keeping the script link", () => {
     const { container } = render(<ScriptGalleryCard script={{ ...SCRIPT, id: "external:abc", hasDemo: true }} scriptHref="https://example.com/script" scriptTarget="_blank" />);
     expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos?script=external%3Aabc");
