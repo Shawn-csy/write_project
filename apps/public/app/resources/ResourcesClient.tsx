@@ -174,14 +174,14 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
               {actorProfileLinks(persona).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5" aria-label={`${persona.displayName}的${link.label}`}>{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
             </div>}
           </article>) : listings.map((item) => <article key={item.id} className="min-w-0 overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)]">
-            <div className="flex min-w-0 items-center gap-3 p-3">
+            <a href={`/resources/${encodeURIComponent(item.id)}?category=${category}`} aria-label={`${item.name}資源詳頁`} className="flex min-w-0 items-center gap-3 p-3 hover:text-primary">
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full"><PublicAvatarImage src={item.avatarUrl} name={item.name} sizes="48px" fallbackClassName={publicAvatarColor(item.name)} /></div>
               <div className="min-w-0 flex-1">
                 <h2 className="truncate font-medium [font-size:var(--public-font-body)]">{item.name}</h2>
                 <p className="mt-0.5 [font-size:var(--public-font-caption)] text-muted-foreground">{item.works.filter((work) => work.creditRole === category).length} 部參與作品</p>
                 {ageConfirmed && item.bio && <p className="mt-0.5 line-clamp-2 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground">{item.bio}</p>}
               </div>
-            </div>
+            </a>
             <div className="flex gap-1.5 px-3 pb-2"><span className={DIRECTORY_TAG_CLASS}>{CATEGORIES.find((entry) => entry.key === category)?.label}</span>{item.kind === "credit" && <span className={DIRECTORY_TAG_CLASS}>作品署名</span>}</div>
             {(item.kind !== "credit" || item.profileUrl || item.links?.length) && <div className="flex flex-wrap gap-2 px-3 pb-2">
               {item.kind !== "credit" && <a href={item.sourceUrl || item.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">官方／委託頁<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}

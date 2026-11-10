@@ -29,6 +29,7 @@ describe("ResourcesClient", () => {
     expect(screen.getByText("1 筆")).toBeTruthy();
     expect(screen.getByText("有作品")).toBeTruthy();
     expect(screen.queryByText("沒有作品")).toBeNull();
+    expect(screen.getByRole("link", { name: "有作品資源詳頁" }).getAttribute("href")).toBe("/resources/listed?category=post_production");
   });
 
   it("shows resource avatars and contact links before revealing work covers", () => {

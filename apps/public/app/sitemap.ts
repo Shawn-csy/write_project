@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import type { ProductionResource } from "./resources/ResourcesClient";
 import { externalEntityHref } from "@/lib/externalEntity";
 import {
   homeUrl,
@@ -55,7 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     apiFetch<PublicScript[]>("/public-scripts", {
       next: { revalidate: SITEMAP_DATA_REVALIDATE_SECONDS, tags: ["public-scripts"] },
     }),
-    apiFetch<{ externalPublicScripts?: ExternalPublicScript[]; personas?: PublicPersona[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle?sections=externalPublicScripts,personas,demoSubmissions", {
+    apiFetch<{ externalPublicScripts?: ExternalPublicScript[]; personas?: PublicPersona[]; demoSubmissions?: PublicDemoSubmission[]; productionResources?: ProductionResource[] }>("/public-bundle?sections=externalPublicScripts,personas,demoSubmissions,productionResources", {
       next: { revalidate: SITEMAP_DATA_REVALIDATE_SECONDS, tags: ["public-bundle"] },
     }),
   ]);
@@ -182,6 +183,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: ts,
   }));
 
+  const resourceEntries: MetadataRoute.Sitemap = (externalBundle?.productionResources || [])
+    .filter((item) => item.id && item.works?.length > 0)
+    .map((item) => ({
+      url: `${BASE_URL}/resources/${encodeURIComponent(item.id)}`,
+      lastModified: toSitemapDate(item.reviewedAt, now),
+    }));
+
   // Tags excluded by default (shouldIncludeTagsInSitemap() === false).
 
   const contentEntries = [
@@ -190,6 +198,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...orgEntries,
     ...externalAuthorEntries,
     ...externalOrgEntries,
+    ...resourceEntries,
     ...seriesEntries,
   ];
   const newestContentTimestamp = contentEntries.reduce(
@@ -209,6 +218,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...orgEntries,
     ...externalAuthorEntries,
     ...externalOrgEntries,
+    ...resourceEntries,
     ...seriesEntries,
   ]);
 }

@@ -6,6 +6,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 import { apiFetch } from "@/lib/api";
+import { STATIC_PAGES_LASTMOD } from "@/lib/publicSeoModel";
 import type { PublicScript } from "@/lib/types";
 
 const BASE = "https://open-scripts.shawnup.com";
@@ -79,7 +80,7 @@ describe("sitemap", () => {
     const home = entries.find((e) => e.url === `${BASE}/`);
     const about = entries.find((e) => e.url === `${BASE}/about`);
     expect(home?.lastModified).toBe("2026-01-01T00:00:00.000Z"); // newest content date
-    expect(about?.lastModified).toBe("2026-11-03T00:00:00.000Z");
+    expect(about?.lastModified).toBe(STATIC_PAGES_LASTMOD);
     expect(await getSitemap()).toEqual(entries);
   });
 
@@ -109,6 +110,18 @@ describe("sitemap", () => {
   it("includes series pages", async () => {
     const urls = (await getSitemap()).map((e) => e.url);
     expect(urls).toContain(`${BASE}/series/${encodeURIComponent("Epic Series")}`);
+  });
+
+  it("includes resource detail pages with credited works", async () => {
+    vi.mocked(apiFetch).mockImplementation(async (path) => path === "/public-scripts"
+      ? [makeScript()]
+      : { productionResources: [
+        { id: "credit-one", reviewedAt: Date.parse("2026-11-10T00:00:00Z"), works: [{ id: "work-1" }] },
+        { id: "empty", reviewedAt: 1, works: [] },
+      ] } as never);
+    const urls = (await getSitemap()).map((entry) => entry.url);
+    expect(urls).toContain(`${BASE}/resources/credit-one`);
+    expect(urls).not.toContain(`${BASE}/resources/empty`);
   });
 
   it("excludes /gallery", async () => {
