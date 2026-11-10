@@ -34,7 +34,17 @@ BUNDLE = {
     "demoSubmissions": [],
     "audioWorks": [],
     "activityPages": [],
-    "productionResources": [],
+    "productionResources": [{
+        "id": "fixture-resource", "name": "Fixture Studio",
+        "categories": ["recording_studio"], "summary": "Fixture resource",
+        "websiteUrl": "https://example.com/studio", "sourceUrl": "https://example.com/studio",
+        "reviewedAt": 1700000000000,
+        "works": [{
+            "id": "fixture-work", "title": "Fixture Work", "url": "https://example.com/work",
+            "coverUrl": "", "creditRole": "recording_studio", "creditedAs": "Fixture Studio",
+            "workType": "audio",
+        }],
+    }],
 }
 
 
