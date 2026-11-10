@@ -51,7 +51,7 @@ function MobileMoreButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="更多選項"
-      className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-muted/70 hover:text-foreground"
+      className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-muted/70 hover:text-foreground"
     >
       <MoreHorizontal className="h-[18px] w-[18px]" />
     </button>
