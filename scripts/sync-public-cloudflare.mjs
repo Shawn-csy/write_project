@@ -114,6 +114,7 @@ const personas = requireArray(personasSnapshot.json, "/api/public-personas");
 const organizations = requireArray(organizationsSnapshot.json, "/api/public-organizations");
 
 await Promise.all([
+  fetchSnapshot("/api/public-activity-status"),
   fetchSnapshot("/api/public-terms-config"),
   fetchSnapshot("/api/themes/public"),
   fetchSnapshot("/api/public-scripts"),

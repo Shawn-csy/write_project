@@ -1,3 +1,29 @@
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
+import models
+from routers.health import _schema_is_compatible
+
+
+@pytest.mark.parametrize("schema_change", [
+    'DROP TABLE public_demo_submissions',
+    'ALTER TABLE public_demo_submissions DROP COLUMN description',
+])
+def test_readiness_schema_contract_detects_missing_table_or_column(schema_change):
+    engine = create_engine("sqlite://")
+    try:
+        models.Base.metadata.create_all(engine)
+        with Session(engine) as db:
+            assert _schema_is_compatible(db)
+        with engine.begin() as connection:
+            connection.exec_driver_sql(schema_change)
+        with Session(engine) as db:
+            assert not _schema_is_compatible(db)
+    finally:
+        engine.dispose()
+
+
 def test_liveness_does_not_require_auth_or_database(client):
     response = client.get("/api/health/live")
 
@@ -15,6 +41,12 @@ def test_readiness_checks_database(client):
             "status": "ready",
             "service": "backend",
             "checks": {"database": "ok", "schema": "ok"},
+            "publicApiCapabilities": [
+                "public-bundle-sections",
+                "external-cover-lookup",
+                "public-activity-status",
+                "audio-works",
+            ],
         }
         assert response.headers["cache-control"] == "no-store"
 

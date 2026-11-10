@@ -1,5 +1,8 @@
 import React from "react";
 
+const COMPACT_WIDTH = 160;
+const COMPACT_HEIGHT = 240;
+
 function buildTheme(seedText = "") {
   const seed = String(seedText || "Script").trim() || "Script";
   const hash = Array.from(seed).reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
@@ -20,6 +23,28 @@ interface CoverPlaceholderProps {
 }
 
 export function CoverPlaceholder({ title = "Untitled", className = "", compact = false }: CoverPlaceholderProps) {
+  const compactRootRef = React.useRef<HTMLDivElement>(null);
+  const [compactSize, setCompactSize] = React.useState<{ width: number; height: number } | null>(null);
+
+  React.useEffect(() => {
+    if (!compact || !compactRootRef.current) return;
+    const root = compactRootRef.current;
+    const update = () => {
+      const rect = root.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setCompactSize({ width: rect.width, height: rect.height });
+      }
+    };
+    update();
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(update);
+      observer.observe(root);
+      return () => observer.disconnect();
+    }
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [compact]);
+
   const theme = React.useMemo(() => buildTheme(title), [title]);
   const titleText = String(title || "Untitled").trim() || "Untitled";
   const titleLen = titleText.length;
@@ -41,9 +66,9 @@ export function CoverPlaceholder({ title = "Untitled", className = "", compact =
     return "mt-2 line-clamp-4 text-xl font-bold leading-snug text-white drop-shadow md:text-2xl";
   }, [compact, titleLen]);
 
-  return (
+  const cover = (
     <div
-      className={`${frameClass} ${className}`}
+      className={`${frameClass} ${compact ? "" : className}`}
       style={{ background: `linear-gradient(130deg, ${theme.bgA}, ${theme.bgB} 48%, ${theme.bgC})` }}
       aria-label={titleText}
     >
@@ -92,6 +117,28 @@ export function CoverPlaceholder({ title = "Untitled", className = "", compact =
         ) : (
           <div className={titleClass}>{titleText}</div>
         )}
+      </div>
+    </div>
+  );
+
+  if (!compact) return cover;
+
+  const scale = compactSize
+    ? Math.min(compactSize.width / COMPACT_WIDTH, compactSize.height / COMPACT_HEIGHT)
+    : 1;
+  return (
+    <div ref={compactRootRef} className={`relative h-full w-full overflow-hidden ${className}`} aria-label={titleText}>
+      <div
+        aria-hidden="true"
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: COMPACT_WIDTH,
+          height: COMPACT_HEIGHT,
+          transform: `translate(-50%, -50%) scale(${scale})`,
+          visibility: compactSize ? "visible" : "hidden",
+        }}
+      >
+        {cover}
       </div>
     </div>
   );

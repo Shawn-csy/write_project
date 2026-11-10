@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ScriptToolbar } from "./write/ScriptToolbar";
 import { ScriptList } from "./write/ScriptList";
 import { CreateScriptDialog } from "./write/CreateScriptDialog";
@@ -16,12 +16,17 @@ import type { WriteScriptItem } from "../../types/write";
 
 interface WriteTabProps {
   onSelectScript: (script: WriteScriptItem, mode?: string) => void;
+  onScriptsLoaded?: (scripts: WriteScriptItem[]) => void;
+  requestedAction?: { id: number; type: "create-script" | "create-folder" | "import-script" } | null;
   readOnly?: boolean;
   refreshTrigger?: number;
 }
 
-export function WriteTab({ onSelectScript, readOnly = false, refreshTrigger = 0 }: WriteTabProps): React.JSX.Element {
-  const s = useWriteTabState({ onSelectScript, readOnly, refreshTrigger });
+export function WriteTab({ onSelectScript, onScriptsLoaded, requestedAction, readOnly = false, refreshTrigger = 0 }: WriteTabProps): React.JSX.Element {
+  const s = useWriteTabState({ onSelectScript, readOnly, refreshTrigger, requestedAction });
+  useEffect(() => {
+    if (!s.manager.loading) onScriptsLoaded?.(s.manager.scripts);
+  }, [s.manager.loading, s.manager.scripts, onScriptsLoaded]);
   const controlClassName = "h-10 rounded-md border border-input bg-background text-foreground sm:h-8";
 
   return (

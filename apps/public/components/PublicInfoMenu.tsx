@@ -7,11 +7,6 @@ import Link from "next/link";
 // Only actionable help links — legal/trust links live in PublicFooter.
 const HELP_LINKS = [
   {
-    href: "/demos",
-    label: "Demo 專區",
-    description: "瀏覽台本試聽與演出範例",
-  },
-  {
     href: "/help",
     label: "使用說明",
     description: "閱讀、發布與工作室操作",

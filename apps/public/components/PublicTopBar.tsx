@@ -1,22 +1,34 @@
 "use client";
 
 /**
- * PublicTopBar — shared top navigation for public SSR pages.
- * Uses the shared shell topbar and adds the activity link when an activity is published.
- * Pass client-side actions (theme toggle, studio link, etc.) via the `trailing` prop.
+ * PublicTopBar — the single public-site navigation composition.
+ * PublicShellTopBar owns layout; this component owns links and actions.
  */
 
-import { type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import Link from "next/link";
+import { MoreHorizontal } from "lucide-react";
 import { SITE_BRAND_NAME } from "@/lib/seo";
-import { useHasPublishedActivities } from "@/lib/useHasPublishedActivities";
 import { PublicShellTopBar } from "@write/public-ui";
 import { PublicShellActions } from "@/components/PublicShellActions";
+import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
+import { PublicMobileActionSheet } from "@/components/PublicMobileActionSheet";
+import { PUBLIC_SECTION_TABS } from "@/lib/publicNavigation";
+
+const renderInternalLink = ({ href, className, ariaCurrent, children }: { href: string; className: string; ariaCurrent?: "page"; children: ReactNode }) => (
+  <Link
+    href={href}
+    className={className}
+    aria-current={ariaCurrent}
+    prefetch={href === "/authors" || href === "/resources" || href === "/voice-actors" || href === "/audio-works" ? false : undefined}
+  >{children}</Link>
+);
 
 export interface TopBarTab {
   key: string;
   label: string;
-  href: string;
+  href?: string;
+  onSelect?: () => void;
   hideOnTablet?: boolean;
 }
 
@@ -31,11 +43,20 @@ interface Props {
   trailing?: ReactNode;
 }
 
-const DEFAULT_TABS: TopBarTab[] = [
-  { key: "authors", label: "作者", href: "/?view=authors" },
-  { key: "voice-actors", label: "聲演", href: "/voice-actors" },
-  { key: "demos", label: "Demo 專區", href: "/demos" },
-];
+const DEFAULT_TABS: TopBarTab[] = PUBLIC_SECTION_TABS.map((tab) => ({ ...tab }));
+
+function MobileMoreButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="更多選項"
+      className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-muted/70 hover:text-foreground"
+    >
+      <MoreHorizontal className="h-[18px] w-[18px]" />
+    </button>
+  );
+}
 
 export function PublicTopBar({
   activeTab,
@@ -46,19 +67,31 @@ export function PublicTopBar({
   backLabel = "返回",
   trailing = <PublicShellActions />,
 }: Props) {
-  const hasPublishedActivity = useHasPublishedActivities();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const visibleTabs = [...tabs];
-  if (hasPublishedActivity && !visibleTabs.some((tab) => tab.key === "activities")) {
-    visibleTabs.push({ key: "activities", label: "活動專區", href: "/activities" });
-  }
   visibleTabs.push(...additionalTabs.filter((tab) => !visibleTabs.some((visibleTab) => visibleTab.key === tab.key)));
-  return <PublicShellTopBar
-    activeTab={activeTab}
-    activeTabStyle="subtle"
-    tabs={visibleTabs}
-    brandName="公開台本"
-    brandSubtitle={SITE_BRAND_NAME}
-    brandLeading={showBack ? <Link href={backHref} aria-label={backLabel} className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground">←</Link> : undefined}
-    trailing={trailing}
-  />;
+  return (
+    <>
+      <PublicShellTopBar
+        activeTab={activeTab}
+        activeTabStyle="subtle"
+        tabs={visibleTabs}
+        brandName="公開台本"
+        brandSubtitle={SITE_BRAND_NAME}
+        brandLeading={showBack ? <Link href={backHref} aria-label={backLabel} className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground">←</Link> : undefined}
+        trailing={trailing}
+        mobileTrailingAction={<MobileMoreButton onClick={() => setMoreOpen(true)} />}
+        renderLink={renderInternalLink}
+      />
+      <LazyPublicFeedbackDialog mode="bug" hideTrigger open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      {moreOpen && (
+        <PublicMobileActionSheet
+          onClose={() => setMoreOpen(false)}
+          onOpenFeedback={() => setFeedbackOpen(true)}
+          activeTab={activeTab || ""}
+        />
+      )}
+    </>
+  );
 }

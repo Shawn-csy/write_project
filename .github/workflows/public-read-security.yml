@@ -1,0 +1,61 @@
+name: Public read and security contracts
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'apps/public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docker-compose.prod.yml'
+      - 'scripts/**'
+      - '.github/workflows/public-read-security.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'apps/public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'docker-compose.prod.yml'
+      - 'scripts/**'
+      - '.github/workflows/public-read-security.yml'
+
+jobs:
+  backend-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: server/requirements.txt
+      - run: python -m pip install -r server/requirements.txt
+      - name: Audit backend dependencies
+        run: |
+          python -m pip install pip-audit==2.10.1
+          python -m pip_audit -r server/requirements.txt --strict
+      - name: Check production network boundary
+        run: python3 scripts/check-prod-network-boundary.py
+      - name: Check backend contracts
+        run: python -m pytest -q tests
+        working-directory: server
+        env:
+          PYTHONPATH: .
+
+  public-projection:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check public app contracts
+        run: npx vitest run apps/public
+      - name: Check public app types
+        run: npx tsc --noEmit -p apps/public/tsconfig.json
+      - name: Build standalone and static public apps
+        run: python3 scripts/check-public-builds.py

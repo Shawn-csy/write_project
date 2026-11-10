@@ -141,7 +141,7 @@ npm run test:e2e         # Playwright E2E
 - [Read Page Export Metadata Projection](./docs/architecture/read-page-export-metadata-projection.md)
 - [SEO Google Content Visibility Contract](./docs/architecture/seo-google-content-visibility-contract.md)
 - [Security Protection](./docs/architecture/security-protection.md)
-- [外部台本本機 MCP](./docs/architecture/local-external-script-mcp.md)
+- [內容管理本機 MCP](./docs/architecture/local-external-script-mcp.md)
 - [外部公開台本匯入流程](./docs/product/external-public-script-import.md)
 
 ## 環境變數與認證

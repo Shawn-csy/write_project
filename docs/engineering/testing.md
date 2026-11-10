@@ -1,4 +1,16 @@
 # 測試指南 (Testing Guide)
+
+## 投稿與審核流程
+
+投稿流程共用契約位於 `server/tests/test_submission_workflow_contract.py`。新增投稿入口時，須在 `WORKFLOWS` 登記公開投稿端點與管理員審核端點，並在 `LIFECYCLE_TESTS` 登記對應的資料生命週期測試；漏登記會失敗。每個審核端點也會檢查一般使用者不得操作。音聲作品、Demo、台本、外部作者資料、聲演資料、聲演認領、聲演自行 Demo、活動投稿及管理員直接新增已有資料生命週期檢查。
+
+在 `server` 目錄執行：
+
+```bash
+PYTHONPATH=. python -m pytest -q tests/test_submission_workflow_contract.py
+```
+
+公開表單測試位於 `apps/public/components/SubmissionDialogs.test.tsx` 和 `apps/public/components/PublicFeedbackDialog.test.tsx`，可從專案根目錄以 `npx vitest run` 執行。GitHub Actions 的 `Submission workflows` 會在後端、公開頁或管理介面變更時執行這兩組測試。新增投稿種類時，請同時補上從建立到審核結果的資料生命週期檢查，並使用測試資料庫；不要對 Dev 或正式站送出測試投稿。
 最後更新：2026-03-11
 
 本專案採用 Vitest 進行單元測試，Playwright 進行統合測試 (E2E)。本文件旨在協助開發者了解如何執行與撰寫測試。

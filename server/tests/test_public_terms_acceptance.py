@@ -1,6 +1,7 @@
 import time
+import pytest
 
-from models import Script, User
+from models import PublicTermsAcceptance, Script, User
 
 
 def _seed_script(db_session):
@@ -88,7 +89,8 @@ def test_public_terms_acceptance_create_and_admin_list(client, db_session):
     row = body["items"][0]
     assert row["scriptId"] == "terms-script-1"
     assert row["visitorId"] == "visitor-abc-123"
-    assert row["ipAddress"] == "203.0.113.10"
+    assert row["ipAddress"] != "203.0.113.10"
+    assert row["forwardedFor"] == ""
     assert row["userAgent"] == "pytest-agent"
 
 
@@ -148,3 +150,59 @@ def test_public_terms_acceptance_rejects_private_script(client, db_session):
         },
     )
     assert res.status_code == 404
+
+
+@pytest.mark.parametrize("field,value", [
+    ("visitorId", "x" * 129),
+    ("screen", {"width": 1920, "unexpected": "x" * 200}),
+    ("viewport", {"width": -1}),
+    ("acceptedChecks", ["x"] * 17),
+])
+def test_public_terms_acceptance_rejects_unbounded_metadata(client, db_session, field, value):
+    config = client.get("/api/public-terms-config").json()
+    res = client.post("/api/public-terms-acceptances", json={
+        "termsVersion": config["version"],
+        "acceptedChecks": [item["id"] for item in config["requiredChecks"]],
+        field: value,
+    })
+    assert res.status_code == 422
+    assert db_session.query(PublicTermsAcceptance).count() == 0
+
+
+def test_public_terms_acceptance_rejects_oversized_body_before_parsing(client, db_session):
+    res = client.post(
+        "/api/public-terms-acceptances",
+        content='{"padding":"' + "x" * 4096 + '"}',
+        headers={"Content-Type": "application/json"},
+    )
+    assert res.status_code == 413
+    assert db_session.query(PublicTermsAcceptance).count() == 0
+
+
+def test_public_terms_acceptance_rejects_streamed_oversized_body(client, db_session):
+    res = client.post(
+        "/api/public-terms-acceptances",
+        content=iter([b'{"padding":"', b"x" * 4096, b'"}']),
+        headers={"Content-Type": "application/json"},
+    )
+    assert res.status_code == 413
+    assert db_session.query(PublicTermsAcceptance).count() == 0
+
+
+def test_public_terms_acceptance_bounds_recorded_headers(client, db_session):
+    config = client.get("/api/public-terms-config").json()
+    res = client.post("/api/public-terms-acceptances", json={
+        "termsVersion": config["version"],
+        "acceptedChecks": [item["id"] for item in config["requiredChecks"]],
+    }, headers={
+        "User-Agent": "u" * 2048,
+        "Accept-Language": "l" * 2048,
+        "Referer": "r" * 4096,
+        "Sec-CH-UA": "c" * 2048,
+    })
+    assert res.status_code == 200
+    row = db_session.query(PublicTermsAcceptance).filter_by(id=res.json()["acceptanceId"]).one()
+    assert len(row.userAgent) == 512
+    assert len(row.acceptLanguage) == 256
+    assert len(row.referer) == 2048
+    assert len(row.headerSnapshot["sec-ch-ua"]) == 512

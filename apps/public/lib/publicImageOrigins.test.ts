@@ -13,13 +13,15 @@ describe("public image origin policy", () => {
     expect(isNextImageOptimizableSrc("https://example.com/user-image.jpg")).toBe(false);
   });
 
-  it("allows backend media origin through next/image", () => {
+  it("never sends Docker-internal or local origins through next/image", () => {
     expect(
       isNextImageOptimizableSrc(
-        "http://write_project-backend:1091/media/covers/a.jpg",
-        "http://write_project-backend:1091"
+        "http://write_project-backend:1091/media/covers/a.jpg"
       )
-    ).toBe(true);
+    ).toBe(false);
+    expect(isNextImageOptimizableSrc("http://127.0.0.1:1091/media/a.jpg")).toBe(false);
+    expect(isNextImageOptimizableSrc("//127.0.0.1:1091/media/a.jpg")).toBe(false);
+    expect(isNextImageOptimizableSrc("/\\127.0.0.1:1091/media/a.jpg")).toBe(false);
   });
 
   it("allows relative app assets but rejects invalid strings", () => {

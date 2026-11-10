@@ -54,11 +54,10 @@ export function usePublicReaderActions(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ visitorId }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setLiked(Boolean(data.liked));
-        setLikes(Number(data.likes));
-      }
+      if (!res.ok) throw new Error(`Like request failed: ${res.status}`);
+      const data = await res.json();
+      setLiked(Boolean(data.liked));
+      setLikes(Number(data.likes));
     } catch {
       setLiked(prev);
       setLikes((l) => (prev ? l + 1 : Math.max(0, l - 1)));

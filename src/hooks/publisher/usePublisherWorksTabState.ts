@@ -173,13 +173,6 @@ export function usePublisherWorksTabState({
     return getReadinessFromParts(script, meta, getTagNames(script));
   }, [getReadinessFromParts, getTagNames]);
 
-  const statusBadgeClass = (script: PublisherScriptItem) => {
-    const isPublic = isPublicScript(script);
-    return isPublic
-      ? "border-primary/50 bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/30 hover:bg-primary/90"
-      : "border-border bg-muted text-foreground hover:bg-muted/80";
-  };
-
   const scriptsWithReadiness = React.useMemo<ScriptWorkIndexItem[]>(() =>
     (scripts || []).map((script) => {
       const meta = customMetadataEntriesToMeta(script.customMetadata || []) as Record<string, string>;
@@ -328,7 +321,7 @@ export function usePublisherWorksTabState({
     stats, filteredStatusCounts, hasAnyScripts, hasActiveFilters, clearFilters,
     filteredScripts, sortedScripts, visibleScripts,
     hasMore, loadMore, loadMoreRef,
-    hasCover, hasCompleteLicense, statusBadgeClass, readinessById, getReadiness,
+    hasCover, hasCompleteLicense, readinessById, getReadiness,
     PREFETCH_STEP,
   };
 }

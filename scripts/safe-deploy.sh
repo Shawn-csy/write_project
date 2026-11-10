@@ -12,17 +12,27 @@
 # 所以先用 docker stop -t 120 手動安全關閉，並驗證關機日誌乾淨，才交給 deploy.sh。
 # 部署後新容器就帶有 120s 寬限期，之後不再需要這支腳本的保護步驟。
 #
-# 用法：bash scripts/safe-deploy.sh
+# 用法（僅停機維護）：ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh
 
 set -Eeuo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
+if [ "${ALLOW_SERVICE_DOWNTIME:-0}" != "1" ]; then
+  echo "ERROR: safe-deploy.sh stops PostgreSQL and all production services." >&2
+  echo "       Use a candidate release path for uninterrupted updates." >&2
+  echo "       For an approved maintenance window, set ALLOW_SERVICE_DOWNTIME=1." >&2
+  exit 1
+fi
+
 PG=write_project-write_project-postgres-1
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die()  { printf '\n\033[31m中止：%s\033[0m\n' "$*" >&2; exit 1; }
+
+step "0/4 檢查正式網路邊界"
+python3 scripts/check-prod-network-boundary.py || die "正式 Compose 網路邊界不安全"
 
 # ------------------------------------------------------------------ 1. 備份
 step "1/4 部署前備份"

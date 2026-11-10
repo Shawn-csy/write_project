@@ -22,7 +22,7 @@ describe("ImportScriptDialog", () => {
     localStorage.setItem("import-guide-seen-v1", "1");
   });
 
-  it("opens format quick info and toggles detail rules", () => {
+  it("requires script content before preprocessing", () => {
     render(
       <ImportScriptDialog
         open={true}
@@ -32,12 +32,11 @@ describe("ImportScriptDialog", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "importDialog.formatGuide" }));
-    expect(screen.getByText("importDialog.formatQuickTitle")).toBeInTheDocument();
-    expect(screen.getByText("importFormat.markerCol")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "importDialog.formatGuideDetail" }));
-    expect(screen.getByText("importFormat.nameCol")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "收合" })).toBeInTheDocument();
+    const next = screen.getByRole("button", { name: "importDialog.nextPreprocess" });
+    expect(next).toBeDisabled();
+    fireEvent.change(screen.getByPlaceholderText("importStageInput.contentPlaceholder"), {
+      target: { value: "第一幕\n角色：台詞" },
+    });
+    expect(next).not.toBeDisabled();
   });
 });

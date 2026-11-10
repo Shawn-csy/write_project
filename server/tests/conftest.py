@@ -1,6 +1,8 @@
 
 import pytest
 import os
+import hashlib
+from ipaddress import IPv4Address
 
 # Set DB_PATH to memory to avoid creating file during import of main
 os.environ["DB_PATH"] = ":memory:"
@@ -52,7 +54,7 @@ def db_session():
 from database import get_db as database_get_db
 
 @pytest.fixture(scope="function")
-def client(db_session):
+def client(db_session, request):
     def override_get_db():
         try:
             yield db_session
@@ -63,6 +65,10 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[database_get_db] = override_get_db
-    with TestClient(app) as c:
+    # Limiter storage outlives a TestClient. Give each test a stable peer IP so
+    # unrelated tests cannot exhaust one another's public endpoint quotas.
+    digest = hashlib.sha256(request.node.nodeid.encode()).digest()
+    peer = str(IPv4Address(int(IPv4Address("198.18.0.0")) + int.from_bytes(digest[:4], "big") % 131072))
+    with TestClient(app, client=(peer, 50000)) as c:
         yield c
         app.dependency_overrides.clear()

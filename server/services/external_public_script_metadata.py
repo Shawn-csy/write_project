@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import base64
+import http.client
 import json
 import ipaddress
 import os
 import re
 import socket
+import time
 from datetime import datetime
 from html import unescape
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
-from urllib.request import HTTPRedirectHandler, Request, build_opener
+from urllib.request import HTTPHandler, HTTPSHandler, HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 MAX_METADATA_BYTES = 2 * 1024 * 1024
 MAX_GOOGLE_DOC_PDF_BYTES = 10 * 1024 * 1024
@@ -34,43 +36,69 @@ class ExternalMetadataError(ValueError):
     """A user-actionable error while validating or reading an external page."""
 
 
+def _is_public_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    if not ip.is_global:
+        return False
+    if not isinstance(ip, ipaddress.IPv6Address):
+        return True
+    if ip.ipv4_mapped and not ip.ipv4_mapped.is_global:
+        return False
+    if ip in ipaddress.ip_network("2002::/16") or ip in ipaddress.ip_network("2001::/32"):
+        return False
+    if ip in ipaddress.ip_network("64:ff9b:1::/48"):
+        return False
+    if ip in ipaddress.ip_network("64:ff9b::/96"):
+        return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF).is_global
+    return True
+
+
 def normalize_external_url(raw_url: str) -> str:
     value = str(raw_url or "").strip()
-    parsed = urlparse(value)
-    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+    try:
+        parsed = urlparse(value)
+        hostname = (parsed.hostname or "").lower().rstrip(".")
+        parsed.port  # Reject malformed port syntax before storing the URL.
+    except ValueError as exc:
+        raise ExternalMetadataError("請輸入完整的 http:// 或 https:// 網址。") from exc
+    if parsed.scheme not in {"http", "https"} or not hostname:
         raise ExternalMetadataError("請輸入完整的 http:// 或 https:// 網址。")
     if parsed.username or parsed.password:
         raise ExternalMetadataError("網址不可包含登入帳號或密碼。")
+    if hostname in {"localhost", "localhost.localdomain"} or hostname.endswith((".localhost", ".local", ".internal")):
+        raise ExternalMetadataError("為了安全，不能使用本機或內部網址。")
+    try:
+        literal_ip = ipaddress.ip_address(hostname)
+    except ValueError:
+        pass
+    else:
+        if not _is_public_ip(literal_ip):
+            raise ExternalMetadataError("為了安全，不能使用內部或私有網路網址。")
     return value
 
 
-def _assert_public_hostname(hostname: str) -> None:
+def _public_addresses(hostname: str) -> tuple[str, ...]:
     host = str(hostname or "").strip().lower().rstrip(".")
     if not host or host in {"localhost", "localhost.localdomain"} or host.endswith(".localhost"):
         raise ExternalMetadataError("為了安全，不能讀取本機網址。")
 
     try:
-        addresses = {info[4][0] for info in socket.getaddrinfo(host, None)}
+        addresses = tuple(dict.fromkeys(info[4][0] for info in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)))
     except socket.gaierror as exc:
         raise ExternalMetadataError("找不到這個網址的主機。") from exc
+    if not addresses:
+        raise ExternalMetadataError("找不到這個網址的主機。")
 
     for address in addresses:
         ip = ipaddress.ip_address(address)
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        ):
+        if not _is_public_ip(ip):
             raise ExternalMetadataError("為了安全，不能讀取內部或私有網路網址。")
+    return addresses
 
 
 def _assert_safe_url(url: str) -> str:
     normalized = normalize_external_url(url)
     parsed = urlparse(normalized)
-    _assert_public_hostname(parsed.hostname or "")
+    _public_addresses(parsed.hostname or "")
     return normalized
 
 
@@ -78,6 +106,49 @@ class _SafeRedirectHandler(HTTPRedirectHandler):
     def redirect_request(self, req: Request, fp: Any, code: int, msg: str, headers: Any, newurl: str):
         _assert_safe_url(newurl)
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _open_pinned(handler: HTTPHandler | HTTPSHandler, req: Request, connection_type: type) -> Any:
+    parsed = urlparse(normalize_external_url(req.full_url))
+    vetted_ips = _public_addresses(parsed.hostname or "")
+
+    def connection(host: str, timeout: float, **kwargs: Any):
+        client = connection_type(host, timeout=timeout, **kwargs)
+
+        def connect_to_validated_ip(address: tuple[str, int], timeout: float, source_address: Any = None):
+            last_error: OSError | None = None
+            deadline = time.monotonic() + timeout
+            for vetted_ip in vetted_ips:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    break
+                try:
+                    return socket.create_connection((vetted_ip, address[1]), remaining, source_address)
+                except OSError as exc:
+                    last_error = exc
+            raise last_error or OSError("No reachable validated address")
+
+        # http.client keeps the original hostname for Host, TLS SNI and
+        # certificate validation; only the socket destination is pinned.
+        client._create_connection = connect_to_validated_ip
+        return client
+
+    return handler.do_open(connection, req)
+
+
+class _PinnedHTTPHandler(HTTPHandler):
+    def http_open(self, req: Request):
+        return _open_pinned(self, req, http.client.HTTPConnection)
+
+
+class _PinnedHTTPSHandler(HTTPSHandler):
+    def https_open(self, req: Request):
+        return _open_pinned(self, req, http.client.HTTPSConnection)
+
+
+def _safe_opener():
+    # Environment proxy settings would make the proxy resolve the URL again.
+    return build_opener(ProxyHandler({}), _SafeRedirectHandler(), _PinnedHTTPHandler(), _PinnedHTTPSHandler())
 
 
 class _MetadataParser(HTMLParser):
@@ -217,7 +288,7 @@ def fetch_google_drive_file_metadata(raw_url: str) -> dict[str, Any]:
         },
     )
     try:
-        with build_opener(_SafeRedirectHandler()).open(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
+        with _safe_opener().open(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
             data = json.loads(response.read(MAX_METADATA_BYTES).decode("utf-8", errors="replace"))
     except Exception:
         # Metadata is an enhancement. A public document should remain
@@ -249,7 +320,7 @@ def _fetch_url_bytes(
             "Accept": ",".join(accepted_content_types) + ";q=0.9,*/*;q=0.1",
         },
     )
-    opener = build_opener(_SafeRedirectHandler())
+    opener = _safe_opener()
     try:
         with opener.open(request, timeout=FETCH_TIMEOUT_SECONDS) as response:
             final_url = _assert_safe_url(response.geturl())

@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 # security-check.sh — Run the security regression test suite.
 #
-# Runs the minimum set of security tests that must pass before any deployment:
-#   - Backend: public write hardening tests (rate limit decorators, visibility,
-#     folder-inherited predicate, 429 integration tests)
-#   - Frontend: revalidate route scope tests (path allowlist, rejection, limits)
+# Runs the security regression tests for public writes, trusted client IPs,
+# SSRF-safe metadata/media fetching, and revalidation scope.
 #
 # Usage:
 #   bash scripts/security-check.sh
@@ -38,18 +36,34 @@ echo ""
 
 OVERALL=0
 
+echo -e "${BOLD}Deployment: production network boundary${RESET}"
+if python3 "$ROOT_DIR/scripts/check-prod-network-boundary.py"; then
+  pass "production network boundary"
+else
+  fail "production network boundary"
+  OVERALL=1
+fi
+
+echo ""
+
 # ── Backend security tests ────────────────────────────────────────────────────
-echo -e "${BOLD}Backend: public write hardening + rate limits${RESET}"
+echo -e "${BOLD}Backend: public writes, client IPs, and metadata fetching${RESET}"
 
 BACKEND_PYTHON="${ROOT_DIR}/server/venv/bin/python"
 if [[ ! -x "$BACKEND_PYTHON" ]]; then
   fail "server/venv not found — run: python -m venv server/venv && server/venv/bin/pip install -r server/requirements.txt"
   OVERALL=1
 else
-  if (cd "$ROOT_DIR/server" && ./venv/bin/python -m pytest tests/test_public_write_hardening.py -v --tb=short 2>&1); then
-    pass "test_public_write_hardening.py"
+  if (cd "$ROOT_DIR/server" && ./venv/bin/python -m pytest -q \
+    tests/test_public_write_hardening.py \
+    tests/test_request_body_limits.py \
+    tests/test_public_terms_acceptance.py \
+    tests/test_rate_limit.py \
+    tests/test_health.py \
+    tests/test_external_public_script_metadata.py --tb=short 2>&1); then
+    pass "backend security regressions"
   else
-    fail "test_public_write_hardening.py"
+    fail "backend security regressions"
     OVERALL=1
   fi
 fi
@@ -57,16 +71,25 @@ fi
 echo ""
 
 # ── Frontend security tests ───────────────────────────────────────────────────
-echo -e "${BOLD}Frontend: revalidate route scope lockdown${RESET}"
+echo -e "${BOLD}Frontend: revalidation, image boundaries, media proxy, and like state${RESET}"
 
 if ! command -v npx &>/dev/null; then
   fail "npx not found"
   OVERALL=1
 else
-  if (cd "$ROOT_DIR" && npx vitest run apps/public/app/api/revalidate/route.test.ts 2>&1); then
-    pass "revalidate/route.test.ts"
+  if (cd "$ROOT_DIR" && npx vitest run \
+    apps/public/securityHeaders.test.ts \
+    apps/public/app/api/revalidate/route.test.ts \
+    apps/public/app/api/public-bundle/route.test.ts \
+    apps/public/app/api/health/route.test.ts \
+    apps/public/imageSecurity.test.ts \
+    apps/public/lib/publicImageOrigins.test.ts \
+    apps/public/lib/__tests__/remoteImageFetch.test.ts \
+    apps/public/lib/__tests__/publicMediaProxy.test.ts \
+    'apps/public/app/read/[id]/usePublicReaderActions.test.tsx' 2>&1); then
+    pass "frontend security regressions"
   else
-    fail "revalidate/route.test.ts"
+    fail "frontend security regressions"
     OVERALL=1
   fi
 fi

@@ -18,8 +18,7 @@
 3. `architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約
 4. `engineering/testing.md`：測試策略與指令
 
-> ⚠️ 正式部署請使用 `scripts/safe-deploy.sh`，不要直接執行 `scripts/deploy.sh`。
-> 原因見 `engineering/operations.md` 第 6 節。
+> ⚠️ 現有 `scripts/safe-deploy.sh` 會停止 PostgreSQL 與所有服務，預設拒絕執行；僅在停機維護時設定 `ALLOW_SERVICE_DOWNTIME=1` 使用。不中斷發布流程尚待建立，詳見 `engineering/operations.md` 第 6 節。
 
 ## 工程操作
 
@@ -49,7 +48,7 @@
 - `architecture/seo-google-content-visibility-contract.md`：Google 搜尋與 AI 爬蟲可見性契約
 - `architecture/security-protection.md`：資安防護架構
 - `architecture/color-token-guide.md`：色彩 token 規範
-- `architecture/local-external-script-mcp.md`：現行本機外部台本 MCP
+- `architecture/local-external-script-mcp.md`：現行本機外部台本與 Demo 管理 MCP
 - `architecture/mcp-spec.md`：MCP 歷史設計草案（非現行介面）
 
 ## 產品與功能

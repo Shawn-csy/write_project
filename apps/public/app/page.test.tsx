@@ -28,8 +28,13 @@ vi.mock("@/lib/jsonLd", () => ({
   JsonLdScript: () => null,
 }));
 vi.mock("./GalleryClient", () => ({
-  GalleryClient: ({ initialScripts, initialUrlState }: { initialScripts: unknown[]; initialUrlState: unknown }) => (
-    <div data-testid="gallery-client" data-script-count={initialScripts.length} data-has-url-state={initialUrlState != null} />
+  GalleryClient: ({ initialScripts, initialPersonas, initialOrganizations, initialUrlState }: {
+    initialScripts: unknown[]; initialPersonas?: unknown[]; initialOrganizations?: unknown[]; initialUrlState: unknown;
+  }) => (
+    <div data-testid="gallery-client" data-script-count={initialScripts.length}
+      data-persona-count={initialPersonas?.length ?? 0} data-org-count={initialOrganizations?.length ?? 0}
+      data-people-preloaded={initialPersonas !== undefined && initialOrganizations !== undefined}
+      data-has-url-state={initialUrlState != null} />
   ),
 }));
 
@@ -52,12 +57,35 @@ beforeEach(() => {
 
 const EMPTY_SEARCH_PARAMS = Promise.resolve({} as Record<string, string | string[] | undefined>);
 
-async function renderPage() {
-  const jsx = await HomePage({ searchParams: EMPTY_SEARCH_PARAMS });
+async function renderPage(searchParams = EMPTY_SEARCH_PARAMS) {
+  const jsx = await HomePage({ searchParams });
   return render(jsx as React.ReactElement);
 }
 
 describe("homepage server component", () => {
+  it("omits people directories from the initial script gallery bundle", async () => {
+    mockApiFetch.mockResolvedValue({ scripts: SCRIPTS, personas: [{ id: "p1" }], organizations: [{ id: "o1" }] });
+    await renderPage();
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/public-bundle?sections=scripts,externalPublicScripts,activityPages,demoSubmissions,banner",
+      expect.anything(),
+    );
+    expect(screen.getByTestId("gallery-client").getAttribute("data-people-preloaded")).toBe("false");
+  });
+
+  it("preloads public identities for a direct people view", async () => {
+    mockApiFetch.mockResolvedValue({ scripts: [], personas: [{ id: "p1" }], organizations: [{ id: "o1" }] });
+    await renderPage(Promise.resolve({ view: "orgs" }));
+    const client = screen.getByTestId("gallery-client");
+    expect(client.getAttribute("data-persona-count")).toBe("1");
+    expect(client.getAttribute("data-org-count")).toBe("1");
+    expect(client.getAttribute("data-people-preloaded")).toBe("true");
+    expect(mockApiFetch).toHaveBeenCalledWith(
+      "/public-bundle?sections=scripts,externalPublicScripts,personas,organizations,activityPages,demoSubmissions,banner",
+      expect.anything(),
+    );
+  });
+
   it("passes initialScripts to GalleryClient when bundle loads", async () => {
     mockApiFetch.mockResolvedValue({ scripts: SCRIPTS });
     await renderPage();

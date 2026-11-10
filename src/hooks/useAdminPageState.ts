@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useI18n } from "../contexts/I18nContext";
 import { createOrganization, transferOrganizationOwnership } from "../lib/api/organizations";
@@ -6,6 +6,7 @@ import { transferScriptOwnership } from "../lib/api/scripts";
 import { transferPersonaOwnership } from "../lib/api/personas";
 import {
   searchUsers,
+  getDirectoryOverviewAdmin,
   getAllUsersAdmin,
   getAllOrganizationsAdmin,
   getAllPersonasAdmin,
@@ -17,6 +18,7 @@ import {
   deletePersonaAdmin,
   deleteScriptAdmin,
 } from "../lib/api/admin";
+import type { AdminDirectoryOverview } from "../lib/api/admin";
 
 export interface AdminUser {
   id: string;
@@ -52,7 +54,14 @@ interface SaveScriptContext {
   tagIds?: string[];
 }
 
-export function useAdminPageState() {
+export type AdminDirectoryTab = "scripts" | "orgs" | "personas" | "users";
+
+const EMPTY_OVERVIEW: AdminDirectoryOverview = {
+  users: 0, organizations: 0, personas: 0, authors: 0, scripts: 0,
+  writerPersonaIds: [], ownerLabels: {},
+};
+
+export function useAdminPageState(loadDirectory = true, activeDirectoryTab: AdminDirectoryTab = "scripts") {
   const { t } = useI18n();
   const { currentUser, profile } = useAuth();
 
@@ -60,7 +69,9 @@ export function useAdminPageState() {
   const [scripts, setScripts] = useState<AdminScript[]>([]);
   const [personas, setPersonas] = useState<AdminPersona[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [directoryOverview, setDirectoryOverview] = useState<AdminDirectoryOverview>(EMPTY_OVERVIEW);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const directoryRequestId = useRef(0);
   const [listQuery, setListQuery] = useState<string>("");
 
   const [transferType, setTransferType] = useState<string | null>(null);
@@ -72,6 +83,7 @@ export function useAdminPageState() {
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchError, setSearchError] = useState<string>("");
   const [isTransferring, setIsTransferring] = useState<boolean>(false);
+  const searchRequestId = useRef(0);
 
   const [newOrgName, setNewOrgName] = useState<string>("");
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
@@ -100,60 +112,68 @@ export function useAdminPageState() {
       selectedItem.id)
     : "";
 
-  const loadAllData = async (queryText = "") => {
+  const loadDirectoryData = async (queryText = "") => {
+    const requestId = ++directoryRequestId.current;
     setIsLoading(true);
     try {
-      const [uData, oData, sData, pData] = await Promise.all([
-        getAllUsersAdmin({ q: queryText, limit: 300 }),
-        getAllOrganizationsAdmin({ q: queryText, limit: 300 }),
-        getAllScriptsAdmin({ q: queryText, limit: 600 }),
-        getAllPersonasAdmin({ q: queryText, limit: 300 }),
+      const [overview, items] = await Promise.all([
+        getDirectoryOverviewAdmin(queryText),
+        activeDirectoryTab === "users" ? getAllUsersAdmin({ q: queryText, limit: 300 })
+          : activeDirectoryTab === "orgs" ? getAllOrganizationsAdmin({ q: queryText, limit: 300 })
+            : activeDirectoryTab === "personas" ? getAllPersonasAdmin({ q: queryText, limit: 300 })
+              : getAllScriptsAdmin({ q: queryText, limit: 600 }),
       ]);
-      setUsers((uData || []) as AdminUser[]);
-      setOrgs((oData || []) as AdminOrg[]);
-      setScripts((sData || []) as AdminScript[]);
-      setPersonas((pData || []) as AdminPersona[]);
+      if (requestId !== directoryRequestId.current) return;
+      setDirectoryOverview(overview);
+      if (activeDirectoryTab === "users") setUsers((items || []) as AdminUser[]);
+      else if (activeDirectoryTab === "orgs") setOrgs((items || []) as AdminOrg[]);
+      else if (activeDirectoryTab === "personas") setPersonas((items || []) as AdminPersona[]);
+      else setScripts((items || []) as AdminScript[]);
     } catch (e) {
-      console.error("Failed to load admin data", e);
+      if (requestId === directoryRequestId.current) console.error("Failed to load admin data", e);
     } finally {
-      setIsLoading(false);
+      if (requestId === directoryRequestId.current) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (!currentUser || !profile?.isAdmin) return;
-    loadAllData("");
-  }, [currentUser, profile?.isAdmin]);
-
-  useEffect(() => {
     const normalized = listQuery.trim();
-    if (!currentUser || !profile?.isAdmin) return;
-    const timer = setTimeout(() => { loadAllData(normalized); }, 350);
-    return () => clearTimeout(timer);
-  }, [listQuery, currentUser, profile?.isAdmin]);
+    if (!loadDirectory || !currentUser || !profile?.isAdmin) return;
+    const timer = setTimeout(() => { void loadDirectoryData(normalized); }, normalized ? 350 : 0);
+    return () => {
+      clearTimeout(timer);
+      directoryRequestId.current++;
+    };
+  }, [listQuery, currentUser, profile?.isAdmin, loadDirectory, activeDirectoryTab]);
 
   useEffect(() => {
+    const requestId = ++searchRequestId.current;
     const normalizedQuery = searchQuery.trim();
-    if (!normalizedQuery) { setSearchResults([]); setSearchError(""); return; }
+    if (!normalizedQuery) { setSearchResults([]); setSearchError(""); setIsSearching(false); return; }
     const delay = setTimeout(async () => {
       setIsSearching(true);
       setSearchError("");
       try {
         const results = await searchUsers(normalizedQuery);
-        setSearchResults(results || []);
+        if (requestId === searchRequestId.current) setSearchResults(results || []);
       } catch (e: unknown) {
-        console.error(e);
-        setSearchResults([]);
-        setSearchError(
-          (e as { status?: number })?.status === 403
-            ? t("transferAdmin.searchPermissionDenied")
-            : t("transferAdmin.searchFailed")
-        );
+        if (requestId === searchRequestId.current) {
+          console.error(e);
+          setSearchResults([]);
+          setSearchError(
+            (e as { status?: number })?.status === 403
+              ? t("transferAdmin.searchPermissionDenied")
+              : t("transferAdmin.searchFailed")
+          );
+        }
       } finally {
-        setIsSearching(false);
+        if (requestId === searchRequestId.current) setIsSearching(false);
       }
     }, 350);
-    return () => clearTimeout(delay);
+    return () => {
+      clearTimeout(delay);
+      searchRequestId.current++;
+    };
   }, [searchQuery, t]);
 
   const handleCreateOrg = async () => {
@@ -161,7 +181,7 @@ export function useAdminPageState() {
     try {
       await createOrganization({ name: newOrgName, description: "Created via Admin Console" });
       setNewOrgName("");
-      loadAllData(listQuery.trim());
+      void loadDirectoryData(listQuery.trim());
     } catch (error) {
       console.error("Failed to create org:", error);
       alert(t("transferAdmin.alertCreateFailed"));
@@ -192,7 +212,7 @@ export function useAdminPageState() {
       setShowTransferModal(false);
       setSelectedItem(null);
       setTargetUser(null);
-      loadAllData(listQuery.trim());
+      void loadDirectoryData(listQuery.trim());
     } catch (error) {
       console.error("Transfer failed:", error);
       alert(t("transferAdmin.alertTransferFailed"));
@@ -207,7 +227,7 @@ export function useAdminPageState() {
     setIsDeleting(true);
     try {
       await deleteOrganizationAdmin(org.id);
-      loadAllData(listQuery.trim());
+      void loadDirectoryData(listQuery.trim());
     } catch (error) {
       alert((error as { message?: string })?.message || "刪除組織失敗");
     } finally { setIsDeleting(false); }
@@ -220,7 +240,7 @@ export function useAdminPageState() {
     setIsDeleting(true);
     try {
       await deleteUserAdmin(user.id);
-      loadAllData(listQuery.trim());
+      void loadDirectoryData(listQuery.trim());
     } catch (error) {
       alert((error as { message?: string })?.message || "刪除使用者失敗");
     } finally { setIsDeleting(false); }
@@ -232,7 +252,7 @@ export function useAdminPageState() {
     setIsDeleting(true);
     try {
       await deletePersonaAdmin(persona.id);
-      loadAllData(listQuery.trim());
+      void loadDirectoryData(listQuery.trim());
     } catch (error) {
       alert((error as { message?: string })?.message || "刪除作者失敗");
     } finally { setIsDeleting(false); }
@@ -244,7 +264,7 @@ export function useAdminPageState() {
     setIsDeleting(true);
     try {
       await deleteScriptAdmin(script.id);
-      loadAllData(listQuery.trim());
+      void loadDirectoryData(listQuery.trim());
     } catch (error) {
       alert((error as { message?: string })?.message || "刪除劇本失敗");
     } finally { setIsDeleting(false); }
@@ -270,17 +290,9 @@ export function useAdminPageState() {
     });
   };
 
-  const userById = useMemo(() => {
-    const map = new Map<string, AdminUser>();
-    users.forEach((u) => map.set(u.id, u));
-    return map;
-  }, [users]);
-
   const getOwnerLabel = (ownerId?: string) => {
     if (!ownerId) return "-";
-    const owner = userById.get(ownerId);
-    if (!owner) return ownerId;
-    return owner.displayName || owner.email || owner.handle || ownerId;
+    return directoryOverview.ownerLabels[ownerId] || ownerId;
   };
 
   const filteredScripts = useMemo(() => {
@@ -289,26 +301,22 @@ export function useAdminPageState() {
       .filter((s) => s.type !== "folder")
       .filter((s) => scriptStatusFilter === "all" || s.status === scriptStatusFilter)
       .filter((s) => !q || toText(s.title).toLowerCase().includes(q) || getOwnerLabel(s.ownerId).toLowerCase().includes(q));
-  }, [scripts, scriptFilter, scriptStatusFilter, userById]);
+  }, [scripts, scriptFilter, scriptStatusFilter, directoryOverview]);
 
   const filteredOrgs = useMemo(() => {
     const q = orgFilter.toLowerCase();
     return !q ? orgs : orgs.filter((o) => toText(o.name).toLowerCase().includes(q) || getOwnerLabel(o.ownerId).toLowerCase().includes(q));
-  }, [orgs, orgFilter, userById]);
+  }, [orgs, orgFilter, directoryOverview]);
 
   const authorPersonas = useMemo(() => {
-    const personasWithScripts = new Set(scripts
-      .filter((script) => script.type !== "folder" && script.personaId)
-      .map((script) => String(script.personaId)));
-    const writerTagPattern = /台本師|編劇|劇本師|作者|script\s*writer|writer/i;
-    return personas.filter((persona) => personasWithScripts.has(persona.id)
-      || (persona.tags || []).some((tag) => writerTagPattern.test(String(tag))));
-  }, [personas, scripts]);
+    const writerIds = new Set(directoryOverview.writerPersonaIds);
+    return personas.filter((persona) => writerIds.has(persona.id));
+  }, [personas, directoryOverview]);
 
   const filteredPersonas = useMemo(() => {
     const q = personaFilter.toLowerCase();
     return !q ? authorPersonas : authorPersonas.filter((p) => toText(p.displayName).toLowerCase().includes(q) || getOwnerLabel(p.ownerId).toLowerCase().includes(q));
-  }, [authorPersonas, personaFilter, userById]);
+  }, [authorPersonas, personaFilter, directoryOverview]);
 
   const filteredUsers = useMemo(() => {
     const q = userFilter.toLowerCase();
@@ -318,7 +326,7 @@ export function useAdminPageState() {
   return {
     t, currentUser, profile,
     // data
-    orgs, scripts, personas, authorPersonas, users,
+    orgs, scripts, personas, authorPersonas, users, directoryOverview,
     isLoading, listQuery, setListQuery,
     // transfer
     transferType, selectedItem, targetUser, setTargetUser,
@@ -344,7 +352,7 @@ export function useAdminPageState() {
     filteredScripts, filteredOrgs, filteredPersonas, filteredUsers,
     getOwnerLabel,
     // handlers
-    loadAllData,
+    loadDirectoryData,
     handleCreateOrg,
     handleOpenTransfer,
     confirmTransfer,

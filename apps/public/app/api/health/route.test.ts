@@ -28,7 +28,9 @@ describe("public service health endpoints", () => {
   it("reports readiness when the backend is ready", async () => {
     vi.stubEnv("BACKEND_API_URL", "http://backend.test/");
     const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ status: "ready" }), {
+      new Response(JSON.stringify({ status: "ready", publicApiCapabilities: [
+        "public-bundle-sections", "external-cover-lookup", "public-activity-status", "audio-works",
+      ] }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }),
@@ -47,6 +49,26 @@ describe("public service health endpoints", () => {
       "http://backend.test/api/health/ready",
       expect.objectContaining({ cache: "no-store" }),
     );
+  });
+
+  it.each([
+    ["old backend", undefined],
+    ["partial backend", ["public-bundle-sections", "audio-works"]],
+    ["malformed backend", "public-bundle-sectionsexternal-cover-lookuppublic-activity-statusaudio-works"],
+  ])("keeps an incompatible %s out of service", async (_case, capabilities) => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ status: "ready", publicApiCapabilities: capabilities }), { status: 200 }),
+    ));
+
+    const response = await getReadiness();
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      status: "unavailable",
+      service: "public",
+      checks: { backend: "incompatible" },
+    });
+    expect(response.headers.get("cache-control")).toBe("no-store");
   });
 
   it.each([

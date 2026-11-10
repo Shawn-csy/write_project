@@ -1,3 +1,4 @@
+import { formatPublicCardDate } from "@write/public-ui/public-date";
 import type {
   AuthorLike,
   GalleryScriptInput,
@@ -24,24 +25,14 @@ export function getPublicScriptPublishedTimestamp(script: Pick<PublicScript, "cr
   );
 }
 
-function formatGalleryDate(value?: number | string | null): { label?: string; time?: string } {
-  if (value == null || value === "") return {};
-  const timestamp = typeof value === "number" ? value : Date.parse(String(value));
-  if (!Number.isFinite(timestamp) || timestamp <= 0) return {};
-  const date = new Date(timestamp);
-  return {
-    label: new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "numeric", day: "numeric" }).format(date),
-    time: date.toISOString(),
-  };
-}
-
 export function toGalleryInput(script: PublicScript): GalleryScriptInput {
-  const displayDate = formatGalleryDate(getPublicScriptPublishedTimestamp(script));
+  const displayDate = formatPublicCardDate(getPublicScriptPublishedTimestamp(script));
   const hasCustomAuthor =
     String(script.authorDisplayMode || "").trim().toLowerCase() === "override" ||
     Boolean(String(script.authorOverrideName || "").trim());
   return {
     id: script.id,
+    hasDemo: Boolean(script.hasDemo || hasValidDemoLink(script.activityDemoLinks)),
     title: script.title,
     synopsis: script.synopsis ?? undefined,
     outline: script.outline ?? undefined,
@@ -50,6 +41,7 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
     coverDesign: script.coverDesign ?? undefined,
     tags: (script.tags ?? []).map((tag) => ({ id: tag.id, name: tag.name })),
     views: script.views,
+    contentLength: script.contentLength,
     createdAt: script.createdAt,
     draftDate: script.draftDate,
     lastModified: script.lastModified,
@@ -93,8 +85,16 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
           defaultLicenseNotify: script.persona.defaultLicenseNotify,
         }
       : null,
-    customMetadata: script.customMetadata ?? undefined,
   };
+}
+
+export function hasValidDemoLink(value: unknown): boolean {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try { parsed = JSON.parse(parsed); }
+    catch { return /^https?:\/\//i.test(String(value).trim()); }
+  }
+  return Array.isArray(parsed) && parsed.some((item) => item && typeof item === "object" && /^https?:\/\//i.test(String(item.url || item.link || "").trim()));
 }
 
 export function toAuthorLike(persona: PublicPersona): AuthorLike {
@@ -201,23 +201,57 @@ function clip(value: string | undefined, max: number): string | undefined {
 }
 
 export function slimScriptForHomepage(script: PublicScript): PublicScript {
-  const {
-    markerTheme: _markerTheme,
-    markerThemeId: _markerThemeId,
-    activityName: _activityName,
-    activityBannerUrl: _activityBannerUrl,
-    activityContent: _activityContent,
-    activityWorkUrl: _activityWorkUrl,
-    activityDemoLinks: _activityDemoLinks,
-    publishReadiness: _publishReadiness,
-    hasPublishIdentity: _hasPublishIdentity,
-    metadataSeriesName: _metadataSeriesName,
-    coverIsAiGenerated: _coverIsAiGenerated,
-    folder: _folder,
-    sortOrder: _sortOrder,
-    ...rest
-  } = script as PublicScript & Record<string, unknown>;
-  return rest as PublicScript;
+  return {
+    id: script.id,
+    title: script.title,
+    hasDemo: Boolean(script.hasDemo || hasValidDemoLink(script.activityDemoLinks)),
+    synopsis: script.synopsis,
+    outline: script.outline,
+    coverUrl: script.coverUrl,
+    coverCrop: script.coverCrop,
+    coverDesign: script.coverDesign,
+    tags: script.tags?.map(({ id, name }) => ({ id, name })),
+    views: script.views,
+    contentLength: script.contentLength,
+    createdAt: script.createdAt,
+    draftDate: script.draftDate,
+    lastModified: script.lastModified,
+    updatedAt: script.updatedAt,
+    seriesOrder: script.seriesOrder,
+    series: script.series && {
+      id: script.series.id,
+      name: script.series.name,
+      summary: script.series.summary,
+      coverUrl: script.series.coverUrl,
+    },
+    targetAudience: script.targetAudience,
+    contentRating: script.contentRating,
+    license: script.license,
+    licenseSpecialTerms: script.licenseSpecialTerms,
+    licenseCommercial: script.licenseCommercial,
+    licenseDerivative: script.licenseDerivative,
+    licenseNotify: script.licenseNotify,
+    authorDisplayMode: script.authorDisplayMode,
+    authorOverrideName: script.authorOverrideName,
+    owner: script.owner && {
+      id: script.owner.id,
+      displayName: script.owner.displayName,
+      avatar: script.owner.avatar,
+      avatarUrl: script.owner.avatarUrl,
+    },
+    persona: script.persona && {
+      id: script.persona.id,
+      displayName: script.persona.displayName,
+      avatar: script.persona.avatar,
+      defaultLicenseCommercial: script.persona.defaultLicenseCommercial,
+      defaultLicenseDerivative: script.persona.defaultLicenseDerivative,
+      defaultLicenseNotify: script.persona.defaultLicenseNotify,
+    },
+    organization: script.organization && {
+      name: script.organization.name,
+      logoUrl: script.organization.logoUrl,
+    },
+  };
 }
 
 export function slimExternalScriptForHomepage(item: ExternalPublicScript): ExternalPublicScript {
@@ -227,6 +261,10 @@ export function slimExternalScriptForHomepage(item: ExternalPublicScript): Exter
     sourceDomain: item.sourceDomain,
     sourceName: item.sourceName,
     authorName: item.authorName,
+    authorKey: item.authorKey,
+    externalAuthorId: item.externalAuthorId,
+    authorPersonaId: item.authorPersonaId,
+    authorProfileKey: item.authorProfileKey,
     authorBio: clip(item.authorBio, HOMEPAGE_EXTERNAL_BIO_MAX),
     authorUrl: item.authorUrl,
     authorAvatarUrl: item.authorAvatarUrl,
@@ -237,6 +275,7 @@ export function slimExternalScriptForHomepage(item: ExternalPublicScript): Exter
     seriesName: item.seriesName,
     seriesOrder: item.seriesOrder,
     demoLinks: item.demoLinks,
+    hasDemo: Boolean(item.hasDemo || hasValidDemoLink(item.demoLinks)),
     // Consumers read `title || remoteTitle` and `summary || remoteSummary`;
     // fold the fallback in so the second copy does not ship.
     title: item.title || item.remoteTitle || "",

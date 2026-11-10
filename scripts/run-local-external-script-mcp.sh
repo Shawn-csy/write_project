@@ -22,4 +22,8 @@ if [[ -z "${MCP_LOCAL_API_KEY:-}" || -z "${MCP_OWNER_ID:-}" ]]; then
 fi
 
 export PYTHONPATH="$ROOT_DIR/server${PYTHONPATH:+:$PYTHONPATH}"
-exec python3 "$ROOT_DIR/server/mcp_server/server.py"
+PYTHON_BIN="$ROOT_DIR/server/venv/bin/python"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  PYTHON_BIN=python3
+fi
+exec "$PYTHON_BIN" "$ROOT_DIR/server/mcp_server/server.py"

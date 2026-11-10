@@ -9,12 +9,15 @@ import type {
   AdminDemoMutationPayload,
   BaseScriptApi,
   HomepageBanner,
+  DemoBanner,
   OrgData,
   PersonaLike,
   PublicFeedbackListResponse,
   PublicFeedbackRecord,
   PublicDemoSubmissionListResponse,
   PublicDemoSubmissionRecord,
+  PublicAudioWorkSubmissionListResponse,
+  PublicAudioWorkSubmissionRecord,
   VoiceActorProfileSubmission,
   VoiceActorProfileSubmissionListResponse,
   ExternalAuthorProfileSubmission,
@@ -99,6 +102,28 @@ export const updatePublicDemoSubmissionStatusAdmin = async (
 export const deletePublicDemoSubmissionAdmin = async (submissionId: string): Promise<ScriptMutationResponse> =>
   fetchApi(`/admin/public-demo-submissions/${encodeURIComponent(submissionId)}`, { method: "DELETE" }) as Promise<ScriptMutationResponse>;
 
+export const getPublicAudioWorkSubmissionsAdmin = async ({
+  q = "",
+  status = "pending",
+  limit = 100,
+  offset = 0,
+}: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<PublicAudioWorkSubmissionListResponse> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/public-audio-work-submissions?${params.toString()}`) as Promise<PublicAudioWorkSubmissionListResponse>;
+};
+
+export const updatePublicAudioWorkSubmissionAdmin = async (
+  id: string,
+  status: PublicAudioWorkSubmissionRecord["status"],
+  organizationId?: string | null,
+  voiceActorIds?: string[],
+  accessType?: "paid" | "free",
+): Promise<PublicAudioWorkSubmissionRecord> => fetchApi(`/admin/public-audio-work-submissions/${encodeURIComponent(id)}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, ...(organizationId !== undefined ? { organizationId } : {}), ...(voiceActorIds !== undefined ? { voiceActorIds } : {}), ...(accessType !== undefined ? { accessType } : {}) }),
+}) as Promise<PublicAudioWorkSubmissionRecord>;
+
 export interface VoiceActorClaimRecord {
   id: string; personaId: string; personaName: string; requesterId: string; requesterName: string;
   verifiedEmail: string; proofUrl: string; note: string; status: "pending" | "approved" | "rejected";
@@ -172,12 +197,28 @@ export const removeAdminUser = async (adminId: string): Promise<ScriptMutationRe
   }) as Promise<ScriptMutationResponse>;
 };
 
+export interface AdminDirectoryOverview {
+  users: number;
+  organizations: number;
+  personas: number;
+  authors: number;
+  scripts: number;
+  writerPersonaIds: string[];
+  ownerLabels: Record<string, string>;
+}
+
+export const getDirectoryOverviewAdmin = (q = ""): Promise<AdminDirectoryOverview> => {
+  const params = new URLSearchParams();
+  if (q) params.set("q", q);
+  return fetchApi(`/admin/directory-overview?${params.toString()}`, { cache: "no-store" }) as Promise<AdminDirectoryOverview>;
+};
+
 export const getAllUsersAdmin = async ({ q = "", limit = 200, offset = 0 }: AdminPaginationQuery = {}): Promise<SearchUser[]> => {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
-  return fetchApi(`/admin/all-users?${params.toString()}`) as Promise<SearchUser[]>;
+  return fetchApi(`/admin/all-users?${params.toString()}`, { cache: "no-store" }) as Promise<SearchUser[]>;
 };
 
 export const deleteUserAdmin = async (userId: string): Promise<ScriptMutationResponse> => {
@@ -191,7 +232,7 @@ export const getAllOrganizationsAdmin = async ({ q = "", limit = 200, offset = 0
   if (q) params.set("q", q);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
-  return fetchApi(`/admin/all-organizations?${params.toString()}`) as Promise<OrgData[]>;
+  return fetchApi(`/admin/all-organizations?${params.toString()}`, { cache: "no-store" }) as Promise<OrgData[]>;
 };
 
 export const getAllPersonasAdmin = async ({ q = "", limit = 200, offset = 0 }: AdminPaginationQuery = {}): Promise<PersonaLike[]> => {
@@ -199,7 +240,7 @@ export const getAllPersonasAdmin = async ({ q = "", limit = 200, offset = 0 }: A
   if (q) params.set("q", q);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
-  return fetchApi(`/admin/all-personas?${params.toString()}`) as Promise<PersonaLike[]>;
+  return fetchApi(`/admin/all-personas?${params.toString()}`, { cache: "no-store" }) as Promise<PersonaLike[]>;
 };
 
 export const getVoiceActorsAdmin = async (q = ""): Promise<AdminVoiceActor[]> => {
@@ -222,7 +263,7 @@ export const getAllScriptsAdmin = async ({ q = "", limit = 300, offset = 0 }: Ad
   if (q) params.set("q", q);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
-  return fetchApi(`/admin/all-scripts?${params.toString()}`) as Promise<BaseScriptApi[]>;
+  return fetchApi(`/admin/all-scripts?${params.toString()}`, { cache: "no-store" }) as Promise<BaseScriptApi[]>;
 };
 
 export const deleteOrganizationAdmin = async (orgId: string): Promise<ScriptMutationResponse> => {
@@ -319,6 +360,35 @@ export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): P
       items: normalizedItems,
     }),
   }) as Promise<HomepageBanner>;
+};
+
+export const getDemoBannerAdmin = async (): Promise<DemoBanner> => {
+  return fetchApi("/admin/demo-banner", { cache: "no-store" }) as Promise<DemoBanner>;
+};
+
+export const updateDemoBannerAdmin = async (payload: DemoBanner = {}): Promise<DemoBanner> => {
+  const normalizedItems = Array.isArray(payload?.items)
+    ? payload.items.map((item, idx) => ({
+        id: String(item?.id || `demo-slide-${idx + 1}`),
+        eyebrow: String(item?.eyebrow || "").trim(),
+        title: String(item?.title || ""),
+        content: String(item?.content || ""),
+        link: String(item?.link || ""),
+        imageUrl: String(item?.imageUrl || ""),
+        imageAlt: String(item?.imageAlt || "").trim(),
+        imageCrop: item?.imageCrop ?? null,
+        imageMobileCrop: item?.imageMobileCrop ?? null,
+        imageDesktopCrop: item?.imageDesktopCrop ?? null,
+        imageUltraWideCrop: item?.imageUltraWideCrop ?? null,
+        ...(item?.imageBackgroundMode === "cover" || item?.imageBackgroundMode === "blur-fill"
+          ? { imageBackgroundMode: item.imageBackgroundMode }
+          : { imageBackgroundMode: null }),
+      }))
+    : [];
+  return fetchApi("/admin/demo-banner", {
+    method: "PUT",
+    body: JSON.stringify({ items: normalizedItems }),
+  }) as Promise<DemoBanner>;
 };
 
 export type ActivityPagePayload = Pick<ActivityPage, "slug" | "title" | "summary" | "coverUrl" | "coverCrop" | "body" | "scriptIds" | "externalScriptIds" | "acceptingSubmissions" | "status" | "sortOrder">;

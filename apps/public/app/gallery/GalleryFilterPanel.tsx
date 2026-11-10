@@ -93,7 +93,7 @@ export function GalleryFilterPanel({
   const divider = "border-t border-border/40 pt-4 mt-1";
   const activeChip = "bg-primary text-primary-foreground shadow-sm border border-primary";
   const idleChip = "border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5";
-  const chipBase = "h-6 rounded-[5px] px-2.5 [font-size:var(--public-font-caption)] font-medium transition-all duration-150";
+  const chipBase = "h-6 rounded-md px-2.5 [font-size:var(--public-font-caption)] font-medium transition-all duration-150";
 
   const inner = (
     <div className="space-y-4">

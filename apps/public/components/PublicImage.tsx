@@ -8,24 +8,19 @@
  *
  * Parent must be position:relative with explicit dimensions.
  *
- * /media/ path resolution: public API data stays browser-facing so shared
- * public-ui <img> components can load it. PublicImage is the only place that
- * upgrades /media/ to the backend origin for next/image's server-side optimizer.
+ * /media/ paths use the bounded public media proxy; next/image only processes
+ * relative app assets and explicitly allowed public HTTPS origins.
  */
 
 import Image from "next/image";
+import type { ReactEventHandler } from "react";
 import type { MediaCropLike } from "@write/media-crop";
 import type { PublicImagePreset } from "@/lib/imagePresets";
 import { resolvePresetStyle, getPresetConfig } from "@/lib/imagePresets";
 import { isNextImageOptimizableSrc } from "@/lib/publicImageOrigins";
-import { buildMediaSrcSet, withMediaExtension } from "@/lib/publicMediaUrl";
+import { buildMediaSrcSet, withMediaExtension, type PublicMediaWidth } from "@/lib/publicMediaUrl";
 import { isPublicMediaProxySrc, publicApiUrl } from "@/lib/publicApiUrl";
 import { mediaOriginsFromEnv } from "@/lib/mediaSources";
-
-// Read once at module load — available during SSR (server process).
-// In client bundle this is undefined, but next/image src is already baked
-// into the SSR HTML as /_next/image?url=ABSOLUTE_URL by that point.
-const BACKEND_ORIGIN = (process.env.BACKEND_API_URL ?? "").replace(/\/+$/, "");
 
 // The static build has no server-side image proxy: /media/ files are read
 // straight from the media origin, with R2 as the fallback (MediaFallbackBridge).
@@ -38,11 +33,6 @@ const RESIZABLE_PRESETS: ReadonlySet<PublicImagePreset> = new Set([
   "avatar",
   "logo",
 ]);
-
-function resolveMediaSrc(src: string): string {
-  if (BACKEND_ORIGIN && src.startsWith("/media/")) return `${BACKEND_ORIGIN}${src}`;
-  return src;
-}
 
 function resolvePublicMediaProxySrc(src: string): string {
   const bytes = new TextEncoder().encode(src);
@@ -60,6 +50,11 @@ interface Props {
   /** Override sizes when preset default is insufficient (e.g. fixed-pixel avatars) */
   sizes?: string;
   priority?: boolean;
+  /** Start the request early while retaining responsive srcset selection. */
+  eager?: boolean;
+  /** One canonical proxy width for placements with a fixed rendered size. */
+  fixedMediaWidth?: PublicMediaWidth;
+  fetchPriority?: "high" | "low" | "auto";
   className?: string;
   /** Override object-fit from preset default (e.g. "contain" for blur-fill foreground) */
   objectFit?: "cover" | "contain";
@@ -71,6 +66,7 @@ interface Props {
    * where inline style.transform (from zoom) would override the class.
    */
   overscanScale?: number;
+  onError?: ReactEventHandler<HTMLImageElement>;
 }
 
 export function PublicImage({
@@ -80,10 +76,14 @@ export function PublicImage({
   crop,
   sizes,
   priority,
+  eager,
+  fixedMediaWidth,
+  fetchPriority,
   className,
   objectFit,
   respectCropZoom,
   overscanScale,
+  onError,
 }: Props) {
   if (!src) return null;
 
@@ -100,12 +100,13 @@ export function PublicImage({
       <img
         src={`${mediaOriginsFromEnv().primary}${cleanSrc}`}
         alt={alt}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined}
+        loading={priority || eager ? "eager" : "lazy"}
+        fetchPriority={fetchPriority ?? (priority || eager ? "high" : undefined)}
         decoding="async"
         referrerPolicy="no-referrer"
         style={style}
         className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
+        onError={onError}
       />
     );
   }
@@ -115,49 +116,53 @@ export function PublicImage({
     // a different URL than the one preloaded in <head>. Everything else gets
     // resized variants so cards do not download full-size originals.
     // Banners/backdrops span the viewport, so they stay at full resolution.
-    const srcSet = priority || !RESIZABLE_PRESETS.has(preset) ? "" : buildMediaSrcSet(proxySrc);
+    const fixedSrc = fixedMediaWidth && !proxySrc.includes("?") ? `${proxySrc}?w=${fixedMediaWidth}` : proxySrc;
+    const srcSet = priority || fixedSrc !== proxySrc || !RESIZABLE_PRESETS.has(preset) ? "" : buildMediaSrcSet(proxySrc);
     return (
       <img
-        src={proxySrc}
+        src={fixedSrc}
         srcSet={srcSet || undefined}
         sizes={srcSet ? (sizes ?? config.sizes) : undefined}
         alt={alt}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined}
+        loading={priority || eager ? "eager" : "lazy"}
+        fetchPriority={fetchPriority ?? (priority || eager ? "high" : undefined)}
         decoding="async"
         referrerPolicy="no-referrer"
         style={style}
         className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
+        onError={onError}
       />
     );
   }
 
-  const resolvedSrc = resolveMediaSrc(cleanSrc);
-
-  if (!isNextImageOptimizableSrc(resolvedSrc, BACKEND_ORIGIN)) {
+  if (!isNextImageOptimizableSrc(cleanSrc)) {
     return (
       <img
-        src={resolvedSrc}
+        src={cleanSrc}
         alt={alt}
-        loading={priority ? "eager" : "lazy"}
-        fetchPriority={priority ? "high" : undefined}
+        loading={priority || eager ? "eager" : "lazy"}
+        fetchPriority={fetchPriority ?? (priority || eager ? "high" : undefined)}
         decoding="async"
         referrerPolicy="no-referrer"
         style={style}
         className={`absolute inset-0 h-full w-full ${className ?? ""}`.trim()}
+        onError={onError}
       />
     );
   }
 
   return (
     <Image
-      src={resolvedSrc}
+      src={cleanSrc}
       alt={alt}
       fill
       sizes={sizes ?? config.sizes}
       priority={priority}
+      loading={eager ? "eager" : undefined}
+      fetchPriority={fetchPriority}
       style={style}
       className={className}
+      onError={onError}
     />
   );
 }

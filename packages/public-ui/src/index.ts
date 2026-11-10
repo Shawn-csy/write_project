@@ -5,7 +5,7 @@ export { ScriptGalleryCard } from "./ScriptGalleryCard";
 export type { ScriptGalleryCardProps, ScriptGalleryItem, AuthorInfo, OrganizationInfo, TagLike, PublicLinkConfig } from "./ScriptGalleryCard";
 
 export { ScriptGalleryCardFrame } from "./ScriptGalleryCardFrame";
-export type { ScriptGalleryCardFrameProps, CardAuthorDisplay, CoverImageRenderer, CoverImageRendererProps } from "./ScriptGalleryCardFrame";
+export type { ScriptGalleryCardFrameProps, CardAuthorDisplay, CoverImageRenderer, CoverImageRendererProps, AvatarImageRenderer, AvatarImageRendererProps } from "./ScriptGalleryCardFrame";
 
 export { CoverPlaceholder } from "./cover/CoverPlaceholder";
 export { CoverRenderer, COVER_W, COVER_H, COVER_COMPACT_W, COVER_COMPACT_H } from "./cover/CoverRenderer";
@@ -42,8 +42,6 @@ export { AuthorBadge } from "./reader/InlineAuthorBadge";
 export { PublicHeroMarquee } from "./gallery/PublicHeroMarquee";
 export { PublicShellTopBar } from "./gallery/PublicShellTopBar";
 export type { PublicShellTopBarProps, PublicShellTab } from "./gallery/PublicShellTopBar";
-export { PublicGalleryTopBar, DEFAULT_TABS } from "./gallery/PublicGalleryTopBar";
-export type { PublicGalleryTopBarProps, PublicGalleryTab } from "./gallery/PublicGalleryTopBar";
 export type { PublicHeroMarqueeProps, HeroImageRenderer, HeroSlideContentRenderer } from "./gallery/PublicHeroMarquee";
 export { parseBannerSlides, DEV_PLACEHOLDER_SLIDES } from "./gallery/bannerModel";
 export type { HeroSlide, HeroSlideBackground } from "./gallery/bannerModel";

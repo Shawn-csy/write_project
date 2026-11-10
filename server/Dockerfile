@@ -13,4 +13,4 @@ ENV PORT=1091
 
 EXPOSE 1091
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "1091"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "1091", "--no-proxy-headers"]

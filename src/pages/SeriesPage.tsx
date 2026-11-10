@@ -31,7 +31,7 @@ export default function SeriesPage(): React.JSX.Element {
 
   return (
     <StudioPage width="wide">
-      <StudioPageHeader title="系列" description="把多部作品整理成有順序的章節，公開頁會依此順序呈現。" />
+      <StudioPageHeader title="系列" />
       {s.isMetaLoading ? tabFallback : (
       <Suspense fallback={tabFallback}>
         <PublisherSeriesTabLazy

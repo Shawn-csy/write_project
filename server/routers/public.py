@@ -15,9 +15,11 @@ import schemas
 import models
 from crud_ops.publish_state import is_publicly_visible as _is_publicly_visible_script, has_public_parent_folder as _has_public_parent_folder
 from dependencies import get_db, get_current_user_id, get_current_user_claims, verified_email_from_claims
-from rate_limit import limiter
+from rate_limit import client_ip_digest, limiter, resolve_client_ip
+from crud_ops.scripts_command import AnonymousLikeLimitExceeded
 from utils import normalize_homepage_banner_value, safe_json_list
 from services.public_feedback_email import send_public_feedback_notification
+from services.public_view_windows import claim_recent_view
 
 router = APIRouter(prefix="/api", tags=["public"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
@@ -113,19 +115,6 @@ def _load_public_terms_config() -> dict:
     return merged
 
 
-def _extract_client_ip(request: Request) -> tuple[str, str]:
-    forwarded_for = request.headers.get("x-forwarded-for", "").strip()
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip(), forwarded_for
-
-    real_ip = request.headers.get("x-real-ip", "").strip()
-    if real_ip:
-        return real_ip, ""
-
-    request_ip = request.client.host if request.client else ""
-    return (request_ip or ""), ""
-
-
 @router.post("/public-feedback", response_model=schemas.PublicFeedbackResponse)
 @limiter.limit("5/minute")
 def create_public_feedback(
@@ -207,7 +196,7 @@ def create_public_feedback(
     if len(content) > 10000:
         raise HTTPException(status_code=400, detail="內容過長")
 
-    ip_address, forwarded_for = _extract_client_ip(request)
+    ip_address, forwarded_for = resolve_client_ip(request)
     now_ms = int(time.time() * 1000)
     activity_submission_script_id = None
     if payload.kind == "listing" and payload.activityPageId:
@@ -415,6 +404,56 @@ def create_public_demo_submission(
     return schemas.PublicDemoSubmissionResponse(submissionId=row.id, createdAt=now_ms)
 
 
+@router.post("/public-audio-work-submissions", response_model=schemas.PublicAudioWorkSubmissionResponse)
+@limiter.limit("5/hour")
+def create_public_audio_work_submission(
+    request: Request,
+    payload: schemas.PublicAudioWorkSubmissionCreate,
+    db: Session = Depends(get_db),
+):
+    """Accept public audio work promotions; list them only after admin approval."""
+    now_ms = int(time.time() * 1000)
+    if payload.website:
+        return schemas.PublicAudioWorkSubmissionResponse(submissionId="", createdAt=now_ms)
+    if not payload.confirmPublic:
+        raise HTTPException(status_code=400, detail="請確認連結可公開瀏覽，且您有權提供作品資訊")
+
+    title = payload.title[:180].strip()
+    creator_name = payload.creatorName[:120].strip()
+    description = payload.description[:2000].strip()
+    contact_email = payload.contactEmail[:320].strip()
+    if not title:
+        raise HTTPException(status_code=400, detail="請填寫作品名稱")
+    if contact_email and ("@" not in contact_email or " " in contact_email):
+        raise HTTPException(status_code=400, detail="Email 格式不正確")
+    duplicate = db.query(models.PublicAudioWorkSubmission).filter(
+        models.PublicAudioWorkSubmission.url == payload.url,
+        models.PublicAudioWorkSubmission.status.in_(["pending", "approved"]),
+    ).first()
+    if duplicate:
+        raise HTTPException(status_code=409, detail="這個作品連結已投稿或已公開")
+    if payload.organizationId and not db.query(models.Organization.id).filter(models.Organization.id == payload.organizationId).first():
+        raise HTTPException(status_code=400, detail="找不到所屬組織")
+
+    row = models.PublicAudioWorkSubmission(
+        id=str(uuid.uuid4()),
+        title=title,
+        url=payload.url,
+        coverUrl=payload.coverUrl,
+        description=description,
+        creatorName=creator_name,
+        creatorUrl=payload.creatorUrl,
+        organizationId=payload.organizationId,
+        accessType=payload.accessType,
+        contactEmail=contact_email,
+        status="pending",
+        createdAt=now_ms,
+    )
+    db.add(row)
+    db.commit()
+    return schemas.PublicAudioWorkSubmissionResponse(submissionId=row.id, createdAt=now_ms)
+
+
 def _serialize_owned_demo(row: models.PublicDemoSubmission) -> dict:
     return {
         "id": row.id,
@@ -586,6 +625,46 @@ def _has_public_script_for_persona(db: Session, persona_id: str) -> bool:
     return any(_is_publicly_visible_script(db, script) for script in scripts)
 
 
+def _public_script_identity_ids(db: Session) -> tuple[set[str], set[str], set[str]]:
+    """Resolve public scripts and their identities with one narrow query.
+
+    This mirrors is_publicly_visible(), including immediate public-folder
+    inheritance, without issuing a parent-folder query for each script.
+    """
+    rows = db.query(
+        models.Script.id,
+        models.Script.ownerId,
+        models.Script.personaId,
+        models.Script.organizationId,
+        models.Script.title,
+        models.Script.folder,
+        models.Script.type,
+        models.Script.isPublic,
+    ).all()
+    public_folders = {
+        (row.ownerId, row.title, row.folder)
+        for row in rows
+        if row.type == "folder" and row.isPublic == 1
+    }
+    script_ids: set[str] = set()
+    persona_ids: set[str] = set()
+    org_ids: set[str] = set()
+    for row in rows:
+        visible = bool(row.isPublic)
+        if not visible and row.folder and row.folder != "/":
+            parts = row.folder.strip("/").split("/")
+            parent = "/" + "/".join(parts[:-1])
+            visible = (row.ownerId, parts[-1], parent) in public_folders
+        if not visible:
+            continue
+        script_ids.add(row.id)
+        if row.personaId:
+            persona_ids.add(row.personaId)
+        if row.organizationId:
+            org_ids.add(row.organizationId)
+    return script_ids, persona_ids, org_ids
+
+
 def _is_voice_actor_persona(persona: models.Persona) -> bool:
     return any(
         str(tag).strip().casefold() in {"聲演", "配音", "voice actor", "voice-actor", "voiceactor"}
@@ -606,7 +685,9 @@ def _external_link_label(url: str) -> str:
     return "外部作者頁"
 
 
-def _build_public_identity_context(db: Session, persona_ids: list[str]) -> dict:
+def _build_public_identity_context(
+    db: Session, persona_ids: list[str], visible_script_ids: set[str] | None = None,
+) -> dict:
     """Load all role and source relationships for a set of identities in batches."""
     ids = [value for value in dict.fromkeys(persona_ids) if value]
     if not ids:
@@ -615,11 +696,19 @@ def _build_public_identity_context(db: Session, persona_ids: list[str]) -> dict:
     for row in db.query(models.PersonaRole).filter(models.PersonaRole.personaId.in_(ids)).all():
         roles_by_persona.setdefault(row.personaId, []).append(row)
 
-    internal_scripts_by_persona: dict[str, list[models.Script]] = {value: [] for value in ids}
-    script_rows = db.query(models.Script).filter(models.Script.personaId.in_(ids)).all()
-    for row in script_rows:
-        if _is_publicly_visible_script(db, row):
-            internal_scripts_by_persona.setdefault(row.personaId, []).append(row)
+    internal_scripts_by_persona: dict[str, list[str]] = {value: [] for value in ids}
+    if visible_script_ids is None:
+        # A single identity page only needs its own works; keep its narrow query.
+        script_rows = db.query(models.Script).filter(models.Script.personaId.in_(ids)).all()
+        for row in script_rows:
+            if _is_publicly_visible_script(db, row):
+                internal_scripts_by_persona.setdefault(row.personaId, []).append(row.id)
+    elif visible_script_ids:
+        script_rows = db.query(models.Script.id, models.Script.personaId).filter(
+            models.Script.personaId.in_(ids), models.Script.id.in_(visible_script_ids)
+        ).all()
+        for row in script_rows:
+            internal_scripts_by_persona.setdefault(row.personaId, []).append(row.id)
 
     demos_by_persona: dict[str, list[models.PublicDemoSubmission]] = {value: [] for value in ids}
     approved_demos = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.status == "approved").all()
@@ -803,7 +892,9 @@ def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
     return any(_is_publicly_visible_script(db, script) for script in scripts)
 
 
-def _get_public_org_map(db: Session, org_ids: list[str]) -> dict[str, models.Organization]:
+def _get_public_org_map(
+    db: Session, org_ids: list[str], visible_org_ids: set[str] | None = None,
+) -> dict[str, models.Organization]:
     if not org_ids:
         return {}
     uniq_ids = [oid for oid in dict.fromkeys(org_ids) if oid]
@@ -812,7 +903,10 @@ def _get_public_org_map(db: Session, org_ids: list[str]) -> dict[str, models.Org
     orgs = db.query(models.Organization).filter(models.Organization.id.in_(uniq_ids)).all()
     out = {}
     for org in orgs:
-        if not _has_public_script_for_organization(db, org.id):
+        if visible_org_ids is None:
+            if not _has_public_script_for_organization(db, org.id):
+                continue
+        elif org.id not in visible_org_ids:
             continue
         if isinstance(org.tags, str):
             try:
@@ -893,7 +987,10 @@ def create_public_terms_acceptance(
     if required_checks and not required_checks.issubset(incoming_checks):
         raise HTTPException(status_code=400, detail="Required checkboxes are not all accepted")
 
-    ip_address, forwarded_for = _extract_client_ip(request)
+    def bounded_header(name: str, max_length: int) -> str:
+        return (request.headers.get(name) or "").strip()[:max_length]
+
+    ip_address, forwarded_for = resolve_client_ip(request)
     now_ms = int(time.time() * 1000)
     acceptance = models.PublicTermsAcceptance(
         id=str(uuid.uuid4()),
@@ -906,29 +1003,29 @@ def create_public_terms_acceptance(
         acceptedAt=now_ms,
         ipAddress=ip_address,
         forwardedFor=forwarded_for,
-        userAgent=(request.headers.get("user-agent") or payload.userAgent or "").strip(),
-        acceptLanguage=(request.headers.get("accept-language") or "").strip(),
-        referer=(request.headers.get("referer") or payload.referrer or "").strip(),
-        origin=(request.headers.get("origin") or "").strip(),
-        host=(request.headers.get("host") or "").strip(),
+        userAgent=bounded_header("user-agent", 512) or (payload.userAgent or "").strip(),
+        acceptLanguage=bounded_header("accept-language", 256),
+        referer=bounded_header("referer", 2048) or (payload.referrer or "").strip(),
+        origin=bounded_header("origin", 512),
+        host=bounded_header("host", 255),
         clientMeta={
             "locale": payload.locale or "",
             "timezone": payload.timezone or "",
             "timezoneOffsetMinutes": payload.timezoneOffsetMinutes,
             "platform": payload.platform or "",
-            "screen": payload.screen or {},
-            "viewport": payload.viewport or {},
+            "screen": payload.screen.model_dump(exclude_none=True),
+            "viewport": payload.viewport.model_dump(exclude_none=True),
             "pagePath": payload.pagePath or "",
             "acceptedChecks": sorted(list(incoming_checks)),
         },
         headerSnapshot={
-            "x-forwarded-for": request.headers.get("x-forwarded-for", ""),
-            "x-real-ip": request.headers.get("x-real-ip", ""),
-            "sec-ch-ua": request.headers.get("sec-ch-ua", ""),
-            "sec-ch-ua-platform": request.headers.get("sec-ch-ua-platform", ""),
-            "sec-ch-ua-mobile": request.headers.get("sec-ch-ua-mobile", ""),
-            "accept": request.headers.get("accept", ""),
-            "accept-encoding": request.headers.get("accept-encoding", ""),
+            "x-forwarded-for": bounded_header("x-forwarded-for", 512),
+            "x-real-ip": bounded_header("x-real-ip", 64),
+            "sec-ch-ua": bounded_header("sec-ch-ua", 512),
+            "sec-ch-ua-platform": bounded_header("sec-ch-ua-platform", 128),
+            "sec-ch-ua-mobile": bounded_header("sec-ch-ua-mobile", 32),
+            "accept": bounded_header("accept", 256),
+            "accept-encoding": bounded_header("accept-encoding", 128),
         },
     )
     db.add(acceptance)
@@ -1462,11 +1559,8 @@ def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
 @router.get("/public-personas", response_model=List[schemas.PersonaPublic])
 def list_public_personas(db: Session = Depends(get_db)):
     # Return author personas with public works and self-declared / demo-linked voice actors.
-    persona_ids = []
-    for row in db.query(models.Script.personaId).filter(models.Script.personaId.isnot(None)).distinct().all():
-        persona_id = row[0]
-        if persona_id and _has_public_script_for_persona(db, persona_id):
-            persona_ids.append(persona_id)
+    visible_script_ids, visible_persona_ids, visible_org_ids = _public_script_identity_ids(db)
+    persona_ids = list(visible_persona_ids)
 
     approved_demos = db.query(models.PublicDemoSubmission).filter(models.PublicDemoSubmission.status == "approved").all()
     for demo in approved_demos:
@@ -1504,26 +1598,29 @@ def list_public_personas(db: Session = Depends(get_db)):
     results = []
 
     all_org_ids = set()
-    persona_org_map = {}
+    persona_org_map: dict[str, list[str]] = {p.id: [] for p in personas}
+    for persona_id, org_id in db.query(
+        models.PersonaOrganizationMembership.personaId,
+        models.PersonaOrganizationMembership.orgId,
+    ).filter(models.PersonaOrganizationMembership.personaId.in_(persona_org_map)).all():
+        persona_org_map[persona_id].append(org_id)
     for p in personas:
-        p.organizationIds = crud.get_persona_org_ids(db, p)
+        p.organizationIds = persona_org_map[p.id]
         p.tags = _public_persona_tags(p.tags)
         p.links = crud._ensure_list(p.links)
         p.defaultLicenseSpecialTerms = crud._ensure_list(p.defaultLicenseSpecialTerms)
-        org_ids = p.organizationIds or []
-        persona_org_map[p.id] = org_ids
-        all_org_ids.update(org_ids)
+        all_org_ids.update(p.organizationIds)
 
-    org_map = _get_public_org_map(db, list(all_org_ids))
-    identity_context = _build_public_identity_context(db, [p.id for p in personas])
+    org_map = _get_public_org_map(db, list(all_org_ids), visible_org_ids)
+    identity_context = _build_public_identity_context(db, [p.id for p in personas], visible_script_ids)
 
     for p in personas:
-        visible_org_ids = [oid for oid in persona_org_map.get(p.id, []) if oid in org_map]
-        p.organizationIds = visible_org_ids
+        public_org_ids = [oid for oid in persona_org_map.get(p.id, []) if oid in org_map]
+        p.organizationIds = public_org_ids
         projected = _public_identity_projection(
             db,
             p,
-            [org_map[oid] for oid in visible_org_ids],
+            [org_map[oid] for oid in public_org_ids],
             identity_context,
         )
         if projected.roles:
@@ -1535,7 +1632,11 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
     org = db.query(models.Organization).filter(models.Organization.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
-    if not _has_public_script_for_organization(db, org_id):
+    has_audio_work = db.query(models.PublicAudioWorkSubmission.id).filter(
+        models.PublicAudioWorkSubmission.organizationId == org_id,
+        models.PublicAudioWorkSubmission.status == "approved",
+    ).first()
+    if not _has_public_script_for_organization(db, org_id) and not has_audio_work:
         raise HTTPException(status_code=404, detail="Organization not found")
     org.tags = safe_json_list(org.tags)
 
@@ -1557,39 +1658,32 @@ def get_public_organization(org_id: str, db: Session = Depends(get_db)):
             if _has_public_script_for_persona(db, p.id):
                 members.append(p)
 
-    try:
-        org.members = []
-    except Exception:
-        pass
-    result = schemas.OrganizationPublic.model_validate(org)
-    result.members = members
+    return _public_organization_projection(org, members)
+
+
+def _public_organization_projection(
+    org: models.Organization, members: list[models.Persona] | None = None,
+) -> schemas.OrganizationPublic:
+    # Validating the ORM relationship directly issues one users query per org.
+    # The public projection supplies its curated member list explicitly.
+    data = schemas.Organization.model_validate(org).model_dump()
+    result = schemas.OrganizationPublic.model_validate({**data, "members": []})
+    result.members = members or []
     return result
 
 @router.get("/public-organizations", response_model=List[schemas.OrganizationPublic])
 def list_public_organizations(db: Session = Depends(get_db)):
-    # Return organizations that have at least one publicly visible script.
-    org_ids = {
-        row[0]
-        for row in db.query(models.Script.organizationId)
-        .filter(models.Script.organizationId.isnot(None))
-        .all()
-        if row and row[0]
-    }
-    orgs = [
-        org
-        for org in db.query(models.Organization).filter(models.Organization.id.in_(list(org_ids))).all()
-        if _has_public_script_for_organization(db, org.id)
-    ]
+    # Audio-only organizations need public pages too.
+    org_ids = set(_public_script_identity_ids(db)[2])
+    org_ids.update(row[0] for row in db.query(models.PublicAudioWorkSubmission.organizationId).filter(
+        models.PublicAudioWorkSubmission.status == "approved",
+        models.PublicAudioWorkSubmission.organizationId.isnot(None),
+    ).distinct().all() if row[0])
+    orgs = db.query(models.Organization).filter(models.Organization.id.in_(list(org_ids))).all()
     results = []
     for org in orgs:
         org.tags = safe_json_list(org.tags)
-        try:
-            org.members = []
-        except Exception:
-            pass
-        result = schemas.OrganizationPublic.model_validate(org)
-        result.members = []
-        results.append(result)
+        results.append(_public_organization_projection(org))
     return results
 
 @router.get("/themes/public", response_model=List[schemas.MarkerTheme])
@@ -1609,7 +1703,15 @@ def public_toggle_like(request: Request, script_id: str, payload: PublicLikePayl
     script = db.query(models.Script).filter(models.Script.id == script_id).first()
     if not _is_publicly_visible_script(db, script):
         raise HTTPException(status_code=404, detail="Script not found")
-    result = crud.toggle_script_like(db, script_id, visitor_id=payload.visitorId)
+    try:
+        result = crud.toggle_script_like(
+            db,
+            script_id,
+            visitor_id=payload.visitorId,
+            client_key=client_ip_digest(resolve_client_ip(request)[0]),
+        )
+    except AnonymousLikeLimitExceeded:
+        raise HTTPException(status_code=429, detail="Anonymous like limit reached for this source")
     if result is None:
         raise HTTPException(status_code=404, detail="Script not found")
     liked, likes = result
@@ -1657,6 +1759,8 @@ def public_external_script_view(request: Request, item_id: str, db: Session = De
     )
     if not item:
         raise HTTPException(status_code=404, detail="External public script not found")
+    if not claim_recent_view(db, "external_script", item_id, resolve_client_ip(request)[0]):
+        return {"views": item.views}
     item.views = int(item.views or 0) + 1
     db.commit()
 
@@ -1664,7 +1768,7 @@ def public_external_script_view(request: Request, item_id: str, db: Session = De
     try:
         import routers.public_bundle as public_bundle_router
 
-        public_bundle_router._bundle_cache = None
+        public_bundle_router.invalidate_public_bundle_cache()
     except Exception:
         pass
     return {"views": item.views}

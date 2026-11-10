@@ -63,6 +63,15 @@ for arg in "$@"; do
   esac
 done
 
+# This legacy release path stops PostgreSQL and the entire Compose project.
+# It must never be selected implicitly by CI or a routine production release.
+if [ "${ALLOW_SERVICE_DOWNTIME:-0}" != "1" ]; then
+  echo "ERROR: deploy.sh stops PostgreSQL and all production services." >&2
+  echo "       Use a candidate release path for uninterrupted updates." >&2
+  echo "       For an approved maintenance window, set ALLOW_SERVICE_DOWNTIME=1." >&2
+  exit 1
+fi
+
 if [ ! -f "$ENV_FILE" ]; then
   echo "ERROR: missing env file: $ENV_FILE"
   exit 1
@@ -235,7 +244,8 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up --build -d \
 echo "[deploy] waiting for backend to be ready..."
 BACKEND_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-backend 2>/dev/null || true)"
 if [ -z "$BACKEND_CID" ]; then
-  echo "WARN: cannot find write_project-backend container — skipping readiness check"
+  echo "ERROR: cannot find write_project-backend container" >&2
+  exit 1
 else
   READY=0
   for i in $(seq 1 30); do
@@ -263,8 +273,9 @@ except Exception:
     echo "[deploy] backend is up — migration log:"
     docker logs "$BACKEND_CID" 2>&1 | grep -E "Migrat|migration|backfill" || echo "  (no migration output found)"
   else
-    echo "WARN: backend did not become ready in time — showing last 40 log lines:"
+    echo "ERROR: backend did not become ready in time — showing last 40 log lines:" >&2
     docker logs --tail=40 "$BACKEND_CID" 2>&1 || true
+    exit 1
   fi
 fi
 
@@ -333,7 +344,8 @@ done
 echo "[deploy] waiting for public reader to be ready..."
 PUBLIC_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q write_project-public 2>/dev/null || true)"
 if [ -z "$PUBLIC_CID" ]; then
-  echo "WARN: cannot find write_project-public container — skipping readiness check"
+  echo "ERROR: cannot find write_project-public container" >&2
+  exit 1
 else
   PUBLIC_READY=0
   for i in $(seq 1 30); do
@@ -350,8 +362,9 @@ else
   if [ "$PUBLIC_READY" = "1" ]; then
     echo "[deploy] public reader is up"
   else
-    echo "WARN: public reader did not become ready in time — showing last 80 log lines:"
+    echo "ERROR: public reader did not become ready in time — showing last 80 log lines:" >&2
     docker logs --tail=80 "$PUBLIC_CID" 2>&1 || true
+    exit 1
   fi
 fi
 

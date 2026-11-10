@@ -91,7 +91,7 @@ describe("useScriptMetadataHydration", () => {
     expect(params.setAuthorDisplayMode).toHaveBeenCalledWith("override");
     expect(params.setShowMarkerLegend).toHaveBeenCalledWith(true);
     expect(params.setActivityDemoLinks).toHaveBeenCalledWith([
-      { id: "demo-1", name: "A", url: "https://example.com/a", cast: "", description: "" },
+      { id: "demo-1", name: "A", url: "https://example.com/a", cast: "", voiceActorIds: [], voiceTypes: [], description: "" },
     ]);
     expect(params.setTargetAudience).toHaveBeenCalledWith("女性向");
     expect(params.setContentRating).toHaveBeenCalledWith("成人向");
@@ -116,7 +116,7 @@ describe("useScriptMetadataHydration", () => {
     });
 
     expect(params.setActivityDemoLinks).toHaveBeenCalledWith([
-      { id: "demo-1", name: "", url: "https://example.com/demo", cast: "", description: "" },
+      { id: "demo-1", name: "", url: "https://example.com/demo", cast: "", voiceActorIds: [], voiceTypes: [], description: "" },
     ]);
   });
 

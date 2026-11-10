@@ -1,6 +1,6 @@
 import json
-from pydantic import BaseModel, ConfigDict, field_validator
-from typing import List, Literal, Optional, Any, Dict, Union
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Annotated, List, Literal, Optional, Any, Dict, Union
 
 # Tag Schemas
 class TagBase(BaseModel):
@@ -767,20 +767,36 @@ class PublicTermsConfigResponse(BaseModel):
     requiredChecks: List[PublicTermsRequiredCheck] = []
 
 
+class PublicTermsScreen(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    width: Optional[int] = Field(default=None, ge=0, le=100000)
+    height: Optional[int] = Field(default=None, ge=0, le=100000)
+    colorDepth: Optional[int] = Field(default=None, ge=0, le=128)
+    pixelRatio: Optional[float] = Field(default=None, ge=0, le=100)
+
+
+class PublicTermsViewport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    width: Optional[int] = Field(default=None, ge=0, le=100000)
+    height: Optional[int] = Field(default=None, ge=0, le=100000)
+
+
 class PublicTermsAcceptanceCreate(BaseModel):
-    termsVersion: str
-    scriptId: Optional[str] = None
-    visitorId: Optional[str] = None
-    locale: Optional[str] = None
-    timezone: Optional[str] = None
-    timezoneOffsetMinutes: Optional[int] = None
-    userAgent: Optional[str] = None
-    platform: Optional[str] = None
-    screen: Dict[str, Any] = {}
-    viewport: Dict[str, Any] = {}
-    pagePath: Optional[str] = None
-    referrer: Optional[str] = None
-    acceptedChecks: List[str] = []
+    termsVersion: str = Field(max_length=128)
+    scriptId: Optional[str] = Field(default=None, max_length=128)
+    visitorId: Optional[str] = Field(default=None, max_length=128)
+    locale: Optional[str] = Field(default=None, max_length=64)
+    timezone: Optional[str] = Field(default=None, max_length=128)
+    timezoneOffsetMinutes: Optional[int] = Field(default=None, ge=-1440, le=1440)
+    userAgent: Optional[str] = Field(default=None, max_length=512)
+    platform: Optional[str] = Field(default=None, max_length=128)
+    screen: PublicTermsScreen = Field(default_factory=PublicTermsScreen)
+    viewport: PublicTermsViewport = Field(default_factory=PublicTermsViewport)
+    pagePath: Optional[str] = Field(default=None, max_length=2048)
+    referrer: Optional[str] = Field(default=None, max_length=2048)
+    acceptedChecks: List[Annotated[str, Field(max_length=128)]] = Field(default_factory=list, max_length=16)
 
 
 class PublicTermsAcceptanceResponse(BaseModel):
@@ -1180,6 +1196,72 @@ class PublicDemoSubmissionResponse(BaseModel):
     createdAt: int
 
 
+class PublicAudioWorkSubmissionCreate(BaseModel):
+    title: str
+    url: str
+    coverUrl: str = ""
+    description: str = ""
+    creatorName: str = ""
+    creatorUrl: str = ""
+    organizationId: Optional[str] = None
+    accessType: Literal["paid", "free"] = "paid"
+    contactEmail: str = ""
+    confirmPublic: bool = False
+    website: str = ""  # Honeypot.
+
+    @field_validator("url", "coverUrl", "creatorUrl", mode="before")
+    @classmethod
+    def validate_audio_work_urls(cls, value: Any, info) -> str:
+        import re
+        url = str(value or "").strip()
+        if not url and info.field_name in {"coverUrl", "creatorUrl"}:
+            return ""
+        if len(url) > 2000 or not re.fullmatch(r"https://[^\s]+", url, flags=re.IGNORECASE):
+            raise ValueError("請提供有效的 HTTPS 連結")
+        return url
+
+    @field_validator("title", "description", "creatorName", "contactEmail", mode="before")
+    @classmethod
+    def normalize_audio_work_text(cls, value: Any) -> str:
+        return str(value or "").strip()
+
+
+class PublicAudioWorkSubmissionResponse(BaseModel):
+    success: bool = True
+    submissionId: str
+    createdAt: int
+
+
+class PublicAudioWorkSubmissionRecord(BaseModel):
+    id: str
+    title: str
+    url: str
+    coverUrl: str = ""
+    description: str = ""
+    creatorName: str = ""
+    creatorUrl: str = ""
+    organizationId: Optional[str] = None
+    voiceActorIds: List[str] = []
+    accessType: Literal["paid", "free"] = "paid"
+    contactEmail: str = ""
+    status: Literal["pending", "approved", "rejected"]
+    reviewedAt: Optional[int] = None
+    publishedAt: Optional[int] = None
+    createdAt: int
+
+
+class PublicAudioWorkSubmissionListResponse(BaseModel):
+    total: int
+    items: List[PublicAudioWorkSubmissionRecord] = []
+
+
+class PublicAudioWorkSubmissionStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected", "pending"]
+    organizationId: Optional[str] = None
+    voiceActorIds: Optional[List[str]] = None
+    accessType: Optional[Literal["paid", "free"]] = None
+
+
 class PublicDemoEntry(BaseModel):
     id: str
     scriptType: Literal["internal", "external"]
@@ -1234,6 +1316,10 @@ class HomepageBannerSetting(BaseModel):
     content: str = ""
     link: str = ""
     imageUrl: str = ""
+    items: List[HomepageBannerItem] = []
+
+
+class DemoBannerSetting(BaseModel):
     items: List[HomepageBannerItem] = []
 
 

@@ -17,13 +17,14 @@ import { ActivitySubmissionsAdminSection } from "../components/admin/ActivitySub
 import { VoiceActorManagementSection } from "../components/admin/VoiceActorManagementSection";
 import { PublicFeedbackInbox } from "../components/admin/PublicFeedbackInbox";
 import { PublicDemoSubmissionInbox } from "../components/admin/PublicDemoSubmissionInbox";
+import { PublicAudioWorkSubmissionInbox } from "../components/admin/PublicAudioWorkSubmissionInbox";
 import { PublicDemoManagement } from "../components/admin/PublicDemoManagement";
 import { VoiceActorProfileReviewInbox } from "../components/admin/VoiceActorProfileReviewInbox";
 import { VoiceActorClaimReviewInbox } from "../components/admin/VoiceActorClaimReviewInbox";
 import { ExternalAuthorProfileReviewInbox } from "../components/admin/ExternalAuthorProfileReviewInbox";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
-import { getExternalAuthorProfileSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorClaimsAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
+import { getExternalAuthorProfileSubmissionsAdmin, getPublicAudioWorkSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorClaimsAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
 import { ADMIN_QUEUE_UPDATED_EVENT } from "../lib/adminNotifications";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useStudioShell } from "../components/studio/StudioShellContext";
@@ -33,12 +34,11 @@ const workbenchTabClass = "";
 
 interface CollapsibleSectionProps {
   title: React.ReactNode;
-  description?: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, description, defaultOpen = false, children }: CollapsibleSectionProps): React.JSX.Element {
+function CollapsibleSection({ title, defaultOpen = false, children }: CollapsibleSectionProps): React.JSX.Element {
   const [open, setOpen] = useState<boolean>(defaultOpen);
   return (
     <div className="rounded-[10px] border border-border bg-background">
@@ -50,7 +50,6 @@ function CollapsibleSection({ title, description, defaultOpen = false, children 
       >
         <div>
           <div className="font-semibold text-sm">{title}</div>
-          {description && <div className="text-xs text-muted-foreground mt-0.5">{description}</div>}
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
@@ -71,8 +70,8 @@ function AdminWorkflowPlaceholder({ title }: { title: string }): React.JSX.Eleme
 }
 
 export default function SuperAdminPage(): React.JSX.Element {
-  const s = useAdminPageState();
   const [pendingDemoCount, setPendingDemoCount] = useState(0);
+  const [pendingAudioWorkCount, setPendingAudioWorkCount] = useState(0);
   const [pendingVoiceActorClaimCount, setPendingVoiceActorClaimCount] = useState(0);
   const [newFeedbackCount, setNewFeedbackCount] = useState(0);
   const [pendingVoiceActorProfileCount, setPendingVoiceActorProfileCount] = useState(0);
@@ -82,7 +81,7 @@ export default function SuperAdminPage(): React.JSX.Element {
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const requestedSection = searchParams.get("section") || "";
-  const reviewTabs = ["applications", "signatures", "submissions", "claims", "voice-actor-profiles", "external-author-profiles"];
+  const reviewTabs = ["applications", "signatures", "submissions", "audio-work-submissions", "claims", "voice-actor-profiles", "external-author-profiles"];
   const activityReviewTabs = ["activity-submissions", "campaigns"];
   const activeArea = requestedSection === "directory" || requestedSection === "catalog" || requestedSection === "settings"
     ? "settings"
@@ -102,7 +101,7 @@ export default function SuperAdminPage(): React.JSX.Element {
   const catalogTabs = ["scripts", "orgs", "personas", "users"];
   const reviewTab = reviewTabs.includes(requestedSection) ? requestedSection : "applications";
   const activityReviewTab = activityReviewTabs.includes(requestedSection) ? requestedSection : "activity-submissions";
-  const marketingTab = requestedSection === "activities" ? "activities" : "homepage";
+  const marketingTab = requestedSection === "activities" ? "activities" : searchParams.get("marketing") === "demos" ? "demos" : "homepage";
   const requestedCatalogTab = searchParams.get("catalog") || "";
   const settingsTab = requestedSection === "directory" || requestedSection === "catalog" ? "directory" : "settings";
   const catalogTab = catalogTabs.includes(requestedCatalogTab)
@@ -110,20 +109,23 @@ export default function SuperAdminPage(): React.JSX.Element {
     : requestedSection === "directory"
       ? "personas"
       : "scripts";
+  const s = useAdminPageState(activeArea === "settings" && settingsTab === "directory", catalogTab as "scripts" | "orgs" | "personas" | "users");
   const resourceTabs = ["scripts", "author-pages", "studios"];
   const requestedResourceTab = searchParams.get("resource") || "";
   const resourceTab = resourceTabs.includes(requestedResourceTab) ? requestedResourceTab : "scripts";
 
   const refreshQueueCounts = useCallback(async () => {
-    const [feedbackResult, demoResult, voiceActorResult, externalAuthorResult, voiceActorClaimResult] = await Promise.allSettled([
+    const [feedbackResult, demoResult, audioWorkResult, voiceActorResult, externalAuthorResult, voiceActorClaimResult] = await Promise.allSettled([
       getPublicFeedbackAdmin({ excludeKind: "demo_submission", status: "new", limit: 1, offset: 0 }),
       getPublicDemoSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
+      getPublicAudioWorkSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getVoiceActorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getExternalAuthorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getVoiceActorClaimsAdmin({ status: "pending", limit: 1, offset: 0 }),
     ]);
     if (feedbackResult.status === "fulfilled") setNewFeedbackCount(feedbackResult.value.total || 0);
     if (demoResult.status === "fulfilled") setPendingDemoCount(demoResult.value.total || 0);
+    if (audioWorkResult.status === "fulfilled") setPendingAudioWorkCount(audioWorkResult.value.total || 0);
     if (voiceActorResult.status === "fulfilled") setPendingVoiceActorProfileCount(voiceActorResult.value.total || 0);
     if (externalAuthorResult.status === "fulfilled") setPendingExternalAuthorProfileCount(externalAuthorResult.value.total || 0);
     if (voiceActorClaimResult.status === "fulfilled") setPendingVoiceActorClaimCount(voiceActorClaimResult.value.total || 0);
@@ -161,6 +163,7 @@ export default function SuperAdminPage(): React.JSX.Element {
   const goToMarketingTab = (tab: string) => {
     const next = new URLSearchParams();
     next.set("section", tab === "activities" ? "activities" : "marketing");
+    if (tab === "demos") next.set("marketing", "demos");
     navigate({ pathname: location.pathname, search: `?${next.toString()}` });
   };
 
@@ -204,6 +207,7 @@ export default function SuperAdminPage(): React.JSX.Element {
       items: [
         { key: "applications", label: "申請與回報", active: activeArea === "review" && reviewTab === "applications", go: () => goToSection("applications") },
         { key: "submissions", label: "Demo 投稿", active: activeArea === "review" && reviewTab === "submissions", go: () => goToSection("submissions") },
+        { key: "audio-work-submissions", label: "音聲作品投稿", active: activeArea === "review" && reviewTab === "audio-work-submissions", go: () => goToSection("audio-work-submissions") },
         { key: "claims", label: "身份認領", active: activeArea === "review" && reviewTab === "claims", go: () => goToSection("claims") },
         { key: "voice-actor-profiles", label: "聲演頁面審核", active: activeArea === "review" && reviewTab === "voice-actor-profiles", go: () => goToSection("voice-actor-profiles") },
         { key: "external-author-profiles", label: "外部台本師頁面審核", active: activeArea === "review" && reviewTab === "external-author-profiles", go: () => goToSection("external-author-profiles") },
@@ -216,6 +220,7 @@ export default function SuperAdminPage(): React.JSX.Element {
       items: [
         { key: "demo-management", label: "Demo 管理", active: activeArea === "demos", go: () => goToSection("demos") },
         { key: "homepage", label: "首頁 Banner", active: activeArea === "marketing" && marketingTab === "homepage", go: () => goToMarketingTab("homepage") },
+        { key: "demo-banners", label: "Demo 頁 Banner", active: activeArea === "marketing" && marketingTab === "demos", go: () => goToMarketingTab("demos") },
         { key: "activities", label: "活動頁面", active: activeArea === "marketing" && marketingTab === "activities", go: () => goToMarketingTab("activities") },
         { key: "external-scripts", label: "外部台本", active: activeArea === "external" && resourceTab === "scripts", go: () => goToResourceTab("scripts") },
         { key: "external-author-pages", label: "外部作者頁", active: activeArea === "external" && resourceTab === "author-pages", go: () => goToResourceTab("author-pages") },
@@ -257,7 +262,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <div className="hidden px-2.5 pb-1 pt-3 text-xs font-semibold text-muted-foreground lg:block">{group.name}</div>
               {group.items.map((item) => (
                 (() => {
-                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "claims" ? pendingVoiceActorClaimCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
+                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "audio-work-submissions" ? pendingAudioWorkCount : item.key === "claims" ? pendingVoiceActorClaimCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
                   return (
                 <button
                   key={item.key}
@@ -297,17 +302,17 @@ export default function SuperAdminPage(): React.JSX.Element {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="settings" className="mt-0">
-              <CollapsibleSection title="超管帳號管理" description="新增或移除平台超管帳號">
+              <CollapsibleSection title="超管帳號管理">
                 <AdminUserManagementCard />
               </CollapsibleSection>
             </TabsContent>
             <TabsContent value="directory" className="mt-0 space-y-3">
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             {[
-              { label: "使用者", value: s.users.length },
-              { label: "組織", value: s.orgs.length },
-              { label: "台本師", value: s.authorPersonas.length },
-              { label: "劇本", value: s.scripts.filter((sc) => sc.type !== "folder").length },
+              { label: "使用者", value: s.directoryOverview.users },
+              { label: "組織", value: s.directoryOverview.organizations },
+              { label: "台本師", value: s.directoryOverview.authors },
+              { label: "劇本", value: s.directoryOverview.scripts },
             ].map(({ label, value }) => (
               <Card key={label} className="border-border/60 bg-card/70 shadow-none">
                 <CardContent className="flex items-center justify-between p-3 sm:px-4">
@@ -325,7 +330,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               value={s.listQuery}
               onChange={(e) => s.setListQuery(e.target.value)}
             />
-            <Button variant="outline" size="sm" className="shrink-0" onClick={() => s.loadAllData(s.listQuery.trim())}>
+            <Button variant="outline" size="sm" className="shrink-0" onClick={() => s.loadDirectoryData(s.listQuery.trim())}>
               {s.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "重新載入"}
             </Button>
           </div>
@@ -333,19 +338,19 @@ export default function SuperAdminPage(): React.JSX.Element {
           <TabsList className="hidden">
             <TabsTrigger value="scripts" className={workbenchTabClass}>
               {s.t("transferAdmin.scriptTab")}
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.scripts.filter((sc) => sc.type !== "folder").length}</Badge>
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.directoryOverview.scripts}</Badge>
             </TabsTrigger>
             <TabsTrigger value="orgs" className={workbenchTabClass}>
               {s.t("transferAdmin.orgTab")}
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.orgs.length}</Badge>
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.directoryOverview.organizations}</Badge>
             </TabsTrigger>
             <TabsTrigger value="personas" className={workbenchTabClass}>
               {s.t("transferAdmin.personaTab")}
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.personas.length}</Badge>
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.directoryOverview.personas}</Badge>
             </TabsTrigger>
             <TabsTrigger value="users" className={workbenchTabClass}>
               使用者
-              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.users.length}</Badge>
+              <Badge variant="secondary" className="ml-1.5 text-[10px] h-4 px-1">{s.directoryOverview.users}</Badge>
             </TabsTrigger>
           </TabsList>
 
@@ -557,6 +562,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <TabsTrigger value="applications" className={workbenchTabClass}>申請與回報</TabsTrigger>
               <TabsTrigger value="signatures" className={workbenchTabClass}>簽署紀錄</TabsTrigger>
               <TabsTrigger value="submissions" className={workbenchTabClass}>Demo 投稿</TabsTrigger>
+              <TabsTrigger value="audio-work-submissions" className={workbenchTabClass}>音聲作品投稿</TabsTrigger>
               <TabsTrigger value="claims" className={workbenchTabClass}>身份認領</TabsTrigger>
               <TabsTrigger value="voice-actor-profiles" className={workbenchTabClass}>聲演頁面審核</TabsTrigger>
               <TabsTrigger value="external-author-profiles" className={workbenchTabClass}>外部台本師頁面審核</TabsTrigger>
@@ -573,6 +579,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               </div>
             </TabsContent>
             <TabsContent value="submissions"><PublicDemoSubmissionInbox /></TabsContent>
+            <TabsContent value="audio-work-submissions"><PublicAudioWorkSubmissionInbox /></TabsContent>
             <TabsContent value="claims"><VoiceActorClaimReviewInbox /></TabsContent>
             <TabsContent value="voice-actor-profiles"><VoiceActorProfileReviewInbox /></TabsContent>
             <TabsContent value="external-author-profiles"><ExternalAuthorProfileReviewInbox /></TabsContent>
@@ -602,11 +609,17 @@ export default function SuperAdminPage(): React.JSX.Element {
           <Tabs value={marketingTab} onValueChange={goToMarketingTab} className="space-y-3">
             <TabsList className="hidden">
               <TabsTrigger value="homepage" className={workbenchTabClass}>首頁 Banner</TabsTrigger>
+              <TabsTrigger value="demos" className={workbenchTabClass}>Demo 頁 Banner</TabsTrigger>
               <TabsTrigger value="activities" className={workbenchTabClass}>活動頁面</TabsTrigger>
             </TabsList>
             <TabsContent value="homepage" className="mt-0">
-              <CollapsibleSection title="首頁 Banner 設定" description="管理首頁輪播 Banner 內容">
+              <CollapsibleSection title="首頁 Banner 設定">
                 <HomepageBannerSection />
+              </CollapsibleSection>
+            </TabsContent>
+            <TabsContent value="demos" className="mt-0">
+              <CollapsibleSection title="Demo 頁 Banner 設定">
+                <HomepageBannerSection scope="demos" />
               </CollapsibleSection>
             </TabsContent>
             <TabsContent value="activities"><ActivityPagesAdminSection /></TabsContent>
@@ -670,7 +683,7 @@ export default function SuperAdminPage(): React.JSX.Element {
           preserveAuthorInternalData
           saveScript={s.handleSaveScriptSettings}
           onSave={() => {
-            s.loadAllData(s.listQuery.trim());
+            s.loadDirectoryData(s.listQuery.trim());
           }}
         />
       )}

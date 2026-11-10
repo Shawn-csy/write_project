@@ -1,6 +1,26 @@
 # Dependency Audit Exceptions
 
-最後更新：2026-08-20
+最後更新：2026-11-10
+
+## 目前正式版（2026-11-10）
+
+`apps/public` 已鎖定 Next.js 16.4.5 與 sharp 0.35.5；候選容器從乾淨的
+`npm ci` 建置，並已在隔離資料庫的 nginx 入口演練。`brace-expansion` 兩條版本線
+與 `baseline-browser-mapping` 也已更新。正式站已部署這些版本。
+
+`npm audit --omit=dev` 現在回報 **0 critical / 0 high / 0 moderate**。
+Studio 程式只使用 Firebase App、Auth、Analytics，已改為直接依賴這三個模組；
+全新 `npm ci` 與鎖定檔均不再包含未使用的 Firestore、Firestore Compat、
+`@grpc/grpc-js` 和 Firebase 總包。另已移除程式未使用的 `exceljs`，因此也不再
+安裝它帶入的 `uuid@9.0.1`。
+
+下方 2026-08 的稽核結果保留為當時紀錄，不代表目前的版本與結果。
+
+### Python 後端稽核與修復
+
+對原正式後端映像的完整 `pip freeze` 執行 PyPA `pip-audit`，發現 `cryptography 44.0.3` 有已知漏洞；原 `requirements.txt` 的 `<45` 上限阻止安裝修復版。依 [pyca 安全公告](https://github.com/pyca/cryptography/security/advisories)及[版本紀錄](https://cryptography.io/en/stable/changelog/)，將範圍改為 `>=50.0.2,<51.0.0`。重新建置的映像與舊映像的安裝清單僅差 `cryptography 44.0.3 → 50.0.2`，對新映像完整清單的稽核回報 **0 項已知漏洞**；`pip-audit -r server/requirements.txt --strict` 也通過。
+
+本機使用修復版執行後端 406 項測試通過。隔離正式資料候選入口的四個公開頁面、未授權私人 API、既有讀寫入口限制均正常；`crypto-audit-20261110` 切流後正式容器確認使用 50.0.2，主要頁面與 readiness 回 200，其他服務仍健康。`.github/workflows/public-read-security.yml` 與 `scripts/ci.sh` 現在以 `pip-audit 2.10.1` 對 Python 相依解析結果執行嚴格稽核。稽核涵蓋已知公告，不等於程式碼或相依套件不存在未知漏洞。
 
 ## next 16.3.1 升級（2026-08-20 完成）
 
@@ -72,15 +92,6 @@ vitest 4.1 起 `Assertion` 型別收斂，不再隱式套用 matcher，也讓原
 
 另新增 `apps/public/vitest-env.d.ts` 引用 jest-dom 型別。
 
-## 已接受風險（Accepted Risk）
-
-### exceljs → uuid — moderate
-
-- **CVE**：uuid 使用不安全的隨機數生成
-- **緩解措施**：exceljs 用 uuid 只在產生 xlsx 內部 cell reference，
-  不用於任何 security-sensitive 用途（非 token、非 session ID）
-- **修法路徑**：等 exceljs 升版採用 uuid >=11
-
 ## CI 把關
 
 自 2026-08-20 起 `scripts/ci.sh` 會執行 `npm audit --omit=dev`：
@@ -94,6 +105,9 @@ vitest 4.1 起 `Assertion` 型別收斂，不再隱式套用 matcher，也讓原
 
 | 套件 | 漏洞 | 修法 | 日期 |
 |---|---|---|---|
+| `exceljs` → `uuid` | 緩衝區邊界檢查 (moderate) | 專案未使用 ExcelJS，移除整條相依鏈 | 2026-11-10 |
+| `firebase` → Firestore → `@grpc/grpc-js` | TLS 授權與錯誤訊息洩漏 (high) | 移除未使用的總包，只保留 App、Auth、Analytics 模組；稽核 0 high | 2026-11-10 |
+| `next` / `sharp` / `brace-expansion` / `baseline-browser-mapping` | AVIF 處理與 DoS 等 | 升至 Next 16.4.5、sharp 0.35.5 與各自修復版 | 2026-11-10 |
 | `react-router` / `react-router-dom` | RCE, XSS, CSRF, DoS (high) | 升到 7.18.1+ | 2026-06-30 |
 | `react-router` / `react-router-dom` | RSC Mode CSRF Bypass (high) —— 7.18.1 又落入新 advisory 範圍 | 升到 7.18.2 | 2026-08-20 |
 | `firebase` → `@grpc/grpc-js` / `protobufjs` | critical/high | 升 firebase 到 12.15.0+，拉進修復版 grpc/protobuf | 2026-06-30 |

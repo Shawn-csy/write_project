@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./GalleryPeopleGrid";
@@ -46,6 +46,42 @@ describe("GalleryAuthorGrid", () => {
     );
     expect(screen.getByRole("link", { name: /Author One/ }).getAttribute("href")).toBe("/author/p1");
     expect(screen.queryByText("Hidden Author")).toBeNull();
+  });
+
+  it("external author cards resize local media avatars", () => {
+    render(
+      <GalleryAuthorGrid
+        peopleStatus="loaded"
+        onRetry={() => {}}
+        authors={[{ id: "external-1", displayName: "External Author", externalHref: "/author/external/external-author", avatar: "/media/author.jpg" }]}
+        filteredAuthors={[{ id: "external-1", displayName: "External Author" }]}
+        allTags={[]}
+        selectedTags={[]}
+        onToggleTag={noopTag}
+        onResetFilters={noopReset}
+      />
+    );
+    const image = screen.getByRole("img", { name: "External Author" });
+    expect(image.getAttribute("src")).toContain("/api/public-media/");
+    expect(image.getAttribute("srcset")).toContain("?w=48 48w");
+  });
+
+  it("shows the author's initial when an avatar image fails", () => {
+    render(
+      <GalleryAuthorGrid
+        peopleStatus="loaded"
+        onRetry={() => {}}
+        authors={[{ id: "broken", displayName: "海聶", avatar: "/media/missing.jpg" }]}
+        filteredAuthors={[{ id: "broken", displayName: "海聶" }]}
+        allTags={[]}
+        selectedTags={[]}
+        onToggleTag={noopTag}
+        onResetFilters={noopReset}
+      />
+    );
+    fireEvent.error(screen.getByRole("img", { name: "海聶" }));
+    expect(screen.queryByRole("img", { name: "海聶" })).toBeNull();
+    expect(screen.getByText("海")).toBeTruthy();
   });
 
   it("loaded + empty filteredAuthors → empty message", () => {
@@ -139,6 +175,24 @@ describe("GalleryOrgGrid", () => {
     );
     expect(screen.getByRole("link", { name: /Org One/ }).getAttribute("href")).toBe("/org/o1");
     expect(screen.queryByText("Hidden Org")).toBeNull();
+  });
+
+  it("external organization cards resize local media logos", () => {
+    render(
+      <GalleryOrgGrid
+        peopleStatus="loaded"
+        onRetry={() => {}}
+        orgs={[{ id: "external-org", name: "External Org", externalHref: "/org/external/external-org", logoUrl: "/media/org.png" }]}
+        filteredOrgs={[{ id: "external-org", name: "External Org" }]}
+        allTags={[]}
+        selectedTags={[]}
+        onToggleTag={noopTag}
+        onResetFilters={noopReset}
+      />
+    );
+    const image = screen.getByRole("img", { name: "External Org" });
+    expect(image.getAttribute("src")).toContain("/api/public-media/");
+    expect(image.getAttribute("srcset")).toContain("?w=48 48w");
   });
 
   it("loaded + empty filteredOrgs → empty message", () => {

@@ -33,6 +33,7 @@ describe("PublicInfoMenu", () => {
     await user.click(screen.getByRole("button", { name: "說明與平台資訊" }));
     expect(screen.getByRole("link", { name: /使用說明/ })).toBeTruthy();
     expect(screen.getByRole("link", { name: /授權說明/ })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Demo/ })).toBeNull();
   });
 
   it("does not render about/privacy/terms links (moved to footer)", async () => {

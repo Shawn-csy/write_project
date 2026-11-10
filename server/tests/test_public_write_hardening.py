@@ -6,17 +6,16 @@ Covers:
 - POST /api/public-scripts/{id}/like: rate limit decorator present
 - POST /api/public-terms-acceptances: rate limit decorator present
 
-Rate-limit 429 integration tests are included but skipped when slowapi is not
-wired up in the test runner (RATE_LIMIT_ENABLED=False or middleware absent).
-To run 429 tests in CI, ensure slowapi is installed and the test runner does not
-bypass SlowAPIMiddleware.
+Rate-limit 429 integration tests require slowapi and its middleware to be
+installed and active; missing rate limiting is a test failure.
 """
 
 import time
 import inspect
 import pytest
-from models import Script, User
+from models import ExternalPublicScript, PublicViewWindow, Script, ScriptLike, User
 from rate_limit import RATE_LIMIT_ENABLED
+from services.public_view_windows import VIEW_WINDOW_MS, claim_recent_view
 
 
 # ---------------------------------------------------------------------------
@@ -181,6 +180,31 @@ def test_folder_inherited_like_status_works(client, db_session):
     assert res.status_code == 200, f"folder-inherited like-status returned {res.status_code}"
 
 
+def test_anonymous_like_source_cap_and_unlike(client, db_session, public_script):
+    url = f"/api/public-scripts/{public_script}/like"
+    for index in range(3):
+        response = client.post(
+            url,
+            json={"visitorId": f"source-visitor-{index}"},
+            headers={"X-Forwarded-For": f"203.0.113.{index + 1}"},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"liked": True, "likes": index + 1}
+
+    rejected = client.post(url, json={"visitorId": "source-visitor-extra"})
+    assert rejected.status_code == 429
+    db_session.expire_all()
+    assert db_session.get(Script, public_script).likes == 3
+    assert db_session.query(ScriptLike).filter_by(scriptId=public_script).count() == 3
+
+    unlike = client.post(url, json={"visitorId": "source-visitor-0"})
+    assert unlike.status_code == 200
+    assert unlike.json() == {"liked": False, "likes": 2}
+    retry = client.post(url, json={"visitorId": "source-visitor-extra"})
+    assert retry.status_code == 200
+    assert retry.json() == {"liked": True, "likes": 3}
+
+
 def test_folder_inherited_stats_works(client, db_session):
     script_id = _seed_folder_inherited_script(db_session)
     res = client.get(f"/api/public-scripts/{script_id}/stats")
@@ -222,21 +246,54 @@ def test_view_public_script_increments_counter(client, db_session, public_script
     assert (script.views or 0) == 1
 
 
+def test_view_repeated_requests_count_once(client, db_session, public_script):
+    for attempt in range(3):
+        assert client.post(
+            f"/api/scripts/{public_script}/view",
+            headers={"X-Forwarded-For": f"203.0.113.{attempt + 1}"},
+        ).status_code == 200
+    db_session.expire_all()
+    assert db_session.get(Script, public_script).views == 1
+    assert db_session.query(PublicViewWindow).count() == 1
+
+
+def test_external_view_repeated_requests_count_once(client, db_session):
+    item = ExternalPublicScript(
+        id="view-external-public",
+        sourceUrl="https://example.com/view-external-public",
+        remoteTitle="Public external script",
+        status="published",
+        views=0,
+    )
+    db_session.add(item)
+    db_session.commit()
+    url = f"/api/public-external-scripts/{item.id}/view"
+    assert client.post(url).json()["views"] == 1
+    assert client.post(url).json()["views"] == 1
+    db_session.expire_all()
+    assert db_session.get(ExternalPublicScript, item.id).views == 1
+
+
+def test_view_window_expires_and_prunes_old_keys(db_session):
+    now = 1_000_000
+    assert claim_recent_view(db_session, "script", "a", "198.51.100.1", now_ms=now)
+    assert not claim_recent_view(db_session, "script", "a", "198.51.100.1", now_ms=now + 1)
+    assert claim_recent_view(db_session, "script", "a", "198.51.100.2", now_ms=now + 1)
+    assert claim_recent_view(db_session, "script", "b", "198.51.100.1", now_ms=now + 1)
+    assert claim_recent_view(db_session, "script", "a", "198.51.100.1", now_ms=now + VIEW_WINDOW_MS)
+    assert db_session.query(PublicViewWindow).count() == 3
+    assert claim_recent_view(db_session, "script", "c", "198.51.100.3", now_ms=now + VIEW_WINDOW_MS + 1)
+    assert db_session.query(PublicViewWindow).count() == 3
+
+
 # ---------------------------------------------------------------------------
-# Rate-limit 429 integration — only run when slowapi middleware is active.
+# Rate-limit 429 integration.
 #
 # These tests use a dedicated TestClient with raise_server_exceptions=False
 # so SlowAPIMiddleware can return 429 without the exception propagating to pytest.
 # Each test uses a unique IP to avoid cross-test counter bleed.
 # ---------------------------------------------------------------------------
 
-requires_rate_limit = pytest.mark.skipif(
-    not RATE_LIMIT_ENABLED,
-    reason="slowapi not installed; rate-limit 429 tests skipped",
-)
-
-
-@requires_rate_limit
 def test_view_rate_limit_429(db_session, public_script):
     from fastapi.testclient import TestClient
     from main import app
@@ -249,19 +306,17 @@ def test_view_rate_limit_429(db_session, public_script):
     app.dependency_overrides[get_db] = override
     app.dependency_overrides[database_get_db] = override
     try:
-        with TestClient(app, raise_server_exceptions=False) as c:
-            ip = "10.11.0.1"
-            headers = {"X-Forwarded-For": ip}
-            for _ in range(10):
+        with TestClient(app, raise_server_exceptions=False, client=("198.19.0.1", 50000)) as c:
+            for attempt in range(10):
+                headers = {"X-Forwarded-For": f"10.11.0.{attempt + 1}"}
                 r = c.post(f"/api/scripts/{public_script}/view", headers=headers)
                 assert r.status_code == 200, f"Expected 200, got {r.status_code}"
-            r = c.post(f"/api/scripts/{public_script}/view", headers=headers)
+            r = c.post(f"/api/scripts/{public_script}/view", headers={"X-Forwarded-For": "10.11.0.11"})
             assert r.status_code == 429, f"Expected 429 on 11th request, got {r.status_code}"
     finally:
         app.dependency_overrides.clear()
 
 
-@requires_rate_limit
 def test_like_rate_limit_429(db_session, public_script):
     from fastapi.testclient import TestClient
     from main import app
@@ -274,13 +329,12 @@ def test_like_rate_limit_429(db_session, public_script):
     app.dependency_overrides[get_db] = override
     app.dependency_overrides[database_get_db] = override
     try:
-        with TestClient(app, raise_server_exceptions=False) as c:
-            ip = "10.12.0.1"
-            headers = {"X-Forwarded-For": ip}
+        with TestClient(app, raise_server_exceptions=False, client=("198.19.0.2", 50000)) as c:
+            headers = {"X-Forwarded-For": "10.12.0.1"}
             for i in range(30):
                 r = c.post(
                     f"/api/public-scripts/{public_script}/like",
-                    json={"visitorId": f"v-{i}"},
+                    json={"visitorId": f"v-{i % 3}"},
                     headers=headers,
                 )
                 assert r.status_code == 200, f"Request {i}: expected 200, got {r.status_code}"
@@ -294,7 +348,6 @@ def test_like_rate_limit_429(db_session, public_script):
         app.dependency_overrides.clear()
 
 
-@requires_rate_limit
 def test_terms_acceptance_rate_limit_429(db_session, public_script):
     from fastapi.testclient import TestClient
     from main import app
@@ -307,9 +360,8 @@ def test_terms_acceptance_rate_limit_429(db_session, public_script):
     app.dependency_overrides[get_db] = override
     app.dependency_overrides[database_get_db] = override
     try:
-        with TestClient(app, raise_server_exceptions=False) as c:
-            ip = "10.13.0.1"
-            headers = {"X-Forwarded-For": ip}
+        with TestClient(app, raise_server_exceptions=False, client=("198.19.0.3", 50000)) as c:
+            headers = {"X-Forwarded-For": "10.13.0.1"}
             config = c.get("/api/public-terms-config").json()
 
             for i in range(5):

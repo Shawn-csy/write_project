@@ -1,0 +1,375 @@
+{
+  "profiles": [
+    {
+      "personaId": "b390731a-e706-4990-98bc-db9b251b8a53",
+      "name": "Aoi Hinamori",
+      "avatarUrl": "https://yt3.googleusercontent.com/pLCOpeH5lPDQH0AN4HY8_0Chv7Hl2pY-zxW72MVQN_8btOKh9u-iNK3jBsHDDlIpeRehXlfJeA=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/@AoiHinamoriCh",
+      "sourceUrl": "https://www.youtube.com/@AoiHinamoriCh",
+      "bio": "台灣吸血鬼護士 VTuber，經營直播與聲音作品。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "685023a5-2955-45d3-b078-2b997be9530c",
+      "name": "一介",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1719003004253376513/hc3P7L0G_400x400.jpg",
+      "profileUrl": "https://x.com/heyiam_1J",
+      "sourceUrl": "https://cxc.today/@man_research11/album/27804",
+      "checkedAt": 1794290786410,
+      "bio": "台灣聲演，參與音聲演出及後製。",
+      "extraLinks": [
+        {
+          "label": "YouTube",
+          "url": "https://www.youtube.com/@voice_1J"
+        }
+      ]
+    },
+    {
+      "personaId": "4bb57d9b-f296-4fbb-9cd9-cf5f9ae495b4",
+      "name": "一条ひらめ",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1509855478917914627/-4-IhxtH_400x400.png",
+      "profileUrl": "https://x.com/hirame_monoblue",
+      "sourceUrl": "https://cxc.today/@man_research11/album/27804",
+      "checkedAt": 1794290786410,
+      "bio": "日文音聲聲演，經營 monoBlue／Black。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+      "name": "伊橙/Kurihara Risako",
+      "bio": "台灣聲演，參與音聲、遊戲配音與演唱。",
+      "extraLinks": [
+        {
+          "label": "X",
+          "url": "https://x.com/kurihara_mikan"
+        }
+      ],
+      "sourceUrl": "https://x.com/kurihara_mikan",
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "d396f326-ceeb-4436-bd91-d8bfc15f15b0",
+      "name": "六条銀",
+      "bio": "日本聲演，參與音聲演出並提供聲音樣本。",
+      "extraLinks": [
+        {
+          "label": "Twitcast",
+          "url": "https://twitcasting.tv/gin_rokujo"
+        }
+      ],
+      "sourceUrl": "https://twitcasting.tv/gin_rokujo",
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "d36ad149-f69e-4e63-8c0e-18c820bfb036",
+      "name": "刺草ネトル",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1893628753294573569/m8yq9DPc_400x400.jpg",
+      "profileUrl": "https://x.com/irakusanetoru",
+      "sourceUrl": "https://cxc.today/@man_research11/album/27804",
+      "checkedAt": 1794290786410,
+      "bio": "日本聲演，參與商業與同人音聲作品。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "8b5853be-8c71-4d30-8697-2868a3ac7488",
+      "name": "古桑",
+      "bio": "男性向情境音聲與 Podcast 創作者。",
+      "extraLinks": [
+        {
+          "label": "Dcard",
+          "url": "https://www.dcard.tw/@keam1015"
+        }
+      ],
+      "sourceUrl": "https://www.dcard.tw/@keam1015",
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "ad7e39fe-5894-4a71-8d4b-43f457d279d9",
+      "name": "司鳳",
+      "avatarUrl": "https://yt3.googleusercontent.com/tUL20S2iItWNLBeYVXASYeYj3OVFxinV7EWSQ4ozc1ZKDeCi7SbiOBABuihyiCFcJx_3MwaZ2Y0=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/@ES_Phoenix",
+      "sourceUrl": "https://www.youtube.com/@ES_Phoenix",
+      "bio": "隆中閣成員，經營故事與直播內容。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "79b6370e-7bcd-4b01-a269-1615a62cd022",
+      "name": "名雪薇薇",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2026376312160706560/NKhgJyhH_400x400.jpg",
+      "profileUrl": "https://x.com/Nayuki_Vivy",
+      "sourceUrl": "https://x.com/Nayuki_Vivy",
+      "bio": "以歌唱、直播與 ASMR 活動的雪豹 VTuber。",
+      "extraLinks": [
+        {
+          "label": "StreetVoice",
+          "url": "https://streetvoice.com/NayukiViVy/about/"
+        }
+      ],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "54c77d05-1062-4e3a-9750-55c186882b63",
+      "name": "周景",
+      "avatarUrl": "https://yt3.googleusercontent.com/HKo8SrkyDcJnmcQ2ebaa3UtLeEcQAR4LxBtMYRlfOYaWtMJh45CBBcpdxUQvQKBh5dglt9xKew=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/@ES_ChouChing",
+      "sourceUrl": "https://www.youtube.com/@ES_ChouChing",
+      "bio": "隆中閣成員，以歌唱、直播與聲音演出活動。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "809f8b27-f151-4759-8283-dab3dc2e823f",
+      "name": "安里",
+      "bio": "聲演，與葉月共同經營音聲社團。",
+      "extraLinks": [
+        {
+          "label": "社團 Facebook",
+          "url": "https://www.facebook.com/AxHxASMR/"
+        }
+      ],
+      "sourceUrl": "https://www.facebook.com/AxHxASMR/",
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "557aa467-0312-4774-850e-99c515881d1b",
+      "name": "小雪Yukichan",
+      "avatarUrl": "https://yt3.googleusercontent.com/cVmFgGlv3eAMDmBf2sNCI3TBmx1ij3Km4RK3fopqoYW5fNTC2IfosTl1dsVPpxgQu9WBNKfSVA=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/@yukichanch",
+      "sourceUrl": "https://www.youtube.com/@yukichanch",
+      "bio": "台灣個人勢 VTuber，直播遊戲、歌唱與 ASMR。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "453af589-951d-4e81-b642-28491283281a",
+      "name": "床貓",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1992197779486326785/1am1ZtnD_400x400.jpg",
+      "profileUrl": "https://twitter.com/beddymiao",
+      "sourceUrl": "https://cxc.today/zh/@BedtimeStory/item/36980",
+      "checkedAt": 1794290786410,
+      "bio": "聲演與 ASMR 創作者，Bedtime Story 被談聲聆成員。",
+      "extraLinks": [
+        {
+          "label": "Facebook",
+          "url": "https://www.facebook.com/BeddyMiao/"
+        }
+      ]
+    },
+    {
+      "personaId": "34241ed8-35b2-43de-8be0-a2dba63c26b9",
+      "name": "慾子燒",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2072748211480182784/Kn-vXJMF_400x400.jpg",
+      "profileUrl": "https://twitter.com/hikanou_tw",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01631227.html",
+      "checkedAt": 1794290786410,
+      "bio": "霓聲工作室聲音演員，參與配音與音聲作品。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "ff1fe809-a4ec-404c-93da-2b1f20037946",
+      "name": "指永拷人",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2106037500888387585/1TPi-exR_400x400.jpg",
+      "profileUrl": "https://x.com/g_sashinaga",
+      "sourceUrl": "https://x.com/g_sashinaga",
+      "bio": "日本聲演，經營 Slame 並參與音聲演出與製作。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "826f24e7-1fac-4718-8ac4-c7682eb8bffb",
+      "name": "晚晚",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2026164953632444416/IQuPvR4T_400x400.jpg",
+      "profileUrl": "https://x.com/wanwan_voice",
+      "sourceUrl": "https://cxc.today/zh/@BedtimeStory/item/41720",
+      "checkedAt": 1794290786410,
+      "bio": "配音員與聲音導演，參與音聲及遊戲配音。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "57161511-2587-4299-b7a7-e32c801ed308",
+      "name": "暮恩",
+      "avatarUrl": "https://yt3.googleusercontent.com/ZMdzYRHy6V35zgCWyJq-6_k8roPRrCdKtQ3aMKQJQ0R5G9KgH9rX1rTdI09uXwGAHZKyjcdcrg=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/@MuEn_vtuber",
+      "sourceUrl": "https://cxc.today/@man_research11/album/27902",
+      "checkedAt": 1794290786410,
+      "bio": "VTuber，經營雜談、遊戲與台詞直播。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+      "name": "柔依",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1826290209543315456/Y1LfawuK_400x400.jpg",
+      "profileUrl": "https://x.com/SLEEPYyawai",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01259663.html",
+      "checkedAt": 1794290786410,
+      "bio": "聲演，參與配音與音聲作品。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+      "name": "水曜日",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1833838800965185536/GFNq1Iuy_400x400.jpg",
+      "profileUrl": "https://x.com/yuimizu1997",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01667169.html",
+      "checkedAt": 1794290786410,
+      "bio": "聲演，參與音聲配音。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "41a5b0b3-378f-4056-b5af-50105798e1c6",
+      "name": "洛可洛斯特",
+      "avatarUrl": "https://yt3.googleusercontent.com/ytc/AIdro_nIvJCRqMHTDI2MJ74WX4bOCARktdMS6uHDR4TDh7Y7LA=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/channel/UCT1kajmUhayQ4QaLlDbK23g",
+      "sourceUrl": "https://www.youtube.com/channel/UCT1kajmUhayQ4QaLlDbK23g",
+      "bio": "個人勢 VTuber，喜歡唱歌並擅長聲音模仿。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "645abb8e-c748-4e0b-814a-ef109655bb43",
+      "name": "灰妲",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2046924380643733504/7yruwWBQ_400x400.jpg",
+      "profileUrl": "https://x.com/DadaRelive",
+      "sourceUrl": "https://x.com/DadaRelive",
+      "bio": "ReLive 一期生灰鸚鵡 VTuber，參與直播與 ASMR。",
+      "extraLinks": [
+        {
+          "label": "Linktree",
+          "url": "https://linktr.ee/grayda0105"
+        }
+      ],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "520bd575-8952-51c1-a2be-b7140bf3215d",
+      "name": "莉莉Lily",
+      "avatarUrl": "https://img.portaly.cc/NJw-8DBsTguaYzAuGz94c-QrpTykbO8mPzX17EsUC60/rs:fill:1200/q:90/aHR0cHM6Ly9maXJlYmFzZXN0b3JhZ2UuZ29vZ2xlYXBpcy5jb20vdjAvYi9wb3J0YWx5LWNhOWUxLmFwcHNwb3QuY29tL28vTllVZFlyMHZESDVYZzJHbUhYUGIlMkZhdmF0YXI_YWx0PW1lZGlhJnRva2VuPThlODM1OTYzLTI5ZTEtNGQ0ZS05NTZjLTI0ODBlZWRkZmQyNQ",
+      "profileUrl": "https://portaly.cc/lilysfantasy520",
+      "sourceUrl": "https://portaly.cc/lilysfantasy520",
+      "bio": "聲音創作者，經營 Podcast 與情境音聲作品。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "ff30cc06-e8a7-4db2-830a-9b709eaf764b",
+      "name": "葉月",
+      "bio": "聲演，與安里共同經營音聲社團。",
+      "extraLinks": [
+        {
+          "label": "社團 Facebook",
+          "url": "https://www.facebook.com/AxHxASMR/"
+        }
+      ],
+      "sourceUrl": "https://www.facebook.com/AxHxASMR/",
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "5ca0f485-e5c1-49c1-95dc-e4ce402b9f2c",
+      "name": "葛晨",
+      "avatarUrl": "https://yt3.googleusercontent.com/Ph48zyNQ8luUn8FWAick9Zi7lO5nIBhMqrBX4gCwGuFRS1U43pMPR_a6zf0kbdWM5731masag58=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/@ES_GeChen",
+      "sourceUrl": "https://www.youtube.com/@ES_GeChen",
+      "bio": "隆中閣成員，經營故事與直播內容。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "b22a6594-8db2-4694-b9f3-e16b2580bf9f",
+      "name": "蓋爾",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2115675282527100928/65_qoUWz_400x400.jpg",
+      "profileUrl": "https://x.com/gale_vtuber",
+      "sourceUrl": "https://cxc.today/@man_research11/album/28185/track/183012",
+      "checkedAt": 1794290786410,
+      "bio": "VTuber，經營直播並參與音聲演出。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "2d2b76b5-d09a-4f6f-a77f-37829aa58a59",
+      "name": "赤姬紅葉",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/2041761412071223297/sVHjNBD2_400x400.jpg",
+      "profileUrl": "https://x.com/AKAHIMEMOMIJI",
+      "sourceUrl": "https://x.com/AKAHIMEMOMIJI",
+      "bio": "女巫 VTuber，參與音聲演出與直播。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "5bb81ad7-08eb-4b21-9989-83e59724bf73",
+      "name": "速水理人",
+      "bio": "日本聲演，參與音聲作品演出。",
+      "extraLinks": [
+        {
+          "label": "Twitcast",
+          "url": "https://twitcasting.tv/hayami_rihito"
+        }
+      ],
+      "sourceUrl": "https://twitcasting.tv/hayami_rihito",
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "0ef644c8-0df3-4f92-9dfe-10782505d7a4",
+      "name": "長毛象邦邦",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1553432287098060800/Yqhk6CDu_400x400.jpg",
+      "profileUrl": "https://x.com/elephantbond2",
+      "sourceUrl": "https://x.com/elephantbond2",
+      "bio": "聲音創作者與 Podcaster，經營女性向情境音聲。",
+      "extraLinks": [],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "5d50c406-ae39-4fb0-855b-afcf11160443",
+      "name": "雪之下織雪",
+      "avatarUrl": "https://yt3.googleusercontent.com/aa9Iqf9byzGivm6U-VM-aasLeR5uPXuJIntCvQPOeKZ1x5W2O8VHYU1_hzJdYpwrVR90yGYWJw=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/channel/UCH2dAEECzniZIShBZ50Iujg",
+      "sourceUrl": "https://www.youtube.com/channel/UCH2dAEECzniZIShBZ50Iujg",
+      "bio": "芥川所屬 VTuber，創作 ASMR 與直播內容。",
+      "extraLinks": [
+        {
+          "label": "X",
+          "url": "https://x.com/oriyuki_vtuber"
+        }
+      ],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+      "name": "霏筱雨",
+      "avatarUrl": "https://pbs.twimg.com/profile_images/1877717604237967360/8nCHarjO_400x400.jpg",
+      "profileUrl": "https://twitter.com/FeixiaoyuRain",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01735988.html",
+      "checkedAt": 1794290786410,
+      "bio": "聲演與聲音導演，參與遊戲、音聲與 ASMR。",
+      "extraLinks": []
+    },
+    {
+      "personaId": "bfc48025-2801-4f51-b0bb-62fdc86759e4",
+      "name": "露熙妲",
+      "avatarUrl": "https://yt3.googleusercontent.com/qh0L5cfPhvSmWCbW54dKxy7Bi0KXX-DYg9zMMKPjKp9hmrzuPeTHrIPohhQTgTA1EcWGs32Vwg=s900-c-k-c0x00ffffff-no-rj",
+      "profileUrl": "https://www.youtube.com/channel/UC6CpUl2thiDslRorMhd00HA",
+      "sourceUrl": "https://www.youtube.com/channel/UC6CpUl2thiDslRorMhd00HA",
+      "bio": "VTuber，以直播與 ASMR 活動。",
+      "extraLinks": [
+        {
+          "label": "X",
+          "url": "https://x.com/Luxida_Reverie"
+        }
+      ],
+      "checkedAt": 1794291260794
+    },
+    {
+      "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+      "name": "默吹羽",
+      "bio": "聲演與歌唱創作者，參與中文音聲作品。",
+      "extraLinks": [
+        {
+          "label": "X",
+          "url": "https://x.com/mugi_sing0729"
+        }
+      ],
+      "sourceUrl": "https://x.com/mugi_sing0729",
+      "checkedAt": 1794291260794
+    }
+  ]
+}

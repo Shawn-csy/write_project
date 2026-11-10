@@ -7,6 +7,7 @@ import type { PublicSeriesGroup } from "./seriesModel";
 import { normalizeCardText, normalizeOutlineText, truncateCardText } from "./cardText";
 import { useGalleryHoverPreview } from "./GalleryHoverPreview";
 import type { CoverImageRenderer } from "../ScriptGalleryCard";
+import { formatPublicYear } from "../publicDate";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +34,6 @@ function formatUpdatedAt(updatedAt: number | string | null): string {
   if (updatedAt == null) return "";
   const ts = typeof updatedAt === "number" ? updatedAt : Date.parse(updatedAt);
   if (!Number.isFinite(ts) || ts === 0) return "";
-  const d = new Date(ts);
   const now = Date.now();
   const diffMs = now - ts;
   const diffDays = Math.floor(diffMs / 86400000);
@@ -41,7 +41,7 @@ function formatUpdatedAt(updatedAt: number | string | null): string {
   if (diffDays < 7) return `${diffDays} 天前`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} 週前`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} 個月前`;
-  return `${d.getFullYear()}`;
+  return formatPublicYear(ts);
 }
 
 // ─── SeriesGalleryCard ────────────────────────────────────────────────────────

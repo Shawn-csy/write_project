@@ -12,8 +12,8 @@ import { LiveTagPage } from "@/components/LiveEntityPages";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
-export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return getStaticTagParams();
@@ -21,7 +21,7 @@ export async function generateStaticParams() {
 
 const fetchTagScripts = cache(async (tagName: string): Promise<TagData> => {
   try {
-    return buildTagData(await apiFetch<PublicBundleLike>("/public-bundle"), tagName);
+    return buildTagData(await apiFetch<PublicBundleLike>("/public-bundle?sections=scripts,externalPublicScripts"), tagName);
   } catch {
     return { scripts: [], externalScripts: [] };
   }

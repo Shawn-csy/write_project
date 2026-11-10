@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, FolderPlus, Link2, Plus } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -8,9 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu";
-import { PublisherWorksTab } from "../components/dashboard/publisher/PublisherWorksTab";
-import { WriteTab } from "../components/dashboard/WriteTab";
 import { CoverPlaceholder } from "../components/ui/CoverPlaceholder";
+import { CoverRenderer } from "../components/ui/CoverRenderer";
 import { StudioPage, StudioPageHeader, StudioSectionTitle } from "../components/studio/StudioPage";
 import { SegmentedControl } from "../components/studio/SegmentedControl";
 import { usePublisherDashboardState } from "../hooks/publisher/usePublisherDashboardState";
@@ -19,22 +18,30 @@ import { getMediaCropStyle } from "../lib/mediaCropRef";
 import type { ScriptManager, CloudScript } from "../hooks/useScriptManager.types";
 import { deleteScript } from "../lib/api/scripts";
 import { useToast } from "../components/ui/toast";
+import type { WriteScriptItem } from "../types/write";
+import type { BaseScriptApi } from "../types/api";
+import { lazyWithRefreshRetry } from "../lib/lazyWithRefreshRetry";
+
+const PublisherWorksTab = lazyWithRefreshRetry(async () => {
+  const module = await import("../components/dashboard/publisher/PublisherWorksTab");
+  return { default: module.PublisherWorksTab };
+}, "works-published-view");
+const WriteTab = lazyWithRefreshRetry(async () => {
+  const module = await import("../components/dashboard/WriteTab");
+  return { default: module.WriteTab };
+}, "works-folder-view");
 
 type WorksView = "all" | "folders";
 
 const isCloudScript = (value: unknown): value is CloudScript =>
   typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string";
 
-const dispatchWriteTabAction = (type: "create-script" | "create-folder" | "import-script") => {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type } }));
-};
-
 interface RecentWork {
   id: string;
   title: string;
   lastModified?: number;
   coverUrl?: string;
+  coverDesign?: BaseScriptApi["coverDesign"];
 }
 
 const formatRelative = (ts?: number): string => {
@@ -48,14 +55,41 @@ const formatRelative = (ts?: number): string => {
   return `${d.getMonth() + 1}/${d.getDate()} 編輯`;
 };
 
+const toRecentWorks = (items: Array<{ id: string; title: string; type?: string; lastModified?: number; coverUrl?: unknown; coverDesign?: unknown }>): RecentWork[] =>
+  [...items]
+    .filter((item) => item.id && item.type !== "folder")
+    .sort((a, b) => Number(b.lastModified || 0) - Number(a.lastModified || 0))
+    .slice(0, 4)
+    .map((item) => ({
+      id: item.id,
+      title: item.title || "未命名",
+      lastModified: Number(item.lastModified || 0) || undefined,
+      coverUrl: typeof item.coverUrl === "string" ? item.coverUrl : undefined,
+      coverDesign: item.coverDesign && typeof item.coverDesign === "object" && "bg" in item.coverDesign
+        ? item.coverDesign as BaseScriptApi["coverDesign"]
+        : null,
+    }));
+
 export default function WorksPage({ scriptManager }: { scriptManager: ScriptManager }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const s = usePublisherDashboardState({ mode: "studio" });
   const view: WorksView = new URLSearchParams(location.search).get("view") === "folders" ? "folders" : "all";
+  const [visitedAll, setVisitedAll] = useState(view === "all");
+  const [visitedFolders, setVisitedFolders] = useState(view === "folders");
+  const s = usePublisherDashboardState({ mode: "studio", enabled: visitedAll });
   const [recent, setRecent] = useState<RecentWork[] | null>(null);
+  const [requestedAction, setRequestedAction] = useState<{ id: number; type: "create-script" | "create-folder" | "import-script" } | null>(null);
+
+  useEffect(() => {
+    if (view === "all") setVisitedAll(true);
+    else setVisitedFolders(true);
+  }, [view]);
+
+  const captureFolderRecent = useCallback((items: WriteScriptItem[]) => {
+    setRecent((previous) => previous ?? toRecentWorks(items));
+  }, []);
 
   const {
     setActiveCloudScript, setActivePublicScriptId,
@@ -75,21 +109,13 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
   // The recent strip is captured from the first unfiltered load so it does not
   // jump around while the list below is being filtered.
   useEffect(() => {
-    if (recent !== null || s.isWorksLoading) return;
-    const sorted = [...(s.scripts || [])]
-      .filter((item) => typeof item.id === "string")
-      .sort((a, b) => Number(b.lastModified || 0) - Number(a.lastModified || 0))
-      .slice(0, 4)
-      .map((item) => ({
-        id: String(item.id),
-        title: String(item.title || "未命名"),
-        lastModified: Number(item.lastModified || 0) || undefined,
-        coverUrl: typeof item.coverUrl === "string" ? item.coverUrl : undefined,
-      }));
-    setRecent(sorted);
-  }, [recent, s.isWorksLoading, s.scripts]);
+    if (!visitedAll || recent !== null || s.isWorksLoading) return;
+    setRecent(toRecentWorks(s.scripts || []));
+  }, [visitedAll, recent, s.isWorksLoading, s.scripts]);
 
   const setView = (next: WorksView) => {
+    if (next === "all") setVisitedAll(true);
+    else setVisitedFolders(true);
     const params = new URLSearchParams(location.search);
     if (next === "folders") params.set("view", "folders");
     else {
@@ -112,9 +138,9 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
   };
 
   const startCreate = (type: "create-script" | "create-folder" | "import-script") => {
-    // Creating and importing belong to the folder tree, so switch to it first.
-    if (type !== "create-script" && view !== "folders") setView("folders");
-    dispatchWriteTabAction(type);
+    // The folder view handles creation after it mounts, including on a first visit.
+    if (view !== "folders") setView("folders");
+    setRequestedAction((previous) => ({ id: (previous?.id ?? 0) + 1, type }));
   };
 
   const handleDeleteDraft = async (script: { id: string; title?: string }) => {
@@ -134,7 +160,6 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
     <StudioPage width="wide">
       <StudioPageHeader
         title="作品"
-        description="站內台本、外部連結作品與資料夾都在這裡管理。"
         actions={
           <>
             <Button variant="outline" asChild>
@@ -181,9 +206,11 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
                   to={`/edit/${item.id}?mode=edit`}
                   className="group flex min-w-0 gap-3 rounded-[10px] border border-border bg-card p-2.5 transition-colors hover:border-foreground/20 sm:p-3"
                 >
-                  <span className="relative h-[52px] w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+                  <span className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded-md bg-muted">
                     {crop.src ? (
                       <img src={crop.src} style={crop.style} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    ) : item.coverDesign ? (
+                      <CoverRenderer design={item.coverDesign} title={item.title} compact responsive className="h-full w-full" />
                     ) : (
                       <CoverPlaceholder title={item.title} compact />
                     )}
@@ -215,7 +242,7 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
         </div>
 
         <div hidden={view !== "all"}>
-          <PublisherWorksTab
+          {visitedAll && <Suspense fallback={<div className="py-8 text-sm text-muted-foreground">載入作品中…</div>}><PublisherWorksTab
             isLoading={s.isWorksLoading}
             scripts={s.scripts}
             personas={s.personas}
@@ -229,11 +256,12 @@ export default function WorksPage({ scriptManager }: { scriptManager: ScriptMana
             onLoadMore={s.handleLoadMoreWorks}
             onQueryChange={s.handleWorksQueryChange}
             onDeleteScript={handleDeleteDraft}
-          />
+            onCreateScript={() => startCreate("create-script")}
+          /></Suspense>}
         </div>
 
         <div hidden={view !== "folders"} className="h-[calc(100dvh-14rem)] min-h-[520px]">
-          {currentUser ? <WriteTab onSelectScript={openEditor} refreshTrigger={0} /> : null}
+          {currentUser && visitedFolders ? <Suspense fallback={<div className="py-8 text-sm text-muted-foreground">載入資料夾中…</div>}><WriteTab onSelectScript={openEditor} onScriptsLoaded={captureFolderRecent} requestedAction={requestedAction} refreshTrigger={0} /></Suspense> : null}
         </div>
       </section>
 

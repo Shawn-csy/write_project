@@ -1,3 +1,5 @@
+import { PUBLIC_TIME_ZONE } from "@write/public-ui/public-date";
+
 export type ExternalEntityKind = "author" | "org";
 
 /**
@@ -84,5 +86,6 @@ export function formatExternalAddedAt(value?: number | string | null): string {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: PUBLIC_TIME_ZONE,
   }).format(new Date(timestamp));
 }

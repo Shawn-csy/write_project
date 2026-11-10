@@ -8,7 +8,9 @@ type WorkerEnv = Parameters<typeof worker.fetch>[1];
 function fakeDb(rows: Record<string, { body: string; synced_at: string }>): NonNullable<WorkerEnv["DB"]> {
   const statement = (path = "") => ({
     bind: (bound: string) => statement(bound),
-    first: async () => rows[path] ?? null,
+    first: async () => Object.keys(rows).length > 0
+      ? { active_generation: "test", ...(rows[path] ?? {}) }
+      : { active_generation: null },
   });
   return { prepare: () => statement() } as unknown as NonNullable<WorkerEnv["DB"]>;
 }
@@ -21,6 +23,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("snapshot (D1 fallback) mode", () => {
   const db = fakeDb({
     "/api/public-bundle": { body: '{"scripts":[]}', synced_at: "2026-10-27T00:00:00Z" },
+    "/api/public-activity-status": { body: '{"hasPublishedActivities":true}', synced_at: "2026-10-27T00:00:00Z" },
     "/api/public-scripts?personaId=p1": { body: "[]", synced_at: "2026-10-27T00:00:00Z" },
   });
   const env = { DB: db, ALLOWED_ORIGINS: ORIGIN };
@@ -34,9 +37,35 @@ describe("snapshot (D1 fallback) mode", () => {
     expect(response.headers.get("access-control-expose-headers")).toContain("X-Data-Synced-At");
   });
 
+  it("projects requested bundle sections from the stored full snapshot", async () => {
+    const directory = fakeDb({
+      "/api/public-bundle": {
+        body: '{"scripts":[{"id":"s1"}],"organizations":[{"id":"o1"}],"audioWorks":[{"id":"a1"}]}',
+        synced_at: "2026-10-27T00:00:00Z",
+      },
+    });
+    const response = await worker.fetch(get("/api/public-bundle?sections=audioWorks,organizations"), { DB: directory });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ audioWorks: [{ id: "a1" }], organizations: [{ id: "o1" }] });
+    expect(response.headers.get("x-data-synced-at")).toBe("2026-10-27T00:00:00Z");
+  });
+
+  it("rejects invalid bundle projections without reading the snapshot", async () => {
+    for (const query of ["sections=", "sections=audioWorks,audioWorks", "sections=secret", "sections=audioWorks&other=1"]) {
+      const response = await worker.fetch(get(`/api/public-bundle?${query}`), env);
+      expect(response.status).toBe(400);
+    }
+  });
+
   it("keys list queries by their query string", async () => {
     const response = await worker.fetch(get("/api/public-scripts?personaId=p1"), env);
     expect(response.status).toBe(200);
+  });
+
+  it("serves the small activity navigation flag from the snapshot", async () => {
+    const response = await worker.fetch(get("/api/public-activity-status"), env);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ hasPublishedActivities: true });
   });
 
   it("answers 404 for a path with no snapshot", async () => {

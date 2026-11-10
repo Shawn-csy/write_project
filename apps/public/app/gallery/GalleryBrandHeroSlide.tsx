@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { BrandScriptDesk } from "./BrandScriptDesk";
-import type { BrandHeroSlide } from "./homepageHeroModel";
+import { BRAND_SLIDE, type BrandHeroSlide } from "./homepageHeroModel";
 
 const DESKTOP_MQ = "(min-width: 640px)";
 
@@ -10,14 +10,11 @@ const DESKTOP_MQ = "(min-width: 640px)";
  * Brand hero slide content — renders inside PublicHeroMarquee's carousel frame.
  * No outer <section> or height control: the carousel container owns dimensions.
  * BrandScriptDesk is conditionally mounted only on desktop (min-width:640px)
- * so mobile does not pay the component + Anime.js cost at all.
+ * so mobile does not render the decorative scene.
  */
 export function GalleryBrandHeroSlide({ slide }: { slide?: BrandHeroSlide }) {
   const [isDesktop, setIsDesktop] = useState(false);
-  const eyebrow = slide?.eyebrow || "公開台本平台";
   const title = slide?.title || "配音、閱讀、創作公開台本";
-  const content = slide?.content || "僅收錄公開台本，如果有喜歡的歡迎委託台本師\n如果需要上架或下架作品請直接與我們聯繫。";
-  const contentLines = content.split(/\r?\n/).filter(Boolean);
   const titleParts = title.split("公開台本");
 
   useEffect(() => {
@@ -45,14 +42,10 @@ export function GalleryBrandHeroSlide({ slide }: { slide?: BrandHeroSlide }) {
       {/* Fine grain texture */}
       <div className="absolute inset-0 pointer-events-none editorial-grain" aria-hidden />
 
-      <div className="relative z-10 h-full flex flex-col justify-center mx-auto max-w-5xl px-6 sm:px-8 py-10 sm:py-14">
-        {/* Eyebrow */}
-        <p className="hero-reveal editorial-eyebrow mb-3 text-[10px] font-semibold tracking-[0.22em] uppercase" style={{ animationDelay: "0ms" }}>
-          {eyebrow}
-        </p>
-
+      <div className="relative z-10 h-full flex flex-col justify-center mx-auto max-w-5xl px-5 sm:px-8 py-3 sm:py-10">
+        <p className="mb-1.5 text-primary [font-size:var(--public-font-caption)] font-semibold tracking-widest sm:mb-3">{slide?.eyebrow || BRAND_SLIDE.eyebrow}</p>
         {/* Main headline */}
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
+        <h1 className="text-xl sm:text-4xl lg:text-5xl font-serif font-bold leading-[1.15] text-foreground">
           {titleParts.length === 2 ? (
             <>
               <span className="hero-reveal block" style={{ animationDelay: "80ms" }}>
@@ -69,19 +62,7 @@ export function GalleryBrandHeroSlide({ slide }: { slide?: BrandHeroSlide }) {
             </span>
           )}
         </h1>
-
-        {/* Sub-copy — hidden on mobile to keep hero compact */}
-        <p className="hero-reveal hidden sm:block mt-4 max-w-lg text-sm sm:text-base leading-relaxed text-muted-foreground" style={{ animationDelay: "240ms" }}>
-          {contentLines[0] || "僅收錄公開台本，如果有喜歡的歡迎委託台本師"}
-        </p>
-
-        {/* Decorative rule — hidden on mobile */}
-        <div className="hero-reveal hidden sm:flex mt-6 items-center gap-5" style={{ animationDelay: "320ms" }}>
-          <div className="h-px flex-1 max-w-[3rem] editorial-rule" aria-hidden />
-          <span className="editorial-dim text-[11px] tracking-[0.15em] uppercase">
-            {contentLines.slice(1).join(" ") || "如果需要上架或下架作品請直接與我們聯繫。"}
-          </span>
-        </div>
+        <p className="mt-2 max-w-xl whitespace-pre-line line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:mt-4 sm:text-sm">{slide?.content || BRAND_SLIDE.content}</p>
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
       startSlot={
         <Link
           href="/"
-          className="inline-flex items-center gap-1 h-6 px-2.5 rounded-[5px] text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+          className="inline-flex items-center gap-1 h-6 px-2.5 rounded-md text-xs font-medium text-muted-foreground border border-border/50 bg-transparent hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
         >
           ← 台本列表
         </Link>

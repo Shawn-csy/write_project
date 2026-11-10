@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef } from "react";
-import { useHeroBrandAnimation } from "@/lib/motion/useHeroBrandAnimation";
 
 const SCRIPT_LINES = [
   { delay: "0ms" },
@@ -13,12 +11,8 @@ const SCRIPT_LINES = [
 
 
 export function BrandScriptDesk() {
-  const ref = useRef<HTMLDivElement>(null);
-  useHeroBrandAnimation(ref);
-
   return (
     <div
-      ref={ref}
       className="absolute inset-0 pointer-events-none overflow-hidden"
       data-testid="brand-script-desk"
       aria-hidden="true"

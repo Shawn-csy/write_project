@@ -42,6 +42,7 @@ describe("sitemap", () => {
   it("includes static pages", async () => {
     const urls = (await getSitemap()).map((e) => e.url);
     expect(urls).toContain(`${BASE}/about`);
+    expect(urls).toContain(`${BASE}/authors`);
     expect(urls).toContain(`${BASE}/help`);
     expect(urls).toContain(`${BASE}/license`);
     expect(urls).toContain(`${BASE}/privacy`);
@@ -78,7 +79,7 @@ describe("sitemap", () => {
     const home = entries.find((e) => e.url === `${BASE}/`);
     const about = entries.find((e) => e.url === `${BASE}/about`);
     expect(home?.lastModified).toBe("2026-01-01T00:00:00.000Z"); // newest content date
-    expect(about?.lastModified).toBe("2026-10-20T00:00:00.000Z");
+    expect(about?.lastModified).toBe("2026-11-03T00:00:00.000Z");
     expect(await getSitemap()).toEqual(entries);
   });
 

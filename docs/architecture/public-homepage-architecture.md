@@ -403,27 +403,22 @@ Completion standard met:
 - Author/org/script results share one model vocabulary.
 - 159 total package tests pass.
 
-### Phase 5: Public Shell Convergence ✓ Partial
+### Phase 5: Public Shell Convergence ✓
 
 Goal: make the public homepage shell coherent across desktop and mobile.
 
 Work completed:
 
-1. `packages/public-ui/src/gallery/PublicGalleryTopBar.tsx` — router-neutral topbar primitive.
-   - Props: `activeTab`, `onTabChange`, `onOpenMobileFilter?`, `tabs?`, `brandName?`, `trailing`, `mobileFilterLabel?`
-   - `trailing` slot: host-specific actions (studio link, login, etc.) kept in `apps/public`
-   - `aria-current="page"` on active tab; `aria-label` on nav and filter button
-   - Default tabs: scripts / authors / orgs
-2. `apps/public/app/gallery/GalleryTopBar.tsx` rewritten as thin wrapper: passes studio link via `trailing` slot.
+1. `packages/public-ui/src/gallery/PublicShellTopBar.tsx` is the router-neutral layout primitive.
+2. `apps/public/components/PublicTopBar.tsx` is the single public-site composition for section links, activity visibility, branding, and desktop/mobile actions. `GalleryTopBar.tsx` only adapts the homepage's in-page author tab callback.
 3. `GalleryScriptResults` migrated from flat prop explosion to `model: PublicHomepageModel` — reads `lanes`, `showLanes`, `emptyState`, `viewMode`, `hasFilters` from model.
 4. `GalleryClient` reads `homepageModel` directly; no more `galleryModel` passthrough.
 5. `useGalleryController` passthrough removed — returns only `homepageModel` + routing/data state.
-6. Exported: `PublicGalleryTopBar`, `DEFAULT_TABS`, `PublicGalleryTopBarProps`, `PublicGalleryTab` from `@write/public-ui`.
+6. Section links are defined once in `apps/public/lib/publicNavigation.ts`; the mobile action sheet and desktop header read the same list.
 
 Remaining for future iteration:
 
-- `help | license | about` tabs: `PublicGalleryTopBar` already accepts `tabs?` override for this, but URL model (`GalleryView`) not yet expanded. Phase 5.2.
-- Filter panel and mobile sheet not yet promoted to shared UI — behavior is stable but contains host-specific label strings. Phase 5.3 if needed.
+- The filter panel remains gallery-specific; the mobile action sheet is shared by all public pages.
 
 Completion standard met:
 

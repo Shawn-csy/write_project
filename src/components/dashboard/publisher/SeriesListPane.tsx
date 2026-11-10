@@ -144,7 +144,6 @@ export function SeriesListPane({
           <PublisherEmptyState
             icon={Layers}
             title="尚未建立系列。"
-            description="建立系列後，可集中管理封面、摘要與作品順序。"
             className="mx-1"
           />
         )

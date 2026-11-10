@@ -112,7 +112,7 @@ describe("useScriptMetadataJson", () => {
     expect(props.setIdentity).toHaveBeenCalledWith("persona:p-1");
     expect(props.setSelectedOrgId).toHaveBeenCalledWith("org-1");
     expect(props.setActivityDemoLinks).toHaveBeenCalledWith([
-      { id: "demo-1", name: "", url: "https://example.com/demo", cast: "", description: "" },
+      { id: "demo-1", name: "", url: "https://example.com/demo", cast: "", voiceActorIds: [], voiceTypes: [], description: "" },
     ]);
     expect(props.setContactFields).toHaveBeenCalledWith([
       { id: "ct-1", key: "Email", value: "a@example.com" },

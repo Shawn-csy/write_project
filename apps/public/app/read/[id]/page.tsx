@@ -33,14 +33,14 @@ import { getStaticReadParams } from "@/lib/staticParams";
 // 搭配預設 expireTime（一年）等於告訴 Cloudflare「過期後仍可供應舊版最多一年」。
 // 2026-08-20 資料庫事故期間，三篇台本的 404 就是這樣被 CDN 鎖住的。
 // 改為 1 小時，並在 next.config.ts 收斂 expireTime。
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const revalidate = 3600;
 
 // Keep unknown script IDs generated on first request, but make the generated
 // reader page cacheable by Next.js instead of treating every request as SSR.
 export const dynamic = "force-static";
 
 // Unknown script IDs are generated on first request, not blocked
-export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+export const dynamicParams = true;
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 

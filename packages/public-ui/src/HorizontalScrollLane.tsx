@@ -6,13 +6,17 @@ export interface HorizontalScrollLaneProps {
   title?: React.ReactNode;
   actionLabel?: React.ReactNode;
   onAction?: () => void;
+  initialItemCount?: number;
+  itemBatchSize?: number;
 }
 
-function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: HorizontalScrollLaneProps): React.JSX.Element {
+function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, initialItemCount, itemBatchSize = 8 }: HorizontalScrollLaneProps): React.JSX.Element {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [showLeft, setShowLeft] = useState<boolean>(false);
   const [showRight, setShowRight] = useState<boolean>(false);
   const [isLaneHovered, setIsLaneHovered] = useState<boolean>(false);
+  const [visibleCount, setVisibleCount] = useState(initialItemCount ?? Number.POSITIVE_INFINITY);
+  const items = React.Children.toArray(children);
 
   const checkScroll = useCallback(() => {
     if (!scrollRef.current) return;
@@ -20,6 +24,15 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: H
     setShowLeft(scrollLeft > 0);
     setShowRight(scrollLeft < scrollWidth - clientWidth - 5);
   }, []);
+
+  const handleScroll = useCallback(() => {
+    checkScroll();
+    const el = scrollRef.current;
+    if (!el || initialItemCount == null || visibleCount >= items.length) return;
+    if (el.scrollLeft + el.clientWidth >= el.scrollWidth - el.clientWidth / 2) {
+      setVisibleCount((count) => Math.min(count + itemBatchSize, items.length));
+    }
+  }, [checkScroll, initialItemCount, itemBatchSize, items.length, visibleCount]);
 
   useEffect(() => {
     checkScroll();
@@ -39,6 +52,8 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: H
     ro.observe(el);
     return () => ro.disconnect();
   }, [checkScroll]);
+
+  useEffect(checkScroll, [checkScroll, visibleCount]);
 
   const scroll = (direction: "left" | "right"): void => {
     if (!scrollRef.current) return;
@@ -94,10 +109,10 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction }: H
 
         <div
           ref={scrollRef}
-          onScroll={checkScroll}
+          onScroll={handleScroll}
           className="flex gap-4 overflow-x-auto pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory scroll-smooth px-2 scroll-px-2 [&>*]:snap-start"
         >
-          {children}
+          {initialItemCount == null ? children : items.slice(0, visibleCount)}
         </div>
 
         {showRight && (

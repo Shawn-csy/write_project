@@ -65,10 +65,8 @@ describe("PublicInfoTopBar", () => {
     expect(source).not.toMatch(/^"use client"/m);
   });
 
-  it("no info dropdown or appearance dropdown rendered", () => {
-    const { container } = render(<PublicInfoTopBar />);
-    // No menu buttons (hamburger, dropdowns) should exist
-    const buttons = container.querySelectorAll("button");
-    expect(buttons.length).toBe(0);
+  it("uses the shared mobile action menu", () => {
+    render(<PublicInfoTopBar />);
+    expect(screen.getByRole("button", { name: "更多選項" })).toBeTruthy();
   });
 });

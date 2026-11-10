@@ -243,6 +243,10 @@ export interface HomepageBanner {
   items?: HomepageBannerItem[];
 }
 
+export interface DemoBanner {
+  items?: HomepageBannerItem[];
+}
+
 export interface PublicBundleResponse {
   scripts?: BaseScriptApi[];
   personas?: PersonaLike[];
@@ -520,6 +524,28 @@ export interface StudioDemoSubmissionUpdatePayload {
 export interface PublicDemoSubmissionListResponse {
   total: number;
   items: PublicDemoSubmissionRecord[];
+}
+
+export interface PublicAudioWorkSubmissionRecord {
+  id: string;
+  title: string;
+  url: string;
+  coverUrl: string;
+  description: string;
+  creatorName: string;
+  creatorUrl: string;
+  organizationId?: string | null;
+  voiceActorIds?: string[];
+  accessType?: "paid" | "free";
+  contactEmail: string;
+  status: "pending" | "approved" | "rejected";
+  reviewedAt?: number | null;
+  createdAt: number;
+}
+
+export interface PublicAudioWorkSubmissionListResponse {
+  total: number;
+  items: PublicAudioWorkSubmissionRecord[];
 }
 
 export interface VoiceActorProfileSubmission {

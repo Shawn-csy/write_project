@@ -1,52 +1,94 @@
+from ipaddress import ip_address
+from types import SimpleNamespace
 import pytest
-from unittest.mock import MagicMock
-from rate_limit import get_client_ip, limiter, _NoopLimiter
 
-def test_get_client_ip_cf_connecting_ip():
-    mock_request = MagicMock()
-    # If cf-connecting-ip is present, use it.
-    mock_request.headers.get.side_effect = lambda k: "203.0.113.1" if k == "cf-connecting-ip" else None
-    
-    ip = get_client_ip(mock_request)
-    assert ip == "203.0.113.1"
-    mock_request.headers.get.assert_called_with("cf-connecting-ip")
+import rate_limit
 
-def test_get_client_ip_x_forwarded_for():
-    mock_request = MagicMock()
-    # Simulating X-Forwarded-For where there could be multiple IPs
-    def mock_headers_get(key):
-        if key == "cf-connecting-ip":
-            return None
-        if key == "x-forwarded-for":
-            return "198.51.100.2, 10.0.0.1"
-        return None
-    mock_request.headers.get.side_effect = mock_headers_get
-    
-    ip = get_client_ip(mock_request)
-    # Should take the first IP without spaces
-    assert ip == "198.51.100.2"
 
-def test_get_client_ip_fallback():
-    mock_request = MagicMock()
-    mock_request.headers.get.return_value = None
-    mock_request.client.host = "192.168.1.10"
-    
-    ip = get_client_ip(mock_request)
-    assert ip == "192.168.1.10"
+def request(peer, **headers):
+    return SimpleNamespace(
+        client=SimpleNamespace(host=peer) if peer else None,
+        headers={name.replace("_", "-"): value for name, value in headers.items()},
+    )
 
-def test_get_client_ip_no_request_client():
-    mock_request = MagicMock()
-    mock_request.headers.get.return_value = None
-    mock_request.client = None
-    
-    ip = get_client_ip(mock_request)
-    assert ip == "unknown"
 
-def test_noop_limiter_decorator():
-    # In test environments without redis/slowapi, Limiter can fallback to Noop.
-    noop = _NoopLimiter()
-    # Check if the decorator successfully returns the function unmodified
-    @noop.limit("10/minute")
-    def dummy_route():
-        return "ok"
-    assert dummy_route() == "ok"
+def test_untrusted_peer_cannot_spoof_client_ip(monkeypatch):
+    monkeypatch.setattr(rate_limit, "_trusted_proxy_ips", lambda _bucket: frozenset({ip_address("192.168.97.3")}))
+    incoming = request(
+        "203.0.113.10",
+        x_real_ip="198.51.100.1",
+        x_forwarded_for="198.51.100.2",
+        cf_connecting_ip="198.51.100.3",
+    )
+
+    assert rate_limit.resolve_client_ip(incoming) == ("203.0.113.10", "")
+    assert rate_limit.get_client_ip(incoming) == "203.0.113.10"
+
+
+def test_trusted_proxy_uses_only_overwritten_real_ip(monkeypatch):
+    monkeypatch.setattr(rate_limit, "_trusted_proxy_ips", lambda _bucket: frozenset({ip_address("192.168.97.3")}))
+    incoming = request(
+        "192.168.97.3",
+        x_real_ip="2001:0db8::0001",
+        x_forwarded_for="198.51.100.2, 192.168.97.1",
+        cf_connecting_ip="198.51.100.3",
+    )
+
+    assert rate_limit.resolve_client_ip(incoming) == ("2001:db8::1", "2001:db8::1")
+
+
+def test_invalid_real_ip_falls_back_to_immediate_peer(monkeypatch):
+    monkeypatch.setattr(rate_limit, "_trusted_proxy_ips", lambda _bucket: frozenset({ip_address("192.168.97.3")}))
+    incoming = request(
+        "192.168.97.3",
+        x_real_ip="198.51.100.1, 198.51.100.2",
+        x_forwarded_for="198.51.100.3",
+        cf_connecting_ip="198.51.100.4",
+    )
+
+    assert rate_limit.resolve_client_ip(incoming) == ("192.168.97.3", "")
+
+
+def test_no_proxy_configuration_ignores_headers(monkeypatch):
+    monkeypatch.setattr(rate_limit, "_trusted_proxy_ips", lambda _bucket: frozenset())
+
+    assert rate_limit.get_client_ip(request("192.0.2.10", x_real_ip="198.51.100.1")) == "192.0.2.10"
+
+
+def test_trusted_proxy_hostname_resolves_exact_address(monkeypatch):
+    monkeypatch.setattr(rate_limit, "TRUSTED_PROXY_HOSTNAME", "write_project-frontend")
+    monkeypatch.setattr(rate_limit.socket, "getaddrinfo", lambda *_args, **_kwargs: [
+        (2, 1, 6, "", ("192.168.97.3", 0)),
+    ])
+    rate_limit._trusted_proxy_ips.cache_clear()
+    try:
+        assert rate_limit._trusted_proxy_ips(1) == frozenset({ip_address("192.168.97.3")})
+    finally:
+        rate_limit._trusted_proxy_ips.cache_clear()
+
+
+def test_missing_client_falls_back_to_unknown():
+    assert rate_limit.resolve_client_ip(request(None, x_real_ip="198.51.100.1")) == ("unknown", "")
+
+
+def test_limiter_is_active():
+    from slowapi import Limiter
+
+    assert isinstance(rate_limit.limiter, Limiter)
+
+
+def test_client_ip_digest_uses_secret_without_storing_ip(monkeypatch):
+    monkeypatch.setenv("PUBLIC_ENGAGEMENT_SECRET", "test-secret-one")
+    first = rate_limit.client_ip_digest("203.0.113.10")
+    assert first == rate_limit.client_ip_digest("203.0.113.10")
+    assert "203.0.113.10" not in first
+    monkeypatch.setenv("PUBLIC_ENGAGEMENT_SECRET", "test-secret-two")
+    assert first != rate_limit.client_ip_digest("203.0.113.10")
+
+
+def test_production_engagement_digest_requires_secret(monkeypatch):
+    monkeypatch.delenv("PUBLIC_ENGAGEMENT_SECRET", raising=False)
+    monkeypatch.delenv("REVALIDATE_SECRET", raising=False)
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    with pytest.raises(RuntimeError, match="requires a secret"):
+        rate_limit.client_ip_digest("203.0.113.10")

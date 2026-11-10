@@ -1,13 +1,16 @@
 "use client";
 
 import { ScriptGalleryCard, type CoverImageRenderer } from "@write/public-ui";
+import { formatPublicCardDate } from "@write/public-ui/public-date";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalEntityHref, socialAvatarUrl } from "@/lib/externalEntity";
-import { PublicImage } from "@/components/PublicImage";
+import { CardMediaImage } from "@/components/CardMediaVisibility";
+import { publicCardAvatarRenderer } from "@/components/PublicCardAvatar";
 import { externalCoverSrc } from "@/lib/externalCover";
+import { hasValidDemoLink } from "@/lib/galleryProjection";
 
 const externalCoverImageRenderer: CoverImageRenderer = ({ src, crop, alt, className }) => (
-  <PublicImage
+  <CardMediaImage
     src={src}
     crop={crop}
     alt={alt}
@@ -15,27 +18,6 @@ const externalCoverImageRenderer: CoverImageRenderer = ({ src, crop, alt, classN
     className={className}
   />
 );
-
-function toTimestamp(value?: number | string | null): number {
-  if (value == null || value === "") return 0;
-  if (typeof value === "number") return value;
-  const parsed = Date.parse(String(value));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatDate(value?: number | string | null): { label?: string; time?: string } {
-  const timestamp = toTimestamp(value);
-  if (!timestamp || timestamp <= 0) return {};
-  const date = new Date(timestamp);
-  return {
-    label: new Intl.DateTimeFormat("zh-TW", {
-      year: "numeric",
-      month: "numeric",
-      day: "numeric",
-    }).format(date),
-    time: date.toISOString(),
-  };
-}
 
 function normalizeCategories(categories: string[] | undefined): string[] {
   return Array.from(
@@ -81,15 +63,17 @@ export function ExternalPublicScriptCard({
   item,
   variant = "standard",
   onTagClick,
+  organizationHref,
 }: {
   item: ExternalPublicScript;
   variant?: "standard" | "compact" | "list";
   onTagClick?: (tag: string) => void;
+  organizationHref?: string;
 }) {
-  const title = item.title || item.remoteTitle || item.sourceDomain || "外部公開台本";
+  const title = item.title || item.remoteTitle || item.sourceDomain || "未命名台本";
   const summary = item.summary || item.remoteSummary || "";
   const mountedAt = item.mountedAt || item.createdAt;
-  const date = formatDate(mountedAt);
+  const date = formatPublicCardDate(mountedAt);
   const authorName = item.authorName || item.organizationName || "";
   const authorHref = item.authorName
     ? (item.authorPersonaId ? `/author/${encodeURIComponent(item.authorPersonaId)}` : externalEntityHref("author", item.authorName, item.authorUrl))
@@ -105,6 +89,7 @@ export function ExternalPublicScriptCard({
     <ScriptGalleryCard
       script={{
         id: `external:${item.id}`,
+        hasDemo: Boolean(item.hasDemo || hasValidDemoLink(item.demoLinks)),
         title,
         synopsis: summary,
         coverUrl: externalCoverSrc(item),
@@ -132,11 +117,12 @@ export function ExternalPublicScriptCard({
       scriptTarget="_blank"
       showAgeGate={hasAdultCategory(item.categories)}
       authorHref={authorHref}
-      organizationHref={item.organizationName ? externalEntityHref("org", item.organizationName, item.organizationUrl) : undefined}
+      organizationHref={organizationHref || (item.organizationName ? externalEntityHref("org", item.organizationName, item.organizationUrl) : undefined)}
       seriesHref={seriesName ? `/series/${encodeURIComponent(seriesName)}` : undefined}
       onView={() => trackExternalView(item.id)}
       onTagClick={onTagClick}
       coverImageRenderer={externalCoverImageRenderer}
+      avatarImageRenderer={publicCardAvatarRenderer}
     />
   );
 }

@@ -20,7 +20,7 @@ import { BASE_URL } from "@/lib/seo";
 // The upstream fetches below are cached in Next's data cache instead, so crawler
 // hits do not each cost a backend round trip. /api/revalidate expires the
 // "public-scripts" and "public-bundle" tags these fetches carry.
-export const dynamic = process.env.CF_STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
+export const dynamic = "force-dynamic";
 const SITEMAP_DATA_REVALIDATE_SECONDS = process.env.CF_STATIC_EXPORT === "1" ? false : 600;
 
 function sitemapDateTimestamp(value: string | Date | undefined): number {
@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     apiFetch<PublicScript[]>("/public-scripts", {
       next: { revalidate: SITEMAP_DATA_REVALIDATE_SECONDS, tags: ["public-scripts"] },
     }),
-    apiFetch<{ externalPublicScripts?: ExternalPublicScript[]; personas?: PublicPersona[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle", {
+    apiFetch<{ externalPublicScripts?: ExternalPublicScript[]; personas?: PublicPersona[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle?sections=externalPublicScripts,personas,demoSubmissions", {
       next: { revalidate: SITEMAP_DATA_REVALIDATE_SECONDS, tags: ["public-bundle"] },
     }),
   ]);

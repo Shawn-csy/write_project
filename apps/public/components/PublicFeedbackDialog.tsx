@@ -5,6 +5,8 @@ import { CheckCircle2, Loader2, MessageSquarePlus, MousePointer2, X } from "luci
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { liveApi } from "@/lib/liveApi";
+import { readPublicBundle } from "@/lib/readPublicBundle";
+import { PublicFeedbackTrigger } from "@/components/PublicFeedbackTrigger";
 import type { ExternalPublicScript, PublicPersona, PublicScript } from "@/lib/types";
 
 type FeedbackKind = "bug" | "listing";
@@ -84,9 +86,26 @@ function buildAuthorOptions(bundle: {
   return [...options.values()].sort((left, right) => left.name.localeCompare(right.name, "zh-Hant"));
 }
 
-export function PublicFeedbackDialog() {
-  const [open, setOpen] = useState(false);
-  const [kind, setKind] = useState<FeedbackKind | null>(null);
+export interface PublicFeedbackDialogProps {
+  mode?: "choice" | FeedbackKind;
+  compactAtMobile?: boolean;
+  showLabel?: boolean;
+  hideTrigger?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function PublicFeedbackDialog({
+  mode = "choice",
+  compactAtMobile = false,
+  showLabel = false,
+  hideTrigger = false,
+  open: controlledOpen,
+  onOpenChange,
+}: PublicFeedbackDialogProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen ?? internalOpen;
+  const [kind, setKind] = useState<FeedbackKind | null>(mode === "choice" ? null : mode);
   const [step, setStep] = useState(0);
   const [contactName, setContactName] = useState("");
   const [contactEmail, setContactEmail] = useState("");
@@ -130,19 +149,19 @@ export function PublicFeedbackDialog() {
 
   useEffect(() => {
     if (!open || authorOptions.length > 0) return;
-    const controller = new AbortController();
+    let active = true;
     setIsLoadingPersonas(true);
-    void liveApi.readJson<{ personas?: PublicPersona[]; scripts?: PublicScript[]; externalPublicScripts?: ExternalPublicScript[] }>("/api/public-bundle", { signal: controller.signal })
+    void readPublicBundle<{ personas?: PublicPersona[]; scripts?: PublicScript[]; externalPublicScripts?: ExternalPublicScript[] }>(["personas", "scripts", "externalPublicScripts"])
       .then(({ data }) => {
-        setAuthorOptions(buildAuthorOptions(data));
+        if (active) setAuthorOptions(buildAuthorOptions(data));
       })
       .catch((loadError) => {
-        if (!controller.signal.aborted) console.error("Failed to load public author options", loadError);
+        if (active) console.error("Failed to load public author options", loadError);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setIsLoadingPersonas(false);
+        if (active) setIsLoadingPersonas(false);
       });
-    return () => controller.abort();
+    return () => { active = false; };
   }, [open, authorOptions.length]);
 
   const resetForm = () => {
@@ -171,14 +190,21 @@ export function PublicFeedbackDialog() {
   };
 
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen);
+    if (nextOpen && mode !== "choice") setKind(mode);
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
     if (!nextOpen) resetForm();
+  };
+
+  const setDialogOpen = (nextOpen: boolean) => {
+    if (controlledOpen === undefined) setInternalOpen(nextOpen);
+    onOpenChange?.(nextOpen);
   };
 
   const startTargetPicking = () => {
     if (kind !== "bug") return;
     setError("");
-    setOpen(false);
+    setDialogOpen(false);
     setIsPickingTarget(true);
     window.dispatchEvent(new CustomEvent("public-feedback-start-target-picking"));
   };
@@ -245,7 +271,7 @@ export function PublicFeedbackDialog() {
         ? current
         : [...current, picked]);
       setPageUrl(picked.pageUrl);
-      setOpen(true);
+      setDialogOpen(true);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") stopPicking();
@@ -396,30 +422,16 @@ export function PublicFeedbackDialog() {
     )}
     <style>{`[data-feedback-pick-hover="true"]{outline:2px solid hsl(var(--primary))!important;outline-offset:2px!important;box-shadow:0 0 0 5px hsl(var(--primary)/.18)!important;cursor:crosshair!important}`}</style>
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      <Dialog.Trigger asChild>
-        <button
-          type="button"
-          aria-label="Bug 回報或台本投稿"
-          title="Bug 回報或台本投稿"
-          className="inline-flex h-11 items-center justify-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium text-muted-foreground transition-all duration-150 hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:px-3"
-        >
-          <MessageSquarePlus className="h-4 w-4" aria-hidden />
-          <span className="hidden lg:inline">回報／投稿</span>
-        </button>
-      </Dialog.Trigger>
+      {!hideTrigger && <Dialog.Trigger asChild><PublicFeedbackTrigger mode={mode} compactAtMobile={compactAtMobile} showLabel={showLabel} /></Dialog.Trigger>}
 
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[100] bg-foreground/35 backdrop-blur-[2px]" />
         <Dialog.Content
           className={`fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] ${kind === "listing" ? "max-w-5xl" : "max-w-lg"} max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border/70 bg-card p-5 shadow-2xl outline-none sm:p-6`}
-          aria-describedby="public-feedback-description"
         >
           <div className="flex items-start justify-between gap-4">
             <div>
               <Dialog.Title className="text-lg font-semibold text-foreground">{kind === "bug" ? "回報問題" : kind === "listing" ? "投稿台本" : "回報／投稿"}</Dialog.Title>
-              <Dialog.Description id="public-feedback-description" className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                {kind === "bug" ? "告訴我們網站哪裡出了問題，可以直接點選畫面位置。" : kind === "listing" ? "分三步填寫作品資料，送出後會進入審核。" : "請先選擇你要做什麼。"}
-              </Dialog.Description>
             </div>
             <Dialog.Close asChild>
               <button
@@ -432,7 +444,7 @@ export function PublicFeedbackDialog() {
             </Dialog.Close>
           </div>
 
-          {!submitted && kind === null ? (
+          {!submitted && kind === null && mode === "choice" ? (
             <div className="mt-5 grid gap-3 sm:grid-cols-2" role="group" aria-label="選擇回報或投稿">
               <button
                 type="button"
@@ -472,13 +484,13 @@ export function PublicFeedbackDialog() {
               <div className={kind === "listing" ? "grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]" : ""}>
                 <div className="space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <button
+                {mode === "choice" && <button
                   type="button"
-                  onClick={() => { setKind(null); setStep(0); setError(""); }}
+                  onClick={() => { setKind(mode === "choice" ? null : mode); setStep(0); setError(""); }}
                   className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                 >
                   ← 換個用途
-                </button>
+                </button>}
                 {kind === "listing" && (
                   <ol className="flex items-center gap-1.5 text-xs" aria-label="投稿步驟">
                     {LISTING_STEPS.map((label, index) => (
@@ -540,7 +552,7 @@ export function PublicFeedbackDialog() {
                     {selectedAuthorId === "__custom__" ? (
                       <input value={authorName} onChange={(event) => setAuthorName(event.target.value)} className={`${inputClass} mt-2`} placeholder="台本作者的公開名稱" maxLength={120} aria-label="自訂作者名稱" required />
                     ) : selectedAuthorId ? (
-                      <p className="mt-1 text-[11px] text-muted-foreground">已帶入作者資料：{authorName}</p>
+                      <p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">已帶入作者資料：{authorName}</p>
                     ) : null}
                   </div>
                   <div>
@@ -565,7 +577,7 @@ export function PublicFeedbackDialog() {
                     <div>
                       <label htmlFor="public-feedback-tags" className="mb-1.5 block text-sm font-medium text-foreground">標籤</label>
                       <input id="public-feedback-tags" value={categoriesText} onChange={(event) => setCategoriesText(event.target.value)} className={inputClass} placeholder="例如：全年齡、療癒" maxLength={500} />
-                      <p className="mt-1 text-[11px] text-muted-foreground">多個標籤請用逗號分隔</p>
+                      <p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">多個標籤請用逗號分隔</p>
                     </div>
                     <div>
                       <label htmlFor="public-feedback-series" className="mb-1.5 block text-sm font-medium text-foreground">系列 <span className="font-normal text-muted-foreground">（選填）</span></label>
@@ -583,7 +595,7 @@ export function PublicFeedbackDialog() {
                   </div>
                   <div className={step === 2 ? "space-y-1 text-sm" : "hidden"}>
                     <p className="font-medium text-foreground">確認後送出</p>
-                    <p className="text-xs leading-relaxed text-muted-foreground">請確認右側預覽的作品資訊，並在上方填寫聯絡名稱或 Email，方便審核時聯絡你。聯絡資料只供審核使用，不會公開顯示。</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">請確認作品資訊，並留下聯絡方式供審核使用；聯絡資料不會公開。</p>
                   </div>
                 </div>
               ) : (
@@ -621,22 +633,17 @@ export function PublicFeedbackDialog() {
                     <article className="overflow-hidden rounded-xl border border-border/70 bg-background shadow-sm">
                       {coverUrl.trim() && /^https:\/\/\S+$/i.test(coverUrl.trim())
                         ? <img src={coverUrl.trim()} alt="台本封面預覽" referrerPolicy="no-referrer" className="aspect-[16/10] w-full bg-muted object-cover" loading="lazy" />
-                        : <div className="flex aspect-[16/10] items-center justify-center bg-muted text-xs text-muted-foreground">填入封面連結後顯示</div>}
+                        : <div className="aspect-[16/10] bg-muted" aria-hidden="true" />}
                       <div className="space-y-2 p-3">
                         <div className="flex flex-wrap gap-1">
-                          {categoriesText.split(/[,，、]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5).map((tag) => <span key={tag} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">{tag}</span>)}
-                          {!categoriesText.trim() && <span className="text-[10px] text-muted-foreground">尚未設定標籤</span>}
+                          {categoriesText.split(/[,，、]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5).map((tag) => <span key={tag} className="rounded-full bg-primary/10 px-2 py-0.5 [font-size:var(--public-font-caption)] text-primary">{tag}</span>)}
                         </div>
                         <h3 className="line-clamp-2 text-base font-semibold">{scriptTitle.trim() || "台本名稱"}</h3>
                         <p className="text-xs text-muted-foreground">作者：{authorName.trim() || "作者名稱"}</p>
                         {scriptSummary.trim() && <p className="line-clamp-3 text-xs leading-relaxed text-muted-foreground">{scriptSummary.trim()}</p>}
                         {seriesName.trim() && <p className="text-xs text-muted-foreground">系列：{seriesName.trim()}</p>}
-                        <div className="border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
-                          {documentUrl.trim() ? "點擊後會開啟你提供的台本文件" : "填入文件連結後，讀者可前往閱讀台本"}
-                        </div>
                       </div>
                     </article>
-                    <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">送出後會進入審核；管理員可一鍵匯入為草稿，檢查後再發佈。</p>
                   </aside>
                 )}
               </div>

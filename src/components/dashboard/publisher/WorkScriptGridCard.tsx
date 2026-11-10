@@ -2,9 +2,9 @@ import React from "react";
 import { Eye, Edit, FilePenLine, Trash2 } from "lucide-react";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
-import { Badge } from "../../ui/badge";
 import { CoverPlaceholder } from "../../ui/CoverPlaceholder";
 import { CoverRenderer } from "../../ui/CoverRenderer";
+import { StatusPill, readinessToStudioStatus } from "../../studio/StatusPill";
 import { useI18n } from "../../../contexts/I18nContext";
 import { getMediaCropStyle } from "../../../lib/mediaCropRef";
 import type { PublishReadiness, PublisherScriptItem } from "../../../hooks/publisher/usePublisherWorksTabState";
@@ -19,7 +19,6 @@ interface WorkScriptGridCardProps {
   onCoverError: (id: string) => void;
   hasCover: (value: unknown) => boolean;
   hasCompleteLicense: (script: PublisherScriptItem) => boolean;
-  statusBadgeClass: (script: PublisherScriptItem) => string;
   readiness: PublishReadiness;
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
@@ -33,7 +32,6 @@ export function WorkScriptGridCard({
   onCoverError,
   hasCover,
   hasCompleteLicense,
-  statusBadgeClass,
   readiness,
   formatDate,
   onContinueEdit,
@@ -65,12 +63,12 @@ export function WorkScriptGridCard({
         )}
         {/* 頂部狀態條 */}
         <div className="absolute left-0 right-0 top-0 flex items-center justify-between px-2 pt-2">
-          <Badge
-            variant="outline"
-            className={`h-5 border-0 text-[10px] font-semibold backdrop-blur-sm ${statusBadgeClass(script)} bg-background/80`}
+          <StatusPill
+            status={readinessToStudioStatus(readiness.status)}
+            className="h-6 border border-white/40 px-2 text-[11px] shadow-md"
           >
             {readiness.label}
-          </Badge>
+          </StatusPill>
           {readiness.status === "published" && (
             <span className="inline-flex items-center gap-0.5 rounded-md bg-background/70 px-1.5 py-0.5 text-[10px] text-muted-foreground backdrop-blur-sm">
               <Eye className="h-2.5 w-2.5" />

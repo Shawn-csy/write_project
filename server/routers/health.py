@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+import models
+from schema_bootstrap import missing_model_columns
 from dependencies import get_current_user_id, get_db
 
 
@@ -13,6 +15,22 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/health", tags=["health"])
 NO_STORE_HEADERS = {"Cache-Control": "no-store"}
+
+# Public renderer release contract. Add a capability when the renderer depends
+# on a new backend route or response shape; old backend versions then fail the
+# candidate renderer's readiness check before traffic is switched.
+PUBLIC_API_CAPABILITIES = (
+    "public-bundle-sections",
+    "external-cover-lookup",
+    "public-activity-status",
+    "audio-works",
+)
+
+def _schema_is_compatible(db: Session) -> bool:
+    try:
+        return not missing_model_columns(db, db.get_bind().dialect.name, models.Base.metadata)
+    except ValueError:
+        return False
 
 # /integrity 會跑全表掃描，且是公開可達的端點。用 TTL 快取避免被輪詢放大成 DB 負載。
 _INTEGRITY_TTL_SECONDS = 60
@@ -43,9 +61,10 @@ def _readiness_response(db: Session) -> JSONResponse:
         )
 
     try:
-        # LIMIT 0 validates the core table and a migration-managed column
-        # without reading application data.
-        db.execute(text('SELECT id, "publishReadiness" FROM scripts LIMIT 0'))
+        # A candidate cannot claim readiness while any mapped table or column
+        # is missing. Metadata lookup does not scan application records.
+        if not _schema_is_compatible(db):
+            raise RuntimeError("Schema is not compatible")
     except Exception:
         return JSONResponse(
             status_code=503,
@@ -62,6 +81,7 @@ def _readiness_response(db: Session) -> JSONResponse:
             "status": "ready",
             "service": "backend",
             "checks": {"database": "ok", "schema": "ok"},
+            "publicApiCapabilities": list(PUBLIC_API_CAPABILITIES),
         },
         headers=NO_STORE_HEADERS,
     )

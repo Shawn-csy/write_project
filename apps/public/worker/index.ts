@@ -1,3 +1,5 @@
+import { parseBundleProjection } from "../lib/publicBundleProjection";
+
 /**
  * Public API Worker for the static Pages site.
  *
@@ -44,6 +46,7 @@ interface SnapshotRow {
 const PUBLIC_READ_ROUTES = [
   /^\/api\/health\/ready$/,
   /^\/api\/public-bundle$/,
+  /^\/api\/public-activity-status$/,
   /^\/api\/public-personas(?:\/[^/]+)?$/,
   /^\/api\/public-organizations(?:\/[^/]+)?$/,
   /^\/api\/public-terms-config$/,
@@ -62,6 +65,7 @@ const PROXY_ONLY_READ_ROUTES = [
 const PUBLIC_WRITE_ROUTES = [
   /^\/api\/public-feedback$/,
   /^\/api\/public-demo-submissions$/,
+  /^\/api\/public-audio-work-submissions$/,
   /^\/api\/public-terms-acceptances$/,
   /^\/api\/public-scripts\/[^/]+\/like$/,
   /^\/api\/public-external-scripts\/[^/]+\/view$/,
@@ -112,6 +116,8 @@ function plain(message: string, status: number, cors: Headers): Response {
 async function serveSnapshot(request: Request, env: Env, cors: Headers): Promise<Response> {
   const url = new URL(request.url);
   if (request.method === "POST") return plain("Read-only fallback", 503, cors);
+  const sections = parseBundleProjection(url);
+  if (sections === false) return plain("Invalid public bundle sections", 400, cors);
 
   // The left joins distinguish an empty database (503: no snapshot yet) from
   // an absent route in an active snapshot (404: a real missing page).
@@ -126,7 +132,7 @@ async function serveSnapshot(request: Request, env: Env, cors: Headers): Promise
       LEFT JOIN public_snapshot AS snapshot
         ON snapshot.generation = state.active_generation AND snapshot.path = ?
     `)
-    .bind(`${url.pathname}${url.search}`)
+    .bind(sections ? url.pathname : `${url.pathname}${url.search}`)
     .first<SnapshotRow>();
   if (!row) return plain("Snapshot unavailable", 503, cors);
   // Older test fixtures return a stored body directly and have no generation
@@ -146,6 +152,14 @@ async function serveSnapshot(request: Request, env: Env, cors: Headers): Promise
     }
   } catch {
     return plain("Snapshot is unreadable", 502, cors);
+  }
+  if (sections) {
+    try {
+      const snapshot = JSON.parse(body) as Record<string, unknown>;
+      body = JSON.stringify(Object.fromEntries(sections.map((key) => [key, snapshot[key]])));
+    } catch {
+      return plain("Snapshot is unreadable", 502, cors);
+    }
   }
 
   const headers = new Headers(cors);

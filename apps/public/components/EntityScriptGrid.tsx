@@ -19,6 +19,8 @@ const coverRenderer: CoverImageRenderer = ({ src, crop, alt, className }) => (
   <PublicImage src={src} crop={crop} alt={alt} preset="script-cover" className={className} />
 );
 
+export const ENTITY_SCRIPT_GRID_COLUMNS = "repeat(auto-fill, minmax(220px, 1fr))";
+
 interface Props {
   scripts: PublicScript[];
 }
@@ -29,7 +31,7 @@ export function EntityScriptGrid({ scripts }: Props) {
     <GalleryHoverPreviewProvider>
       <div
         className="grid gap-3 sm:gap-4"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
+        style={{ gridTemplateColumns: ENTITY_SCRIPT_GRID_COLUMNS }}
       >
         {scripts.map((s) => {
           const enriched = enrichScript(toGalleryInput(s));

@@ -44,7 +44,7 @@ describe('DirectASTBuilder (Pure Marker Mode)', () => {
       
       const scene = ast.children.find(n => n.type === 'scene_heading');
       assert.ok(scene, 'Should detect scene heading');
-      assert.strictEqual(scene.number, 1);
+      assert.strictEqual(scene.text, input);
       assert.ok(scene.id, 'Should have id');
     });
 

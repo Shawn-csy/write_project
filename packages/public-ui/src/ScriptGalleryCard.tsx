@@ -5,8 +5,8 @@ import { normalizeOutlineText, truncateCardText } from "./gallery/cardText";
 import { useGalleryHoverPreview } from "./gallery/GalleryHoverPreview";
 import { CoverRenderer } from "./cover/CoverRenderer";
 import { ScriptGalleryCardFrame } from "./ScriptGalleryCardFrame";
-import type { CardAuthorDisplay, CoverImageRenderer } from "./ScriptGalleryCardFrame";
-export type { CoverImageRenderer, CoverImageRendererProps } from "./ScriptGalleryCardFrame";
+import type { CardAuthorDisplay, CoverImageRenderer, AvatarImageRenderer } from "./ScriptGalleryCardFrame";
+export type { CoverImageRenderer, CoverImageRendererProps, AvatarImageRenderer, AvatarImageRendererProps } from "./ScriptGalleryCardFrame";
 
 // ─── Types (public API — unchanged) ─────────────────────────────────────────
 
@@ -53,6 +53,7 @@ export interface ScriptGalleryItem {
   _hoverOutline?: string;
   dateLabel?: string;
   dateTime?: string;
+  hasDemo?: boolean;
 }
 
 export interface PublicLinkConfig {
@@ -75,6 +76,7 @@ export interface ScriptGalleryCardProps extends PublicLinkConfig {
   variant?: "standard" | "compact" | "list";
   showAgeGate?: boolean;
   coverImageRenderer?: CoverImageRenderer;
+  avatarImageRenderer?: AvatarImageRenderer;
 }
 
 // Module-level stable renderer — CoverRenderer is a client component, injected into Frame via slot.
@@ -128,8 +130,12 @@ function ScriptGalleryCardInner({
   tagHref,
   showAgeGate = false,
   coverImageRenderer,
+  avatarImageRenderer,
 }: ScriptGalleryCardProps): React.JSX.Element {
   const { id, title, author, coverUrl, coverDesign, views = 0, likes = 0, contentLength } = script;
+  const demoHref = script.hasDemo
+    ? `/demos?script=${encodeURIComponent(id.startsWith("external:") ? id : `internal:${id}`)}`
+    : undefined;
 
   const estDurationMinutes = contentLength && contentLength > 0
     ? Math.round(contentLength / 2 / 200)
@@ -217,8 +223,11 @@ function ScriptGalleryCardInner({
       coverDesign={coverDesign}
       coverCrop={script.coverCrop}
       coverImageRenderer={coverImageRenderer}
+      avatarImageRenderer={avatarImageRenderer}
       coverDesignRenderer={renderCoverDesign}
       showAgeGate={showAgeGate}
+      hasDemo={script.hasDemo}
+      demoHref={demoHref}
       author={authorDisplay}
       authorHref={resolvedAuthorHref}
       onAuthorClick={resolvedAuthorClick}

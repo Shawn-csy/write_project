@@ -6,10 +6,17 @@ import {
   publicScriptsFromBundle,
   toAuthorLike,
   toGalleryInput,
+  hasValidDemoLink,
   toOrgLike,
 } from "./galleryProjection";
 
 describe("galleryProjection", () => {
+  it("marks only usable Demo links", () => {
+    expect(hasValidDemoLink('[{"url":"https://example.com/demo"}]')).toBe(true);
+    expect(hasValidDemoLink('[{"url":""}]')).toBe(false);
+    expect(hasValidDemoLink("invalid json")).toBe(false);
+    expect(toGalleryInput({ id: "demo", title: "Demo", activityDemoLinks: '[{"url":"https://example.com/demo"}]' }).hasDemo).toBe(true);
+  });
   it("maps PublicScript into GalleryScriptInput with persona author and license defaults", () => {
     const script: PublicScript = {
       id: "s1",
@@ -25,6 +32,7 @@ describe("galleryProjection", () => {
       licenseDerivative: "allow",
       licenseNotify: "required",
       customMetadata: [{ key: "license", value: "CC" }],
+      contentLength: 4200,
       persona: {
         id: "p1",
         displayName: "Persona",
@@ -50,7 +58,7 @@ describe("galleryProjection", () => {
       licenseCommercial: undefined,
       licenseDerivative: "allow",
       licenseNotify: "required",
-      customMetadata: [{ key: "license", value: "CC" }],
+      contentLength: 4200,
       author: { id: "p1", displayName: "Persona", avatarUrl: "/avatar.jpg" },
       persona: {
         defaultLicenseCommercial: "allow",
@@ -58,6 +66,7 @@ describe("galleryProjection", () => {
         defaultLicenseNotify: "required",
       },
     });
+    expect(input).not.toHaveProperty("customMetadata");
   });
 
   it("uses owner as author when persona is absent", () => {

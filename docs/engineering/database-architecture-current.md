@@ -26,7 +26,7 @@
 - 由 `docker-compose.prod.yml` 啟動 Postgres（含 healthcheck）。
 - Backend `depends_on` Postgres healthy 後再啟動。
 - Backend 啟動時：
-  1. `models.Base.metadata.create_all(...)`
+  1. 建立 ORM 缺表（PostgreSQL 用 `schema_bootstrap.create_missing_tables(...)` 逐表提交，SQLite 用 `models.Base.metadata.create_all(...)`）
   2. `migration.run_migrations()`
 - `migration.py` 對非 SQLite 會略過 legacy SQLite migration（避免 `PRAGMA`/`sqlite_master` 在 Postgres 爆掉）。
 
@@ -48,6 +48,6 @@
 - 遷移邏輯：`server/migration.py` + `server/migrate_sqlite_to_postgres.py`
 
 ## 6) 營運注意事項
-- 日常部署：`./scripts/deploy.sh`
-- 只有首次搬資料或強制覆蓋時才用：`./scripts/deploy.sh migrate_pg=1 truncate=1`
+- 現有部署腳本會停止 PostgreSQL 與所有服務；只可在停機維護時以 `ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh` 執行。日常不中斷發布路徑尚待建立。
+- SQLite 資料遷移僅供一次性維護，參數 `migrate_pg=1 truncate=1` 會覆蓋目標資料，需另行核對來源與目標。
 - 若要保留 SQLite 歷史檔，建議放到 `backup/`（手動管理）。

@@ -27,6 +27,19 @@ export interface GalleryUrlStateActions {
   resetOrgTags: () => void;
 }
 
+function stateFromLocation(pathname: string, search: string): PublicHomepageUrlState {
+  const state = parseGalleryUrlState(search);
+  return pathname === "/authors" ? { ...state, view: "authors" } : state;
+}
+
+function urlForState(state: PublicHomepageUrlState): string {
+  const params = serializeGalleryUrlState(state);
+  if (state.view === "authors") params.delete("view");
+  const qs = params.toString();
+  const pathname = state.view === "authors" ? "/authors" : "/";
+  return `${pathname}${qs ? `?${qs}` : ""}`;
+}
+
 export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   state: PublicHomepageUrlState;
   actions: GalleryUrlStateActions;
@@ -46,12 +59,10 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   // actions below keep the URL in sync, so no state-driven rewrite is needed.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const initialUrlState = parseGalleryUrlState(window.location.search);
+    const initialUrlState = stateFromLocation(window.location.pathname, window.location.search);
     stateRef.current = initialUrlState;
     setClientState(initialUrlState);
-    const params = serializeGalleryUrlState(initialUrlState);
-    const qs = params.toString();
-    const canonicalUrl = `${window.location.pathname}${qs ? `?${qs}` : ""}`;
+    const canonicalUrl = urlForState(initialUrlState);
     const currentUrl = `${window.location.pathname}${window.location.search}`;
     if (currentUrl !== canonicalUrl) {
       window.history.replaceState(null, "", canonicalUrl);
@@ -63,7 +74,7 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
   // "URL already matches" guard turns the next click on that view into a no-op.
   useEffect(() => {
     const onPopState = () => {
-      const next = parseGalleryUrlState(window.location.search);
+      const next = stateFromLocation(window.location.pathname, window.location.search);
       stateRef.current = next;
       setClientState(next);
     };
@@ -75,9 +86,7 @@ export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
     (patch: Partial<PublicHomepageUrlState>, method: "push" | "replace" = "push") => {
       const current = stateRef.current;
       const next = mergeGalleryUrlState(current, patch);
-      const params = serializeGalleryUrlState(next);
-      const qs = params.toString();
-      const url = qs ? `/?${qs}` : "/";
+      const url = urlForState(next);
 
       // Homepage filters are client-owned URL state, not route navigation.
       // Native History API keeps interactions synchronous, avoiding App Router

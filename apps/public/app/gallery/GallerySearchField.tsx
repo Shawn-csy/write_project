@@ -9,12 +9,13 @@ interface GallerySearchFieldProps {
   onOpenFilters?: () => void;
   activeFilterCount?: number;
   mobileActions?: ReactNode;
+  trailingAction?: ReactNode;
 }
 
-export function GallerySearchField({ value, onChange, onOpenFilters, activeFilterCount = 0, mobileActions }: GallerySearchFieldProps) {
+export function GallerySearchField({ value, onChange, onOpenFilters, activeFilterCount = 0, mobileActions, trailingAction }: GallerySearchFieldProps) {
   return (
-    <div className="flex min-w-0 flex-1 items-center gap-1.5 md:w-full md:flex-none md:gap-2 lg:w-auto lg:flex-none">
-      <div className="relative min-w-0 flex-1 lg:w-64 lg:flex-none">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 md:w-full md:flex-nowrap md:flex-none md:gap-2 lg:w-auto lg:flex-none">
+      <div className="relative w-full min-w-0 flex-1 basis-full md:w-auto md:basis-auto lg:w-64 lg:flex-none">
         <Search
           className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65"
           aria-hidden
@@ -43,7 +44,7 @@ export function GallerySearchField({ value, onChange, onOpenFilters, activeFilte
           type="button"
           onClick={onOpenFilters}
           aria-label="開啟更多搜尋"
-          className="inline-flex h-11 md:h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-background/70 px-3 [font-size:var(--public-font-meta)] text-foreground md:text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+          className="ml-auto inline-flex h-11 md:h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border/60 bg-background/70 px-3 [font-size:var(--public-font-meta)] text-foreground md:ml-0 md:text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
         >
           <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden />
           <span className="md:hidden">篩選</span>
@@ -55,6 +56,7 @@ export function GallerySearchField({ value, onChange, onOpenFilters, activeFilte
           )}
         </button>
       )}
+      {trailingAction}
       {mobileActions && (
         <div className="flex shrink-0 items-center gap-1 md:hidden">
           {mobileActions}

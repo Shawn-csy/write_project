@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [ "${ALLOW_SERVICE_DOWNTIME:-0}" != 1 ]; then
+  echo "ERROR: rollback.sh stops PostgreSQL and the entire legacy Compose project." >&2
+  echo "       For site-only rollback, follow docs/engineering/operations.md for the active release." >&2
+  exit 1
+fi
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 

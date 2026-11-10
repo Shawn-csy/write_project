@@ -21,14 +21,18 @@ import {
 import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
 import { liveApi } from "@/lib/liveApi";
+import { readPublicBundle } from "@/lib/readPublicBundle";
 import { getPublicPersonaTags } from "@/lib/publicPersonaTags";
 import { combinePublicIdentities, hasScriptwriterRole } from "@/lib/publicIdentity";
+import type { HomepageBundleResponse } from "@/lib/homepageBundle";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
 
 interface UseGalleryControllerOptions {
   initialScripts: PublicScript[];
   initialExternalPublicScripts: ExternalPublicScript[];
+  initialPersonas?: PublicPersona[];
+  initialOrganizations?: PublicOrg[];
   initialBannerSlides?: HeroSlide[];
   initialUrlState: PublicHomepageUrlState;
 }
@@ -93,6 +97,8 @@ function filterExternalPublicScripts(
 export function useGalleryController({
   initialScripts,
   initialExternalPublicScripts,
+  initialPersonas,
+  initialOrganizations,
   initialBannerSlides,
   initialUrlState,
 }: UseGalleryControllerOptions) {
@@ -102,14 +108,23 @@ export function useGalleryController({
   const rawScripts = initialScripts;
   const externalPublicScripts = initialExternalPublicScripts;
   const bannerSlides = initialBannerSlides;
-  const [authors, setAuthors] = useState<PublicPersona[]>([]);
-  const [orgs, setOrgs] = useState<PublicOrg[]>([]);
-  const [peopleStatus, setPeopleStatus] = useState<"idle" | "loading" | "loaded" | "error">("idle");
+  const [authors, setAuthors] = useState<PublicPersona[]>(initialPersonas ?? []);
+  const [orgs, setOrgs] = useState<PublicOrg[]>(initialOrganizations ?? []);
+  const [peopleStatus, setPeopleStatus] = useState<"idle" | "loading" | "loaded" | "error">(
+    initialPersonas && initialOrganizations ? "loaded" : "idle"
+  );
   const [termsRequired, setTermsRequired] = useState(false);
 
   // ── Transient UI state (not shareable) ────────────────────────────────────
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [tagSearch, setTagSearch] = useState("");
+
+  useEffect(() => {
+    if (!initialPersonas || !initialOrganizations) return;
+    setAuthors(initialPersonas);
+    setOrgs(initialOrganizations);
+    setPeopleStatus("loaded");
+  }, [initialPersonas, initialOrganizations]);
 
   // ── Terms config (determines platform-wide gate policy) ──────────────────
   useEffect(() => {
@@ -128,13 +143,13 @@ export function useGalleryController({
     // Only fetch when idle. error stops here — retryPeople() resets to idle.
     if (peopleStatus !== "idle") return;
     setPeopleStatus("loading");
-    Promise.all([
-      liveApi.read("/api/public-personas").then(({ response: r }) => (r.ok ? r.json() : Promise.reject(new Error(`personas ${r.status}`)))),
-      liveApi.read("/api/public-organizations").then(({ response: r }) => (r.ok ? r.json() : Promise.reject(new Error(`organizations ${r.status}`)))),
-    ])
-      .then(([personaData, orgData]) => {
-        setAuthors(publicPersonasFromResponse(personaData));
-        setOrgs(publicOrgsFromResponse(orgData));
+    readPublicBundle<HomepageBundleResponse>(["personas", "organizations"])
+      .then(({ data }) => {
+        if (!Array.isArray(data.personas) || !Array.isArray(data.organizations)) {
+          throw new Error("Incomplete public identity directory");
+        }
+        setAuthors(publicPersonasFromResponse(data.personas));
+        setOrgs(publicOrgsFromResponse(data.organizations));
         setPeopleStatus("loaded");
       })
       .catch(() => {
@@ -289,7 +304,6 @@ export function useGalleryController({
 
   return {
     tab: urlState.view,
-    setTab: urlActions.setView,
     segment: urlState.segment,
     setSegment: urlActions.setSegment,
     usage: urlState.usage,

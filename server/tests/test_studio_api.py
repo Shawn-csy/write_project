@@ -112,6 +112,7 @@ def test_studio_publish_context_loads_single_script(client):
 
 def test_studio_readiness_supports_current_ui_tags_and_canonical_fields(client, db_session):
     from migration import _backfill_publish_state
+    from sqlalchemy import event
 
     headers = {"X-User-ID": "u1"}
     persona = client.post("/api/personas", json={
@@ -128,6 +129,19 @@ def test_studio_readiness_supports_current_ui_tags_and_canonical_fields(client, 
     # Startup backfill and live tag updates must produce the same persisted projection.
     _backfill_publish_state(db_session.connection())
     db_session.flush()
+    repeated_updates = []
+
+    def capture_repeat(_conn, _cursor, statement, _parameters, _context, _executemany):
+        if statement.lstrip().upper().startswith("UPDATE SCRIPTS SET"):
+            repeated_updates.append(statement)
+
+    event.listen(db_session.bind, "before_cursor_execute", capture_repeat)
+    try:
+        _backfill_publish_state(db_session.connection())
+    finally:
+        event.remove(db_session.bind, "before_cursor_execute", capture_repeat)
+    assert repeated_updates == []
+
     page = client.get("/api/studio/scripts?status=ready&limit=1", headers=headers).json()
     assert page["total"] == page["counts"]["ready"] == 2
     assert page["nextOffset"] == 1

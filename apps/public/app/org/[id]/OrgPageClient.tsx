@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import type { PublicOrg, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicAudioWork, PublicOrg, PublicScript } from "@/lib/types";
 import { buildOrgEntityModel } from "@/lib/publicEntityPageModel";
 import { EntityScriptGrid } from "@/components/EntityScriptGrid";
 import { PublicImage } from "@/components/PublicImage";
+import { ExternalPublicScriptCard } from "@/components/ExternalPublicScriptSection";
+import { GalleryHoverPreviewProvider } from "@write/public-ui";
 
 interface OrgWithCrop extends PublicOrg {
   bannerCrop?: { cx?: number | null; cy?: number | null; zoom?: number | null } | null;
@@ -14,28 +16,37 @@ interface OrgWithCrop extends PublicOrg {
 interface Props {
   org: OrgWithCrop;
   scripts: PublicScript[];
+  externalScripts?: ExternalPublicScript[];
+  audioWorks?: PublicAudioWork[];
 }
 
-type Tab = "works" | "members";
+type Tab = "scripts" | "audio" | "members";
 
-export function OrgPageClient({ org, scripts }: Props) {
+export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks = [] }: Props) {
   const model = buildOrgEntityModel(org, scripts);
-  const [activeTab, setActiveTab] = useState<Tab>("works");
+  const scriptCount = scripts.length + externalScripts.length;
+  const [activeTab, setActiveTab] = useState<Tab>(scriptCount > 0 || audioWorks.length === 0 ? "scripts" : "audio");
   const members = org.members ?? [];
+  const visibleTab = activeTab === "scripts" && scriptCount === 0 && audioWorks.length > 0 ? "audio" : activeTab;
+  const tabs: Array<{ id: Tab; label: string }> = [
+    ...(scriptCount > 0 || audioWorks.length === 0 ? [{ id: "scripts" as const, label: `台本作品 (${scriptCount})` }] : []),
+    ...(audioWorks.length > 0 ? [{ id: "audio" as const, label: `音聲作品 (${audioWorks.length})` }] : []),
+    ...(members.length > 0 ? [{ id: "members" as const, label: `成員 (${members.length})` }] : []),
+  ];
 
   return (
     <main className="min-h-screen bg-background">
       {/* Banner */}
-      <div className="relative h-48 overflow-hidden bg-gradient-to-r from-blue-900 to-slate-900">
-        {org.bannerUrl && (
+      {org.bannerUrl && (
+        <div className="relative h-48 overflow-hidden bg-muted">
           <PublicImage src={org.bannerUrl} alt="" preset="org-banner" crop={org.bannerCrop} />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-      </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        </div>
+      )}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
         {/* Org header card */}
-        <div className="relative -mt-16 mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8">
+        <div className={`relative mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${org.bannerUrl ? "-mt-16" : "mt-6 sm:mt-8"}`}>
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Logo */}
             <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
@@ -84,45 +95,63 @@ export function OrgPageClient({ org, scripts }: Props) {
                     🔗 官方網站
                   </a>
                 )}
-                <span>{members.length} 位成員</span>
+                {members.length > 0 && <span>{members.length} 位成員</span>}
               </div>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 mb-5 w-fit">
-          {(["works", "members"] as Tab[]).map((tab) => (
+        {tabs.length > 1 && <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 mb-5 w-fit">
+          {tabs.map((tab) => (
             <button
-              key={tab}
+              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                activeTab === tab
+                visibleTab === tab.id
                   ? "bg-background text-foreground font-medium shadow-sm border border-border/60"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {tab === "works" ? `公開作品 (${scripts.length})` : `成員 (${members.length})`}
+              {tab.label}
             </button>
           ))}
-        </div>
+        </div>}
 
         {/* Works */}
-        {activeTab === "works" && (
+        {visibleTab === "scripts" && (
           <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            {scripts.length === 0 ? (
+            {tabs.length === 1 && <h2 className="mb-4 text-lg font-semibold">台本作品</h2>}
+            {scriptCount === 0 ? (
               <p className="text-muted-foreground text-sm py-8 text-center">
                 目前沒有公開作品
               </p>
             ) : (
-              <EntityScriptGrid scripts={scripts} />
+              <>
+                {scripts.length > 0 && <EntityScriptGrid scripts={scripts} />}
+                {externalScripts.length > 0 && (
+                  <GalleryHoverPreviewProvider>
+                    <div className={`grid gap-4 ${scripts.length > 0 ? "mt-6" : ""}`} style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
+                      {externalScripts.map((script) => <ExternalPublicScriptCard key={script.id} item={script} organizationHref={`/org/${encodeURIComponent(org.id)}`} />)}
+                    </div>
+                  </GalleryHoverPreviewProvider>
+                )}
+              </>
             )}
           </section>
         )}
 
+        {visibleTab === "audio" && (
+          <section className="rounded-xl border border-border/60 bg-muted/20 p-5 sm:p-7">
+            <h2 className="text-lg font-semibold">音聲作品</h2>
+            <p className="mt-2 text-sm text-muted-foreground">此社團收錄 {audioWorks.length} 件音聲作品，可查看作品介紹、聲演及發售資訊。</p>
+            <a href={`/audio-works?organization=${encodeURIComponent(org.id)}`} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">查看音聲作品</a>
+          </section>
+        )}
+
         {/* Members */}
-        {activeTab === "members" && (
+        {visibleTab === "members" && (
           <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
             {members.length === 0 ? (
               <p className="text-muted-foreground text-sm py-8 text-center">

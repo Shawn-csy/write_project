@@ -9,7 +9,7 @@ import {
 import { JsonLdScript } from "@/lib/jsonLd";
 import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "使用說明｜泛用型產品作坊",
@@ -52,7 +52,6 @@ export default function HelpPage() {
   return (
     <PublicInfoPageShell
       title="使用說明"
-      description="泛用型產品作坊平台操作指南"
       activeKey="help"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },

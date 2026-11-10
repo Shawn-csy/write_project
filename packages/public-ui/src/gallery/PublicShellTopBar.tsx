@@ -56,13 +56,17 @@ export interface PublicShellTopBarProps {
   mobileTabSwitcher?: React.ReactNode;
   /** Optional shared mobile navigation row, rendered below row 1. */
   mobileNav?: React.ReactNode;
+  /** Host router link renderer; defaults to a native anchor. */
+  renderLink?: (props: { href: string; className: string; ariaCurrent?: "page"; children: React.ReactNode }) => React.ReactNode;
 }
+
+type LinkRenderer = NonNullable<PublicShellTopBarProps["renderLink"]>;
 
 function cn(...classes: (string | undefined | false | null)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-function TabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none" }) {
+function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
     "relative flex h-9 items-center justify-center px-3.5 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
     tab.hideOnTablet && "hidden lg:inline-flex",
@@ -74,6 +78,7 @@ function TabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab; isAct
   );
 
   if (tab.href) {
+    if (renderLink) return renderLink({ href: tab.href, className, ariaCurrent: isActive ? "page" : undefined, children: tab.label });
     return (
       <a
         href={tab.href}
@@ -97,7 +102,7 @@ function TabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab; isAct
   );
 }
 
-function MobileTabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none" }) {
+function MobileTabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
     "relative flex items-center justify-center h-11 px-4 text-[0.8125rem] whitespace-nowrap transition-all duration-150",
     isActive && activeTabStyle === "pill"
@@ -108,6 +113,7 @@ function MobileTabItem({ tab, isActive, activeTabStyle }: { tab: PublicShellTab;
   );
 
   if (tab.href) {
+    if (renderLink) return renderLink({ href: tab.href, className, ariaCurrent: isActive ? "page" : undefined, children: tab.label });
     return (
       <a href={tab.href} aria-current={isActive ? "page" : undefined} className={className}>
         {tab.label}
@@ -136,8 +142,23 @@ export function PublicShellTopBar({
   mobileTrailingAction,
   mobileTabSwitcher,
   mobileNav,
+  renderLink,
 }: PublicShellTopBarProps): React.JSX.Element {
   const hasTabs = tabs.length > 0;
+  const brandContent = <>
+    <div className="relative w-7 h-7 shrink-0">
+      <div className="absolute inset-0 rounded-[6px] bg-foreground/90 group-hover:bg-foreground transition-colors duration-200" />
+      <svg viewBox="0 0 28 28" fill="none" className="absolute inset-0 w-full h-full p-[5px] text-background" aria-hidden="true">
+        <path d="M16 4.5 C17.5 4.5 19 6 18.5 8.5 L17 21.5 C16.5 23 15.5 24 14 23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1="10" y1="14" x2="18" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <line x1="10" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    </div>
+    <div className="flex flex-col justify-center gap-0">
+      <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none group-hover:text-primary transition-colors duration-200">{brandName}</span>
+      {brandSubtitle && <span className="hidden sm:block text-[10px] text-muted-foreground/50 font-normal leading-none mt-0.5 tracking-[0.03em]">{brandSubtitle}</span>}
+    </div>
+  </>;
 
   return (
     <header
@@ -149,38 +170,9 @@ export function PublicShellTopBar({
 
         {/* Brand — left-aligned */}
         {brandLeading}
-        <a href={brandHref} className="flex items-center gap-2.5 shrink-0 group">
-          {/* Ink-stamp logo mark */}
-          <div className="relative w-7 h-7 shrink-0">
-            <div className="absolute inset-0 rounded-[6px] bg-foreground/90 group-hover:bg-foreground transition-colors duration-200" />
-            <svg
-              viewBox="0 0 28 28"
-              fill="none"
-              className="absolute inset-0 w-full h-full p-[5px] text-background"
-              aria-hidden="true"
-            >
-              <path
-                d="M16 4.5 C17.5 4.5 19 6 18.5 8.5 L17 21.5 C16.5 23 15.5 24 14 23"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <line x1="10" y1="14" x2="18" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-              <line x1="10" y1="18" x2="15" y2="18" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div className="flex flex-col justify-center gap-0">
-            <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none group-hover:text-primary transition-colors duration-200">
-              {brandName}
-            </span>
-            {brandSubtitle && (
-              <span className="hidden sm:block text-[10px] text-muted-foreground/50 font-normal leading-none mt-0.5 tracking-[0.03em]">
-                {brandSubtitle}
-              </span>
-            )}
-          </div>
-        </a>
+        {renderLink
+          ? renderLink({ href: brandHref, className: "flex items-center gap-2.5 shrink-0 group", children: brandContent })
+          : <a href={brandHref} className="flex items-center gap-2.5 shrink-0 group">{brandContent}</a>}
 
         {/* Divider + desktop tabs */}
         {hasTabs && (
@@ -188,7 +180,7 @@ export function PublicShellTopBar({
             <div className="hidden sm:block w-px h-5 bg-border/60 mx-1 shrink-0" aria-hidden />
             <nav className="hidden sm:flex items-center gap-0.5" aria-label="公開頁面導航">
               {tabs.map((tab) => (
-                <TabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} />
+                <TabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} renderLink={renderLink} />
               ))}
             </nav>
           </>
@@ -234,7 +226,7 @@ export function PublicShellTopBar({
           style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}
         >
           {tabs.map((tab) => (
-            <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} />
+            <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} renderLink={renderLink} />
           ))}
         </nav>
       )}

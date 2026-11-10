@@ -27,13 +27,13 @@ python3 main.py
 - Frontend：`http://localhost:5173`（或 Vite 指定埠）
 - Backend API：`http://localhost:1091/api`
 
-### 本機外部台本 MCP
+### 本機內容管理 MCP
 
-若要使用外部公開台本的本機 MCP，先在專案根目錄 `.env` 設定
+若要使用外部公開台本與 Demo 管理的本機 MCP，先在專案根目錄 `.env` 設定
 `MCP_OWNER_ID` 與至少 32 字元的 `MCP_LOCAL_API_KEY`，再安裝：
 
 ```bash
-python3 -m pip install -r server/mcp_server/requirements.txt
+server/venv/bin/pip install -r server/mcp_server/requirements.txt
 ```
 
 MCP client 應執行 `scripts/run-local-external-script-mcp.sh`。它使用 `stdio`，
@@ -92,11 +92,11 @@ docker compose -f docker-compose.prod.yml up --build -d
 ```
 
 服務組成：
-- `write_project-frontend`（Nginx，對外唯一入口，1090）
+- `write_project-frontend`（Nginx；工作區 Compose 已改為只綁 `127.0.0.1:1090` 與 `[::1]:1090`，正式執行中的舊容器尚未套用，仍綁 `0.0.0.0:1090` 與 `[::]:1090`）
 - `write_project-backend`（FastAPI，僅限 internal network，不對外 publish）
 - `write_project-postgres`（PostgreSQL，僅限 internal network，不對外 publish）
 
-> **注意**：production compose 只有 nginx（1090）對外。若需直接連後端或 DB 進行維運，請使用 `docker exec` 或 SSH tunnel，不要在 production compose 加 `ports`。
+> **注意**：Tunnel 的 `localhost:1090` 可能透過 IPv6 `::1` 連入；2026-11-10 實際連線亦如此。因此同時保留 IPv4、IPv6 loopback 綁定，不開放 LAN。部署後檢查兩種 loopback 的 `/healthz`、公開網址及 Docker 的 port binding。後端與 DB 維持 internal network，不要在 production compose 加 `ports`。
 
 ## 5. 測試與驗證
 前端單元測試：
@@ -132,16 +132,110 @@ bash scripts/ci.sh
 
 ## 6. 部署
 
-### 正式部署：請使用 `safe-deploy.sh`
+### 既有整組部署流程（需要維護時段）
 
 ```bash
-bash scripts/safe-deploy.sh
+# 僅在已安排停機維護時使用
+ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh
 ```
 
-**不要直接執行 `scripts/deploy.sh`。** 後者的 `docker compose down` 會使用
+`safe-deploy.sh` 會先停止正式 PostgreSQL，`deploy.sh` 接著對整組服務執行
+`docker compose down`。兩支腳本預設拒絕執行，只有明確設定 `ALLOW_SERVICE_DOWNTIME=1` 才能進入停機流程。這條舊流程會中斷整組服務，不能用於目前只交接網站入口的優化發布；網站專用流程見下節。需要整組維護部署時，**不要直接執行 `scripts/deploy.sh`。** 後者的 `docker compose down` 會使用
 容器「建立當下」的 `stop_grace_period`。2026-08-17 事故即因寬限期只有 10 秒，
 Postgres 關機 checkpoint 未完成就被 SIGKILL，WAL 遺失導致 `scripts` 表索引與
 heap 不同步、4 篇公開台本損毀。
+
+工作區 production Compose 現已預設關閉 Backend 啟動時的建表與 legacy migration；線上舊容器的兩個開關仍是 `1`。這個預設不會更新線上容器，也不會替代正式 schema 遷移。若在維護時段走舊部署路徑，須先確認 schema 已就緒或明確安排獨立遷移，否則新版 Backend 的 readiness 會拒絕啟動。
+
+新版公開站 `/api/health/ready` 會檢查 backend 的 `publicApiCapabilities`，包括 bundle 分區、外部封面單筆查詢、活動狀態與音聲作品；缺少時回 503、`checks.backend=incompatible`。Backend 會從 ORM 模型產生完整表／欄位契約，透過資料庫 metadata 單次查詢驗證，不掃描使用者資料；schema 不完整即回 503。2026-11-10 實測：新版程式配 Dev DB 回 200；新版公開站配線上舊 backend 回 503。網站專用切流因此先讓新版 backend、公開站與候選 Nginx 就緒，再交接入口；舊的整組部署腳本仍不具備此能力。
+
+同日以正式 DB 的 11 MB 邏輯備份在隔離 PostgreSQL 排練：遷移前正式 schema 缺少 11 個新模型表、數個既有表的新欄位，唯讀候選 Backend 因此回 `schema=failed`。對複本執行缺表建置與 Postgres migration 後，新、舊 Backend 均能讀取公開 bundle；`scripts` 90、外部台本 125、personas 9、organizations 2、feedback 2、likes 0 的筆數與正式 DB 相同。正式庫後來已執行同一增量遷移；這段是遷移前的排練記錄。
+
+可重跑的隔離排練：
+
+```bash
+bash scripts/rehearse-prod-schema.sh
+```
+
+腳本只從正式 PostgreSQL 執行 `pg_dump` 與筆數查詢；在獨立 Docker network/volume 的資料複本透過獨立作業執行目前 schema migration，作業連線設定 `lock_timeout=250ms`、`statement_timeout=10s`，再讓線上舊版與工作區新版 Backend 以唯讀連線檢查 readiness、公開 bundle。它比對核心表遷移前後筆數，完成後刪除暫存資料庫、volume 與 network。2026-11-10 實跑通過；這仍不能證明正式環境並發寫入時遷移不會短暫阻塞，因此不能當作直接修改正式 schema 的放行條件。
+
+可加 `REHEARSAL_READ_PROBE=1 REHEARSAL_WRITE_PROBE=1`，在複本遷移期間反覆讀取五張既有表，並以每次回滾的更新交易測四張既有表寫入，列出樣本數、最大延遲和錯誤數；腳本亦會再跑一次遷移，核對核心與新建身份表筆數不變。2026-11-10 的隔離排練中，單一交易版本相關表讀取最慢約 0.3–0.5 秒；分段提交後讀取約 0.06–0.11 秒。原本整批建表時，`personas` 寫入曾等約 1.2 秒；改為按缺表相依順序逐表提交後，這次測得四張既有表讀取與寫入最慢約 0.07–0.10 秒，沒有錯誤。這些數字只是本機小資料量的回歸訊號，不是正式流量的延遲保證。若發生遷移失敗，分段已提交的 schema 變更不會自動回滾；須先檢查失敗點，再安全重跑。
+
+探針只要有一次讀寫失敗，排練就會以非零狀態中止；不得把這種結果當作發布通過。
+
+獨立遷移命令與目前實際狀態：
+
+```bash
+bash scripts/migrate-prod-schema.sh --plan    # 唯讀列出缺口
+bash scripts/migrate-prod-schema.sh --verify  # 缺表／欄位時非零結束
+# --apply 會先重跑隔離複本的讀寫探針、建立備份，然後才修改正式 schema
+bash scripts/migrate-prod-schema.sh --apply
+```
+
+`--apply` 使用獨立容器與資料庫 advisory lock，所有連線套用 250 ms 鎖等待、10 秒單句與閒置交易上限；候選 Backend 仍須以 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=0` 啟動。2026-11-10 已在複本驗證遷移、重跑、併發讀寫及第二個遷移工作被拒絕；正式 `--apply` 也已執行，備份位於 `/Users/shanti/write_project_backups/write_project_20261110_041812.sql.gz`。正式庫的 `--verify` 現為零個 mapped schema gap，原服務與公開首頁仍正常。這個命令只處理 schema，並未切換流量。
+
+### 同正式資料的唯讀候選站
+
+```bash
+bash scripts/stage-prod-candidate-readonly.sh --start
+bash scripts/stage-prod-candidate-readonly.sh --status
+bash scripts/stage-prod-candidate-readonly.sh --stop
+```
+
+此腳本用已建置的 `candidate-20261110` 映像和靜態檔，在正式 Docker 網路啟動獨立 API、公開站與 Nginx。API 使用 PostgreSQL 唯讀交易，候選入口只綁 IPv4 loopback 隨機埠。它完成 readiness 與九條路徑的煙霧測試，但不接收公開流量；結束後執行 `--stop`。2026-11-10 已在同一份正式資料上完成兩輪 HTTP 和五次 Chromium 比較，結果見 [public-performance-baseline.md](public-performance-baseline.md)；候選容器已停止。
+
+切流前可另跑與正式寫入設定相同的雙路徑預備檢查：
+
+```bash
+RELEASE_TAG=candidate-lcp-20261110 bash scripts/stage-prod-release.sh --start
+bash scripts/stage-prod-release.sh --status
+bash scripts/stage-prod-release.sh --stop
+```
+
+此腳本從現行 API／公開站容器複製環境變數至權限 600 的暫存檔（離開時刪除），啟動新版 API、公開站與兩個只綁 IPv4／IPv6 loopback 隨機埠的 Nginx：新版入口指向候選服務，舊版入口指向現行服務。候選 API 使用正式資料目錄的可寫掛載，但關閉啟動建表及 legacy migration；檢查本身只發出唯讀 GET。新版九條路徑須回 200，舊版逐路徑與現行 1090 入口比對狀態碼，並檢查兩個 Nginx 的設定語法和 IPv6 入口。2026-11-10 實跑通過後已停止所有預備容器，沒有切換公開流量。此腳本只做一次性預備檢查，容器採 `--rm` 且設定目錄位於暫存區，不能直接作為正式持久部署或回滾機制。
+
+舊 Nginx 容器的 `/etc/nginx/conf.d/default.conf` 單檔 bind mount 在容器內已不可見，`nginx -t` 因缺檔失敗，不能在該容器上安全 reload。新入口改掛載完整設定目錄；`nginx.conf` 是指向 `deploy/nginx/default.conf` 的相容符號連結。2026-11-10 網站專用切流後，舊前端容器已停止，新入口 `wp-prod-live-edge` 實際只綁 `127.0.0.1:1090` 與 `[::1]:1090`。舊版 fallback `wp-prod-legacy-edge` 曾接管同一個 loopback 埠完成回滾；最後再次切至新版。舊 `deploy.sh`／`safe-deploy.sh` 仍會停掉整組服務，不可用於此發布路徑，也不要在新入口運作時對舊 Compose 專案執行 `up`，以免爭用 `1090`。
+
+### 網站專用切流與回滾（2026-11-10 已執行）
+
+```bash
+python3 scripts/site-release.py status
+python3 scripts/site-release.py rollback --tag rsc-cache-all-20261110
+```
+
+`--activate` 先把候選靜態檔複製到不受 Vite 清理的 `releases/<tag>`，並保存舊站靜態檔供回滾；接著啟動有持久重啟政策的新版 API 與公開站，在隨機 loopback 埠檢查新版與舊版 Nginx、九條路徑、IPv6 及設定語法。舊版路徑狀態碼以切流前的實際入口為準。最後只停止網站的舊入口容器並交接 `1090`，不停止 PostgreSQL、舊 API、舊公開站或其他服務。若新入口檢查失敗，腳本接回已預先驗證的舊版 Nginx。交接 `1090` 仍可能有短暫的本站請求中斷，不是嚴格零停機發布。
+
+本次先備份正式 DB 至 `/Users/shanti/write_project_backups/write_project_20261110_044451.sql.gz`（29 表、scripts heap/index 90/90），在隔離埠排練切換與回滾，再執行正式切換。後續台灣時區瀏覽器發現首頁日期 hydration 錯誤，立即以 `--rollback` 接回舊入口；核對後發現舊版也有相同時區錯誤。已將公開卡片日期固定為 `Asia/Taipei` 並以純函式子路徑供 SSR 使用，修正版在 UTC、台灣、洛杉磯三種時區的隔離入口都沒有頁面錯誤，於同日再切至 `candidate-date-20261110`。正式入口與公開網址的 `/`、`/authors`、`/audio-works`、readiness 均回 200，三種時區的正式首頁也都無 hydration 錯誤；新入口僅發布雙 loopback，舊 API／公開站／PostgreSQL 仍健康。舊 frontend 容器保留停止狀態，供事後比對；回滾使用上方命令，不依賴其失效的單檔掛載。
+
+同日另以 `scripts/relocate-prod-release.sh` 將正式入口、API 與公開站切到 `releases/candidate-date-20261110`：新 API 的 `/app/dist` 及新 Nginx 的靜態檔與設定都掛在持久目錄。預備階段檢查新舊雙入口、九條路徑、Nginx 語法與 IPv6；切流後正式入口及公開網址的主要路徑均回 200，UTC、台灣、洛杉磯三種時區的首頁／作者頁／音聲頁瀏覽器檢查均無 page error，PostgreSQL 和原本服務保持健康。舊 `wp-prod-live-api`／`wp-prod-live-public` 留作臨時回滾來源，舊入口已停止。第一次切流腳本在清理 `--rm` 預覽容器時遇到 Docker 移除競態而回傳非零；正式切流與驗證已成功，清理邏輯已修正，殘留預覽容器已停止。
+
+目前正式入口是 `wp-site-rsc-cache-all-20261110-edge`，回滾使用上方 `site-release.py rollback`，接回仍在運作且掛載持久 `releases/rsc-cache-boundary-v2-20261110` 的上一版入口／API／公開站。第二層回滾版 `firstfold-covers-srcset-20261110` 的三個容器保留但已停止；更早版容器已移除，映像、設定與靜態檔仍留存供人工重建。舊 `wp-prod-live-api`／`wp-prod-live-public` 容器已移除；運作中的容器沒有掛載 `dist/releases`，Vite 已恢復預設的輸出目錄清理。一次性 `relocate-prod-release.sh` 僅保留為遷移歷程，不適用於目前入口。原本寫死容器名稱的 `cutover-prod-release.sh` 已移除；整組 `rollback.sh` 不適用於目前的入口容器組合。
+
+### 後續版本的網站專用發布
+
+新版本需先有相同 tag 的 `write_project-backend:<tag>`、`write_project-public:<tag>` 映像，以及 `dist/releases/<tag>/index.html`。設定新的 release tag 後執行：
+
+```bash
+RELEASE_TAG=release-20261110-r2
+python3 scripts/site-release.py status
+python3 scripts/site-release.py prepare --tag "$RELEASE_TAG"
+CANDIDATE_PORT=$(docker port "wp-site-${RELEASE_TAG}-check" 80/tcp | awk -F: '/^127[.]0[.]0[.]1:/ {print $NF}')
+python3 scripts/check-ingress-write-limits.py --base-url "http://127.0.0.1:${CANDIDATE_PORT}"
+python3 scripts/check-ingress-read-limits.py --base-url "http://127.0.0.1:${CANDIDATE_PORT}"
+python3 scripts/check-rsc-cache-boundary.py --base-url "http://127.0.0.1:${CANDIDATE_PORT}" --sample-sitemap
+python3 scripts/site-release.py activate --tag "$RELEASE_TAG"
+python3 scripts/site-release.py rollback --tag "$RELEASE_TAG"
+```
+
+`prepare` 從目前佔用雙 loopback `1090` 的入口辨識其 API、公開站、靜態目錄與 Nginx 設定，將候選靜態檔複製到持久 `releases/<tag>`，把控制資料與新 Nginx 設定放在靜態根目錄之外的 `releases/.site-release/<tag>`。它啟動候選 API／公開站及新舊兩條隨機 loopback 預覽入口，檢查 readiness、Nginx 語法、IPv4／IPv6 與九條路徑，不切換正式流量。若 Docker 分配的候選埠不可連入，預覽入口最多重建三次；仍失敗就停止候選且不切流。`activate` 再次驗證兩條入口、舊入口容器 ID 與新舊靜態檔摘要，最後只交接 `1090`；若驗證失敗會重啟原入口。`rollback` 先驗證原入口的預覽及其靜態檔摘要，再交接回原容器；候選容器仍保留供排查。未啟用的預備容器可用 `stop-prepared --tag <tag>` 移除。腳本以鎖避免同時執行兩個發布動作，且不停止 PostgreSQL 或其他服務。每個 tag 只能準備一次，需以新的 tag 重試。
+
+`prepare` 與 `activate` 現在也會在候選入口自動執行 RSC 快取邊界檢查，從 sitemap 抽樣首頁、台本、作者、社團與系列等頁面。2026-11-10 以現行映像排練 `prepare` 通過；用舊版公開站映像排練時因 RSC 回應仍為公開快取而拒絕，候選容器與控制資料自動清除，正式入口未切換。手動執行上方 `check-rsc-cache-boundary.py` 可在切流前查看同一項結果。
+
+切流穩定後，可執行 `python3 scripts/site-release.py retire-ancestors --dry-run` 檢查清單，再執行 `python3 scripts/site-release.py retire-ancestors` 停用比直接回滾版本更早的本站 API／公開站。工具會先核對正式版、直接回滾版、每個舊入口的 upstream 與預覽容器狀態；只停止舊程序，保留容器、映像、設定與靜態檔。在仍保留容器的兩層回滾範圍內，`rollback` 會先重啟其 API／公開站並驗證 readiness，再切換入口；更早版需要依留存映像與設定人工重建。2026-11-10 已停用 `candidate-fold-20261110` 與 `wp-prod-durable` 的四個舊程序，約釋放 334 MiB 常駐記憶體；正式版和直接回滾版仍運作，其他服務未重啟。
+
+2026-11-10 清理 OrbStack 容器清單：在鎖定發布流程、核對 52 個目標容器 ID 均已停止後，移除 16 組更早發布版本的 48 個容器與 4 個舊 `wp-prod` 容器。正式版、直接回滾版和第二層回滾版共 9 個 `wp-site-*` 容器保留；映像、靜態檔、控制資料、PostgreSQL、Dev 與其他服務均未刪除。清理後首頁、readiness 與雙 loopback 網路邊界正常，`retire-ancestors --dry-run` 會略過已完整移除的舊版本，仍拒絕只缺部分容器的版本。
+
+2026-11-10 以同版本映像的臨時 tag 完成 `prepare → activate → rollback → stop-prepared` 排練，最終入口回到 `wp-prod-durable-edge`；之後在控制檔移出靜態根目錄的版本上完成 `prepare → stop-prepared`，並驗證候選靜態檔遭修改時 `activate` 會拒絕切流。排練容器、臨時映像 tag 與臨時靜態副本已清除。此流程仍有切換 `1090` 時的短暫本站連線中斷；正式 DB 與其他服務持續運作。下一次真實版本發布前，仍須以該版候選入口執行瀏覽器與安全驗證。
 
 `safe-deploy.sh` 會：
 
@@ -151,10 +245,10 @@ heap 不同步、4 篇公開台本損毀。
 3. 交由 `deploy.sh` 執行實際部署
 4. 部署後驗證：health probe、soft-404 五路由、正常頁面狀態碼
 
-`deploy.sh` 的參數可直接透傳：
+`deploy.sh` 的參數可直接透傳。若 backend 或 public readiness 失敗，腳本會以非零狀態中止，不會更新部署雜湊：
 
 ```bash
-bash scripts/safe-deploy.sh force=1
+ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh force=1
 ```
 
 常用參數：
@@ -164,14 +258,12 @@ bash scripts/safe-deploy.sh force=1
 
 ```bash
 # 注意：production DB 不對外 publish port，migration 需透過 SSH tunnel 或 docker exec 執行
-bash scripts/deploy.sh migrate_pg=1 target_db='postgresql+psycopg://user:pass@127.0.0.1:5432/write_project'
+ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh migrate_pg=1 target_db='postgresql+psycopg://user:pass@127.0.0.1:5432/write_project'
 ```
 
 回滾：
 
-```bash
-bash scripts/rollback.sh
-```
+目前網站專用回滾請使用本節上方的 `scripts/relocate-prod-release.sh --rollback`；舊整組 `rollback.sh` 需要明確設定 `ALLOW_SERVICE_DOWNTIME=1`，並會影響 PostgreSQL 與其他服務。
 
 ### 資料庫備份
 
@@ -218,14 +310,14 @@ Token 只從環境變數讀取，不會出現在指令參數或任何輸出中�
   讓首頁篩選用的 query string 仍分開快取。不要把 `/read/*`、API 或登入後頁面放進此規則。
 - 圖片 proxy `/api/public-media/*.webp` 帶 `s-maxage=2592000`（本站媒體）或 `s-maxage=86400`（外部封面）；
   因網址含 `.webp` 副檔名，Cloudflare 預設即會快取。`?w=` 只接受固定寬度，避免快取被任意參數打散。
-- 縮圖由 `sharp` 在 Next 容器內產生；若 `sharp` 載入失敗，proxy 會退回原圖。
+- 縮圖由 `sharp` 在 Next 容器內產生；若解碼或載入失敗，proxy 才以 60 秒短快取退回原圖。`?w=` 來源會按實際串流位元組限制為 12 MiB，原圖串流限制為 25 MiB，不信任上游 `Content-Length`；超限的縮圖回 413，滿額或逾時回不快取的 503。
 - 靜態頁（`/about` 等）的 sitemap `lastmod` 在 `lib/publicSeoModel.ts` 的 `STATIC_PAGES_LASTMOD`，
   修改這些頁面的內容時請一併更新。
 
 ## 7. 重要環境變數
 - `VITE_API_URL`：前端 API 入口（預設 `/api`）
 - `DATABASE_URL`：後端 DB 連線字串（正式主用 Postgres）
-- `DB_AUTO_CREATE_TABLES`：啟動時是否 `create_all`（預設 `1`）
+- `DB_AUTO_CREATE_TABLES`：啟動時是否建立缺表（程式預設 `1`，production Compose 預設 `0`；PostgreSQL 逐表提交）
 - `DB_RUN_LEGACY_MIGRATIONS`：是否跑 legacy migration（預設 `1`）
 - `PUBLIC_BASE_URL`：SEO/Sitemap 公開網址基底
 - `FIREBASE_PROJECT_ID` / `FIREBASE_CREDENTIALS_JSON`：Firebase 驗證設定

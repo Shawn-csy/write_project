@@ -15,7 +15,6 @@ interface WorkScriptListCardProps {
   onCoverError: (id: string) => void;
   hasCover: (value: unknown) => boolean;
   hasCompleteLicense: (script: PublisherScriptItem) => boolean;
-  statusBadgeClass: (script: PublisherScriptItem) => string;
   readiness: PublishReadiness;
   formatDate: (value?: number) => string;
   onContinueEdit?: (script: PublisherScriptItem) => void;
@@ -44,7 +43,7 @@ export function WorkScriptListCard({
   return (
     <div className={`group grid grid-cols-[2.5rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 border-b border-border/70 px-3 py-3 last:border-b-0 hover:bg-muted/40 sm:gap-x-4 sm:px-4 ${WORK_ROW_GRID}`}>
       <div className="flex min-w-0 items-center gap-3 max-sm:contents">
-        <div className="relative h-[52px] w-10 shrink-0 overflow-hidden rounded-md bg-muted">
+        <div className="relative aspect-[2/3] w-10 shrink-0 overflow-hidden rounded-md bg-muted">
           {hasCover(script.coverUrl) && !failedCover ? (
             <img
               src={cropCover.src || undefined}

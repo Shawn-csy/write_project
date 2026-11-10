@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, lazy, Suspense } from "react";
-import type { ExternalPublicScript, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import {
   PublicHeroMarquee,
   GalleryHoverPreviewProvider,
@@ -19,6 +19,7 @@ import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
+import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
 import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
 import { GallerySearchField } from "./gallery/GallerySearchField";
 import { GallerySortControl, type GallerySortValue } from "./gallery/GallerySortControl";
@@ -28,11 +29,15 @@ import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
 import { PublicFooter } from "@/components/PublicFooter";
-import { PublicAnnouncementBar } from "@/components/PublicAnnouncementBar";
+import { HomepageActivityBanner } from "./gallery/HomepageActivityBanner";
+import type { HomepageActivity } from "@/lib/homepageBundle";
 
 interface Props {
   initialScripts: PublicScript[];
   initialExternalPublicScripts: ExternalPublicScript[];
+  initialPersonas?: PublicPersona[];
+  initialOrganizations?: PublicOrg[];
+  initialActivities?: HomepageActivity[];
   initialBannerSlides?: HeroSlide[];
   showBrandHero?: boolean;
   initialUrlState: PublicHomepageUrlState;
@@ -45,10 +50,9 @@ const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defau
   return defaultContent;
 };
 
-export function GalleryClient({ initialScripts, initialExternalPublicScripts, initialBannerSlides, showBrandHero = true, initialUrlState }: Props) {
+export function GalleryClient({ initialScripts, initialExternalPublicScripts, initialPersonas, initialOrganizations, initialActivities = [], initialBannerSlides, showBrandHero = true, initialUrlState }: Props) {
   const {
     tab,
-    setTab,
     segment,
     setSegment,
     usage,
@@ -74,7 +78,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
     onToggleOrgTag,
     onResetAuthorTags,
     onResetOrgTags,
-  } = useGalleryController({ initialScripts, initialExternalPublicScripts, initialBannerSlides, initialUrlState });
+  } = useGalleryController({ initialScripts, initialExternalPublicScripts, initialPersonas, initialOrganizations, initialBannerSlides, initialUrlState });
 
   const { view } = homepageModel;
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
@@ -82,10 +86,6 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
   const [allScriptsSort, setAllScriptsSort] = useState<GallerySortValue | null>(null);
   const openAllScripts = (sort?: GallerySortValue) => {
     setAllScriptsSort(sort ?? "latest");
-  };
-    const handleTabChange = (nextTab: typeof tab) => {
-    if (nextTab !== "scripts") setAllScriptsSort(null);
-    setTab(nextTab);
   };
 
   const activeFilterCount = homepageModel.filterChips.length;
@@ -125,10 +125,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicAnnouncementBar />
       <GalleryTopBar
         activeTab={tab}
-        onTabChange={handleTabChange}
       />
 
       <div className="flex flex-col flex-1">
@@ -137,12 +135,15 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
           <PublicHeroMarquee
             slides={heroSlides}
             fullBleed
+            compactOnMobile
             renderImage={heroImageRenderer}
             renderSlideContent={heroSlideContentRenderer}
           />
         )}
 
-        <div className="flex flex-1 w-full px-4 sm:px-5 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6">
+        {view === "scripts" && <HomepageActivityBanner activities={initialActivities} />}
+
+        <div className={`flex flex-1 w-full py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6 ${view === "scripts" ? "px-4 sm:px-5 lg:px-8" : "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8"}`}>
         {/* Desktop sidebar — only when expanded */}
         {view === "scripts" && !sidebarCollapsed && (
           <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
@@ -177,7 +178,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
           {view === "scripts" && (
             <div className="sticky top-14 z-30 -mx-4 sm:-mx-5 lg:mx-0 mb-4 bg-background/97 backdrop-blur-md px-4 sm:px-5 lg:px-0">
               {/* Segment tabs row — with expand button inlined when collapsed */}
-              <div className="flex flex-row items-center gap-2 md:flex-col md:items-stretch lg:flex-row lg:items-end">
+              <div className="flex flex-col items-stretch gap-2 lg:flex-row lg:items-end">
                 {sidebarCollapsed && (
                   <div className="hidden lg:flex items-center gap-1 shrink-0 pb-0.5">
                     <button
@@ -201,7 +202,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                     )}
                   </div>
                 )}
-                <div className="w-auto min-w-0 shrink-0 md:w-full lg:flex-1">
+                <div className="w-full min-w-0 lg:flex-1">
                   <GallerySegmentBar segment={segment} onSegmentChange={setSegment} />
                 </div>
                 <GallerySearchField
@@ -209,6 +210,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
                   onChange={filterPanelProps.onSearchChange}
                   onOpenFilters={openMobileFilter}
                   activeFilterCount={activeFilterCount}
+                  trailingAction={<LazyPublicFeedbackDialog mode="listing" compactAtMobile />}
                   mobileActions={
                     <button
                       type="button"

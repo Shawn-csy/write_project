@@ -21,6 +21,7 @@ from utils import normalize_homepage_banner_value, safe_json_list
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 HOMEPAGE_BANNER_SETTING_KEY = "homepage_banner"
+DEMO_BANNER_SETTING_KEY = "demo_page_banner"
 _REVALIDATE_URL = os.getenv("NEXTJS_REVALIDATE_URL", "")
 _REVALIDATE_SECRET = os.getenv("REVALIDATE_SECRET", "")
 
@@ -39,6 +40,10 @@ def _send_homepage_revalidation() -> None:
         # The Banner write has already succeeded; cache invalidation can fail
         # without turning a successful save into an error.
         pass
+
+
+def _send_demo_banner_revalidation() -> None:
+    _send_public_paths_revalidation(["/demos"])
 
 
 def _send_public_paths_revalidation(paths: list[str]) -> None:
@@ -377,6 +382,95 @@ def delete_public_demo_submission(
     from routers import public_bundle
     public_bundle.invalidate_public_bundle_cache()
     return {"success": True, "id": submission_id}
+
+
+def _serialize_audio_work_submission(row: models.PublicAudioWorkSubmission) -> dict:
+    return {
+        "id": row.id,
+        "title": row.title,
+        "url": row.url,
+        "coverUrl": row.coverUrl or "",
+        "description": row.description or "",
+        "creatorName": row.creatorName or "",
+        "creatorUrl": row.creatorUrl or "",
+        "organizationId": row.organizationId,
+        "voiceActorIds": row.voiceActorIds or [],
+        "accessType": row.accessType or "paid",
+        "contactEmail": row.contactEmail or "",
+        "status": row.status,
+        "reviewedAt": row.reviewedAt,
+        "publishedAt": row.publishedAt,
+        "createdAt": row.createdAt,
+    }
+
+
+@router.get("/public-audio-work-submissions", response_model=schemas.PublicAudioWorkSubmissionListResponse)
+def list_public_audio_work_submissions(
+    status: Optional[str] = "pending",
+    q: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if status not in {None, "all", "pending", "approved", "rejected"}:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    query = db.query(models.PublicAudioWorkSubmission)
+    if status and status != "all":
+        query = query.filter(models.PublicAudioWorkSubmission.status == status)
+    normalized_q = (q or "").strip()
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            models.PublicAudioWorkSubmission.title.ilike(like_q)
+            | models.PublicAudioWorkSubmission.url.ilike(like_q)
+            | models.PublicAudioWorkSubmission.creatorName.ilike(like_q)
+            | models.PublicAudioWorkSubmission.contactEmail.ilike(like_q)
+        )
+    total = query.count()
+    rows = query.order_by(models.PublicAudioWorkSubmission.createdAt.desc()).offset(max(offset, 0)).limit(max(1, min(limit, 200))).all()
+    return schemas.PublicAudioWorkSubmissionListResponse(total=total, items=[_serialize_audio_work_submission(row) for row in rows])
+
+
+@router.patch("/public-audio-work-submissions/{submission_id}/status", response_model=schemas.PublicAudioWorkSubmissionRecord)
+def update_public_audio_work_submission_status(
+    submission_id: str,
+    payload: schemas.PublicAudioWorkSubmissionStatusUpdate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.PublicAudioWorkSubmission).filter(models.PublicAudioWorkSubmission.id == submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Audio work submission not found")
+
+    if "organizationId" in payload.model_fields_set:
+        if payload.organizationId and not db.query(models.Organization.id).filter(models.Organization.id == payload.organizationId).first():
+            raise HTTPException(status_code=400, detail="找不到所屬組織")
+        row.organizationId = payload.organizationId
+    if "voiceActorIds" in payload.model_fields_set:
+        actor_ids = list(dict.fromkeys(payload.voiceActorIds or []))
+        if actor_ids and db.query(models.Persona.id).filter(models.Persona.id.in_(actor_ids)).count() != len(actor_ids):
+            raise HTTPException(status_code=400, detail="找不到聲演身份")
+        row.voiceActorIds = actor_ids
+    if "accessType" in payload.model_fields_set and payload.accessType:
+        row.accessType = payload.accessType
+    if payload.status == "approved" and not row.organizationId:
+        raise HTTPException(status_code=400, detail="請先指定所屬組織")
+    row.status = payload.status
+    row.reviewedAt = int(time.time() * 1000) if payload.status != "pending" else None
+    row.reviewedBy = ownerId if payload.status != "pending" else None
+    db.commit()
+    db.refresh(row)
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    _queue_demo_revalidation(background_tasks, "/audio-works", "/sitemap.xml")
+    return _serialize_audio_work_submission(row)
 
 
 def _admin_demo_links(value: Any) -> list[dict]:
@@ -881,9 +975,66 @@ def update_homepage_banner(
     import routers.public as _public_router
     _public_router._banner_cache = None
     import routers.public_bundle as _public_bundle_router
-    _public_bundle_router._bundle_cache = None
+    _public_bundle_router.invalidate_public_bundle_cache()
     background_tasks.add_task(_send_homepage_revalidation)
     return schemas.HomepageBannerSetting(**clean)
+
+
+@router.get("/demo-banner", response_model=schemas.DemoBannerSetting)
+def get_demo_banner(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == DEMO_BANNER_SETTING_KEY).first()
+    value = normalize_homepage_banner_value(row.value) if row and str(getattr(row, "value", "") or "").strip() else {"items": []}
+    return schemas.DemoBannerSetting(**value)
+
+
+@router.put("/demo-banner", response_model=schemas.DemoBannerSetting)
+def update_demo_banner(
+    background_tasks: BackgroundTasks,
+    payload: schemas.DemoBannerSetting,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    items = []
+    for index, item in enumerate(payload.items or []):
+        normalized = {
+            "id": str(item.id or f"demo-slide-{index + 1}").strip() or f"demo-slide-{index + 1}",
+            "title": str(item.title or "").strip(),
+            "content": str(item.content or "").strip(),
+            "link": str(item.link or "").strip(),
+            "imageUrl": str(item.imageUrl or "").strip(),
+        }
+        if item.eyebrow and item.eyebrow.strip():
+            normalized["eyebrow"] = item.eyebrow.strip()
+        if item.imageAlt and item.imageAlt.strip():
+            normalized["imageAlt"] = item.imageAlt.strip()
+        for crop_key in ("imageCrop", "imageMobileCrop", "imageDesktopCrop", "imageUltraWideCrop"):
+            crop = getattr(item, crop_key, None)
+            if isinstance(crop, dict):
+                normalized[crop_key] = crop
+        if item.imageBackgroundMode in ("cover", "blur-fill"):
+            normalized["imageBackgroundMode"] = item.imageBackgroundMode
+        if normalized["title"] or normalized["content"] or normalized["link"] or normalized["imageUrl"]:
+            items.append(normalized)
+
+    clean = {"items": items}
+    now_ms = int(time.time() * 1000)
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == DEMO_BANNER_SETTING_KEY).first()
+    if row is None:
+        row = models.SiteSetting(key=DEMO_BANNER_SETTING_KEY, value=json.dumps(clean, ensure_ascii=False), updatedBy=ownerId, updatedAt=now_ms)
+        db.add(row)
+    else:
+        row.value = json.dumps(clean, ensure_ascii=False)
+        row.updatedBy = ownerId
+        row.updatedAt = now_ms
+    db.commit()
+    import routers.public_bundle as _public_bundle_router
+    _public_bundle_router.invalidate_public_bundle_cache()
+    background_tasks.add_task(_send_demo_banner_revalidation)
+    return schemas.DemoBannerSetting(**clean)
 
 
 def _activity_page_payload_values(payload: schemas.ActivityPagePayload) -> dict:
@@ -1439,6 +1590,101 @@ def hide_external_author_page_admin(
     return _external_author_page_profile_record(profile)
 
 
+def _directory_users_query(db: Session, q: Optional[str]):
+    query = db.query(models.User)
+    normalized_q = (q or "").strip().lower()
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            func.lower(models.User.email).like(like_q)
+            | func.lower(models.User.displayName).like(like_q)
+            | func.lower(models.User.handle).like(like_q)
+            | models.User.id.like(like_q)
+        )
+    return query
+
+
+def _directory_organizations_query(db: Session, q: Optional[str]):
+    query = db.query(models.Organization)
+    normalized_q = (q or "").strip().lower()
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            func.lower(models.Organization.name).like(like_q)
+            | models.Organization.id.like(like_q)
+            | func.lower(models.Organization.ownerId).like(like_q)
+        )
+    return query
+
+
+def _directory_personas_query(db: Session, q: Optional[str]):
+    query = db.query(models.Persona)
+    normalized_q = (q or "").strip().lower()
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            func.lower(models.Persona.displayName).like(like_q)
+            | models.Persona.id.like(like_q)
+            | func.lower(models.Persona.ownerId).like(like_q)
+        )
+    return query
+
+
+def _directory_scripts_query(db: Session, q: Optional[str]):
+    query = db.query(models.Script)
+    normalized_q = (q or "").strip().lower()
+    if normalized_q:
+        like_q = f"%{normalized_q}%"
+        query = query.filter(
+            func.lower(models.Script.title).like(like_q)
+            | models.Script.id.like(like_q)
+            | func.lower(models.Script.ownerId).like(like_q)
+        )
+    return query
+
+
+@router.get("/directory-overview")
+def directory_overview_admin(
+    q: Optional[str] = None,
+    db: Session = Depends(get_db),
+    ownerId: str = Depends(get_current_user_id),
+):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    # Match the limits and ordering of the four directory lists, but transfer
+    # only columns needed for summary cards, owner labels, and author filtering.
+    users = _directory_users_query(db, q).with_entities(
+        models.User.id, models.User.displayName, models.User.email, models.User.handle
+    ).order_by(models.User.lastLogin.desc(), models.User.id.desc()).limit(300).all()
+    organization_count = min(_directory_organizations_query(db, q).count(), 300)
+    personas = _directory_personas_query(db, q).with_entities(
+        models.Persona.id, models.Persona.tags
+    ).order_by(models.Persona.updatedAt.desc(), models.Persona.id.desc()).limit(300).all()
+    scripts = _directory_scripts_query(db, q).with_entities(
+        models.Script.type, models.Script.personaId
+    ).order_by(models.Script.lastModified.desc(), models.Script.id.desc()).limit(600).all()
+    script_persona_ids = {persona_id for kind, persona_id in scripts if kind != "folder" and persona_id}
+    writer_tag_pattern = re.compile(r"台本師|編劇|劇本師|作者|script\s*writer|writer", re.IGNORECASE)
+    writer_persona_ids = [
+        persona_id for persona_id, tags in personas
+        if persona_id in script_persona_ids
+        or any(writer_tag_pattern.search(str(tag)) for tag in crud._ensure_list(tags))
+    ]
+    return {
+        "users": len(users),
+        "organizations": organization_count,
+        "personas": len(personas),
+        "authors": len(writer_persona_ids),
+        "scripts": sum(kind != "folder" for kind, _ in scripts),
+        "writerPersonaIds": writer_persona_ids,
+        "ownerLabels": {
+            user_id: display_name or email or handle or user_id
+            for user_id, display_name, email, handle in users
+        },
+    }
+
+
 @router.get("/all-users", response_model=List[schemas.UserPublic])
 def list_all_users(
     q: Optional[str] = None,
@@ -1452,17 +1698,8 @@ def list_all_users(
 
     safe_limit = max(1, min(limit, 500))
     safe_offset = max(offset, 0)
-    query = db.query(models.User)
-    normalized_q = (q or "").strip().lower()
-    if normalized_q:
-        like_q = f"%{normalized_q}%"
-        query = query.filter(
-            func.lower(models.User.email).like(like_q)
-            | func.lower(models.User.displayName).like(like_q)
-            | func.lower(models.User.handle).like(like_q)
-            | models.User.id.like(like_q)
-        )
-    rows = query.order_by(models.User.lastLogin.desc()).offset(safe_offset).limit(safe_limit).all()
+    query = _directory_users_query(db, q)
+    rows = query.order_by(models.User.lastLogin.desc(), models.User.id.desc()).offset(safe_offset).limit(safe_limit).all()
     return rows
 
 
@@ -1546,15 +1783,7 @@ def list_all_organizations(
         raise HTTPException(status_code=403, detail="Not authorized")
     safe_limit = max(1, min(limit, 500))
     safe_offset = max(offset, 0)
-    query = db.query(models.Organization)
-    normalized_q = (q or "").strip().lower()
-    if normalized_q:
-        like_q = f"%{normalized_q}%"
-        query = query.filter(
-            func.lower(models.Organization.name).like(like_q)
-            | models.Organization.id.like(like_q)
-            | func.lower(models.Organization.ownerId).like(like_q)
-        )
+    query = _directory_organizations_query(db, q)
     rows = query.order_by(models.Organization.updatedAt.desc()).offset(safe_offset).limit(safe_limit).all()
     for org in rows:
         org.tags = safe_json_list(org.tags)
@@ -1573,16 +1802,8 @@ def list_all_personas(
         raise HTTPException(status_code=403, detail="Not authorized")
     safe_limit = max(1, min(limit, 500))
     safe_offset = max(offset, 0)
-    query = db.query(models.Persona)
-    normalized_q = (q or "").strip().lower()
-    if normalized_q:
-        like_q = f"%{normalized_q}%"
-        query = query.filter(
-            func.lower(models.Persona.displayName).like(like_q)
-            | models.Persona.id.like(like_q)
-            | func.lower(models.Persona.ownerId).like(like_q)
-        )
-    rows = query.order_by(models.Persona.updatedAt.desc()).offset(safe_offset).limit(safe_limit).all()
+    query = _directory_personas_query(db, q)
+    rows = query.order_by(models.Persona.updatedAt.desc(), models.Persona.id.desc()).offset(safe_offset).limit(safe_limit).all()
     for p in rows:
         p.tags = crud._ensure_list(p.tags)
         p.links = crud._ensure_list(p.links)
@@ -2061,21 +2282,13 @@ def list_all_scripts(
         raise HTTPException(status_code=403, detail="Not authorized")
     safe_limit = max(1, min(limit, 1000))
     safe_offset = max(offset, 0)
-    query = db.query(models.Script).options(
+    query = _directory_scripts_query(db, q).options(
         orm.joinedload(models.Script.tags),
         orm.joinedload(models.Script.persona),
         orm.joinedload(models.Script.organization),
         orm.joinedload(models.Script.series),
     )
-    normalized_q = (q or "").strip().lower()
-    if normalized_q:
-        like_q = f"%{normalized_q}%"
-        query = query.filter(
-            func.lower(models.Script.title).like(like_q)
-            | models.Script.id.like(like_q)
-            | func.lower(models.Script.ownerId).like(like_q)
-        )
-    rows = query.order_by(models.Script.lastModified.desc()).offset(safe_offset).limit(safe_limit).all()
+    rows = query.order_by(models.Script.lastModified.desc(), models.Script.id.desc()).offset(safe_offset).limit(safe_limit).all()
     for s in rows:
         setattr(s, "contentLength", len(s.content or ""))
         s.tags = s.tags or []

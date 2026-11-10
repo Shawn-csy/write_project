@@ -12,7 +12,8 @@ import crud_ops as crud
 import schemas
 import models
 from dependencies import get_db, get_current_user_id, is_admin_user
-from rate_limit import limiter
+from rate_limit import limiter, resolve_client_ip
+from services.public_view_windows import claim_recent_view
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +124,8 @@ def increment_view(request: Request, script_id: str, db: Session = Depends(get_d
     script = db.query(models.Script).filter(models.Script.id == script_id).first()
     if not crud.is_publicly_visible(db, script):
         raise HTTPException(status_code=404, detail="Script not found")
-    crud.increment_script_view(db, script_id)
+    if claim_recent_view(db, "script", script_id, resolve_client_ip(request)[0]):
+        crud.increment_script_view(db, script_id)
     return {"success": True}
 
 @router.post("/{script_id}/like")

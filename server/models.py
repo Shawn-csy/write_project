@@ -2,8 +2,8 @@
 # SQLite Integer is dynamically sized and handles large values silently,
 # but PostgreSQL Integer is 32-bit (max ~2.1B) and will raise "integer out of range"
 # for Unix millisecond timestamps (~1.7T as of 2026).
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Float, Boolean, ForeignKey, JSON, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Float, Boolean, ForeignKey, JSON, UniqueConstraint, Index
+from sqlalchemy.orm import backref, relationship
 from database import Base
 import time
 import uuid
@@ -97,7 +97,81 @@ class PersonaRole(Base):
     createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
     updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
 
-    persona = relationship("Persona", backref="roleRecords")
+    persona = relationship("Persona", backref=backref("roleRecords", cascade="all, delete-orphan"))
+
+
+class ProductionResource(Base):
+    """A sourced, editorially reviewed production service listing."""
+
+    __tablename__ = "production_resources"
+
+    id = Column(String, primary_key=True)
+    name = Column(String, nullable=False)
+    categories = Column(JSON, nullable=False, default=list)
+    summary = Column(Text, nullable=False, default="")
+    websiteUrl = Column(String, nullable=False)
+    sourceUrl = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="draft", index=True)
+    reviewedAt = Column(BigInteger, nullable=False)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+    updatedAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
+class ProductionResourceCredit(Base):
+    """A reviewed credit linking one resource to a public audio work."""
+
+    __tablename__ = "production_resource_credits"
+    __table_args__ = (UniqueConstraint("resourceId", "audioWorkId", "creditRole", name="uq_production_resource_credit"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    resourceId = Column(String, ForeignKey("production_resources.id", ondelete="CASCADE"), nullable=False, index=True)
+    audioWorkId = Column(String, ForeignKey("public_audio_work_submissions.id", ondelete="CASCADE"), nullable=False, index=True)
+    creditRole = Column(String, nullable=False)
+    creditedAs = Column(String, nullable=False)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
+class ProductionResourceEnrichment(Base):
+    """Verified profile details sourced from a credit link or an official site."""
+
+    __tablename__ = "production_resource_enrichments"
+
+    id = Column(String, primary_key=True)
+    profileUrl = Column(Text, nullable=False)
+    profileLabel = Column(String, nullable=False)
+    avatarUrl = Column(Text, nullable=False, default="")
+    bio = Column(Text, nullable=False, default="")
+    sourceUrl = Column(Text, nullable=False)
+    checkedAt = Column(BigInteger, nullable=False)
+
+
+class ProductionResourceLink(Base):
+    """A verified additional public contact link for a curated or derived resource."""
+
+    __tablename__ = "production_resource_links"
+
+    id = Column(String, primary_key=True)
+    resourceId = Column(String, nullable=False, index=True)
+    label = Column(String, nullable=False)
+    url = Column(Text, nullable=False)
+    sourceUrl = Column(Text, nullable=False)
+    checkedAt = Column(BigInteger, nullable=False)
+
+
+class AudioWorkCredit(Base):
+    """A source-backed production credit attached to one audio work."""
+
+    __tablename__ = "audio_work_credits"
+    __table_args__ = (UniqueConstraint("audioWorkId", "role", "creditedAs", "provenance", name="uq_audio_work_credit"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    audioWorkId = Column(String, ForeignKey("public_audio_work_submissions.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, nullable=False, index=True)
+    sourceRole = Column(String, nullable=False)
+    creditedAs = Column(Text, nullable=False)
+    provenance = Column(String, nullable=False)  # official_page | catalog_description
+    sourceUrl = Column(Text, nullable=False)
+    checkedAt = Column(BigInteger, nullable=False)
 
 
 class Tag(Base):
@@ -260,13 +334,30 @@ class ScriptLike(Base):
     __tablename__ = "script_likes"
     __table_args__ = (
         UniqueConstraint("scriptId", "userId", "visitorId", name="uq_script_likes_script_actor"),
+        Index("ix_script_likes_script_client", "scriptId", "clientKey"),
     )
 
     id = Column(String, primary_key=True, default=lambda: str(__import__("uuid").uuid4()))
     scriptId = Column(String, ForeignKey("scripts.id", ondelete="CASCADE"), nullable=False, index=True)
     userId = Column(String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
     visitorId = Column(String, nullable=True, index=True)
+    clientKey = Column(String, nullable=True)
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000))
+
+
+class PublicViewWindow(Base):
+    """One recent counted view per source and public item, shared across workers."""
+
+    __tablename__ = "public_view_windows"
+    __table_args__ = (
+        UniqueConstraint("resourceType", "resourceId", "clientKey", name="uq_public_view_window_source"),
+    )
+
+    id = Column(String, primary_key=True)
+    resourceType = Column(String, nullable=False)
+    resourceId = Column(String, nullable=False)
+    clientKey = Column(String, nullable=False)
+    expiresAt = Column(BigInteger, nullable=False, index=True)
 
 
 class PublicTermsAcceptance(Base):
@@ -349,6 +440,29 @@ class PublicDemoSubmission(Base):
     status = Column(String, nullable=False, default="pending", index=True)  # pending | approved | rejected
     reviewedAt = Column(BigInteger, nullable=True)
     reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
+
+
+class PublicAudioWorkSubmission(Base):
+    """Audio work promotions submitted for moderation before they are listed publicly."""
+
+    __tablename__ = "public_audio_work_submissions"
+
+    id = Column(String, primary_key=True, index=True)
+    title = Column(String, nullable=False, default="")
+    url = Column(Text, nullable=False)
+    coverUrl = Column(Text, nullable=False, default="")
+    description = Column(Text, nullable=False, default="")
+    creatorName = Column(String, nullable=False, default="")
+    creatorUrl = Column(Text, nullable=False, default="")
+    organizationId = Column(String, ForeignKey("organizations.id"), nullable=True, index=True)
+    voiceActorIds = Column(JSON, nullable=False, default=list)
+    accessType = Column(String, nullable=False, default="paid")
+    contactEmail = Column(String, nullable=False, default="")
+    status = Column(String, nullable=False, default="pending", index=True)  # pending | approved | rejected
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    publishedAt = Column(BigInteger, nullable=True)  # Source release time; fall back to createdAt.
     createdAt = Column(BigInteger, default=lambda: int(time.time() * 1000), index=True)
 
 

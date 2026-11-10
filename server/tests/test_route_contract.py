@@ -23,12 +23,12 @@ def _install_spa_template(monkeypatch, tmp_path):
 
 
 def test_route_classifier_accepts_only_real_workspace_routes():
-    for route in ("/login", "/dashboard", "/studio", "/admin", "/edit/script-id"):
+    for route in ("/login", "/dashboard", "/studio", "/admin", "/works", "/works/work-id", "/works/external", "/settings", "/settings/markers", "/identity", "/demos", "/series", "/edit/script-id"):
         assert is_workspace_spa_path(route)
 
     for route in (
         "/p3",
-        "/settings",
+        "/settings/not-a-route",
         "/dashboard/not-a-route",
         "/edit",
         "/edit/script-id/extra",
@@ -48,7 +48,7 @@ def test_route_classifier_limits_legacy_public_html_shapes():
 def test_backend_serves_spa_only_for_workspace_allowlist(client, monkeypatch, tmp_path):
     _install_spa_template(monkeypatch, tmp_path)
 
-    for route in ("/login", "/dashboard", "/studio", "/admin", "/edit/script-id"):
+    for route in ("/login", "/dashboard", "/studio", "/admin", "/works", "/works/work-id", "/settings", "/identity", "/edit/script-id"):
         response = client.get(route)
         assert response.status_code == 200, route
         assert '<div id="root"></div>' in response.text
@@ -59,7 +59,7 @@ def test_backend_returns_real_404_for_unknown_paths(client, monkeypatch, tmp_pat
 
     for route in (
         "/p3",
-        "/settings",
+        "/settings/not-a-route",
         "/dashboard/not-a-route",
         "/edit",
         "/auth.md",
@@ -80,11 +80,14 @@ def test_nginx_and_frontend_share_the_workspace_route_contract():
     workspace_routes = (REPO_ROOT / "src/routes/WorkspaceRoutes.tsx").read_text(encoding="utf-8")
 
     declared_paths = set(re.findall(r'<Route\s+path="([^"]+)"', workspace_routes))
-    frontend_exact_paths = {path.lstrip("/") for path in declared_paths if path not in {"*", "/*", "edit/:id"}}
+    frontend_exact_paths = {path.lstrip("/") for path in declared_paths if path not in {"*", "/*", "edit/:id", "works/:id"}}
 
     assert frontend_exact_paths == WORKSPACE_EXACT_PATHS
     assert "edit/:id" in declared_paths
-    assert re.search(r"location\s+~\s+\^/\(login\|dashboard\|studio\|admin\)/\?\$", nginx)
-    assert re.search(r"location\s+~\s+\^/edit/\[\^/\]\+/\?\$", nginx)
+    assert "works/:id" in declared_paths
+    spa_locations = re.findall(r"location\s+~\s+\^/\(([^)]+)\)/\?\$\s*\{([^}]*)\}", nginx)
+    exact_paths = [set(paths.split("|")) for paths, body in spa_locations if "try_files /index.html =404;" in body]
+    assert exact_paths == [WORKSPACE_EXACT_PATHS]
+    assert re.search(r"location\s+~\s+\^/\(edit\|works\)/\[\^/\]\+/\?\$", nginx)
     assert re.search(r"location\s+/\s*\{\s*return\s+404;", nginx)
     assert not re.search(r"location\s+/\s*\{[^}]*try_files[^}]*index\.html", nginx, re.DOTALL)

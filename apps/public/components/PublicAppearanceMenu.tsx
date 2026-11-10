@@ -19,7 +19,7 @@ const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
   { value: "large",       label: "大字" },
 ];
 
-const sectionHeadingClass = "mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55";
+const sectionHeadingClass = "mb-2 [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55";
 
 /** Shareable inner content — used by popover (desktop) and nav overlay (mobile). */
 export function AppearanceMenuContent() {

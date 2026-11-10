@@ -35,17 +35,17 @@ function renderWorkspace(
   return { onCreateSeries };
 }
 
-// ─── SeriesCreateGuide ────────────────────────────────────────────────────────
+// ─── Creation form ────────────────────────────────────────────────────────────
 
-describe("create guide", () => {
-  it("shows guide title", () => {
+describe("create form", () => {
+  it("shows the required series name", () => {
     renderWorkspace();
-    expect(screen.getByText("新系列草稿")).toBeInTheDocument();
+    expect(screen.getByText("系列名稱")).toBeInTheDocument();
   });
 
-  it("shows guide body text about post-create actions", () => {
+  it("explains where the series name appears", () => {
     renderWorkspace();
-    expect(screen.getByText(/建立後會進入系列工作區/)).toBeInTheDocument();
+    expect(screen.getByText("公開頁上顯示的系列主名稱。")).toBeInTheDocument();
   });
 });
 

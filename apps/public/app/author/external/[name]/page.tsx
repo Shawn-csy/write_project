@@ -12,8 +12,8 @@ import { LiveExternalAuthorPage } from "@/components/LiveEntityPages";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 300;
-export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+export const revalidate = 300;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return getStaticExternalAuthorParams();
@@ -21,7 +21,7 @@ export async function generateStaticParams() {
 
 async function fetchExternalScripts(): Promise<ExternalPublicScript[]> {
   try {
-    const bundle = await apiFetch<{ externalPublicScripts?: ExternalPublicScript[] }>("/public-bundle", { next: { revalidate } });
+    const bundle = await apiFetch<{ externalPublicScripts?: ExternalPublicScript[] }>("/public-bundle?sections=externalPublicScripts", { next: { revalidate } });
     return (bundle.externalPublicScripts || []).filter((item) => item.status === "published");
   } catch {
     return [];
@@ -39,11 +39,11 @@ async function getModel(rawName: string) {
 export async function generateMetadata({ params }: { params: Promise<{ name: string }> }): Promise<Metadata> {
   const { name: rawName } = await params;
   const model = await getModel(rawName);
-  if (!model) return { title: `找不到外部作者｜${TITLE_SUFFIX}` };
+  if (!model) return { title: `找不到作者｜${TITLE_SUFFIX}` };
   const canonicalUrl = `${BASE_URL}${externalEntityHref("author", model.name, model.profileUrl)}`;
   const previewImage = model.profileAvatarUrl || socialAvatarUrl(model.profileUrl) || DEFAULT_OG_IMAGE_URL;
   const title = `${model.name}｜${TITLE_SUFFIX}`;
-  const description = model.bio || `${model.name} 收錄於本站的外部公開台本作品。`;
+  const description = model.bio || `${model.name} 收錄於本站的公開台本作品。`;
   return {
     title,
     description,
@@ -64,7 +64,7 @@ export default async function ExternalAuthorPage({ params }: { params: Promise<{
   }
   return (
     <>
-      <PublicTopBar activeTab="authors" />
+      <PublicTopBar activeTab="authors" showBack backHref="/authors" backLabel="返回作者列表" />
       {STATIC_EXPORT ? (
         <LiveExternalAuthorPage rawName={rawName} initial={model} />
       ) : (

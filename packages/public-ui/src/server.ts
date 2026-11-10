@@ -6,7 +6,7 @@ export { parseBannerSlides } from "./gallery/bannerModel";
 export type { HeroSlide } from "./gallery/bannerModel";
 
 export { ScriptGalleryCardFrame } from "./ScriptGalleryCardFrame";
-export type { ScriptGalleryCardFrameProps, CardAuthorDisplay, CoverImageRenderer, CoverImageRendererProps } from "./ScriptGalleryCardFrame";
+export type { ScriptGalleryCardFrameProps, CardAuthorDisplay, CoverImageRenderer, CoverImageRendererProps, AvatarImageRenderer, AvatarImageRendererProps } from "./ScriptGalleryCardFrame";
 
 export {
   SEGMENT_KEYS,

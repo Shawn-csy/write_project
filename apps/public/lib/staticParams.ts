@@ -2,6 +2,11 @@ import { apiFetch } from "@/lib/api";
 import { externalEntitySlug } from "@/lib/externalEntity";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 
+// The standalone server renders uncached dynamic paths on first request and
+// then uses ISR. Only a static export (or an explicit prebuild) must enumerate
+// backend data while compiling the image.
+const PREBUILD_PUBLIC_PAGES = process.env.CF_STATIC_EXPORT === "1" || process.env.PREBUILD_PUBLIC_PAGES === "1";
+
 interface PublicBundle {
   scripts?: PublicScript[];
   externalPublicScripts?: ExternalPublicScript[];
@@ -10,7 +15,7 @@ interface PublicBundle {
 let bundleRequest: Promise<PublicBundle> | undefined;
 
 function getBundle(): Promise<PublicBundle> {
-  bundleRequest ??= apiFetch<PublicBundle>("/public-bundle");
+  bundleRequest ??= apiFetch<PublicBundle>("/public-bundle?sections=scripts,externalPublicScripts");
   return bundleRequest;
 }
 
@@ -41,6 +46,7 @@ function uniqueExternalEntities(items: ExternalPublicScript[], kind: "author" | 
 }
 
 export async function getStaticReadParams(): Promise<Array<{ id: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const { scripts = [] } = await getBundle();
   // A bundle that answered but listed nothing usually means the data source was
   // empty or misconfigured; baking that would publish a site with no works.
@@ -51,26 +57,31 @@ export async function getStaticReadParams(): Promise<Array<{ id: string }>> {
 }
 
 export async function getStaticAuthorParams(): Promise<Array<{ id: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const personas = await apiFetch<PublicPersona[]>("/public-personas");
   return unique(personas.map((persona) => persona.id).filter(Boolean)).map((id) => ({ id }));
 }
 
 export async function getStaticOrgParams(): Promise<Array<{ id: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const organizations = await apiFetch<PublicOrg[]>("/public-organizations");
   return unique(organizations.map((organization) => organization.id).filter(Boolean)).map((id) => ({ id }));
 }
 
 export async function getStaticExternalAuthorParams(): Promise<Array<{ name: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const { externalPublicScripts = [] } = await getBundle();
   return uniqueExternalEntities(externalPublicScripts, "author").map((name) => ({ name }));
 }
 
 export async function getStaticExternalOrgParams(): Promise<Array<{ name: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const { externalPublicScripts = [] } = await getBundle();
   return uniqueExternalEntities(externalPublicScripts, "org").map((name) => ({ name }));
 }
 
 export async function getStaticSeriesParams(): Promise<Array<{ name: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const { scripts = [], externalPublicScripts = [] } = await getBundle();
   const names = uniqueNames([
     ...scripts.map((script) => script.series?.name),
@@ -80,6 +91,7 @@ export async function getStaticSeriesParams(): Promise<Array<{ name: string }>> 
 }
 
 export async function getStaticTagParams(): Promise<Array<{ name: string }>> {
+  if (!PREBUILD_PUBLIC_PAGES) return [];
   const { scripts = [], externalPublicScripts = [] } = await getBundle();
   const names = uniqueNames([
     ...scripts.flatMap((script) => (script.tags ?? []).map((tag) => typeof tag === "string" ? tag : tag.name)),

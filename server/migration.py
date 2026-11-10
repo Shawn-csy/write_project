@@ -316,7 +316,8 @@ def _metadata_entries_to_map(entries):
 def _backfill_publish_state(conn):
     rows = conn.execute(text(
         'SELECT id, "customMetadata", "personaId", title, status, "isPublic", '
-        '"licenseCommercial", "licenseDerivative", "licenseNotify", "targetAudience", "contentRating" '
+        '"licenseCommercial", "licenseDerivative", "licenseNotify", "targetAudience", "contentRating", '
+        '"hasPublishIdentity", "metadataSeriesName", "publishReadiness" '
         'FROM scripts WHERE COALESCE(type, \'script\') != \'folder\''
     )).fetchall()
     if not rows:
@@ -361,6 +362,9 @@ def _backfill_publish_state(conn):
             readiness = "ready"
         else:
             readiness = "needs_work"
+        if (row[11] is not None and bool(row[11]) == has_identity
+                and (row[12] or "") == series_name and row[13] == readiness):
+            continue
         conn.execute(text(
             'UPDATE scripts SET "hasPublishIdentity" = :identity, '
             '"metadataSeriesName" = :series_name, "publishReadiness" = :readiness '
@@ -406,6 +410,37 @@ def _run_postgres_migrations():
         feedback_table = conn.execute(text(
             "SELECT table_name FROM information_schema.tables WHERE table_name = 'public_feedback'"
         )).fetchone()
+        audio_work_table = conn.execute(text(
+            "SELECT table_name FROM information_schema.tables WHERE table_name = 'public_audio_work_submissions'"
+        )).fetchone()
+        if audio_work_table and not conn.execute(text(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'public_audio_work_submissions' AND column_name = 'organizationId'"
+        )).fetchone():
+            conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "organizationId" TEXT'))
+        if audio_work_table and not conn.execute(text(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'public_audio_work_submissions' AND column_name = 'voiceActorIds'"
+        )).fetchone():
+            conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "voiceActorIds" JSON NOT NULL DEFAULT \'[]\''))
+        if audio_work_table and not conn.execute(text(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'public_audio_work_submissions' AND column_name = 'accessType'"
+        )).fetchone():
+            conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "accessType" TEXT NOT NULL DEFAULT \'paid\''))
+        if audio_work_table and not conn.execute(text(
+            "SELECT column_name FROM information_schema.columns WHERE table_name = 'public_audio_work_submissions' AND column_name = 'publishedAt'"
+        )).fetchone():
+            conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "publishedAt" BIGINT'))
+        if audio_work_table:
+            conn.execute(text('CREATE INDEX IF NOT EXISTS "ix_public_audio_work_submissions_organizationId" ON public_audio_work_submissions ("organizationId")'))
+            has_org_fk = conn.execute(text(
+                "SELECT 1 FROM pg_constraint WHERE conname = 'public_audio_work_submissions_organizationId_fkey' "
+                "AND conrelid = 'public_audio_work_submissions'::regclass"
+            )).fetchone()
+            if not has_org_fk:
+                conn.execute(text(
+                    'ALTER TABLE public_audio_work_submissions ADD CONSTRAINT '
+                    '"public_audio_work_submissions_organizationId_fkey" '
+                    'FOREIGN KEY ("organizationId") REFERENCES organizations(id)'
+                ))
         if feedback_table:
             for col, col_type in [
                 ("scriptTitle", "TEXT NOT NULL DEFAULT ''"),
@@ -425,6 +460,7 @@ def _run_postgres_migrations():
                 ), {"c": col}).fetchone()
                 if not exists:
                     conn.execute(text(f'ALTER TABLE public_feedback ADD COLUMN "{col}" {col_type}'))
+            conn.commit()
 
         external_table = conn.execute(text(
             "SELECT table_name FROM information_schema.tables WHERE table_name = 'external_public_scripts'"
@@ -455,6 +491,7 @@ def _run_postgres_migrations():
             ]:
                 if not conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'personas' AND column_name = :c"), {"c": col}).fetchone():
                     conn.execute(text(f'ALTER TABLE personas ADD COLUMN "{col}" {col_type}'))
+            conn.commit()
         profile_submissions_table = conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = 'voice_actor_profile_submissions'")).fetchone()
         if profile_submissions_table and not conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'voice_actor_profile_submissions' AND column_name = 'acceptedFields'")).fetchone():
             conn.execute(text("ALTER TABLE voice_actor_profile_submissions ADD COLUMN \"acceptedFields\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
@@ -467,6 +504,7 @@ def _run_postgres_migrations():
         if conn.execute(text("SELECT table_name FROM information_schema.tables WHERE table_name = 'public_feedback'")).fetchone():
             if not conn.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'public_feedback' AND column_name = 'activityScriptId'")).fetchone():
                 conn.execute(text('ALTER TABLE public_feedback ADD COLUMN "activityScriptId" TEXT'))
+        conn.commit()
         if external_table:
             owner_column = conn.execute(text(
                 "SELECT column_name FROM information_schema.columns "
@@ -475,6 +513,7 @@ def _run_postgres_migrations():
             if not owner_column:
                 conn.execute(text('ALTER TABLE external_public_scripts ADD COLUMN "ownerId" TEXT'))
             conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_ownerId ON external_public_scripts("ownerId")'))
+            conn.commit()
 
         for table, col in timestamp_columns:
             result = conn.execute(text(
@@ -486,6 +525,12 @@ def _run_postgres_migrations():
                 conn.execute(text(
                     f'ALTER TABLE "{table}" ALTER COLUMN "{col}" TYPE BIGINT'
                 ))
+                conn.commit()
+
+        # Release ACCESS EXCLUSIVE locks from column changes before scanning
+        # existing rows for backfills. Subsequent phases are independently
+        # repeatable if a later statement fails.
+        conn.commit()
 
         # Backfill persona_organization_memberships from personas.organizationIds JSON.
         # Required after making PersonaOrganizationMembership the single source of truth.
@@ -506,7 +551,7 @@ def _run_postgres_migrations():
             for org_id in org_ids:
                 if not org_id:
                     continue
-                conn.execute(text("""
+                result = conn.execute(text("""
                     INSERT INTO persona_organization_memberships
                         (id, "orgId", "personaId", role, "createdAt", "updatedAt")
                     VALUES (:id, :orgId, :personaId, 'member', :createdAt, :updatedAt)
@@ -518,7 +563,7 @@ def _run_postgres_migrations():
                     "createdAt": now_ms,
                     "updatedAt": now_ms,
                 })
-                inserted += 1
+                inserted += result.rowcount
         if inserted:
             print(f"Migrating: backfilled {inserted} persona_organization_membership rows from organizationIds JSON")
 
@@ -553,6 +598,10 @@ def _run_postgres_migrations():
                 FROM script_likes_old
             """))
             conn.execute(text('DROP TABLE script_likes_old'))
+
+        if "clientKey" not in likes_cols:
+            conn.execute(text('ALTER TABLE script_likes ADD COLUMN "clientKey" TEXT'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_script_likes_script_client ON script_likes ("scriptId", "clientKey")'))
 
         # Add coverIsAiGenerated column to scripts if missing
         result = conn.execute(text(
@@ -660,6 +709,8 @@ def _run_postgres_migrations():
                 print(f"Migrating: Adding '{col}' column to {table} (PostgreSQL)")
                 conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN "{col}" JSONB'))
 
+        conn.commit()
+
         _backfill_crop_refs(conn, "users", "avatar", "avatarCrop")
         _backfill_crop_refs(conn, "organizations", "logoUrl", "logoCrop")
         _backfill_crop_refs(conn, "organizations", "bannerUrl", "bannerCrop")
@@ -699,6 +750,7 @@ def _run_postgres_migrations():
             if not result:
                 print(f"Migrating: Adding '{col}' column to scripts (PostgreSQL)")
                 conn.execute(text(f'ALTER TABLE scripts ADD COLUMN "{col}" {col_type}'))
+        conn.commit()
         _backfill_content_fields(conn)
 
         conn.execute(text("""
@@ -800,6 +852,7 @@ def _run_postgres_migrations():
             )).fetchone()
             if not result:
                 conn.execute(text("ALTER TABLE public_demo_submissions ADD COLUMN \"voiceTypes\" JSONB NOT NULL DEFAULT '[]'::jsonb"))
+        conn.commit()
         conn.execute(text('UPDATE external_public_scripts SET "mountedAt" = "createdAt" WHERE "mountedAt" IS NULL'))
         author_rows = conn.execute(text('SELECT id, "authorName", "authorKey" FROM external_public_scripts')).fetchall()
         for row in author_rows:
@@ -807,10 +860,12 @@ def _run_postgres_migrations():
                 continue
             key = unicodedata.normalize("NFKC", str(row[1] or "").strip()).casefold()
             conn.execute(text('UPDATE external_public_scripts SET "authorKey" = :key WHERE id = :id'), {"key": key, "id": row[0]})
+        conn.commit()
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_authorKey ON external_public_scripts("authorKey")'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_externalAuthorId ON external_public_scripts("externalAuthorId")'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_status ON external_public_scripts(status)'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_external_public_scripts_sortOrder ON external_public_scripts("sortOrder")'))
+        conn.commit()
         conn.execute(text("""
             CREATE TABLE IF NOT EXISTS external_author_page_profiles (
                 "authorKey" TEXT PRIMARY KEY,
@@ -866,6 +921,7 @@ def _run_postgres_migrations():
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_persona_roles_personaId ON persona_roles("personaId")'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_persona_roles_role ON persona_roles(role)'))
         conn.execute(text('CREATE INDEX IF NOT EXISTS ix_persona_roles_isVisible ON persona_roles("isVisible")'))
+        conn.commit()
         _backfill_identity_architecture(conn)
 
         canonical_metadata_columns = [
@@ -884,6 +940,7 @@ def _run_postgres_migrations():
             if not result:
                 print(f"Migrating: Adding '{col}' column to scripts (PostgreSQL)")
                 conn.execute(text(f'ALTER TABLE scripts ADD COLUMN "{col}" {col_type}'))
+        conn.commit()
         _backfill_publish_state(conn)
         # NOTE: canonical metadata backfill is NOT run automatically here.
         # Run scripts/backfill_canonical_metadata.py --dry-run first to review,
@@ -901,6 +958,18 @@ def _run_postgres_migrations():
             'ON scripts ("ownerId", "publishReadiness", "lastModified" DESC)'
         ))
 
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS public_view_windows (
+                id TEXT PRIMARY KEY,
+                "resourceType" TEXT NOT NULL,
+                "resourceId" TEXT NOT NULL,
+                "clientKey" TEXT NOT NULL,
+                "expiresAt" BIGINT NOT NULL,
+                CONSTRAINT uq_public_view_window_source UNIQUE ("resourceType", "resourceId", "clientKey")
+            )
+        '''))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS ix_public_view_windows_expiresAt ON public_view_windows ("expiresAt")'))
+
         conn.commit()
 
 
@@ -914,6 +983,33 @@ def run_migrations():
 
     try:
         with engine.connect() as conn:
+            like_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(script_likes)")).fetchall()}
+            if like_columns and "clientKey" not in like_columns:
+                conn.execute(text('ALTER TABLE script_likes ADD COLUMN "clientKey" TEXT'))
+            if like_columns:
+                conn.execute(text('CREATE INDEX IF NOT EXISTS ix_script_likes_script_client ON script_likes ("scriptId", "clientKey")'))
+            conn.execute(text('''
+                CREATE TABLE IF NOT EXISTS public_view_windows (
+                    id TEXT PRIMARY KEY,
+                    "resourceType" TEXT NOT NULL,
+                    "resourceId" TEXT NOT NULL,
+                    "clientKey" TEXT NOT NULL,
+                    "expiresAt" BIGINT NOT NULL,
+                    CONSTRAINT uq_public_view_window_source UNIQUE ("resourceType", "resourceId", "clientKey")
+                )
+            '''))
+            conn.execute(text('CREATE INDEX IF NOT EXISTS ix_public_view_windows_expiresAt ON public_view_windows ("expiresAt")'))
+            audio_work_columns = {row[1] for row in conn.execute(text("PRAGMA table_info(public_audio_work_submissions)")).fetchall()}
+            if audio_work_columns and "organizationId" not in audio_work_columns:
+                conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "organizationId" TEXT'))
+            if audio_work_columns and "voiceActorIds" not in audio_work_columns:
+                conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "voiceActorIds" JSON NOT NULL DEFAULT \'[]\''))
+            if audio_work_columns and "accessType" not in audio_work_columns:
+                conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "accessType" TEXT NOT NULL DEFAULT \'paid\''))
+            if audio_work_columns and "publishedAt" not in audio_work_columns:
+                conn.execute(text('ALTER TABLE public_audio_work_submissions ADD COLUMN "publishedAt" BIGINT'))
+            if audio_work_columns:
+                conn.execute(text('CREATE INDEX IF NOT EXISTS "ix_public_audio_work_submissions_organizationId" ON public_audio_work_submissions ("organizationId")'))
             existing_external_columns = {
                 row[1] for row in conn.execute(text("PRAGMA table_info(external_public_scripts)")).fetchall()
             }

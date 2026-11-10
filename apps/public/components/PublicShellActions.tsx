@@ -2,15 +2,14 @@
 
 /**
  * PublicShellActions — desktop-only trailing slot for public topbar.
- * Mobile actions (appearance, info, studio) are handled by the mobile action sheet
- * in GalleryTopBar, not here.
+ * Mobile actions (appearance, info, studio) use PublicMobileActionSheet
+ * through PublicTopBar on every public page.
  */
 
 import { PublicAppearanceMenu } from "@/components/PublicAppearanceMenu";
 import { PublicInfoMenu } from "@/components/PublicInfoMenu";
-import { PublicFeedbackDialog } from "@/components/PublicFeedbackDialog";
+import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
 import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
-import { useAnimePrewarm } from "@/lib/motion/useAnimePrewarm";
 import { studioUrl } from "@/lib/studioUrl";
 
 function StudioLink() {
@@ -29,10 +28,9 @@ function StudioLink() {
 }
 
 export function PublicShellActions() {
-  useAnimePrewarm();
   return (
     <div className="flex items-center gap-2">
-      <PublicFeedbackDialog />
+      <LazyPublicFeedbackDialog mode="bug" />
       <PublicAppearanceMenu />
       <PublicInfoMenu />
       <StudioLink />

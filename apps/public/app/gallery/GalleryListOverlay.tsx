@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ExternalLink, Search, X } from "lucide-react";
 import { getGalleryPublishedTimestamp, type EnrichedGalleryScript } from "@write/public-ui";
+import { PUBLIC_TIME_ZONE } from "@write/public-ui/public-date";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalEntityHref } from "@/lib/externalEntity";
 
@@ -26,7 +27,7 @@ function toTimestamp(v: number | string | null | undefined): number {
 function formatDate(v: number | string | null | undefined): string {
   const ts = toTimestamp(v);
   if (!ts) return "—";
-  return new Date(ts).toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit" });
+  return new Date(ts).toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: PUBLIC_TIME_ZONE });
 }
 
 function authorName(author: EnrichedGalleryScript["author"]): string {
@@ -138,11 +139,11 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
           <table className="w-full table-fixed text-sm border-collapse">
             <thead>
               <tr className="editorial-border-b">
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm w-10 py-2.5 pl-5 pr-2 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">#</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 w-[37%] md:w-[34%]">台本名稱</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden sm:table-cell w-[20%]">作者</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[30%]">標籤</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 pr-5 text-right text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">日期</th>
+                <th className="sticky top-0 bg-background/95 backdrop-blur-sm w-10 py-2.5 pl-5 pr-2 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">#</th>
+                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 w-[37%] md:w-[34%]">台本名稱</th>
+                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden sm:table-cell w-[20%]">作者</th>
+                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[30%]">標籤</th>
+                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 pr-5 text-right [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">日期</th>
               </tr>
             </thead>
             <tbody>
@@ -170,7 +171,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                     onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = "hsl(var(--muted) / 0.5)"; }}
                     onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ""; }}
                   >
-                    <td className="py-2.5 pl-5 pr-2 text-[11px] text-muted-foreground/50 tabular-nums align-top pt-3">
+                    <td className="py-2.5 pl-5 pr-2 [font-size:var(--public-font-caption)] text-muted-foreground/50 tabular-nums align-top pt-3">
                       {idx + 1}
                     </td>
                     <td className="py-2.5 px-3 align-top pt-3 min-w-0">
@@ -182,25 +183,25 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                       >
                         <span className="inline-flex max-w-full items-center gap-1">
                           <span className="line-clamp-2 break-words">{title}</span>
-                          {isExternal && <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="外部連結" />}
+                          {isExternal && <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="前往來源網站" />}
                         </span>
                       </a>
                       {!isExternal && local?.seriesName && (
-                        <span className="text-[11px] text-muted-foreground/60 line-clamp-1">
+                        <span className="[font-size:var(--public-font-caption)] text-muted-foreground/60 line-clamp-1">
                           {local.seriesName}
                         </span>
                       )}
                       {external?.seriesName && (
-                        <a href={`/series/${encodeURIComponent(external.seriesName)}`} className="text-[11px] text-muted-foreground/60 line-clamp-1 hover:text-primary hover:underline">
+                        <a href={`/series/${encodeURIComponent(external.seriesName)}`} className="[font-size:var(--public-font-caption)] text-muted-foreground/60 line-clamp-1 hover:text-primary hover:underline">
                           {external.seriesName}
                         </a>
                       )}
-                      {external && <span className="text-[11px] text-muted-foreground/60 line-clamp-1">外部連結{external.sourceDomain ? ` · ${external.sourceDomain}` : ""}</span>}
+                      {external?.sourceDomain && <span className="[font-size:var(--public-font-caption)] text-muted-foreground/60 line-clamp-1">{external.sourceDomain}</span>}
                       {/* Tags shown inline on mobile (md: hidden via tag column) */}
                       {contentTags.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1 md:hidden">
                           {contentTags.map((tag) => (
-                            <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-[4px] border border-border/40 bg-muted/40 text-[10px] text-muted-foreground">
+                            <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-md border border-border/40 bg-muted/40 [font-size:var(--public-font-caption)] text-muted-foreground">
                               {tag}
                             </span>
                           ))}
@@ -217,13 +218,13 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                     <td className="py-2.5 px-3 hidden md:table-cell align-top pt-3">
                       <div className="flex flex-wrap gap-1">
                         {contentTags.map((tag) => (
-                          <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-[4px] border border-border/40 bg-muted/40 text-[10px] text-muted-foreground">
+                          <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-md border border-border/40 bg-muted/40 [font-size:var(--public-font-caption)] text-muted-foreground">
                             {tag}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 pr-5 text-right text-[11px] text-muted-foreground/70 tabular-nums whitespace-nowrap align-top pt-3">
+                    <td className="py-2.5 px-3 pr-5 text-right [font-size:var(--public-font-caption)] text-muted-foreground/70 tabular-nums whitespace-nowrap align-top pt-3">
                       {formatDate(ts)}
                     </td>
                   </tr>

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { apiFetch } from "@/lib/api";
 import { GalleryClient } from "./GalleryClient";
 import { LiveGalleryClient } from "./LiveGalleryClient";
 import { parseGalleryUrlState } from "@write/public-ui/server";
+import { loadHomepageBundle } from "@/lib/loadHomepageBundle";
+import { HOMEPAGE_SCRIPT_BUNDLE_SECTIONS } from "@/lib/homepageBundle";
 import {
   BASE_URL,
   PRODUCT_NAME,
@@ -13,20 +14,15 @@ import {
   DEFAULT_OG_IMAGE_URL,
 } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
-import { EMPTY_HOMEPAGE_BUNDLE, parseHomepageBundle, type HomepageBundle, type HomepageBundleResponse } from "@/lib/homepageBundle";
 
 // Phase 2: force-dynamic prevents build-time empty homepage when backend is unavailable.
 // The page reads `searchParams` (server-parsed filter state), so it cannot be ISR.
 // Instead the bundle fetch below goes through Next's data cache, and next.config.ts
 // gives the HTML a short edge lifetime (s-maxage) so most hits never reach this render.
-export const dynamic = process.env.CF_STATIC_EXPORT === "1" ? "force-static" : "force-dynamic";
+export const dynamic = "force-dynamic";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-// Tagged so /api/revalidate can expire it explicitly (revalidatePath alone is not
-// guaranteed to reach a fetch shared with the sitemap and media routes).
-const BUNDLE_REVALIDATE_SECONDS = 300;
-const BUNDLE_FETCH_TAGS = ["public-bundle"];
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -50,27 +46,11 @@ export const metadata: Metadata = {
   },
 };
 
-async function fetchBundle(): Promise<HomepageBundle> {
-  let bundle: HomepageBundleResponse;
-  try {
-    bundle = await apiFetch<HomepageBundleResponse>("/public-bundle", { next: { revalidate: BUNDLE_REVALIDATE_SECONDS, tags: BUNDLE_FETCH_TAGS } });
-  } catch (error) {
-    // A static build must never bake an empty homepage into the deployed site.
-    if (STATIC_EXPORT) throw error;
-    // Network/backend failure: scripts unavailable. Log for production diagnosis.
-    console.error("[homepage] fetchBundle: /public-bundle request failed — serving empty homepage");
-    return EMPTY_HOMEPAGE_BUNDLE;
-  }
-  return parseHomepageBundle(bundle);
-}
-
 export default async function HomePage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { scripts: initialScripts, externalPublicScripts, bannerSlides, showBrandHero } = await fetchBundle();
-
   // A static Pages export cannot read request search params. The client hook
   // reads the current URL after hydration; the normal Next deployment keeps
   // its server-parsed initial state for a no-flash first render.
@@ -79,6 +59,10 @@ export default async function HomePage({
     v === undefined ? [] : Array.isArray(v) ? v.map((val) => [k, val]) : [[k, v]]
   )).toString();
   const initialUrlState = parseGalleryUrlState(qs);
+  const preloadPeople = STATIC_EXPORT || initialUrlState.view !== "scripts";
+  const { scripts: initialScripts, externalPublicScripts, personas, organizations, activities, bannerSlides, showBrandHero } = await loadHomepageBundle(
+    preloadPeople ? undefined : HOMEPAGE_SCRIPT_BUNDLE_SECTIONS,
+  );
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -100,6 +84,9 @@ export default async function HomePage({
         <LiveGalleryClient
           scripts={initialScripts}
           externalPublicScripts={externalPublicScripts}
+          personas={personas}
+          organizations={organizations}
+          activities={activities}
           bannerSlides={bannerSlides}
           showBrandHero={showBrandHero}
           initialUrlState={initialUrlState}
@@ -108,6 +95,9 @@ export default async function HomePage({
         <GalleryClient
           initialScripts={initialScripts}
           initialExternalPublicScripts={externalPublicScripts}
+          initialPersonas={preloadPeople ? personas : undefined}
+          initialOrganizations={preloadPeople ? organizations : undefined}
+          initialActivities={activities}
           initialBannerSlides={bannerSlides}
           showBrandHero={showBrandHero}
           initialUrlState={initialUrlState}

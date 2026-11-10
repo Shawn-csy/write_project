@@ -12,8 +12,8 @@ import { LiveSeriesPage } from "@/components/LiveEntityPages";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
-export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return getStaticSeriesParams();
@@ -21,7 +21,7 @@ export async function generateStaticParams() {
 
 const fetchSeriesData = cache(async (seriesName: string): Promise<SeriesData> => {
   try {
-    return buildSeriesData(await apiFetch<PublicBundleLike>("/public-bundle"), seriesName);
+    return buildSeriesData(await apiFetch<PublicBundleLike>("/public-bundle?sections=scripts,externalPublicScripts"), seriesName);
   } catch {
     return { scripts: [], externalItems: [] };
   }

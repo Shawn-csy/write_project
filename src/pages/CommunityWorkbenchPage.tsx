@@ -38,7 +38,6 @@ export default function CommunityWorkbenchPage(): React.JSX.Element {
     <StudioPage width="wide">
       <StudioPageHeader
         title={t("nav.identity", "公開身份")}
-        description="你在公開台本上的筆名、介紹、組織與推廣申請。一個帳號可以有多個身份。"
         meta={isDevPreview ? <Badge variant="outline">DEV 預覽</Badge> : null}
       />
           {s.myInvites.length > 0 && (

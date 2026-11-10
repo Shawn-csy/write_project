@@ -11,7 +11,7 @@ import { SITE_VERSION } from "@/lib/siteVersion";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const revalidate = 3600;
 
 const webPageJsonLd = createPublicInfoWebPageJsonLd({
   path: "/about",
@@ -37,7 +37,6 @@ export default function AboutPage() {
   return (
     <PublicInfoPageShell
       title="關於泛用型產品作坊"
-      description="免費的台本、音聲台本與配音台本線上閱讀與發布平台，讓每位創作者的作品都能被看見。"
       activeKey="about"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },
@@ -68,20 +67,20 @@ export default function AboutPage() {
 
         {/* Below fold — cards, update list, contact */}
         <PublicInfoBelowFold>
-          <PublicInfoSection title="版本資訊" description="目前正式站版本" icon="◇" card>
+          <PublicInfoSection title="版本資訊" icon="◇" card>
             <div className="flex items-center justify-between rounded-lg border bg-background px-4 py-3 text-sm">
               <span className="text-muted-foreground">網站版本</span>
               <span className="font-mono font-semibold text-foreground">v{SITE_VERSION}</span>
             </div>
           </PublicInfoSection>
 
-          <PublicInfoSection title="近期更新" description="持續開發中，歡迎回報問題或建議。" icon="↻" card>
+          <PublicInfoSection title="近期更新" icon="↻" card>
             <ul className="space-y-3 text-sm">
               <li className="rounded-lg border bg-muted/20 p-3">
                 <div className="text-xs text-muted-foreground">2026 年 10 月</div>
-                <div className="mt-1 font-medium text-foreground">v{SITE_VERSION}・直接嵌入外部連結</div>
+                <div className="mt-1 font-medium text-foreground">v{SITE_VERSION}・收錄更多公開台本</div>
                 <div className="mt-1 text-muted-foreground">
-                  支援將外部公開台本直接嵌入作品列表，保留來源連結、作者、封面、摘要與標籤資訊。
+                  支援收錄各平台的公開台本，保留來源連結、作者、封面、摘要與標籤資訊。
                 </div>
               </li>
               <li className="rounded-lg border bg-muted/20 p-3">
@@ -115,7 +114,7 @@ export default function AboutPage() {
             </ul>
           </PublicInfoSection>
 
-          <PublicInfoSection title="聯絡我們" description="有任何問題、建議或回報，歡迎聯繫。" icon="✉" card>
+          <PublicInfoSection title="聯絡我們" icon="✉" card>
             <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href="mailto:silence0603@gmail.com"

@@ -32,6 +32,7 @@ export interface ScriptOrg {
 
 export interface PublicScript {
   id: string;
+  hasDemo?: boolean;
   title: string;
   content?: string;
   synopsis?: string | null;
@@ -77,6 +78,7 @@ export interface PublicScript {
 
 export interface ExternalPublicScript {
   id: string;
+  hasDemo?: boolean;
   sourceUrl: string;
   canonicalUrl?: string;
   sourceDomain?: string;
@@ -166,8 +168,27 @@ export interface PublicDemoSubmission {
   voiceActorIds?: string[];
   manualVoiceActors?: Array<{ name: string; socialUrl?: string; personaId?: string }>;
   description?: string;
+  scriptSummary?: string;
+  organizationName?: string;
+  organizationHref?: string;
   displayName?: string;
   createdAt: number;
+}
+
+export interface PublicAudioWork {
+  id: string;
+  title: string;
+  url: string;
+  coverUrl?: string;
+  description?: string;
+  creatorName?: string;
+  creatorUrl?: string;
+  organizationId?: string | null;
+  voiceActors?: Array<{ id: string; name: string }>;
+  credits?: Array<{ role: string; sourceRole: string; creditedAs: string; provenance: "official_page" | "catalog_description"; sourceUrl: string }>;
+  accessType?: "paid" | "free";
+  publishedAt?: number | null;
+  createdAt?: number;
 }
 
 export interface PublicOrg {
@@ -177,6 +198,7 @@ export interface PublicOrg {
   website?: string;
   logoUrl?: string;
   bannerUrl?: string;
+  bannerCrop?: { cx?: number | null; cy?: number | null; zoom?: number | null } | null;
   tags?: string[];
   members?: PublicPersona[];
   /** Synthetic route used for organizations imported from external scripts. */

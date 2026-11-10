@@ -5,12 +5,6 @@ vi.mock("../firebase", () => ({
   loadFirebaseAuth: vi.fn().mockResolvedValue({ auth: { currentUser: null } }),
 }));
 
-vi.mock("../apiHealth", () => ({
-  isApiOffline: vi.fn(() => false),
-  markApiOffline: vi.fn(),
-  clearApiOffline: vi.fn(),
-}));
-
 const okJson = (data) => ({
   ok: true,
   json: vi.fn().mockResolvedValue(data),
@@ -49,6 +43,45 @@ describe("api client", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
+  it("a no-store GET does not evict another cached admin read", async () => {
+    fetch
+      .mockResolvedValueOnce(okJson({ users: [1] }))
+      .mockResolvedValueOnce(okJson({ actors: [2] }));
+    const { fetchApi } = await import("./client");
+    await fetchApi("/admin/all-users");
+    await fetchApi("/admin/voice-actors", { cache: "no-store" });
+    expect(await fetchApi("/admin/all-users")).toEqual({ users: [1] });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("coalesces authenticated GET requests while auth headers are loading", async () => {
+    const { loadFirebaseAuth } = await import("../firebase");
+    let releaseAuth;
+    loadFirebaseAuth.mockImplementationOnce(() => new Promise((resolve) => { releaseAuth = resolve; }));
+    fetch.mockResolvedValue(okJson({ value: 1 }));
+    const { fetchApi } = await import("./client");
+    const first = fetchApi("/same");
+    const second = fetchApi("/same");
+    releaseAuth({ auth: { currentUser: null } });
+    expect(await Promise.all([first, second])).toEqual([{ value: 1 }, { value: 1 }]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not store a response under an old auth identity", async () => {
+    const { getLoadedAuth, loadFirebaseAuth } = await import("../firebase");
+    let currentUser = null;
+    getLoadedAuth.mockImplementation(() => ({ currentUser }));
+    loadFirebaseAuth.mockImplementation(() => Promise.resolve({ auth: { currentUser } }));
+    fetch.mockResolvedValueOnce(okJson({ value: "old" })).mockResolvedValueOnce(okJson({ value: "new" }));
+    const { fetchApi } = await import("./client");
+    const first = fetchApi("/account");
+    currentUser = { uid: "u1", getIdToken: vi.fn().mockResolvedValue("token") };
+    await first;
+    currentUser = null;
+    expect(await fetchApi("/account")).toEqual({ value: "new" });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
   it("retries on retryable 5xx once and then succeeds", async () => {
     fetch
       .mockResolvedValueOnce({
@@ -83,29 +116,29 @@ describe("api client", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("marks API offline when network TypeError happens", async () => {
+  it("does not retry an aborted request", async () => {
+    const controller = new AbortController();
+    const aborted = new DOMException("aborted", "AbortError");
+    fetch.mockImplementationOnce(() => {
+      controller.abort();
+      return Promise.reject(aborted);
+    });
     const { fetchApi } = await import("./client");
-    const { markApiOffline } = await import("../apiHealth");
-    const networkError = new TypeError("network down");
-    fetch.mockRejectedValue(networkError);
-
-    await expect(fetchApi("/test-network", {}, 0, 0)).rejects.toBe(networkError);
-    expect(markApiOffline).toHaveBeenCalledTimes(1);
+    await expect(fetchApi("/slow", { signal: controller.signal })).rejects.toBe(aborted);
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  it("stops immediately when API is in cooldown", async () => {
-    const { isApiOffline } = await import("../apiHealth");
-    isApiOffline.mockReturnValue(true);
+  it("retries a later request immediately after a network error", async () => {
     const { fetchApi } = await import("./client");
+    const networkError = new TypeError("network down");
+    fetch.mockRejectedValueOnce(networkError).mockResolvedValueOnce(okJson({ recovered: true }));
 
-    await expect(fetchApi("/test-offline")).rejects.toThrow("API offline (cooldown)");
-    expect(fetch).not.toHaveBeenCalled();
+    await expect(fetchApi("/test-network", {}, 0, 0)).rejects.toBe(networkError);
+    expect(await fetchApi("/test-network", {}, 0, 0)).toEqual({ recovered: true });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("targeted cache invalidation: mutation only clears matching resource entries", async () => {
-    const { isApiOffline } = await import("../apiHealth");
-    isApiOffline.mockReturnValue(false);
-
     fetch
       .mockResolvedValueOnce(okJson({ scripts: [] }))   // GET /api/scripts
       .mockResolvedValueOnce(okJson({ themes: [] }))    // GET /api/themes
@@ -131,10 +164,39 @@ describe("api client", () => {
     expect(fetch).toHaveBeenCalledTimes(4);
   });
 
-  it("full cache clear when URL has no parseable resource segment", async () => {
-    const { isApiOffline } = await import("../apiHealth");
-    isApiOffline.mockReturnValue(false);
+  it("admin mutation refreshes related admin lists", async () => {
+    fetch
+      .mockResolvedValueOnce(okJson({ users: [1] }))
+      .mockResolvedValueOnce(okJson({ personas: [2] }))
+      .mockResolvedValueOnce(okJson({ ok: true }))
+      .mockResolvedValueOnce(okJson({ users: [3] }))
+      .mockResolvedValueOnce(okJson({ personas: [4] }));
+    const { fetchApi } = await import("./client");
+    await fetchApi("/admin/all-users");
+    await fetchApi("/admin/all-personas");
+    await fetchApi("/admin/all-users/u1", { method: "DELETE" });
+    expect(await fetchApi("/admin/all-users")).toEqual({ users: [3] });
+    expect(await fetchApi("/admin/all-personas")).toEqual({ personas: [4] });
+    expect(fetch).toHaveBeenCalledTimes(5);
+  });
 
+  it("does not cache a GET that finishes after its resource was changed", async () => {
+    let finishOldRead;
+    fetch
+      .mockImplementationOnce(() => new Promise((resolve) => { finishOldRead = resolve; }))
+      .mockResolvedValueOnce(okJson({ ok: true }))
+      .mockResolvedValueOnce(okJson({ value: "new" }));
+    const { fetchApi } = await import("./client");
+    const oldRead = fetchApi("/scripts");
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await fetchApi("/scripts/s1", { method: "PUT" });
+    finishOldRead(okJson({ value: "old" }));
+    expect(await oldRead).toEqual({ value: "old" });
+    expect(await fetchApi("/scripts")).toEqual({ value: "new" });
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("full cache clear when URL has no parseable resource segment", async () => {
     fetch
       .mockResolvedValueOnce(okJson({ data: "cached" }))
       .mockResolvedValueOnce(okJson({ ok: true }))
@@ -152,13 +214,10 @@ describe("api client", () => {
 });
 
 describe("fetchPublic", () => {
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.resetModules();
     vi.resetAllMocks();
     vi.stubGlobal("fetch", vi.fn());
-    // Ensure isApiOffline starts as false after any prior test set it to true
-    const { isApiOffline } = await import("../apiHealth");
-    isApiOffline.mockReturnValue(false);
   });
 
   it("caches GET responses", async () => {
@@ -187,13 +246,38 @@ describe("fetchPublic", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("throws when API is in cooldown", async () => {
-    const { isApiOffline } = await import("../apiHealth");
-    isApiOffline.mockReturnValue(true);
+  it("a no-store public GET does not evict cached public data", async () => {
+    fetch
+      .mockResolvedValueOnce(okJson({ value: 1 }))
+      .mockResolvedValueOnce(okJson({ value: 2 }));
     const { fetchPublic } = await import("./client");
+    await fetchPublic("/public-a");
+    await fetchPublic("/public-b", { cache: "no-store" });
+    expect(await fetchPublic("/public-a")).toEqual({ value: 1 });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
 
-    await expect(fetchPublic("/public")).rejects.toThrow("API offline (cooldown)");
-    expect(fetch).not.toHaveBeenCalled();
+  it("does not cache a public GET completed after a write", async () => {
+    let finishOldRead;
+    fetch
+      .mockImplementationOnce(() => new Promise((resolve) => { finishOldRead = resolve; }))
+      .mockResolvedValueOnce(okJson({ ok: true }))
+      .mockResolvedValueOnce(okJson({ value: "new" }));
+    const { fetchPublic } = await import("./client");
+    const oldRead = fetchPublic("/public-x");
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    await fetchPublic("/public-x", { method: "POST" });
+    finishOldRead(okJson({ value: "old" }));
+    expect(await oldRead).toEqual({ value: "old" });
+    expect(await fetchPublic("/public-x")).toEqual({ value: "new" });
+  });
+
+  it("retries a later public read immediately after a network error", async () => {
+    const { fetchPublic } = await import("./client");
+    fetch.mockRejectedValueOnce(new TypeError("network down")).mockResolvedValueOnce(okJson({ ok: true }));
+    await expect(fetchPublic("/public", { cache: "no-store" })).rejects.toThrow("network down");
+    expect(await fetchPublic("/public", { cache: "no-store" })).toEqual({ ok: true });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("throws on HTTP error", async () => {

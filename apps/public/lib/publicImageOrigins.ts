@@ -28,15 +28,11 @@ export function isAllowedPublicNextImageHost(hostname: string): boolean {
   return PUBLIC_NEXT_IMAGE_HOST_PATTERNS.some((pattern) => matchesHostPattern(hostname, pattern));
 }
 
-export function isNextImageOptimizableSrc(src: string, backendOrigin = ""): boolean {
+export function isNextImageOptimizableSrc(src: string): boolean {
   if (!src) return false;
-  if (src.startsWith("/")) return true;
+  if (src.startsWith("/")) return !src.startsWith("//") && !src.includes("\\");
   try {
     const url = new URL(src);
-    if (backendOrigin) {
-      const backend = new URL(backendOrigin);
-      if (url.origin === backend.origin) return true;
-    }
     if (url.protocol !== "https:") return false;
     return isAllowedPublicNextImageHost(url.hostname);
   } catch {

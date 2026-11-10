@@ -52,6 +52,15 @@ describe("PublicHeroMarquee", () => {
     expect(screen.getByLabelText("切換到第 3 張")).toBeTruthy();
   });
 
+  it("mounts only the active slide until a transition begins", () => {
+    const { container } = render(<PublicHeroMarquee slides={slides} />);
+    expect(container.querySelectorAll('[data-testid="hero-slide-frame"]')).toHaveLength(1);
+    expect(screen.queryByText("Slide Two")).toBeNull();
+    fireEvent.click(screen.getByLabelText("下一張"));
+    expect(container.querySelectorAll('[data-testid="hero-slide-frame"]')).toHaveLength(2);
+    expect(screen.getByText("Slide Two")).toBeTruthy();
+  });
+
   it("accepts custom labels", () => {
     render(
       <PublicHeroMarquee

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { loadFirebaseAuth, initAnalytics } from "../lib/firebase";
-import type { User } from "firebase/auth";
+import type { User } from "@firebase/auth";
 import { getUserProfile, updateUserProfile } from "../lib/api/user";
 
 interface LocalUser {

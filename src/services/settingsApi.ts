@@ -1,5 +1,4 @@
 import { fetchApi, API_BASE_URL } from "../lib/api/client";
-import { isApiOffline } from "../lib/apiHealth";
 import type { CurrentUserLike } from "../types/user";
 import type { AuthUser, MarkerThemeApi, SaveUserSettingsPayload, UserSettingsResponse } from "../types/api";
 
@@ -12,7 +11,6 @@ export const apiCall = async (
   body?: unknown
 ): Promise<unknown> => {
   if (!currentUser) return null;
-  if (isApiOffline()) return null;
   const endpoint = url.startsWith("http")
     ? url.replace(API_BASE_URL, "")
     : url.startsWith("/") ? url : `/${url}`;
@@ -31,7 +29,6 @@ export const apiCall = async (
 // Cached read for user settings.
 export const fetchUserSettings = async (currentUser: CurrentUserLike | null | undefined) => {
   if (!currentUser) return null;
-  if (isApiOffline()) return null;
   try {
     return await fetchApi("/me") as UserSettingsResponse;
   } catch (e) {
@@ -43,7 +40,6 @@ export const fetchUserSettings = async (currentUser: CurrentUserLike | null | un
 // Cached read for user themes.
 export const fetchUserThemes = async (currentUser: CurrentUserLike | null | undefined) => {
   if (!currentUser) return null;
-  if (isApiOffline()) return null;
   try {
     return await fetchApi("/themes") as MarkerThemeApi[];
   } catch (e) {
@@ -55,7 +51,6 @@ export const fetchUserThemes = async (currentUser: CurrentUserLike | null | unde
 // PUT /me — bypasses cache (noCache: true handled by fetchApi on non-GET).
 export const saveUserSettings = async (currentUser: AuthUser, payload: Record<string, unknown>) => {
   if (!currentUser) return;
-  if (isApiOffline()) return;
   try {
     const requestBody: SaveUserSettingsPayload = {
       settings: payload,

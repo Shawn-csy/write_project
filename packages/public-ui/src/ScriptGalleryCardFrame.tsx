@@ -26,6 +26,13 @@ export interface CoverImageRendererProps {
 }
 export type CoverImageRenderer = (props: CoverImageRendererProps) => React.ReactNode;
 
+export interface AvatarImageRendererProps {
+  src: string;
+  crop: CropRef | null;
+  organization: boolean;
+}
+export type AvatarImageRenderer = (props: AvatarImageRendererProps) => React.ReactNode;
+
 // ─── Resolved display model ─────────────────────────────────────────────────
 
 export interface CardAuthorDisplay {
@@ -47,9 +54,12 @@ export interface ScriptGalleryCardFrameProps {
   /** Render a CoverDesign cover. Injected by client wrapper so Frame stays server-safe (no hook imports). */
   coverDesignRenderer?: (design: CoverDesign, title: string) => React.ReactNode;
   showAgeGate?: boolean;
+  hasDemo?: boolean;
+  demoHref?: string;
 
   // Author
   author?: CardAuthorDisplay | null;
+  avatarImageRenderer?: AvatarImageRenderer;
   authorHref?: string;
   onAuthorClick?: () => void;
   organization?: CardAuthorDisplay | null;
@@ -100,11 +110,13 @@ function AuthorBadge({
   authorHref,
   onAuthorClick,
   organization = false,
+  avatarImageRenderer,
 }: {
   author?: CardAuthorDisplay | null;
   authorHref?: string;
   onAuthorClick?: () => void;
   organization?: boolean;
+  avatarImageRenderer?: AvatarImageRenderer;
 }) {
   const displayName = author?.displayName;
   const avatarUrl = author?.avatarUrl || "";
@@ -114,7 +126,9 @@ function AuthorBadge({
   );
 
   const avatarEl = avatarUrl ? (
-    <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt="" loading="lazy" referrerPolicy="no-referrer" className={`w-4 h-4 object-cover ${organization ? "rounded-[4px]" : "rounded-full"}`} aria-hidden="true" />
+    avatarImageRenderer
+      ? avatarImageRenderer({ src: avatarUrl, crop: author?.avatarCrop ?? null, organization })
+      : <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt="" loading="lazy" referrerPolicy="no-referrer" className={`w-4 h-4 object-cover ${organization ? "rounded-[4px]" : "rounded-full"}`} aria-hidden="true" />
   ) : (
     <span className={`w-3.5 h-3.5 inline-block ${organization ? "rounded-[4px] bg-muted" : ""}`} aria-hidden />
   );
@@ -325,7 +339,10 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     coverImageRenderer,
     coverDesignRenderer,
     showAgeGate = false,
+    hasDemo = false,
+    demoHref,
     author,
+    avatarImageRenderer,
     authorHref,
     onAuthorClick,
     organization,
@@ -382,9 +399,21 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     />
   );
 
+  const demoBadgeEl = hasDemo && demoHref ? (
+    <a
+      href={demoHref}
+      aria-label={`查看「${title || "台本"}」的 Demo`}
+      onClick={(event) => event.stopPropagation()}
+      className={`absolute right-2 top-2 z-20 inline-flex items-center justify-center rounded-md border border-white/20 bg-slate-950/85 font-semibold text-white no-underline shadow-md backdrop-blur-sm transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${variant === "list" ? "min-h-7 px-1.5 text-[10px]" : "min-h-9 px-3 text-xs"}`}
+    >
+      {variant === "list" ? "Demo" : "觀看 Demo"}
+    </a>
+  ) : null;
+
   const authorEl = (
     <AuthorBadge
       author={author}
+      avatarImageRenderer={avatarImageRenderer}
       authorHref={authorHref}
       onAuthorClick={onAuthorClick}
     />
@@ -393,6 +422,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
   const organizationEl = organization?.displayName ? (
     <AuthorBadge
       author={organization}
+      avatarImageRenderer={avatarImageRenderer}
       authorHref={organizationHref}
       organization
     />
@@ -435,6 +465,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
                 ) : title}
               </div>
               <div className="relative z-10 shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground">
+                {hasDemo && demoHref && <a href={demoHref} aria-label={`查看「${title || "台本"}」的 Demo`} onClick={(event) => event.stopPropagation()} className="mr-2 inline-flex rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary no-underline hover:bg-primary/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">Demo</a>}
                 <span className="inline-flex items-center gap-1">
                   <Eye className="h-3 w-3" aria-hidden />
                   <span>{views.toLocaleString()}</span>
@@ -493,6 +524,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
           {coverLinkEl}
           <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
           {showAgeGate && <AgeGateOverlay variant="list" />}
+          {demoBadgeEl}
           {seriesBadgeEl}
         </div>
 
@@ -569,6 +601,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
         {coverLinkEl}
         <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
         {showAgeGate && <AgeGateOverlay variant="standard" />}
+        {demoBadgeEl}
         {seriesBadgeEl}
       </div>
 

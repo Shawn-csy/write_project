@@ -1,32 +1,17 @@
 import type { NextConfig } from "next";
 import path from "path";
 import { PUBLIC_NEXT_IMAGE_HOST_PATTERNS } from "./lib/publicImageOrigins";
+import { PUBLIC_SECURITY_HEADERS } from "./securityHeaders.mjs";
 
 // ── Image origins ─────────────────────────────────────────────────────────────
-// 1. Backend /media/ paths: apiFetch resolves them to absolute backend URLs at
-//    the data boundary (server → client). remotePatterns allows the backend
-//    hostname; dangerouslyAllowLocalIP permits Docker-internal private IPs.
+// 1. Backend /media/ paths use the dedicated public media proxy, never the
+//    image optimizer's network access to Docker-internal services.
 // 2. Known external image origins are allowlisted for next/image. Unknown
 //    user-provided external URLs render through PublicImage's plain <img>
 //    fallback instead of turning the optimizer into an open proxy.
 
 const backendUrl = process.env.BACKEND_API_URL || "http://localhost:1091";
 
-function parseBackendPattern(): { protocol: "http" | "https"; hostname: string; port?: string } {
-  try {
-    const u = new URL(backendUrl);
-    const protocol = u.protocol === "https:" ? "https" : "http";
-    return {
-      protocol,
-      hostname: u.hostname,
-      ...(u.port && { port: u.port }),
-    };
-  } catch {
-    return { protocol: "http", hostname: "localhost", port: "1091" };
-  }
-}
-
-const backendPattern = parseBackendPattern();
 const staticExport = process.env.CF_STATIC_EXPORT === "1";
 
 const nextConfig: NextConfig = {
@@ -86,6 +71,8 @@ const nextConfig: NextConfig = {
     const edgeCacheHeaders = [
       {
         source: "/",
+        // Cloudflare does not key its HTML cache on Next's RSC request header.
+        missing: [{ type: "header" as const, key: "rsc" }],
         headers: [
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=120, stale-while-revalidate=300" },
         ],
@@ -104,22 +91,26 @@ const nextConfig: NextConfig = {
       },
     ];
 
-    return [...discoveryHeaders, ...edgeCacheHeaders];
+    return [
+      { source: "/:path*", headers: PUBLIC_SECURITY_HEADERS },
+      ...discoveryHeaders,
+      ...edgeCacheHeaders,
+      // ISR pages also emit cacheable RSC payloads. Cloudflare ignores the
+      // RSC Vary dimension, so all flight responses must bypass its cache.
+      {
+        source: "/:path*",
+        has: [{ type: "header", key: "rsc" }],
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+    ];
   },
   } : {}),
   images: {
     ...(staticExport ? { unoptimized: true } : {}),
-    // Backend runs on Docker-internal network (private IP). next/image blocks
-    // private IPs by default; allow them since this is trusted infra.
-    dangerouslyAllowLocalIP: true,
+    dangerouslyAllowLocalIP: false,
+    maximumRedirects: 0,
+    maximumResponseBody: 12 * 1024 * 1024,
     remotePatterns: [
-      // Backend media (Docker-internal origin)
-      {
-        protocol: backendPattern.protocol,
-        hostname: backendPattern.hostname,
-        ...(backendPattern.port && { port: backendPattern.port }),
-        pathname: "/media/**",
-      },
       ...PUBLIC_NEXT_IMAGE_HOST_PATTERNS.map((hostname) => ({
         protocol: "https" as const,
         hostname,

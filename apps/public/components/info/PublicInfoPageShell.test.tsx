@@ -9,8 +9,8 @@ vi.mock("@/components/PublicFooter", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-    <a href={href} className={className}>{children}</a>
+  default: ({ href, children, ...props }: { href: string; children: React.ReactNode; className?: string; "aria-current"?: "page" }) => (
+    <a href={href} {...props}>{children}</a>
   ),
 }));
 

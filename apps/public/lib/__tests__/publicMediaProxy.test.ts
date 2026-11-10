@@ -20,6 +20,21 @@ async function makePng(width: number, height = Math.round(width / 2)): Promise<U
   return new Uint8Array(buffer);
 }
 
+function streamedImage(megabytes: number, advertisedBytes: number): Response {
+  let sent = 0;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (sent >= megabytes) return controller.close();
+      sent += 1;
+      controller.enqueue(new Uint8Array(1024 * 1024));
+    },
+  });
+  return new Response(body, {
+    status: 200,
+    headers: { "content-type": "image/png", "content-length": String(advertisedBytes) },
+  });
+}
+
 describe("resolveBackendMediaUrl", () => {
   it("accepts ordinary media paths, including unicode names", () => {
     expect(resolveBackendMediaUrl("/media/u1/cover/abc.webp")?.pathname).toBe("/media/u1/cover/abc.webp");
@@ -72,6 +87,27 @@ describe("servePublicMedia", () => {
     expect(res.status).toBe(413);
   });
 
+  it("limits actual passthrough bytes when Content-Length lies", async () => {
+    fetchMock.mockResolvedValue(streamedImage(26, 1));
+    const res = await servePublicMedia(token("/media/u1/lying-original.png"));
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-length")).toBeNull();
+    await expect(res.arrayBuffer()).rejects.toThrow("Media too large");
+  });
+
+  it("rejects an oversized resize source even when Content-Length claims one byte", async () => {
+    fetchMock.mockResolvedValue(streamedImage(13, 1));
+    const res = await servePublicMedia(token("/media/u1/lying-thumbnail.png"), 360);
+    expect(res.status).toBe(413);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+  });
+
+  it("rejects declared resize sources above the buffer ceiling", async () => {
+    fetchMock.mockResolvedValue(imageUpstream(new Uint8Array(1), { "content-length": String(13 * 1024 * 1024) }));
+    const res = await servePublicMedia(token("/media/u1/declared-large.png"), 360);
+    expect(res.status).toBe(413);
+  });
+
   it("adds nosniff and a sandboxing CSP to image responses", async () => {
     fetchMock.mockResolvedValue(imageUpstream(await makePng(100)));
     const res = await servePublicMedia(token("/media/u1/a.png"));
@@ -97,14 +133,14 @@ describe("servePublicMedia", () => {
     expect(res.headers.get("cache-control")).toContain("s-maxage=2592000");
   });
 
-  it("does not buffer or resize a body whose length is not declared", async () => {
+  it("resizes a body without Content-Length within the byte ceiling", async () => {
     const png = await makePng(1200, 1800);
     fetchMock.mockResolvedValue(
       new Response(png as BodyInit, { status: 200, headers: { "content-type": "image/png" } }),
     );
     const res = await servePublicMedia(token("/media/u1/chunked.png"), 360);
     const meta = await sharp(Buffer.from(await res.arrayBuffer())).metadata();
-    expect(meta.width).toBe(1200);
+    expect(meta.width).toBe(360);
   });
 
   it("falls back to the original with a SHORT cache when the decoder fails", async () => {
@@ -115,17 +151,57 @@ describe("servePublicMedia", () => {
     expect(res.headers.get("cache-control")).toBe("public, max-age=60, s-maxage=60");
   });
 
-  it("limits concurrent resizes and degrades extra requests to a short-cached original", async () => {
+  it("queues a burst of thumbnail requests without returning full-size originals", async () => {
     const png = await makePng(1600, 2400);
     fetchMock.mockImplementation(async () => imageUpstream(png));
     const results = await Promise.all(
       Array.from({ length: 8 }, () => servePublicMedia(token("/media/u1/burst.png"), 240)),
     );
-    const degraded = results.filter((res) => res.headers.get("cache-control") === "public, max-age=60, s-maxage=60");
-    const resized = results.filter((res) => res.headers.get("content-type") === "image/webp");
-    expect(resized.length).toBeGreaterThan(0);
-    expect(resized.length).toBeLessThan(8);
-    expect(degraded.length + resized.length).toBe(8);
+    expect(results.every((res) => res.status === 200 && res.headers.get("content-type") === "image/webp")).toBe(true);
+    const dimensions = await Promise.all(results.map(async (res) => sharp(Buffer.from(await res.arrayBuffer())).metadata()));
+    expect(dimensions.every((meta) => meta.width === 240)).toBe(true);
+  });
+
+  it("shares and reuses a small immutable variant across concurrent and later requests", async () => {
+    const png = await makePng(1200, 1800);
+    fetchMock.mockImplementation(async () => imageUpstream(png));
+    const path = token("/media/u1/cached-variant.png");
+    const responses = await Promise.all(Array.from({ length: 8 }, () => servePublicMedia(path, 48)));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(responses.every((response) => response.status === 200)).toBe(true);
+    const bodies = await Promise.all(responses.map((response) => response.arrayBuffer()));
+    expect(bodies.every((body) => body.byteLength === bodies[0].byteLength)).toBe(true);
+    const repeat = await servePublicMedia(path, 48);
+    expect(repeat.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("caps upstream requests and rejects excess work without caching", async () => {
+    let releaseUpstream!: () => void;
+    const heldUpstream = new Promise<void>((resolve) => { releaseUpstream = resolve; });
+    fetchMock.mockImplementation(async () => {
+      await heldUpstream;
+      return new Response(null, { status: 404 });
+    });
+    const pending = Array.from({ length: 112 }, (_, index) => servePublicMedia(token(`/media/u1/overload-${index}.png`), 240));
+    try {
+      await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(12));
+      // Waiting requests must not open their upstream connection.
+      expect(fetchMock).toHaveBeenCalledTimes(12);
+    } finally {
+      releaseUpstream();
+    }
+    const results = await Promise.all(pending);
+    const rejected = results.filter((res) => res.status === 503);
+    expect(rejected.length).toBeGreaterThan(0);
+    expect(rejected.every((res) => res.headers.get("cache-control") === "no-store")).toBe(true);
+    expect(results.every((res) => res.status === 503 || res.status === 404)).toBe(true);
+  });
+
+  it("rejects oversized media tokens before contacting the backend", async () => {
+    const res = await servePublicMedia("x".repeat(4097), 240);
+    expect(res.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
 
@@ -137,8 +213,8 @@ describe("serveExternalPublicMedia remote hosts", () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  function bundleWith(coverUrl: string): Response {
-    return new Response(JSON.stringify({ externalPublicScripts: [{ id: "e1", coverUrl }] }), {
+  function coverLookup(coverUrl: string): Response {
+    return new Response(JSON.stringify({ coverUrl }), {
       status: 200,
       headers: { "content-type": "application/json" },
     });
@@ -155,11 +231,19 @@ describe("serveExternalPublicMedia remote hosts", () => {
   ])(
     "refuses private target %s without fetching it",
     async (coverUrl) => {
-      fetchMock.mockResolvedValueOnce(bundleWith(coverUrl));
+      fetchMock.mockResolvedValueOnce(coverLookup(coverUrl));
       const res = await serveExternalPublicMedia("e1");
       expect(res.status).toBe(400);
-      expect(fetchMock).toHaveBeenCalledTimes(1); // only the bundle lookup
+      expect(fetchMock).toHaveBeenCalledTimes(1); // only the cover lookup
+      expect(String(fetchMock.mock.calls[0][0])).toContain("/api/public-external-scripts/e1/cover");
     },
   );
+
+  it("returns 404 without requesting an image when the published cover is missing", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(null, { status: 404 }));
+    const res = await serveExternalPublicMedia("missing");
+    expect(res.status).toBe(404);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 
 });

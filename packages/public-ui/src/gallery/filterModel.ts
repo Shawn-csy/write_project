@@ -221,6 +221,7 @@ export interface PersonaLike {
 
 export interface GalleryScriptInput {
   id: string;
+  hasDemo?: boolean;
   title?: string;
   /** Short public description from script info. Used for gallery card summaries. */
   synopsis?: string | null;

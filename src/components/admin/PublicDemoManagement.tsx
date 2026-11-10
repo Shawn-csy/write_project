@@ -14,6 +14,7 @@ const PAGE_SIZE = 100;
 const emptyDraft: Draft = { sourceKind: "internal", demoName: "", demoUrl: "", coverUrl: "", cast: "", voiceTypes: [], voiceActorIds: [], description: "", status: "approved" };
 const statusLabel = (status: string) => status === "pending" ? "未公開／待審核" : status === "rejected" ? "已退回" : "已公開";
 const sourceLabel = (source: AdminDemoRecord["sourceKind"]) => source === "submission" ? "投稿 Demo" : source === "external" ? "外部台本" : "本站台本";
+const isGenericDemoName = (value: string) => /^(youtube|demo|演出 demo|試聽)(\s*試聽)?$/i.test(value.trim());
 const formatDate = (value: number) => value ? new Date(value).toLocaleString("zh-TW", { dateStyle: "medium", timeStyle: "short" }) : "—";
 
 export function PublicDemoManagement(): React.JSX.Element {
@@ -119,17 +120,15 @@ export function PublicDemoManagement(): React.JSX.Element {
   };
 
   return <div className="space-y-3">
-    <div className="flex flex-col gap-2 rounded-xl border border-border/60 bg-background px-3 py-3 sm:flex-row sm:items-center sm:px-4">
-      <Input className="h-9 min-w-0 flex-1 text-sm" placeholder="搜尋台本、Demo、聲演或投稿者" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitSearch(); }} />
+    <div className="flex flex-wrap gap-2 rounded-xl border border-border/60 bg-background p-3">
+      <Input className="h-9 min-w-44 flex-1 text-sm" placeholder="搜尋台本、Demo 或聲演" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") submitSearch(); }} />
       <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={status} onChange={(event) => { const next = event.target.value as DemoStatus; setStatus(next); void load(appliedQuery, next, 0); }} aria-label="Demo 狀態">
         <option value="all">全部狀態</option><option value="pending">待審核／未公開</option><option value="approved">已公開</option><option value="rejected">已退回</option>
       </select>
       <Button variant="outline" size="sm" className="h-9 shrink-0" onClick={submitSearch} disabled={isLoading}>{isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}搜尋</Button>
       <Button size="sm" className="h-9 shrink-0" onClick={beginCreate} disabled={!targets.length}><Plus className="h-3.5 w-3.5" />新增 Demo</Button>
-      <span className="shrink-0 text-xs text-muted-foreground">共 {total} 筆</span>
     </div>
 
-    <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">清單包含投稿 Demo、本站台本內的 Demo 連結，以及外部台本的 Demo 連結；編輯或刪除會同步寫回所屬台本。</div>
     {error && <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>}
 
     {showForm && <form onSubmit={(event) => void submit(event)} className="space-y-3 rounded-xl border border-primary/40 bg-background p-3 sm:p-4">
@@ -141,10 +140,17 @@ export function PublicDemoManagement(): React.JSX.Element {
       <div className="flex flex-wrap justify-end gap-2"><Button type="button" size="sm" variant="outline" onClick={() => setShowForm(false)}>取消</Button><Button type="submit" size="sm" disabled={busyId !== null}>{busyId ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}{editing ? "儲存修改" : "新增 Demo"}</Button></div>
     </form>}
 
-    {isLoading ? <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin" /></div> : items.length === 0 ? <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">目前沒有符合的 Demo。</div> : <div className="space-y-1.5">{items.map((item) => <article key={`${item.sourceKind}:${item.parentId}:${item.id}`} className="flex flex-col gap-3 rounded-lg border border-border/70 bg-background/60 p-3 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="truncate text-sm font-semibold">{item.demoName || item.scriptTitle || "演出 Demo"}</h3><Badge variant={item.status === "pending" ? "secondary" : item.status === "approved" ? "default" : "destructive"}>{statusLabel(item.status)}</Badge><Badge variant="outline">{sourceLabel(item.sourceKind)}</Badge></div><p className="mt-1 truncate text-xs text-muted-foreground">台本：{item.scriptTitle} · {item.voiceActorIds?.map((id) => voiceActors.find((actor) => actor.id === id)?.displayName).filter(Boolean).join("、") || item.voiceActorNames?.join("、") || item.cast || item.displayName || "未標示聲演"}</p><div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground"><span>投稿：{item.displayName || "台本連結"}</span><span>{formatDate(item.createdAt)}</span>{item.voiceTypes?.length > 0 && <span>{item.voiceTypes.map((type) => type === "male" ? "男聲演" : "女聲演").join("、")}</span>}</div>{item.description && <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-xs text-muted-foreground">{item.description}</p>}<a href={item.demoUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">開啟 Demo <ExternalLink className="h-3 w-3" /></a></div>
-      <div className="flex shrink-0 items-center gap-1 self-end sm:self-start"><Button type="button" variant="outline" size="sm" className="h-8" disabled={busyId === item.id} onClick={() => beginEdit(item)}>編輯</Button><Button type="button" variant="destructive" size="icon" className="h-8 w-8" aria-label="刪除 Demo" disabled={busyId === item.id} onClick={() => void remove(item)}>{busyId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button></div>
-    </article>)}</div>}
+    {isLoading ? <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin" /></div> : items.length === 0 ? <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">目前沒有符合的 Demo。</div> : <div className="space-y-2">{items.map((item) => {
+      const actorNames = item.voiceActorIds?.map((id) => voiceActors.find((actor) => actor.id === id)?.displayName).filter(Boolean).join("、") || item.voiceActorNames?.join("、") || item.cast || "";
+      return <article key={`${item.sourceKind}:${item.parentId}:${item.id}`} className="flex min-w-0 items-start gap-3 rounded-lg border border-border/70 bg-background/60 p-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2"><h3 className="min-w-0 truncate text-sm font-semibold">{item.scriptTitle || item.demoName || "演出 Demo"}</h3><Badge variant={item.status === "pending" ? "secondary" : item.status === "approved" ? "default" : "destructive"}>{statusLabel(item.status)}</Badge></div>
+          {(actorNames || (item.demoName && !isGenericDemoName(item.demoName))) && <p className="mt-1 truncate text-xs text-muted-foreground">{item.demoName && !isGenericDemoName(item.demoName) ? item.demoName : ""}{actorNames ? `${item.demoName && !isGenericDemoName(item.demoName) ? " · " : ""}${actorNames}` : ""}</p>}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span>{sourceLabel(item.sourceKind)}</span><span>{formatDate(item.createdAt)}</span><a href={item.demoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary hover:underline">開啟 Demo <ExternalLink className="h-3 w-3" /></a></div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1"><Button type="button" variant="outline" size="sm" className="h-8" disabled={busyId === item.id} onClick={() => beginEdit(item)}>編輯</Button><Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label="刪除 Demo" disabled={busyId === item.id} onClick={() => void remove(item)}>{busyId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}</Button></div>
+      </article>;
+    })}</div>}
     {total > PAGE_SIZE && <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>顯示 {offset + 1}–{Math.min(offset + items.length, total)} / {total}</span><div className="flex gap-2"><Button type="button" variant="outline" size="sm" className="h-8" disabled={offset === 0 || isLoading} onClick={() => void load(appliedQuery, status, Math.max(0, offset - PAGE_SIZE))}>上一頁</Button><Button type="button" variant="outline" size="sm" className="h-8" disabled={offset + PAGE_SIZE >= total || isLoading} onClick={() => void load(appliedQuery, status, offset + PAGE_SIZE)}>下一頁</Button></div></div>}
   </div>;
 }

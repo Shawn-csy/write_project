@@ -31,10 +31,13 @@ import {
   type TagData,
 } from "@/lib/entityModels";
 import { LiveApiError, liveApi } from "@/lib/liveApi";
+import { readPublicBundle } from "@/lib/readPublicBundle";
+import type { PublicBundleSection } from "@/lib/publicBundleProjection";
 import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
 import { externalScriptsForPersona } from "@/lib/publicIdentity";
+import { externalScriptsForOrganization } from "@/lib/organizationExternalScripts";
 import { TITLE_SUFFIX } from "@/lib/seo";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { useLiveData, type LiveData } from "@/lib/useLiveData";
 
 type Chrome = { activeTab: string; back?: boolean };
@@ -51,8 +54,8 @@ function Frame({ state, chrome, children }: FrameProps) {
     <PublicTopBar
       activeTab={chrome.activeTab}
       showBack={chrome.back}
-      backHref="/"
-      backLabel="返回"
+      backHref={chrome.activeTab === "voice-actors" ? "/resources" : chrome.activeTab === "authors" ? "/authors" : chrome.activeTab === "orgs" ? "/?view=orgs" : "/"}
+      backLabel="返回列表"
     />
   ) : null;
   if (state.status === "ready") return <>{bar}{children}</>;
@@ -86,7 +89,22 @@ async function readOrNull<T>(path: string, signal: AbortSignal): Promise<T | nul
   }
 }
 
-const readBundle = (signal: AbortSignal) => readOrNull<PublicBundleLike>("/api/public-bundle", signal);
+const VOICE_PROFILE_SECTIONS = ["scripts", "externalPublicScripts", "demoSubmissions", "organizations", "audioWorks"] as const;
+const SCRIPT_ENTITY_SECTIONS = ["scripts", "externalPublicScripts"] as const;
+const EXTERNAL_ENTITY_SECTIONS = ["externalPublicScripts"] as const;
+
+async function readBundle(signal: AbortSignal, sections: readonly PublicBundleSection[]): Promise<PublicBundleLike | null> {
+  try {
+    // This snapshot is also used by navigation and other public page sections.
+    // Keep the shared request alive if one page unmounts while it is loading.
+    const { data } = await readPublicBundle<PublicBundleLike>(sections);
+    if (signal.aborted) throw new DOMException("aborted", "AbortError");
+    return data;
+  } catch (error) {
+    if (error instanceof LiveApiError && error.status === 404) return null;
+    throw error;
+  }
+}
 
 /** Sets the tab title for a page that has no prebuilt HTML to carry one. */
 function useDocumentTitle(label: string | null): void {
@@ -97,7 +115,7 @@ function useDocumentTitle(label: string | null): void {
 
 // ── Author / organization (profile plus their works) ────────────────────────
 
-interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[] }
+interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[]; audioWorks?: PublicAudioWork[] }
 
 export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: AuthorData; chrome?: Chrome }) {
   const state = useLiveData<AuthorData>(initial, async (signal) => {
@@ -105,11 +123,12 @@ export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: 
     if (!persona) return null;
     const [scripts, bundle] = await Promise.all([
       readOrNull<PublicScript[]>(`/api/public-scripts?personaId=${encodeURIComponent(id)}`, signal),
-      readBundle(signal),
+      readBundle(signal, VOICE_PROFILE_SECTIONS),
     ]);
     const performances = getPublicVoicePerformances(id, bundle || {});
     const externalScripts = externalScriptsForPersona(persona, bundle?.externalPublicScripts || []);
-    return { persona, scripts: scripts ?? [], performances, externalScripts };
+    const audioWorks = (bundle?.audioWorks || []).filter((work) => work.voiceActors?.some((actor) => actor.id === id));
+    return { persona, scripts: scripts ?? [], performances, externalScripts, audioWorks };
   }, `author:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.persona.displayName : null);
   const resolvedChrome = state.status === "ready" && chrome && (hasVoiceActorSelfTag(state.data.persona) || state.data.performances.length > 0)
@@ -117,24 +136,29 @@ export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: 
     : chrome;
   return (
     <Frame state={state} chrome={resolvedChrome}>
-      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} />}
+      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} />}
     </Frame>
   );
 }
 
-interface OrgData { org: PublicOrg; scripts: PublicScript[] }
+interface OrgData { org: PublicOrg; scripts: PublicScript[]; externalScripts: ExternalPublicScript[]; audioWorks: PublicAudioWork[] }
 
 export function LiveOrgPage({ id, initial, chrome }: { id: string; initial?: OrgData; chrome?: Chrome }) {
   const state = useLiveData<OrgData>(initial, async (signal) => {
     const org = await readOrNull<PublicOrg>(`/api/public-organizations/${encodeURIComponent(id)}`, signal);
     if (!org) return null;
-    const scripts = (await readOrNull<PublicScript[]>(`/api/public-scripts?organizationId=${encodeURIComponent(id)}`, signal)) ?? [];
-    return { org, scripts };
+    const [scripts, bundle] = await Promise.all([
+      readOrNull<PublicScript[]>(`/api/public-scripts?organizationId=${encodeURIComponent(id)}`, signal),
+      readBundle(signal, ["audioWorks", "externalPublicScripts"]),
+    ]);
+    const audioWorks = (bundle?.audioWorks || []).filter((work) => work.organizationId === id);
+    const externalScripts = externalScriptsForOrganization(org, bundle?.externalPublicScripts || []);
+    return { org, scripts: scripts ?? [], externalScripts, audioWorks };
   }, `org:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.org.name : null);
   return (
     <Frame state={state} chrome={chrome}>
-      {state.status === "ready" && <OrgPageClient org={state.data.org} scripts={state.data.scripts} />}
+      {state.status === "ready" && <OrgPageClient org={state.data.org} scripts={state.data.scripts} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} />}
     </Frame>
   );
 }
@@ -143,7 +167,7 @@ export function LiveOrgPage({ id, initial, chrome }: { id: string; initial?: Org
 
 export function LiveTagPage({ tagName, initial, chrome }: { tagName: string; initial?: TagData; chrome?: Chrome }) {
   const state = useLiveData<TagData>(initial, async (signal) => {
-    const bundle = await readBundle(signal);
+    const bundle = await readBundle(signal, SCRIPT_ENTITY_SECTIONS);
     if (!bundle) return null;
     const data = buildTagData(bundle, tagName);
     return data.scripts.length + data.externalScripts.length === 0 ? null : data;
@@ -160,7 +184,7 @@ export function LiveTagPage({ tagName, initial, chrome }: { tagName: string; ini
 
 export function LiveSeriesPage({ seriesName, initial, chrome }: { seriesName: string; initial?: SeriesData; chrome?: Chrome }) {
   const state = useLiveData<SeriesData>(initial, async (signal) => {
-    const bundle = await readBundle(signal);
+    const bundle = await readBundle(signal, SCRIPT_ENTITY_SECTIONS);
     if (!bundle) return null;
     const data = buildSeriesData(bundle, seriesName);
     return data.scripts.length + data.externalItems.length === 0 ? null : data;
@@ -195,7 +219,7 @@ function LiveExternalPage({ kind, rawName, initial, chrome }: {
 }) {
   const find = kind === "author" ? findExternalAuthorModel : findExternalOrgModel;
   const state = useLiveData<ExternalEntityModel>(initial, async (signal) => {
-    const bundle = await readBundle(signal);
+    const bundle = await readBundle(signal, EXTERNAL_ENTITY_SECTIONS);
     return bundle ? find(publishedExternalScripts(bundle), rawName) : null;
   }, `external-${kind}:${rawName}`);
   useEffect(() => {
@@ -231,10 +255,10 @@ export const LiveExternalOrgPage = (props: { rawName: string; initial?: External
 // ── Route dispatch for addresses with no prebuilt page ──────────────────────
 
 const ROUTES: Array<{ pattern: RegExp; raw?: boolean; render: (name: string) => ReactNode }> = [
-  { pattern: /^\/author\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalAuthorPage rawName={n} chrome={{ activeTab: "authors" }} /> },
-  { pattern: /^\/org\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalOrgPage rawName={n} chrome={{ activeTab: "orgs" }} /> },
-  { pattern: /^\/author\/([^/]+)\/?$/, render: (n) => <LiveAuthorPage id={n} chrome={{ activeTab: "authors" }} /> },
-  { pattern: /^\/org\/([^/]+)\/?$/, render: (n) => <LiveOrgPage id={n} chrome={{ activeTab: "orgs" }} /> },
+  { pattern: /^\/author\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalAuthorPage rawName={n} chrome={{ activeTab: "authors", back: true }} /> },
+  { pattern: /^\/org\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalOrgPage rawName={n} chrome={{ activeTab: "orgs", back: true }} /> },
+  { pattern: /^\/author\/([^/]+)\/?$/, render: (n) => <LiveAuthorPage id={n} chrome={{ activeTab: "authors", back: true }} /> },
+  { pattern: /^\/org\/([^/]+)\/?$/, render: (n) => <LiveOrgPage id={n} chrome={{ activeTab: "orgs", back: true }} /> },
   { pattern: /^\/tag\/([^/]+)\/?$/, render: (n) => <LiveTagPage tagName={n} chrome={{ activeTab: "scripts", back: true }} /> },
   { pattern: /^\/series\/([^/]+)\/?$/, render: (n) => <LiveSeriesPage seriesName={n} chrome={{ activeTab: "scripts", back: true }} /> },
 ];

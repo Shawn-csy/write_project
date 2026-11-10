@@ -146,20 +146,20 @@ def _safe_image_url(value: Any) -> str:
     image_url = str(value or "").strip()
     if image_url.startswith("/media/"):
         return image_url[:2000]
-    parsed = urlparse(image_url)
-    if parsed.scheme in {"http", "https"} and parsed.hostname:
-        return image_url[:2000]
-    return ""
+    try:
+        return normalize_external_url(image_url)[:2000]
+    except ExternalMetadataError:
+        return ""
 
 
 def _safe_link_url(value: Any) -> str:
     link = str(value or "").strip()
     if link.startswith("/") and not link.startswith("//"):
         return link[:2000]
-    parsed = urlparse(link)
-    if parsed.scheme in {"http", "https"} and parsed.hostname:
-        return link[:2000]
-    return ""
+    try:
+        return normalize_external_url(link)[:2000]
+    except ExternalMetadataError:
+        return ""
 
 
 def _demo_links(value: Any) -> list[dict[str, str]]:
@@ -536,7 +536,7 @@ def _enrich_profile_bios(metadata: dict[str, Any], payload: Any) -> dict[str, An
 def _invalidate_public_bundle_cache() -> None:
     import routers.public_bundle as public_bundle_router
 
-    public_bundle_router._bundle_cache = None
+    public_bundle_router.invalidate_public_bundle_cache()
 
 
 def _external_public_paths(item: models.ExternalPublicScript | None) -> list[str]:

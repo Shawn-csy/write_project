@@ -6,7 +6,7 @@ import { MediaPicker } from "../ui/MediaPicker";
 import { ImageCropDialog } from "../ui/ImageCropDialog";
 import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../lib/api/media";
-import { getHomepageBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
+import { getDemoBannerAdmin, getHomepageBannerAdmin, updateDemoBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
 import { canApplyPersistentCropRef } from "../../lib/mediaCropRef";
 import {
   buildHomepageHeroPlacementModel,
@@ -92,7 +92,7 @@ function ensureBrandBannerFirst(items: HomepageBannerItem[]): HomepageBannerItem
   ];
 }
 
-export function HomepageBannerSection() {
+export function HomepageBannerSection({ scope = "homepage" }: { scope?: "homepage" | "demos" }) {
   const [items, setItems] = useState<HomepageBannerItem[]>([]);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -107,9 +107,13 @@ export function HomepageBannerSection() {
 
   const loadBanner = async (): Promise<void> => {
     try {
-      const payload = await getHomepageBannerAdmin() as HomepageBannerResponse;
+      const payload = scope === "demos"
+        ? await getDemoBannerAdmin() as HomepageBannerResponse
+        : await getHomepageBannerAdmin() as HomepageBannerResponse;
       const rows = Array.isArray(payload?.items) ? payload.items : [];
-      if (rows.length > 0) {
+      if (scope === "demos") {
+        setItems(rows.map(itemToHomepageBannerItem));
+      } else if (rows.length > 0) {
         setItems(ensureBrandBannerFirst(rows as HomepageBannerItem[]));
       } else {
         const fallback: HomepageBannerItem = {
@@ -126,11 +130,11 @@ export function HomepageBannerSection() {
       setStatus("");
     } catch (err: unknown) {
       console.error("Failed to load homepage banner", err);
-      setStatus("載入首頁 Banner 設定失敗，請確認後端已部署最新版本。");
+      setStatus(`載入${scope === "demos" ? "Demo 頁" : "首頁"} Banner 設定失敗，請確認後端已部署最新版本。`);
     }
   };
 
-  useEffect(() => { loadBanner(); }, []);
+  useEffect(() => { loadBanner(); }, [scope]);
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
@@ -161,19 +165,27 @@ export function HomepageBannerSection() {
         setIsSaving(false);
         return;
       }
-      await updateHomepageBannerAdmin({ items: sanitized });
-      const reloaded = await getHomepageBannerAdmin() as HomepageBannerResponse;
+      const reloaded = scope === "demos"
+        ? await updateDemoBannerAdmin({ items: sanitized }) as HomepageBannerResponse
+        : await updateHomepageBannerAdmin({ items: sanitized }) as HomepageBannerResponse;
       const reloadedItems = Array.isArray(reloaded?.items) ? reloaded.items as HomepageBannerItem[] : [];
-      if (sanitized.length > 1 && reloadedItems.length <= 1) {
-        setItems(reloadedItems.length ? reloadedItems : sanitized);
+      if (scope === "demos") {
+        setItems(reloadedItems);
+        setStatus("Demo 頁 Banner 已儲存。");
+        return;
+      }
+      const confirmation = await getHomepageBannerAdmin() as HomepageBannerResponse;
+      const confirmedItems = Array.isArray(confirmation?.items) ? confirmation.items as HomepageBannerItem[] : [];
+      if (sanitized.length > 1 && confirmedItems.length <= 1) {
+        setItems(confirmedItems.length ? confirmedItems : sanitized);
         setError("目前後端仍為舊版（未支援 items 多張儲存）。請重新部署最新後端後再試。");
         return;
       }
-      setItems(reloadedItems.length > 0 ? reloadedItems : sanitized);
-      setStatus("首頁 Banner 已儲存。");
+      setItems(confirmedItems.length > 0 ? confirmedItems : sanitized);
+        setStatus("首頁 Banner 已儲存。");
     } catch (err: unknown) {
       const typedError = err as ErrorWithMessage;
-      setError(typedError.message || "儲存首頁 Banner 失敗");
+      setError(typedError.message || `儲存${scope === "demos" ? "Demo 頁" : "首頁"} Banner 失敗`);
     } finally {
       setIsSaving(false);
     }
@@ -244,11 +256,11 @@ export function HomepageBannerSection() {
         </div>
         {items.length === 0 && (
           <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-            尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。
+            {scope === "demos" ? "尚未設定 Banner。新增並儲存後，Demo 頁會顯示輪播。" : "尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。"}
           </div>
         )}
         {items.map((item, idx) => {
-          const isBrandIntro = item.id === BRAND_BANNER_ID;
+          const isBrandIntro = scope === "homepage" && item.id === BRAND_BANNER_ID;
           const model = buildHomepageHeroPlacementModel(item);
           const issues = isBrandIntro ? [] : validateHomepageHeroPlacement(model);
           const hasError = issues.some((i) => i.severity === "error");
@@ -257,7 +269,7 @@ export function HomepageBannerSection() {
             <div key={item.id || idx} className="rounded-md border p-3 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="text-xs font-medium text-muted-foreground">
-                  {isBrandIntro ? "首頁第一頁｜品牌介紹" : `第 ${idx} 張 Banner`}
+                  {isBrandIntro ? "首頁第一頁｜品牌介紹" : `第 ${idx + 1} 張 Banner`}
                 </div>
                 {!isBrandIntro && (
                   <Button

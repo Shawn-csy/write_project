@@ -1,0 +1,51 @@
+name: Submission workflows
+
+on:
+  pull_request:
+    paths:
+      - 'server/**'
+      - 'apps/public/**'
+      - 'src/components/admin/**'
+      - 'src/pages/SuperAdminPage.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/submission-workflows.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'server/**'
+      - 'apps/public/**'
+      - 'src/components/admin/**'
+      - 'src/pages/SuperAdminPage.tsx'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/submission-workflows.yml'
+
+jobs:
+  submission-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: server/requirements.txt
+      - run: python -m pip install -r server/requirements.txt
+      - name: Check submission and review workflows
+        run: python -m pytest -q tests/test_submission_workflow_contract.py tests/test_public_feedback.py tests/test_external_public_scripts_api.py
+        working-directory: server
+        env:
+          PYTHONPATH: .
+
+  public-forms:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Check public submission forms
+        run: npx vitest run apps/public/components/SubmissionDialogs.test.tsx apps/public/components/PublicFeedbackDialog.test.tsx

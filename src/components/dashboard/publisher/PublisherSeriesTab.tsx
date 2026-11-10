@@ -117,7 +117,6 @@ export function PublisherSeriesTab({
         <PublisherEmptyState
           icon={Layers}
           title="選擇一個系列"
-          description="從左側選擇要編輯的系列，或建立新的系列來整理章節順序。"
           actionLabel="新增系列"
           onAction={onStartCreate}
         />

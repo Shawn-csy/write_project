@@ -2,9 +2,9 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
-import { externalScriptsForPersona } from "@/lib/publicIdentity";
+import { combinePublicIdentities, externalScriptsForPersona } from "@/lib/publicIdentity";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
@@ -14,8 +14,8 @@ import { LiveAuthorPage } from "@/components/LiveEntityPages";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
-export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return getStaticAuthorParams();
@@ -41,9 +41,11 @@ const fetchPublicBundle = cache(async (): Promise<{
   scripts?: PublicScript[];
   externalPublicScripts?: ExternalPublicScript[];
   demoSubmissions?: PublicDemoSubmission[];
+  organizations?: PublicOrg[];
+  audioWorks?: PublicAudioWork[];
 }> => {
   try {
-    return await apiFetch("/public-bundle", { next: { revalidate: 300, tags: ["public-bundle"] } });
+    return await apiFetch("/public-bundle?sections=scripts,externalPublicScripts,demoSubmissions,organizations,audioWorks", { next: { revalidate: 300, tags: ["public-bundle"] } });
   } catch {
     return {};
   }
@@ -107,25 +109,27 @@ export default async function AuthorPage({
 
   const performances = getPublicVoicePerformances(id, bundle);
   const externalScripts = externalScriptsForPersona(persona, bundle.externalPublicScripts || []);
+  const audioWorks = (bundle.audioWorks || []).filter((work) => work.voiceActors?.some((actor) => actor.id === id));
+  const displayPersona = combinePublicIdentities([persona], externalScripts)[0];
 
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Person",
     name: persona.displayName,
     url: `${BASE_URL}/author/${id}`,
-    ...(persona.bio && { description: persona.bio }),
-    ...(persona.avatar && { image: absoluteUrl(persona.avatar) }),
-    ...(persona.website && { sameAs: [persona.website] }),
+    ...(displayPersona.bio && { description: displayPersona.bio }),
+    ...(displayPersona.avatar && { image: absoluteUrl(displayPersona.avatar) }),
+    ...(displayPersona.website && { sameAs: [displayPersona.website] }),
   };
 
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "voice-actors" : "authors"} />
+      <PublicTopBar activeTab={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "resources" : "authors"} showBack backHref={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "/resources" : "/authors"} backLabel="返回名錄" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{persona.displayName}</h1>
-          {persona.bio && <p>{persona.bio}</p>}
+          {displayPersona.bio && <p>{displayPersona.bio}</p>}
           {scripts.length > 0 && (
             <>
               <h2>公開作品</h2>
@@ -141,9 +145,9 @@ export default async function AuthorPage({
         </article>
       </noscript>
       {STATIC_EXPORT ? (
-        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts }} />
+        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks }} />
       ) : (
-        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} />
+        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} />
       )}
     </>
   );

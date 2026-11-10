@@ -5,8 +5,8 @@
  * Important media boundary:
  * API responses must keep public/browser-facing media URLs such as /media/...
  * because several shared public-ui components intentionally render plain <img>.
- * Docker-internal backend URLs are only for Next's image optimizer and are
- * resolved inside PublicImage, never at the API data boundary.
+ * Docker-internal backend URLs stay server-side. PublicImage sends relative
+ * /media/ paths through the bounded public media proxy.
  */
 
 import { mediaOriginsFromEnv } from "./mediaSources";

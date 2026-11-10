@@ -11,13 +11,15 @@ import { filterExternalScriptsByTag, filterScriptsByTag } from "@/app/tag/[name]
 import { externalCoverSrc } from "./externalCover";
 import { externalEntitySlug } from "./externalEntity";
 import { toGalleryInput } from "./galleryProjection";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "./types";
+import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "./types";
 
 export interface PublicBundleLike {
   scripts?: PublicScript[];
   externalPublicScripts?: ExternalPublicScript[];
   personas?: PublicPersona[];
   demoSubmissions?: PublicDemoSubmission[];
+  organizations?: PublicOrg[];
+  audioWorks?: PublicAudioWork[];
 }
 
 export function decodeRouteName(value: string): string {

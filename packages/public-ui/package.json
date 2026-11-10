@@ -6,6 +6,7 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./public-date": "./src/publicDate.ts",
     "./server": "./src/server.ts",
     "./PublicShellTopBar": "./src/gallery/PublicShellTopBar.tsx"
   },

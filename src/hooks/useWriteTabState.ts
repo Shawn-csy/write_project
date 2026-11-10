@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useEffect } from "react";
+import React, { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useWriteTab } from "./useWriteTab";
 import { createScript, updateScript, getScript } from "../lib/api/scripts";
 import { parseImportTagNames, syncImportedTagsToScript } from "../lib/importPipeline/tagSync";
@@ -10,9 +10,10 @@ interface Props {
   onSelectScript: (script: WriteScriptItem, mode?: string) => void;
   readOnly?: boolean;
   refreshTrigger?: number;
+  requestedAction?: { id: number; type: "create-script" | "create-folder" | "import-script" } | null;
 }
 
-export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrigger = 0 }: Props) {
+export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrigger = 0, requestedAction }: Props) {
   const { t } = useI18n();
   const manager = useWriteTab(refreshTrigger, { onScriptCreated: onSelectScript });
 
@@ -28,6 +29,7 @@ export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrig
   const [isQuickCreatingScript, setIsQuickCreatingScript] = useState(false);
   const [isMobilePreviewOpen, setIsMobilePreviewOpen] = useState(false);
   const [hasDesktopPreview, setHasDesktopPreview] = useState(false);
+  const handledActionId = useRef<number | null>(null);
 
   const breadcrumbs = useMemo(() => {
     const parts = manager.currentPath.split("/").filter(Boolean);
@@ -91,17 +93,24 @@ export function useWriteTabState({ onSelectScript, readOnly = false, refreshTrig
     finally { setIsQuickCreatingScript(false); }
   }, [handleOpenScript, isQuickCreatingScript, manager, readOnly, t]);
 
+  const runAction = useCallback((type?: string) => {
+    if (type === "create-script") { handleQuickCreateScript(); return; }
+    if (type === "create-folder") { manager.setNewType("folder"); manager.setIsCreateOpen(true); return; }
+    if (type === "import-script") setIsImportOpen(true);
+  }, [handleQuickCreateScript, manager]);
+
+  useEffect(() => {
+    if (!requestedAction || handledActionId.current === requestedAction.id) return;
+    handledActionId.current = requestedAction.id;
+    runAction(requestedAction.type);
+  }, [requestedAction, runAction]);
+
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
-    const handleAction = (event: Event) => {
-      const type = (event as CustomEvent<{ type?: string }>)?.detail?.type;
-      if (type === "create-script") { handleQuickCreateScript(); return; }
-      if (type === "create-folder") { manager.setNewType("folder"); manager.setIsCreateOpen(true); return; }
-      if (type === "import-script") { setIsImportOpen(true); return; }
-    };
+    const handleAction = (event: Event) => runAction((event as CustomEvent<{ type?: string }>)?.detail?.type);
     window.addEventListener("write-tab-action", handleAction);
     return () => window.removeEventListener("write-tab-action", handleAction);
-  }, [handleQuickCreateScript, manager]);
+  }, [runAction]);
 
   useEffect(() => {
     let cancelled = false;

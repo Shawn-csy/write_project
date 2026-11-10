@@ -43,6 +43,17 @@ function assertNoNestedInteractive(container: HTMLElement) {
 // ── Standard variant — href mode ─────────────────────────────────────────
 
 describe("ScriptGalleryCard standard — href mode", () => {
+  it("opens the matching external Demo detail from the badge while keeping the script link", () => {
+    const { container } = render(<ScriptGalleryCard script={{ ...SCRIPT, id: "external:abc", hasDemo: true }} scriptHref="https://example.com/script" scriptTarget="_blank" />);
+    expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos?script=external%3Aabc");
+    expect(screen.getByRole("link", { name: "Test Script" }).getAttribute("href")).toBe("https://example.com/script");
+    assertNoNestedInteractive(container);
+  });
+
+  it("opens the matching internal Demo detail in compact mode", () => {
+    render(<ScriptGalleryCard script={{ ...SCRIPT, hasDemo: true }} scriptHref="/read/s1" variant="compact" />);
+    expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos?script=internal%3As1");
+  });
   it("root is <article>", () => {
     const { container } = render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />);
     expect(container.querySelector("article")).not.toBeNull();
@@ -527,6 +538,21 @@ describe("ScriptGalleryCard compact — callback mode", () => {
     );
     await userEvent.click(container.querySelector("article") as HTMLElement);
     expect(onNavigate).toHaveBeenCalledWith("s1");
+  });
+});
+
+describe("ScriptGalleryCard — avatarImageRenderer", () => {
+  it("delegates tiny author and organization images to the host", () => {
+    const renderer = vi.fn(({ organization }: { organization: boolean }) => <span data-avatar={organization ? "org" : "author"} />);
+    const { container } = render(
+      <ScriptGalleryCard
+        script={{ ...SCRIPT, author: { displayName: "Alice", avatarUrl: "/media/author.jpg" }, organization: { name: "Studio", logoUrl: "/media/org.jpg" } }}
+        avatarImageRenderer={renderer}
+      />
+    );
+    expect(renderer).toHaveBeenCalledTimes(2);
+    expect(container.querySelectorAll("[data-avatar]")).toHaveLength(2);
+    expect(container.querySelector('img[src="/media/author.jpg"]')).toBeNull();
   });
 });
 

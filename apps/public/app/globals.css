@@ -254,20 +254,21 @@
 
 /* ── Brand Script Desk — Cinematic Script Desk scene ── */
 
-/* Entrance wrappers — animate translateY + opacity only (page stack).
-   Inner nodes (.brand-desk-page-*) own all static composition transforms.
-   Static-first: wrappers are visible by default.
-   JS hook sets data-hero-motion="entering" on the container before Anime runs;
-   CSS hides wrappers only while that attribute is present so the scene degrades
-   gracefully when JS is absent, blocked, or Anime fails to load. */
+/* Entrance wrappers animate only compositor properties. Their children own
+   the static page-stack transforms, so no animation library is needed. */
+@keyframes brand-desk-page-arrive {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .brand-desk-page-enter {
   position: absolute;
   inset: 0;
+  animation: brand-desk-page-arrive 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-[data-hero-motion="entering"] [data-script-page-enter] {
-  opacity: 0;
-}
+.brand-desk-page-enter:nth-child(2) { animation-delay: 80ms; }
+.brand-desk-page-enter:nth-child(3) { animation-delay: 160ms; }
 
 /* Page stack container */
 .brand-desk-stack {
@@ -342,7 +343,12 @@
 }
 
 
-/* Light sweep — decorative, one-shot via Anime.js on mount */
+@keyframes brand-desk-light-sweep {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.18; }
+}
+
+/* Light sweep — decorative, one-shot on mount */
 .brand-desk-sweep {
   position: absolute;
   inset: 0;
@@ -354,6 +360,7 @@
     transparent 75%
   );
   opacity: 0;
+  animation: brand-desk-light-sweep 900ms ease-in-out 300ms both;
   pointer-events: none;
 }
 
@@ -386,6 +393,11 @@
   .brand-desk-script-line-type {
     transform: scaleX(1);
     opacity: 1;
+  }
+
+  .brand-desk-page-enter,
+  .brand-desk-sweep {
+    animation: none;
   }
 }
 

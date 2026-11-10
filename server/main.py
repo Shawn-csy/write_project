@@ -10,23 +10,20 @@ from fastapi.staticfiles import StaticFiles
 import database
 import migration
 import models
+from schema_bootstrap import create_missing_tables
 from dependencies import get_db
-from rate_limit import RATE_LIMIT_ENABLED, limiter
+from rate_limit import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio, health
-from routers import public_bundle, export, external_public_scripts
+from routers import public_bundle, export, external_public_scripts, mcp_demos
 from services.route_contract import (
     is_legacy_public_html_path,
     is_workspace_spa_path,
     normalize_route_path,
 )
 from services.seo import inject_seo_for_route
-
-try:
-    from slowapi.errors import RateLimitExceeded
-    from slowapi.middleware import SlowAPIMiddleware
-except Exception:
-    RateLimitExceeded = None
-    SlowAPIMiddleware = None
+from services.request_body_limit import RequestBodyLimitMiddleware
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
@@ -40,7 +37,10 @@ RUN_LEGACY_MIGRATIONS = _env_bool("DB_RUN_LEGACY_MIGRATIONS", True)
 
 # Initialize Database and Run Migrations
 if AUTO_CREATE_TABLES:
-    models.Base.metadata.create_all(bind=database.engine)
+    if database.engine.dialect.name == "postgresql":
+        create_missing_tables(database.engine, models.Base.metadata)
+    else:
+        models.Base.metadata.create_all(bind=database.engine)
 if RUN_LEGACY_MIGRATIONS:
     migration.run_migrations()
 
@@ -137,12 +137,39 @@ def create_app() -> FastAPI:
     allow_origins = _cors_allow_origins()
     csp_enforced, csp_report_only = _build_csp_headers(allow_origins)
 
-    if RATE_LIMIT_ENABLED and SlowAPIMiddleware and RateLimitExceeded:
-        app.add_middleware(SlowAPIMiddleware)
+    app.add_middleware(SlowAPIMiddleware)
+    app.add_middleware(
+        RequestBodyLimitMiddleware,
+        limits={
+            ("POST", "/api/public-terms-acceptances"): 4 * 1024,
+            ("POST", "/api/public-feedback"): 32 * 1024,
+            ("POST", "/api/public-demo-submissions"): 32 * 1024,
+            ("POST", "/api/public-audio-work-submissions"): 16 * 1024,
+            ("POST", "/api/external-author-profile-submissions"): 128 * 1024,
+            ("POST", "/api/voice-actor-profile-submissions"): 128 * 1024,
+            ("POST", "/api/voice-actor-claims"): 8 * 1024,
+            ("POST", "/api/my-demo-submissions"): 32 * 1024,
+            ("POST", "/api/scripts"): 12 * 1024 * 1024,
+            ("PUT", "/api/scripts/reorder"): 1024 * 1024,
+            ("POST", "/api/media/upload"): 12 * 1024 * 1024,
+            ("POST", "/api/admin/external-public-scripts"): 4 * 1024 * 1024,
+            ("POST", "/api/studio/external-public-scripts"): 4 * 1024 * 1024,
+        },
+        pattern_limits=(
+            ("PUT", r"/api/my-demo-submissions/[^/]+", 32 * 1024),
+            ("POST", r"/api/public-scripts/[^/]+/like", 4 * 1024),
+            ("POST", r"/api/public-external-scripts/[^/]+/view", 4 * 1024),
+            ("POST", r"/api/scripts/[^/]+/view", 4 * 1024),
+            ("PUT", r"/api/scripts/[^/]+", 12 * 1024 * 1024),
+            ("POST", r"/api/export/[^/]+(?:/[^/]+)*", 12 * 1024 * 1024),
+            ("PUT", r"/api/admin/external-public-scripts/[^/]+", 4 * 1024 * 1024),
+        ),
+        default_api_limit=1024 * 1024,
+    )
 
-        @app.exception_handler(RateLimitExceeded)
-        async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
-            return Response("Rate limit exceeded", status_code=429)
+    @app.exception_handler(RateLimitExceeded)
+    async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+        return Response("Rate limit exceeded", status_code=429)
 
     @app.middleware("http")
     async def security_headers(request: Request, call_next):
@@ -174,6 +201,7 @@ def create_app() -> FastAPI:
     app.include_router(themes.router)
     app.include_router(admin.router)
     app.include_router(external_public_scripts.router)
+    app.include_router(mcp_demos.router)
     app.include_router(public.router)
     app.include_router(public_bundle.router)
     app.include_router(seo.router)

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "all-sound-production",
+    "name": "所有聲音製作",
+    "categories": ["post_production", "recording_studio"],
+    "summary": "台北的聲音製作與錄音室，提供錄音室租借、配音、音效設計及後期混音。",
+    "websiteUrl": "https://www.allsound.pro/",
+    "sourceUrl": "https://www.allsound.pro/",
+    "creditAliases": {"post_production": ["所有聲音製作"], "recording_studio": ["所有聲音製作"]}
+  },
+  {
+    "id": "drifting-audio-bay",
+    "name": "流浪白鷺聲音工作室",
+    "categories": ["post_production", "recording_studio"],
+    "summary": "提供配音錄製、錄音室租借、混音與聲音後製等服務。",
+    "websiteUrl": "https://dabstudio-audio.com/",
+    "sourceUrl": "https://dabstudio-audio.com/services/",
+    "creditAliases": {"recording_studio": ["大白（流浪白鷺聲音工作室）"]}
+  },
+  {
+    "id": "jiang-yueying",
+    "name": "江月英",
+    "categories": ["post_production"],
+    "summary": "提供音聲作品音效後製，包括乾音降噪、配樂與音效剪輯。",
+    "websiteUrl": "https://clibo.tw/commissions/YpVBdN",
+    "sourceUrl": "https://clibo.tw/commissions/YpVBdN",
+    "creditAliases": {}
+  },
+  {
+    "id": "majaja",
+    "name": "玫臼惹",
+    "categories": ["cover_art"],
+    "summary": "插畫創作者，公開提供繪圖委託與商業委託資訊。",
+    "websiteUrl": "https://clibo.tw/users/QICLiX",
+    "sourceUrl": "https://clibo.tw/users/QICLiX",
+    "creditAliases": {"cover_art": ["玫臼惹"]}
+  },
+  {
+    "id": "karoto",
+    "name": "蘿蔔／キャロット",
+    "categories": ["cover_art"],
+    "summary": "插畫創作者，官網列有 ASMR 封面圖、角色設計與插圖等委託項目。",
+    "websiteUrl": "https://www.robosquat.com/",
+    "sourceUrl": "https://www.robosquat.com/",
+    "creditAliases": {"cover_art": ["キャロット（蘿蔔）", "キャロット(蘿蔔)"]}
+  },
+  {
+    "id": "storyteller-ying",
+    "name": "渡月草",
+    "categories": ["cover_art"],
+    "summary": "插畫創作者，官網提供作品集與私人、商業邀稿說明；接案狀態請以官網公告為準。",
+    "websiteUrl": "https://www.storytellerying.com/",
+    "sourceUrl": "https://www.storytellerying.com/",
+    "creditAliases": {"cover_art": ["渡月草"]}
+  },
+  {
+    "id": "grey0316",
+    "name": "葛瑞 Grey",
+    "categories": ["cover_art"],
+    "summary": "插畫創作者，個人連結頁提供作品集與委託範例；接案狀態請以本人公告為準。",
+    "websiteUrl": "https://linktr.ee/grey0316",
+    "sourceUrl": "https://linktr.ee/grey0316",
+    "creditAliases": {"cover_art": ["葛瑞Grey"]}
+  }
+]

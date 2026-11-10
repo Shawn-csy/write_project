@@ -55,7 +55,7 @@ describe("useGalleryUrlState", () => {
 
     // Browser "back": the URL returns to the authors entry without calling nav().
     act(() => {
-      window.history.replaceState(null, "", "/?view=authors");
+      window.history.replaceState(null, "", "/authors");
       window.dispatchEvent(new PopStateEvent("popstate"));
     });
     expect(result.current.state.view).toBe("authors");
@@ -63,6 +63,26 @@ describe("useGalleryUrlState", () => {
     act(() => result.current.actions.setView("scripts"));
     expect(result.current.state.view).toBe("scripts");
     expect(window.location.search).toBe("");
+  });
+
+  it("keeps author filters on the author route", () => {
+    window.history.replaceState(null, "", "/authors");
+    const { result } = renderHook(() => useGalleryUrlState({ ...DEFAULT_URL_STATE, view: "authors" }));
+
+    act(() => result.current.actions.toggleAuthorTag("劇情"));
+
+    expect(window.location.pathname).toBe("/authors");
+    expect(window.location.search).toBe("?authorTag=%E5%8A%87%E6%83%85");
+    expect(result.current.state.view).toBe("authors");
+  });
+
+  it("canonicalizes legacy author links to the author route", () => {
+    window.history.replaceState(null, "", "/?view=authors&authorTag=劇情");
+    const { result } = renderHook(() => useGalleryUrlState(DEFAULT_URL_STATE));
+
+    expect(window.location.pathname).toBe("/authors");
+    expect(result.current.state.view).toBe("authors");
+    expect(result.current.state.authorTags).toEqual(["劇情"]);
   });
 
   it("merges rapid consecutive updates against the latest intended URL", () => {

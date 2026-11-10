@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     pool: 'forks',
     maxWorkers: '50%',
-    exclude: ['tests-e2e/**', 'node_modules/**'],
+    exclude: ['tests-e2e/**', 'node_modules/**', 'apps/public/.pages-build/**'],
     coverage: {
       provider: 'v8',
       all: true,
@@ -36,6 +36,7 @@ export default defineConfig({
         test: {
           name: 'public',
           include: ['apps/public/**/*.{test,spec}.{ts,tsx}'],
+          exclude: ['apps/public/.pages-build/**', 'apps/public/node_modules/**'],
           environment: 'jsdom',
           globals: true,
           setupFiles: ['./src/test/setup.ts'],

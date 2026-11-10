@@ -285,12 +285,31 @@ def increment_script_view(db: Session, script_id: str):
     db.commit()
 
 
-def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visitor_id: str = None):
+MAX_ANONYMOUS_LIKES_PER_SOURCE = 3
+
+
+class AnonymousLikeLimitExceeded(Exception):
+    pass
+
+
+def toggle_script_like(
+    db: Session,
+    script_id: str,
+    *,
+    user_id: str = None,
+    visitor_id: str = None,
+    client_key: str = None,
+):
     """Toggle like for a script. One like per user/visitor."""
     if not user_id and not visitor_id:
         return None
 
-    script = db.query(models.Script).filter(models.Script.id == script_id).first()
+    if visitor_id and not user_id and not client_key:
+        raise ValueError("Anonymous likes require a verified client key")
+
+    script_query = db.query(models.Script).filter(models.Script.id == script_id)
+    # Serializes count/check/insert for one script across PostgreSQL workers.
+    script = (script_query.with_for_update() if client_key else script_query).first()
     if not script:
         return None
 
@@ -310,11 +329,20 @@ def toggle_script_like(db: Session, script_id: str, *, user_id: str = None, visi
         db.refresh(script)
         return False, max(0, script.likes or 0)
 
+    if client_key:
+        active_from_source = db.query(models.ScriptLike).filter(
+            models.ScriptLike.scriptId == script_id,
+            models.ScriptLike.clientKey == client_key,
+        ).count()
+        if active_from_source >= MAX_ANONYMOUS_LIKES_PER_SOURCE:
+            raise AnonymousLikeLimitExceeded()
+
     like = models.ScriptLike(
         id=str(uuid.uuid4()),
         scriptId=script_id,
         userId=user_id if user_id else None,
         visitorId=visitor_id if not user_id else None,
+        clientKey=client_key if not user_id else None,
     )
     db.add(like)
     db.query(models.Script).filter(models.Script.id == script_id).update(

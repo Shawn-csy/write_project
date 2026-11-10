@@ -5,15 +5,30 @@ from sqlalchemy.orm import Session
 
 import models
 from .common import _ensure_list
-from .organizations_query import get_persona_org_ids
 
 
-def _normalize_persona_for_public(db: Session, persona):
-    if not persona:
-        return
-    persona.tags = _ensure_list(persona.tags)
-    persona.organizationIds = get_persona_org_ids(db, persona)
-    persona.defaultLicenseSpecialTerms = _ensure_list(persona.defaultLicenseSpecialTerms)
+def _prepare_public_scripts(db: Session, scripts: list[models.Script]) -> list[models.Script]:
+    """Normalize gallery rows with one membership query for the whole result set."""
+    persona_ids = {script.persona.id for script in scripts if script.persona}
+    org_ids_by_persona = {persona_id: [] for persona_id in persona_ids}
+    if persona_ids:
+        memberships = db.query(
+            models.PersonaOrganizationMembership.personaId,
+            models.PersonaOrganizationMembership.orgId,
+        ).filter(models.PersonaOrganizationMembership.personaId.in_(persona_ids)).all()
+        for persona_id, org_id in memberships:
+            if org_id:
+                org_ids_by_persona[persona_id].append(org_id)
+
+    for script in scripts:
+        script.contentLength = len(script.content or "")
+        if script.persona:
+            script.persona.tags = _ensure_list(script.persona.tags)
+            script.persona.organizationIds = org_ids_by_persona[script.persona.id]
+            script.persona.defaultLicenseSpecialTerms = _ensure_list(script.persona.defaultLicenseSpecialTerms)
+        if script.organization:
+            script.organization.tags = _ensure_list(script.organization.tags)
+    return scripts
 
 
 def get_scripts(db: Session, ownerId: str):
@@ -135,23 +150,11 @@ def get_public_scripts(
                 models.Script.folder == folder,
             ).order_by(models.Script.sortOrder.asc(), models.Script.title.asc()).all()
 
-        for s in results:
-            s.contentLength = len(s.content or "")
-            if s.persona:
-                _normalize_persona_for_public(db, s.persona)
-            if s.organization:
-                s.organization.tags = _ensure_list(s.organization.tags)
-        return results
+        return _prepare_public_scripts(db, results)
 
     if ownerId and folder is None:
         results = base_q.filter(models.Script.ownerId == ownerId).order_by(models.Script.lastModified.desc()).all()
-        for s in results:
-            s.contentLength = len(s.content or "")
-            if s.persona:
-                _normalize_persona_for_public(db, s.persona)
-            if s.organization:
-                s.organization.tags = _ensure_list(s.organization.tags)
-        return results
+        return _prepare_public_scripts(db, results)
 
     pub_folders = db.query(models.Script).filter(models.Script.isPublic == 1, models.Script.type == "folder").all()
     public_paths = set()
@@ -166,17 +169,11 @@ def get_public_scripts(
         if (s.ownerId, s.folder) in public_paths:
             continue
 
-        s.contentLength = len(s.content or "")
-        if s.persona:
-            _normalize_persona_for_public(db, s.persona)
-        if s.organization:
-            s.organization.tags = _ensure_list(s.organization.tags)
-
         results.append(s)
         if len(results) >= 50:
             break
 
-    return results
+    return _prepare_public_scripts(db, results)
 
 
 def search_scripts(db: Session, query: str, ownerId: str):

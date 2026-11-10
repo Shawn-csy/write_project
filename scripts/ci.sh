@@ -32,7 +32,6 @@ npm run typecheck
 # 新增 high/critical 必須當個 sprint 處理」，實務上會逾期 —— 該文件曾停在
 # 2026-06-30，期間 react-router 又中了新的 CSRF advisory 卻沒人發現。改由 CI 把關。
 #
-# 已接受風險（非安全用途的 exceljs -> uuid）記錄在該文件中。
 # 若要豁免特定 advisory，請先在文件補上理由。
 echo "\n🔐 Dependency audit (production deps)"
 if ! npm audit --omit=dev --audit-level=high; then
@@ -43,7 +42,7 @@ fi
 
 echo "\n🐍 Backend deps + tests"
 if [ -x "./server/venv/bin/python" ]; then
-  (cd server && ./venv/bin/python -m pytest -q)
+  BACKEND_PYTHON="$ROOT_DIR/server/venv/bin/python"
 else
   if command -v python3 >/dev/null 2>&1; then
     PYTHON_BIN="python3"
@@ -54,8 +53,11 @@ else
     exit 1
   fi
   "$PYTHON_BIN" -m pip install -r server/requirements.txt
-  (cd server && "$PYTHON_BIN" -m pytest -q)
+  BACKEND_PYTHON="$(command -v "$PYTHON_BIN")"
 fi
+"$BACKEND_PYTHON" -m pip install pip-audit==2.10.1
+"$BACKEND_PYTHON" -m pip_audit -r server/requirements.txt --strict
+(cd server && "$BACKEND_PYTHON" -m pytest -q)
 
 echo "\n✅ CI checks passed"
 

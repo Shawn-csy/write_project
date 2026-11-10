@@ -32,11 +32,11 @@ system with a single source of truth for appearance preferences.
 
 ### Public Pages
 
-Homepage and public entity pages use public topbar variants:
-
-- homepage: `GalleryTopBar` / `PublicGalleryTopBar`
-- entity/info pages: `PublicTopBar`
-- trailing actions: `PublicShellActions`
+All public pages use `PublicTopBar`, which composes the router-neutral
+`PublicShellTopBar`. The homepage's `GalleryTopBar` only adapts its in-page
+author tab callback. Desktop actions live in `PublicShellActions`; mobile
+actions use the same `PublicMobileActionSheet` on every public page. Section
+links come from `publicNavigation.ts`.
 
 `PublicShellActions` currently owns:
 

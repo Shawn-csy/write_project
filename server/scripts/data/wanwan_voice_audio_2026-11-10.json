@@ -1,0 +1,62 @@
+{
+  "checkedOn": "2026-11-10",
+  "organization": {
+    "name": "晚晚配音中",
+    "dlsite": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG74042.html",
+    "x": "https://x.com/wanwan_voice",
+    "youtube": "https://www.youtube.com/@wanwan_voice",
+    "bannerSource": "https://portaly.cc/wanwanvoice",
+    "bannerUrl": "https://firebasestorage.googleapis.com/v0/b/portaly-ca9e1.appspot.com/o/cdSONdJPrEXZyh3kuh5N%2FbannerDesktop?alt=media&token=eb1db046-3cbf-4fcf-a794-50724413c01d",
+    "description": "晚晚的中文音聲創作社團，收錄 ASMR 與短篇配音作品。"
+  },
+  "items": [
+    {
+      "id": "RJ01574991",
+      "title": "【中文音聲】First Kiss",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01574991.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01575000/RJ01574991_img_main.jpg",
+      "releasedOn": "2026-03-14",
+      "rating": "全年齡",
+      "accessType": "paid",
+      "voiceActors": ["晚晚"],
+      "summary": "以初遇、初吻、約定與感情中的起伏為主題，包含五段音聲篇章；使用 KU100 麥克風錄製。",
+      "credits": {"劇本": "英格努斯", "聲演署名": "晚晚配音中", "錄音・後期": "所有聲音製作"}
+    },
+    {
+      "id": "RJ01552134",
+      "title": "【中文音聲】魔王大人到我家",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01552134.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01553000/RJ01552134_img_main.jpg",
+      "releasedOn": "2026-02-10",
+      "rating": "R18",
+      "accessType": "paid",
+      "voiceActors": ["晚晚"],
+      "summary": "神祕魔王闖入主角家中，提出考驗並逐步揭露自己的過去；共六段，約 1 小時 45 分。",
+      "credits": {"劇本": "英格努斯", "聲演署名": "晚晚配音中", "錄音・後期": "所有聲音製作"}
+    },
+    {
+      "id": "RJ01109829",
+      "title": "【晚晚配音中】歡樂全家桶 Vol.1",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01109829.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01110000/RJ01109829_img_main.jpg",
+      "releasedOn": "2023-10-17",
+      "rating": "R18",
+      "accessType": "paid",
+      "voiceActors": ["晚晚"],
+      "summary": "收錄晚晚的 19 段配音小品，包含早期作品及未公開音檔。",
+      "credits": {"聲演": "晚晚"}
+    },
+    {
+      "id": "RJ01068291",
+      "title": "【KU100】拜託酷酷的女上司做色色的事",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01068291.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01069000/RJ01068291_img_main.jpg",
+      "releasedOn": "2023-06-16",
+      "rating": "R18",
+      "accessType": "paid",
+      "voiceActors": ["晚晚"],
+      "summary": "實習生與女主管到酒吧喝酒後提出請求，兩人之間的關係逐漸改變。",
+      "credits": {"台本": "卡蚯蚓（DLsite 作者欄：卡蚯蚓パン）", "聲演署名": "楓林晚（DLsite 聲優欄：晚晚）", "音效・後製": "聲色廠所", "錄音": "所有聲音製作"}
+    }
+  ]
+}

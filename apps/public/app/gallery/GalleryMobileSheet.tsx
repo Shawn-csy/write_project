@@ -185,7 +185,7 @@ export function GalleryMobileSheet({
 
           {sort !== undefined && onSortChange && (
             <div>
-              <p className="editorial-dim mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]">排序</p>
+              <p className="editorial-dim mb-2 [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.18em]">排序</p>
               <GallerySortControl value={sort} onChange={onSortChange} />
             </div>
           )}
@@ -216,7 +216,7 @@ export function GalleryMobileSheet({
             {advancedOpen && (
               <div className="border-t border-border/40 px-4 py-4 space-y-5">
                 <div>
-                  <p className="editorial-dim mb-2 text-[10px] font-semibold uppercase tracking-[0.18em]">
+                  <p className="editorial-dim mb-2 [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.18em]">
                     顯示模式
                   </p>
                   <GalleryViewModeToggle value={viewModeValue} onChange={setViewMode} />

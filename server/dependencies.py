@@ -213,16 +213,16 @@ def is_admin_user(db, user_id: str) -> bool:
     return False
 
 
-async def get_external_public_scripts_user_id(
+async def get_local_mcp_admin_user_id(
     authorization: Optional[str] = Header(None),
     x_user_id: Optional[str] = Header(None),
     x_mcp_key: Optional[str] = Header(None, alias="X-MCP-Key"),
     db=Depends(get_db),
 ) -> str:
-    """Authenticate the external-script admin routes via the normal login or local MCP.
+    """Authenticate explicitly scoped admin routes via the normal login or local MCP.
 
-    The MCP path is intentionally scoped to the external-public-script router. It is
-    disabled unless both a local key and an explicitly configured admin owner exist.
+    Only routes that depend on this function accept the MCP key. It is disabled
+    unless both a local key and an explicitly configured admin owner exist.
     The MCP server itself uses stdio, so it does not open a network listener.
     """
     if x_mcp_key is not None:
@@ -235,3 +235,7 @@ async def get_external_public_scripts_user_id(
         return owner_id
 
     return await get_current_user_id(authorization=authorization, x_user_id=x_user_id)
+
+
+# Keep existing external-script routes compatible with the original dependency name.
+get_external_public_scripts_user_id = get_local_mcp_admin_user_id

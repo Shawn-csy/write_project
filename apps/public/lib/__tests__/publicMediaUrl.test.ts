@@ -46,6 +46,8 @@ describe("buildMediaSrcSet", () => {
 
 describe("parseMediaWidth", () => {
   it("snaps to the smallest allowed width that covers the request", () => {
+    expect(parseMediaWidth("16")).toBe(48);
+    expect(parseMediaWidth("64")).toBe(96);
     expect(parseMediaWidth("100")).toBe(240);
     expect(parseMediaWidth("240")).toBe(240);
     expect(parseMediaWidth("241")).toBe(360);

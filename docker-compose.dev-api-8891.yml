@@ -49,8 +49,8 @@ services:
       SMTP_FROM: ""
       SMTP_USE_TLS: "0"
       SMTP_USE_SSL: "0"
-      MCP_LOCAL_API_KEY: ""
-      MCP_OWNER_ID: ""
+      MCP_LOCAL_API_KEY: ${MCP_DEV_LOCAL_API_KEY:-}
+      MCP_OWNER_ID: ${MCP_OWNER_ID:-}
     volumes:
       - dev-api-8891-media:/data
       - ./server/secrets:/secrets:ro
@@ -74,7 +74,7 @@ services:
 
 volumes:
   dev-api-8891-postgres:
-    name: write-project-dev-api-8891-postgres-recovery
+    name: write-project-dev-api-8891-recovered-final
     external: true
   dev-api-8891-media:
     name: write-project-dev-api-8891-media

@@ -1,9 +1,11 @@
-import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
+import { demoScriptOrganization, demoScriptSummary } from "@/lib/demoScriptContext";
 
 export interface PublicVoiceWorkBundle {
   scripts?: PublicScript[];
   externalPublicScripts?: ExternalPublicScript[];
   demoSubmissions?: PublicDemoSubmission[];
+  organizations?: PublicOrg[];
 }
 
 function parseDemoEntries(value: unknown): Array<Record<string, unknown>> {
@@ -36,6 +38,7 @@ function normalizeWork(input: {
   scriptTitle: string;
   scriptUrl: string;
   raw: Record<string, unknown>;
+  scriptCoverUrl?: string;
   createdAt?: number;
 }): PublicDemoSubmission | null {
   const demoUrl = String(input.raw.url || input.raw.demoUrl || "").trim();
@@ -49,7 +52,7 @@ function normalizeWork(input: {
     scriptUrl: input.scriptUrl,
     demoName: String(input.raw.name || input.raw.demoName || "演出 Demo").trim(),
     demoUrl,
-    coverUrl: String(input.raw.coverUrl || input.raw.thumbnailUrl || "").trim(),
+    coverUrl: String(input.raw.coverUrl || input.raw.thumbnailUrl || input.scriptCoverUrl || "").trim(),
     cast: String(input.raw.cast || "").trim(),
     voiceTypes: Array.isArray(input.raw.voiceTypes) ? input.raw.voiceTypes.filter((type): type is "male" | "female" => type === "male" || type === "female") : [],
     voiceActorIds: Array.isArray(input.raw.voiceActorIds) ? input.raw.voiceActorIds.map(String) : [],
@@ -86,6 +89,7 @@ export function getPublicVoicePerformances(personaId: string, bundle: PublicVoic
         scriptId: script.id,
         scriptTitle: script.title || "未命名台本",
         scriptUrl: `/read/${encodeURIComponent(script.id)}`,
+        scriptCoverUrl: script.coverUrl || "",
         raw,
         createdAt: Number(script.updatedAt || script.lastModified || 0),
       });
@@ -101,8 +105,9 @@ export function getPublicVoicePerformances(personaId: string, bundle: PublicVoic
         id: String(raw.id || `external:${script.id}:${index}`),
         scriptType: "external",
         externalScriptId: script.id,
-        scriptTitle: script.title || script.remoteTitle || "外部台本",
+        scriptTitle: script.title || script.remoteTitle || "未命名台本",
         scriptUrl: script.sourceUrl,
+        scriptCoverUrl: script.coverUrlOverride || script.coverUrl || script.remoteCoverUrl || "",
         raw,
         createdAt: Number(script.updatedAt || script.mountedAt || 0),
       });
@@ -115,6 +120,18 @@ export function getPublicVoicePerformances(personaId: string, bundle: PublicVoic
     if (seen.has(work.demoUrl)) return false;
     seen.add(work.demoUrl);
     return true;
+  }).map((work) => {
+    const script = work.scriptType === "internal"
+      ? bundle.scripts?.find((item) => item.id === work.scriptId)
+      : bundle.externalPublicScripts?.find((item) => item.id === work.externalScriptId);
+    if (!script) return work;
+    const organization = demoScriptOrganization(script, bundle.organizations);
+    return {
+      ...work,
+      scriptSummary: demoScriptSummary(script),
+      organizationName: organization?.name,
+      organizationHref: organization?.href,
+    };
   });
 }
 

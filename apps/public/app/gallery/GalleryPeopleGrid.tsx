@@ -1,27 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { PublicOrg, PublicPersona } from "@/lib/types";
 import { BuildingIcon, LinkIcon } from "./GalleryIcons";
-import { PublicImage } from "@/components/PublicImage";
 import { PublicCardGridSkeleton } from "@/components/PublicSkeleton";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
-
-const AVATAR_COLORS = [
-  "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-  "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300",
-  "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-  "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300",
-];
-
-function avatarColor(name: string | undefined): string {
-  if (!name) return AVATAR_COLORS[0];
-  const code = name.charCodeAt(0) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[code];
-}
+import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
+import { PublicAvatarImage } from "@/components/PublicAvatarImage";
+import { publicAvatarColor } from "@/components/publicAvatarColor";
 
 const PEOPLE_TAG_VISIBLE_COUNT = 8;
 const CARD_TAG_VISIBLE_COUNT = 4;
@@ -46,7 +33,7 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
           key={tag}
           type="button"
           onClick={() => onTagClick(tag)}
-          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
         >
           {tag}
         </button>
@@ -55,7 +42,7 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-transparent text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-150"
+          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-transparent text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-150"
           aria-label={`展開更多標籤，尚有 ${tags.length - limit} 個`}
         >
           更多（{tags.length - limit}）
@@ -65,7 +52,7 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-[4px] border border-border/40 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
         >
           收合
         </button>
@@ -108,7 +95,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
             key={tag}
             type="button"
             onClick={() => onToggleTag(tag)}
-            className={`h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-[5px] border transition-all duration-150 ${
+            className={`h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border transition-all duration-150 ${
               active
                 ? "border-primary bg-primary text-primary-foreground shadow-sm"
                 : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
@@ -122,7 +109,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-[5px] border border-primary/35 bg-primary/5 text-primary hover:border-primary/60 hover:bg-primary/10 transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border border-primary/35 bg-primary/5 text-primary hover:border-primary/60 hover:bg-primary/10 transition-all duration-150"
         >
           更多標籤（{hiddenCount}）
         </button>
@@ -131,7 +118,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-[5px] border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
         >
           收合標籤
         </button>
@@ -140,7 +127,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={onResetFilters}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-[5px] border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
         >
           清除篩選
         </button>
@@ -153,18 +140,11 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 
 function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick: (tag: string) => void }) {
   const href = author.externalHref || `/author/${author.id}`;
-  const isExternal = Boolean(author.externalHref);
   return (
     <div className="flex flex-col rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       <a href={href} className="flex items-center gap-3 p-3">
         <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
-          {author.avatar ? (
-            isExternal ? <img src={author.avatar} alt={author.displayName} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <PublicImage src={author.avatar} alt={author.displayName} preset="avatar" sizes="48px" />
-          ) : (
-            <div className={`w-full h-full flex items-center justify-center text-base font-bold ${avatarColor(author.displayName)}`}>
-              {author.displayName?.[0]}
-            </div>
-          )}
+          <PublicAvatarImage src={author.avatar} name={author.displayName} sizes="48px" fallbackClassName={publicAvatarColor(author.displayName)} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-medium [font-size:var(--public-font-body)] truncate">{author.displayName}</p>
@@ -197,19 +177,12 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
 function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string) => void }) {
   const memberCount = org.members?.length;
   const href = org.externalHref || `/org/${org.id}`;
-  const isExternal = Boolean(org.externalHref);
   return (
     <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
       {/* Main org link — no nested anchors inside */}
       <a href={href} className="flex items-center gap-3 p-4">
         <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
-          {org.logoUrl ? (
-            isExternal ? <img src={org.logoUrl} alt={org.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" /> : <PublicImage src={org.logoUrl} alt={org.name} preset="logo" sizes="48px" />
-          ) : (
-            <div className={`w-full h-full flex items-center justify-center text-base font-bold rounded-lg ${avatarColor(org.name)}`}>
-              {org.name?.[0]}
-            </div>
-          )}
+          <PublicAvatarImage src={org.logoUrl} name={org.name} preset="logo" sizes="48px" fallbackClassName={publicAvatarColor(org.name)} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-medium [font-size:var(--public-font-body)] truncate">{org.name}</p>
@@ -290,11 +263,13 @@ export function GalleryAuthorGrid({
   onToggleTag,
   onResetFilters,
 }: GalleryAuthorGridProps) {
+  const authorById = useMemo(() => new Map(authors.map((author) => [author.id, author])), [authors]);
   if (peopleStatus === "loading" || peopleStatus === "idle") return <PeopleLoading />;
   if (peopleStatus === "error") return <PeopleError onRetry={onRetry} />;
 
   return (
     <div>
+      <PublicBrowseHeader title="作者" count={`${filteredAuthors.length} 位`} />
       <TagFilterChips
         allTags={allTags}
         selectedTags={selectedTags}
@@ -303,7 +278,7 @@ export function GalleryAuthorGrid({
       />
       <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {filteredAuthors.map((authorLike) => {
-          const author = authors.find((item) => item.id === authorLike.id);
+          const author = authorLike.id ? authorById.get(authorLike.id) : undefined;
           if (!author) return null;
           return <AuthorCard key={author.id} author={author} onTagClick={onToggleTag} />;
         })}
@@ -340,11 +315,13 @@ export function GalleryOrgGrid({
   onToggleTag,
   onResetFilters,
 }: GalleryOrgGridProps) {
+  const orgById = useMemo(() => new Map(orgs.map((org) => [org.id, org])), [orgs]);
   if (peopleStatus === "loading" || peopleStatus === "idle") return <PeopleLoading />;
   if (peopleStatus === "error") return <PeopleError onRetry={onRetry} />;
 
   return (
     <div>
+      <PublicBrowseHeader title="組織" count={`${filteredOrgs.length} 個`} />
       <TagFilterChips
         allTags={allTags}
         selectedTags={selectedTags}
@@ -353,7 +330,7 @@ export function GalleryOrgGrid({
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filteredOrgs.map((orgLike) => {
-          const org = orgs.find((item) => item.id === orgLike.id);
+          const org = orgLike.id ? orgById.get(orgLike.id) : undefined;
           if (!org) return null;
           return <OrgCard key={org.id} org={org} onTagClick={onToggleTag} />;
         })}

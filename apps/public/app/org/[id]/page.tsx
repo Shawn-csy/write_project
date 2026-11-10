@@ -2,7 +2,8 @@ import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import type { PublicOrg, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, PublicAudioWork, PublicOrg, PublicScript } from "@/lib/types";
+import { externalScriptsForOrganization } from "@/lib/organizationExternalScripts";
 import { OrgPageClient } from "./OrgPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "@/lib/seo";
@@ -12,8 +13,8 @@ import { LiveOrgPage } from "@/components/LiveEntityPages";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
-export const dynamicParams = process.env.CF_STATIC_EXPORT !== "1";
+export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
   return getStaticOrgParams();
@@ -32,6 +33,14 @@ async function fetchScripts(orgId: string): Promise<PublicScript[]> {
     return await apiFetch<PublicScript[]>(`/public-scripts?organizationId=${orgId}`);
   } catch {
     return [];
+  }
+}
+
+async function fetchWorksBundle(): Promise<{ audioWorks?: PublicAudioWork[]; externalPublicScripts?: ExternalPublicScript[] }> {
+  try {
+    return await apiFetch<{ audioWorks?: PublicAudioWork[]; externalPublicScripts?: ExternalPublicScript[] }>("/public-bundle?sections=audioWorks,externalPublicScripts");
+  } catch {
+    return {};
   }
 }
 
@@ -88,9 +97,11 @@ export default async function OrgPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [org, scripts] = await Promise.all([fetchOrg(id), fetchScripts(id)]);
+  const [org, scripts, bundle] = await Promise.all([fetchOrg(id), fetchScripts(id), fetchWorksBundle()]);
 
   if (!org) notFound();
+  const audioWorks = (bundle.audioWorks || []).filter((work) => work.organizationId === id);
+  const externalScripts = externalScriptsForOrganization(org, bundle.externalPublicScripts || []);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -106,12 +117,12 @@ export default async function OrgPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab="orgs" />
+      <PublicTopBar activeTab="orgs" showBack backHref="/?view=orgs" backLabel="返回組織列表" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{org.name}</h1>
           {org.description && <p>{org.description}</p>}
-          {scripts.length > 0 && (
+          {scripts.length + externalScripts.length > 0 && (
             <>
               <h2>公開作品</h2>
               <ul>
@@ -120,15 +131,19 @@ export default async function OrgPage({
                     <a href={`/read/${s.id}`}>{s.title}</a>
                   </li>
                 ))}
+                {externalScripts.map((s) => (
+                  <li key={s.id}><a href={s.sourceUrl}>{s.title || s.remoteTitle}</a></li>
+                ))}
               </ul>
             </>
           )}
+          {audioWorks.length > 0 && <p><a href={`/audio-works?organization=${encodeURIComponent(id)}`}>音聲作品（{audioWorks.length}）</a></p>}
         </article>
       </noscript>
       {STATIC_EXPORT ? (
-        <LiveOrgPage id={id} initial={{ org, scripts }} />
+        <LiveOrgPage id={id} initial={{ org, scripts, externalScripts, audioWorks }} />
       ) : (
-        <OrgPageClient org={org} scripts={scripts} />
+        <OrgPageClient org={org} scripts={scripts} externalScripts={externalScripts} audioWorks={audioWorks} />
       )}
     </>
   );

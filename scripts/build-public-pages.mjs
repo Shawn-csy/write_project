@@ -3,11 +3,16 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { PUBLIC_SECURITY_HEADERS } from "../apps/public/securityHeaders.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const appRoot = join(repositoryRoot, "apps/public");
 const stageRoot = join(appRoot, ".pages-build");
-const outputRoot = join(appRoot, "out");
+const outputOverride = process.env.PUBLIC_PAGES_OUTPUT_DIR;
+const outputRoot = outputOverride ? resolve(outputOverride) : join(appRoot, "out");
+if (outputOverride && existsSync(outputRoot)) {
+  throw new Error("PUBLIC_PAGES_OUTPUT_DIR must point to a new directory.");
+}
 const preview = process.argv.includes("--preview");
 
 const origin = (name) => (process.env[name] || "").replace(/\/+$/, "");
@@ -87,18 +92,15 @@ function makeRouteConfigStatic(directory) {
     if (!/\.(?:ts|tsx|mts)$/.test(name)) continue;
     const source = readFileSync(path, "utf8");
     const output = source
-      .replace(/export const revalidate = process\.env\.CF_STATIC_EXPORT === "1" \? false : (?:300|3600);/g, "export const revalidate = false;")
-      .replace(/export const dynamicParams = process\.env\.CF_STATIC_EXPORT !== "1";/g, "export const dynamicParams = false;")
-      .replace(/export const dynamic = process\.env\.CF_STATIC_EXPORT === "1" \? "force-static" : "force-dynamic";/g, 'export const dynamic = "force-static";');
-    const routeConfigOutput = path.endsWith("/app/demos/page.tsx") || path.endsWith("/app/voice-actors/page.tsx")
-      ? output.replace('export const dynamic = "force-dynamic";', 'export const dynamic = "force-static";')
-      : output;
-    if (routeConfigOutput !== source) writeFileSync(path, routeConfigOutput, "utf8");
+      .replace(/export const revalidate = (?:300|3600);/g, "export const revalidate = false;")
+      .replace(/export const dynamicParams = true;/g, "export const dynamicParams = false;")
+      .replace(/export const dynamic = "force-dynamic";/g, 'export const dynamic = "force-static";');
+    if (output !== source) writeFileSync(path, output, "utf8");
   }
 }
 
 rmSync(stageRoot, { recursive: true, force: true });
-rmSync(outputRoot, { recursive: true, force: true });
+if (!outputOverride) rmSync(outputRoot, { recursive: true, force: true });
 copySourceTree(appRoot, stageRoot);
 makeRouteConfigStatic(join(stageRoot, "app"));
 
@@ -141,11 +143,14 @@ if (!existsSync(join(outputRoot, "404.html"))) {
 // routes: Pages applies them even when a prebuilt file exists, which would hide
 // the prebuilt pages.
 const headers = [
+  "/*",
+  ...PUBLIC_SECURITY_HEADERS.map(({ key, value }) => `  ${key}: ${value}`),
+  ...(preview ? ["  X-Robots-Tag: noindex, nofollow"] : []),
+  "",
   "/_next/static/*",
   "  Cache-Control: public, max-age=31536000, immutable",
   "",
 ];
-if (preview) headers.push("/*", "  X-Robots-Tag: noindex, nofollow", "");
 writeFileSync(join(outputRoot, "_headers"), headers.join("\n"), "utf8");
 
 rmSync(stageRoot, { recursive: true, force: true });

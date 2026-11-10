@@ -1,6 +1,43 @@
 import { describe, it, expect } from "vitest";
-import { slimExternalScriptForHomepage, slimScriptForHomepage } from "../galleryProjection";
+import { slimExternalScriptForHomepage, slimScriptForHomepage, toGalleryInput } from "../galleryProjection";
 import type { ExternalPublicScript, PublicScript } from "../types";
+import { parseHomepageBundle } from "../homepageBundle";
+
+it("keeps author and organization data ready for homepage navigation", () => {
+  const parsed = parseHomepageBundle({
+    personas: [{ id: "author-1", displayName: "Author" }],
+    organizations: [{ id: "org-1", name: "Org" }],
+  });
+  expect(parsed.personas.map((person) => person.id)).toEqual(["author-1"]);
+  expect(parsed.organizations.map((org) => org.id)).toEqual(["org-1"]);
+});
+
+it("retains a small Demo marker for approved submissions without shipping their records", () => {
+  const parsed = parseHomepageBundle({
+    scripts: [{ id: "internal", title: "台本" }],
+    externalPublicScripts: [{ id: "external", sourceUrl: "https://example.com/script", title: "外部台本" }],
+    demoSubmissions: [
+      { id: "d1", scriptType: "internal", scriptId: "internal", scriptTitle: "台本", scriptUrl: "", demoUrl: "https://example.com/demo", createdAt: 1 },
+      { id: "d2", scriptType: "external", externalScriptId: "external", scriptTitle: "外部台本", scriptUrl: "", demoUrl: "https://example.com/demo", createdAt: 1 },
+    ],
+  });
+  expect(parsed.scripts[0].hasDemo).toBe(true);
+  expect(parsed.externalPublicScripts[0].hasDemo).toBe(true);
+  expect(parsed).not.toHaveProperty("demoSubmissions");
+});
+
+it("exposes only published activities in the same order as the activity page", () => {
+  const activity = (id: string, status: "draft" | "published", sortOrder: number) => ({
+    id, slug: id, title: id, summary: "介紹", status, sortOrder, publishedAt: 1,
+    coverUrl: "", body: "large body", scriptIds: [], externalScriptIds: [], acceptingSubmissions: false,
+  });
+  const parsed = parseHomepageBundle({
+    activityPages: [activity("later", "published", 2), activity("draft", "draft", 0), activity("first", "published", 1)],
+  });
+
+  expect(parsed.activities.map((page) => page.slug)).toEqual(["first", "later"]);
+  expect(parsed.activities[0]).not.toHaveProperty("body");
+});
 
 describe("slimScriptForHomepage", () => {
   it("drops reader-only and admin bookkeeping fields but keeps card data", () => {
@@ -13,17 +50,30 @@ describe("slimScriptForHomepage", () => {
       markerThemeId: "m",
       activityContent: "a",
       publishReadiness: {},
-      contentLength: 4200, // ScriptGalleryCard derives the estimated duration from this
+      customMetadata: [{ key: "Contact", value: "Large reader-only notes" }],
+      persona: { id: "p1", displayName: "Author", bio: "Private profile detail", defaultLicenseCommercial: "allow" },
+      owner: { id: "u1", displayName: "Owner", email: "owner@example.com" },
+      contentLength: 4200,
+      licenseCommercial: "allow",
+      series: { id: "series-1", name: "系列", summary: "系列介紹", coverUrl: "/series.jpg" },
     } as unknown as PublicScript;
-    const slim = slimScriptForHomepage(script) as unknown as Record<string, unknown>;
+    const slim = slimScriptForHomepage(script);
     expect(slim.id).toBe("s1");
     expect(slim.synopsis).toBe("S");
     expect(slim.tags).toEqual([{ id: "t", name: "x" }]);
     expect(slim.contentLength).toBe(4200);
+    expect(slim.persona).toEqual({ id: "p1", displayName: "Author", avatar: undefined, defaultLicenseCommercial: "allow", defaultLicenseDerivative: undefined, defaultLicenseNotify: undefined });
+    expect(slim.owner).not.toHaveProperty("email");
+    expect(slim).not.toHaveProperty("customMetadata");
     expect(slim).not.toHaveProperty("markerTheme");
     expect(slim).not.toHaveProperty("markerThemeId");
     expect(slim).not.toHaveProperty("activityContent");
     expect(slim).not.toHaveProperty("publishReadiness");
+    const card = toGalleryInput(slim);
+    expect(card.contentLength).toBe(4200);
+    expect(card.licenseCommercial).toBe("allow");
+    expect(card.author).toEqual({ id: "p1", displayName: "Author", avatarUrl: undefined });
+    expect(card.series).toMatchObject({ name: "系列", summary: "系列介紹", coverUrl: "/series.jpg" });
   });
 });
 
@@ -61,6 +111,19 @@ describe("slimExternalScriptForHomepage", () => {
   it("keeps organization bios, which the organizations view reads", () => {
     const slim = slimExternalScriptForHomepage({ ...base, organizationName: "Org", organizationBio: "介紹" });
     expect(slim.organizationBio).toBe("介紹");
+  });
+
+  it("preserves the canonical author link used to merge public identities", () => {
+    const slim = slimExternalScriptForHomepage({
+      ...base,
+      authorName: "安里",
+      authorPersonaId: "persona-1",
+      externalAuthorId: "external-author-1",
+      authorKey: "writer-hiiro",
+    });
+    expect(slim.authorPersonaId).toBe("persona-1");
+    expect(slim.externalAuthorId).toBe("external-author-1");
+    expect(slim.authorKey).toBe("writer-hiiro");
   });
 
   it("points the cover at the proxy route and omits it when absent", () => {

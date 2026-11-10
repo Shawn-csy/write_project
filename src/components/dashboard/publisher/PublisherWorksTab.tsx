@@ -36,6 +36,7 @@ interface PublisherWorksTabProps {
         sort: "updated_desc" | "updated_asc" | "title_asc" | "views_desc";
     }) => void;
     onDeleteScript?: (script: PublisherScriptItem) => Promise<void>;
+    onCreateScript?: () => void;
 }
 
 const filterOptions = [
@@ -59,6 +60,7 @@ export function PublisherWorksTab({
     onLoadMore,
     onQueryChange,
     onDeleteScript,
+    onCreateScript,
 }: PublisherWorksTabProps): React.JSX.Element {
     const { t } = useI18n();
     const [pendingDelete, setPendingDelete] = React.useState<PublisherScriptItem | null>(null);
@@ -78,7 +80,6 @@ export function PublisherWorksTab({
     const sharedCardProps = {
         hasCover: s.hasCover,
         hasCompleteLicense: s.hasCompleteLicense,
-        statusBadgeClass: s.statusBadgeClass,
         formatDate,
         onContinueEdit,
         onDeleteScript: onDeleteScript ? setPendingDelete : undefined,
@@ -141,9 +142,8 @@ export function PublisherWorksTab({
                 <StudioEmptyStateCard
                     icon={FilePlus2}
                     title={t("publisherWorksTab.emptyDemoTitle", "還沒有作品")}
-                    description={t("publisherWorksTab.emptyDemoDesc", "建立第一部作品後，這裡會顯示公開狀態、封面、授權檢查與編輯入口。")}
                     actionLabel={t("publisherWorksTab.emptyCreateAction", "新增第一部台本")}
-                    onAction={() => window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type: "create-script" } }))}
+                    onAction={onCreateScript}
                 />
             ) : s.sortedScripts.length === 0 ? (
                 <StudioEmptyStateCard
@@ -155,7 +155,6 @@ export function PublisherWorksTab({
                             : s.filter === "ready"
                                 ? "沒有可公開作品"
                                 : "沒有已公開作品"}
-                    description="調整篩選條件後再試一次。"
                     actionLabel={t("publisherWorksTab.clearFilters", "清除篩選")}
                     onAction={s.hasActiveFilters ? s.clearFilters : null}
                 />

@@ -58,6 +58,10 @@ export interface PublicHeroMarqueeProps {
    */
   fallbackToDefault?: boolean;
   fullBleed?: boolean;
+  /** Keep the banner visible without taking most of a phone viewport. */
+  compactOnMobile?: boolean;
+  /** Constrain a full-width promotion to a short banner on larger screens. */
+  compactOnDesktop?: boolean;
   /** Accessible labels — provide localised strings from host */
   labels?: {
     region?: string;
@@ -89,6 +93,8 @@ export function PublicHeroMarquee({
   intervalMs = 4500,
   fallbackToDefault = false,
   fullBleed = false,
+  compactOnMobile = false,
+  compactOnDesktop = false,
   labels,
   renderImage,
   renderSlideContent,
@@ -101,28 +107,34 @@ export function PublicHeroMarquee({
       : [];
 
   const [activeIndex, setActiveIndex] = useState<number>(0);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState<boolean>(false);
 
   useEffect(() => {
     if (safeSlides.length <= 1 || isPaused) return undefined;
     const timer = window.setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % safeSlides.length);
+      setPreviousIndex(activeIndex);
+      setActiveIndex((activeIndex + 1) % safeSlides.length);
     }, intervalMs);
     return () => window.clearInterval(timer);
-  }, [intervalMs, isPaused, safeSlides.length]);
+  }, [activeIndex, intervalMs, isPaused, safeSlides.length]);
+
+  useEffect(() => {
+    if (previousIndex == null) return;
+    const timer = window.setTimeout(() => setPreviousIndex(null), 500);
+    return () => window.clearTimeout(timer);
+  }, [previousIndex, activeIndex]);
 
   if (safeSlides.length === 0) return null;
 
   const goTo = (nextIndex: number): void => {
     const bounded = ((nextIndex % safeSlides.length) + safeSlides.length) % safeSlides.length;
+    if (bounded === activeIndex) return;
+    setPreviousIndex(activeIndex);
     setActiveIndex(bounded);
   };
 
-  const visibleSlideIndexes = new Set([
-    activeIndex,
-    (activeIndex - 1 + safeSlides.length) % safeSlides.length,
-    (activeIndex + 1) % safeSlides.length,
-  ]);
+  const visibleSlideIndexes = new Set([activeIndex, previousIndex]);
 
   const regionLabel = labels?.region ?? "跑馬燈區塊";
   const prevLabel = labels?.prev ?? "上一張";
@@ -148,8 +160,15 @@ export function PublicHeroMarquee({
         >
           <div
             className={cn(
-              "relative w-full aspect-[3/1] min-h-[140px] sm:min-h-[180px] max-h-[44vh]",
-              fullBleed && "min-h-[200px] sm:min-h-[280px] lg:min-h-[340px] max-h-[54vh]"
+              "relative w-full",
+              compactOnDesktop
+                ? "h-36 sm:h-64"
+                : compactOnMobile
+                  ? "h-36 sm:h-auto sm:aspect-[3/1] sm:min-h-[180px] sm:max-h-[44vh]"
+                  : "aspect-[3/1] min-h-[140px] sm:min-h-[180px] max-h-[44vh]",
+              !compactOnDesktop && fullBleed && (compactOnMobile
+                ? "sm:min-h-[280px] lg:min-h-[340px] sm:max-h-[54vh]"
+                : "min-h-[200px] sm:min-h-[280px] lg:min-h-[340px] max-h-[54vh]")
             )}
           >
             {safeSlides.map((slide, index) =>
@@ -276,22 +295,22 @@ export function PublicHeroMarquee({
                 </button>
               </div>
 
-              <div className="absolute bottom-2 left-1/2 z-30 flex -translate-x-1/2 items-center gap-1.5">
+              <div className="absolute bottom-3 right-3 z-30 flex items-center gap-0.5 rounded-full border border-white/15 bg-black/35 px-1.5 py-1 shadow-sm backdrop-blur-md">
                 {safeSlides.map((slide, index) => (
                   <button
                     key={`dot-${slide.id || index}`}
                     type="button"
                     className={cn(
-                      "inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-white/20",
-                      activeIndex === index ? "bg-white/15" : "bg-transparent"
+                      "inline-flex h-7 min-w-7 items-center justify-center rounded-full transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80",
+                      activeIndex === index ? "bg-white/10" : "bg-transparent"
                     )}
                     onClick={() => goTo(index)}
                     aria-label={jumpToLabel(index)}
                   >
                     <span
                       className={cn(
-                        "h-1.5 rounded-full bg-white/80 transition-all",
-                        activeIndex === index ? "w-5" : "w-2.5 opacity-60"
+                        "h-1.5 rounded-full transition-all duration-300",
+                        activeIndex === index ? "w-4 bg-white" : "w-1.5 bg-white/55"
                       )}
                     />
                   </button>

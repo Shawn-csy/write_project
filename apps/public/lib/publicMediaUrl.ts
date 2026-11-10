@@ -8,7 +8,8 @@
  *   the CDN cache cannot be fragmented by arbitrary values.
  */
 
-export const PUBLIC_MEDIA_WIDTHS = [240, 360, 480, 720, 960] as const;
+export const PUBLIC_MEDIA_WIDTHS = [48, 96, 240, 360, 480, 720, 960] as const;
+export type PublicMediaWidth = (typeof PUBLIC_MEDIA_WIDTHS)[number];
 
 const PROXY_PREFIX = "/api/public-media/";
 

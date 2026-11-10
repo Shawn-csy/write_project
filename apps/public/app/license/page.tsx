@@ -10,7 +10,7 @@ import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
 
-export const revalidate = process.env.CF_STATIC_EXPORT === "1" ? false : 3600;
+export const revalidate = 3600;
 
 const webPageJsonLd = createPublicInfoWebPageJsonLd({
   path: "/license",
@@ -36,7 +36,6 @@ export default function LicensePage() {
   return (
     <PublicInfoPageShell
       title="授權說明"
-      description="台本與音聲台本創作授權體系"
       activeKey="license"
       relatedLinks={[
         { href: "/", label: "← 返回台本列表" },

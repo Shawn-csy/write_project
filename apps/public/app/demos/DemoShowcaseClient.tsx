@@ -7,9 +7,15 @@ import { BookOpen, ChevronLeft, ExternalLink, Play, Plus, Search, X } from "luci
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicTopBar } from "@/components/PublicTopBar";
+import { HeroImage } from "@/components/HeroImage";
+import { PublicHeroMarquee, parseBannerSlides, type HeroImageRenderer, type HeroSlide } from "@write/public-ui";
 import { liveApi } from "@/lib/liveApi";
+import { readPublicBundle } from "@/lib/readPublicBundle";
+import { externalEntityHref } from "@/lib/externalEntity";
 import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import { demoArtwork, youtubeThumbnail } from "@/lib/demoArtwork";
+import { demoScriptOrganization } from "@/lib/demoScriptContext";
+import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 
 interface DemoLink {
   id: string;
@@ -39,6 +45,9 @@ interface DemoScriptGroup {
   scriptType: "internal" | "external";
   title: string;
   authorName: string;
+  authorHref?: string;
+  organizationName?: string;
+  organizationHref?: string;
   summary: string;
   coverUrl: string;
   sourceUrl: string;
@@ -47,7 +56,6 @@ interface DemoScriptGroup {
 
 interface SubmissionTarget {
   value: string;
-  type: "internal" | "external";
   title: string;
   authorName: string;
   label: string;
@@ -57,7 +65,15 @@ interface Props {
   initialScripts: PublicScript[];
   initialExternalScripts: ExternalPublicScript[];
   initialPersonas: PublicPersona[];
+  initialOrganizations: PublicOrg[];
   initialSubmissions: PublicDemoSubmission[];
+  initialBannerSlides?: HeroSlide[];
+}
+
+function DemoAuthorName({ group }: { group: DemoScriptGroup }) {
+  return group.authorHref
+    ? <a href={group.authorHref} className="inline-flex min-h-7 items-center text-primary underline underline-offset-2 hover:text-primary/80">{group.authorName}</a>
+    : <span>{group.authorName}</span>;
 }
 
 const VOICE_ACTOR_TAG_PATTERN = /聲演|配音|voice[\s-]?actor/i;
@@ -102,25 +118,11 @@ function parseDemoLinks(value: unknown): DemoLink[] {
   });
 }
 
-function youtubeThumbnail(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
-    const videoId = host === "youtu.be"
-      ? parsed.pathname.split("/").filter(Boolean)[0]
-      : host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com"
-        ? parsed.searchParams.get("v") || parsed.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1]
-        : null;
-    return videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : "";
-  } catch {
-    return "";
-  }
-}
-
 function buildScriptGroups(
   scripts: PublicScript[],
   externalScripts: ExternalPublicScript[],
   submissions: PublicDemoSubmission[],
+  organizations: PublicOrg[],
 ): DemoScriptGroup[] {
   const groups = new Map<string, DemoScriptGroup>();
   const addDemos = (
@@ -136,12 +138,16 @@ function buildScriptGroups(
 
   for (const script of scripts) {
     const key = `internal:${script.id}`;
+    const organization = demoScriptOrganization(script, organizations);
     addDemos(key, {
       key,
       id: script.id,
       scriptType: "internal",
       title: script.title || "未命名台本",
       authorName: script.persona?.displayName || script.owner?.displayName || "",
+      authorHref: script.persona?.id ? `/author/${encodeURIComponent(script.persona.id)}` : undefined,
+      organizationName: organization?.name,
+      organizationHref: organization?.href,
       summary: script.synopsis || "",
       coverUrl: script.coverUrl || "",
       sourceUrl: `/read/${encodeURIComponent(script.id)}`,
@@ -151,12 +157,18 @@ function buildScriptGroups(
   for (const script of externalScripts) {
     if (script.status !== "published") continue;
     const key = `external:${script.id}`;
+    const organization = demoScriptOrganization(script, organizations);
     addDemos(key, {
       key,
       id: script.id,
       scriptType: "external",
-      title: script.title || script.remoteTitle || "外部台本",
+      title: script.title || script.remoteTitle || "未命名台本",
       authorName: script.authorName || "",
+      authorHref: script.authorName ? (script.authorPersonaId
+        ? `/author/${encodeURIComponent(script.authorPersonaId)}`
+        : externalEntityHref("author", script.authorName, script.authorUrl)) : undefined,
+      organizationName: organization?.name,
+      organizationHref: organization?.href,
       summary: script.summary || script.remoteSummary || "",
       coverUrl: script.coverUrlOverride || script.coverUrl || script.remoteCoverUrl || "",
       sourceUrl: script.sourceUrl,
@@ -169,6 +181,9 @@ function buildScriptGroups(
     const key = id ? `${scriptType}:${id}` : `submitted:${submission.id}`;
     const linkedExternalScript = scriptType === "external" ? externalScripts.find((script) => script.id === id) : undefined;
     const linkedInternalScript = scriptType === "internal" ? scripts.find((script) => script.id === id) : undefined;
+    const organization = linkedExternalScript
+      ? demoScriptOrganization(linkedExternalScript, organizations)
+      : linkedInternalScript ? demoScriptOrganization(linkedInternalScript, organizations) : null;
     addDemos(key, {
       key,
       id: id || submission.id,
@@ -177,6 +192,15 @@ function buildScriptGroups(
       authorName: scriptType === "external"
         ? linkedExternalScript?.authorName || ""
         : linkedInternalScript?.persona?.displayName || linkedInternalScript?.owner?.displayName || "",
+      authorHref: scriptType === "external"
+        ? linkedExternalScript?.authorName
+          ? linkedExternalScript.authorPersonaId
+            ? `/author/${encodeURIComponent(linkedExternalScript.authorPersonaId)}`
+            : externalEntityHref("author", linkedExternalScript.authorName, linkedExternalScript.authorUrl)
+          : undefined
+        : linkedInternalScript?.persona?.id ? `/author/${encodeURIComponent(linkedInternalScript.persona.id)}` : undefined,
+      organizationName: organization?.name,
+      organizationHref: organization?.href,
       summary: scriptType === "external"
         ? linkedExternalScript?.summary || linkedExternalScript?.remoteSummary || ""
         : linkedInternalScript?.synopsis || "",
@@ -224,21 +248,20 @@ function demoCastNames(demo: DemoLink): string[] {
   return [...demo.manualVoiceActors.map((actor) => actor.name.trim()), ...demoLegacyCastNames(demo)].filter(Boolean);
 }
 
-function demoPlatform(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./i, "");
-  } catch {
-    return "外部連結";
-  }
-}
+const demoHeroImageRenderer: HeroImageRenderer = (image, slide, index) => (
+  <HeroImage image={{ ...image, backgroundMode: "blur-fill" }} priority={index === 0} slideTitle={slide.title} />
+);
 
-export function DemoShowcaseClient({ initialScripts, initialExternalScripts, initialPersonas, initialSubmissions }: Props) {
+export function DemoShowcaseClient({ initialScripts, initialExternalScripts, initialPersonas, initialOrganizations, initialSubmissions, initialBannerSlides }: Props) {
   const [scripts, setScripts] = useState(initialScripts);
   const [externalScripts, setExternalScripts] = useState(initialExternalScripts);
   const [personas, setPersonas] = useState(initialPersonas);
+  const [organizations, setOrganizations] = useState(initialOrganizations);
   const [submissions, setSubmissions] = useState(initialSubmissions);
+  const [bannerSlides, setBannerSlides] = useState<HeroSlide[]>(initialBannerSlides || []);
   const [liveBundleLoaded, setLiveBundleLoaded] = useState(false);
   const [query, setQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(24);
   const [selectedScriptKey, setSelectedScriptKey] = useState("");
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
   const [target, setTarget] = useState("");
@@ -261,25 +284,30 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
 
   useEffect(() => {
     let active = true;
-    void liveApi.readJson<{
+    void readPublicBundle<{
       scripts?: PublicScript[];
       externalPublicScripts?: ExternalPublicScript[];
       personas?: PublicPersona[];
+      organizations?: PublicOrg[];
       demoSubmissions?: PublicDemoSubmission[];
-    }>("/api/public-bundle", { cache: "no-store" })
+      demoBanner?: unknown;
+    }>(["scripts", "externalPublicScripts", "personas", "organizations", "demoSubmissions", "demoBanner"])
       .then(({ data: bundle }) => {
         if (!active) return;
         if (Array.isArray(bundle.scripts)) setScripts(bundle.scripts);
         if (Array.isArray(bundle.externalPublicScripts)) setExternalScripts(bundle.externalPublicScripts);
         if (Array.isArray(bundle.personas)) setPersonas(bundle.personas);
+        if (Array.isArray(bundle.organizations)) setOrganizations(bundle.organizations);
         if (Array.isArray(bundle.demoSubmissions)) setSubmissions(bundle.demoSubmissions);
+        const slides = parseBannerSlides(bundle.demoBanner);
+        if (slides) setBannerSlides(slides);
         setLiveBundleLoaded(true);
       })
       .catch(() => { if (active) setLiveBundleLoaded(true); });
     return () => { active = false; };
   }, []);
 
-  const scriptGroups = useMemo(() => buildScriptGroups(scripts, externalScripts, submissions), [scripts, externalScripts, submissions]);
+  const scriptGroups = useMemo(() => buildScriptGroups(scripts, externalScripts, submissions, organizations), [scripts, externalScripts, submissions, organizations]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visibleGroups = useMemo(() => normalizedQuery
     ? scriptGroups.filter((group) => [
@@ -320,12 +348,12 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
     ...scripts.map((script) => {
       const title = script.title || "未命名台本";
       const authorName = script.persona?.displayName || script.owner?.displayName || "";
-      return { value: `internal:${script.id}`, type: "internal" as const, title, authorName, label: `本站｜${title}` };
+      return { value: `internal:${script.id}`, title, authorName, label: title };
     }),
     ...externalScripts.filter((script) => script.status === "published").map((script) => {
-      const title = script.title || script.remoteTitle || "外部台本";
+      const title = script.title || script.remoteTitle || "未命名台本";
       const authorName = script.authorName || "";
-      return { value: `external:${script.id}`, type: "external" as const, title, authorName, label: `外部｜${title}` };
+      return { value: `external:${script.id}`, title, authorName, label: title };
     }),
   ], [scripts, externalScripts]);
   const selectedTarget = submissionTargets.find((option) => option.value === target);
@@ -344,6 +372,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
     url.searchParams.set("script", key);
     window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
     setSelectedScriptKey(key);
+    window.requestAnimationFrame(() => document.querySelector("main")?.scrollIntoView({ block: "start" }));
   };
 
   const returnToScriptList = () => {
@@ -351,6 +380,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
     url.searchParams.delete("script");
     window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
     setSelectedScriptKey("");
+    window.requestAnimationFrame(() => document.querySelector("main")?.scrollIntoView({ block: "start" }));
   };
 
   const handleDemoSubmission = async (event: FormEvent<HTMLFormElement>) => {
@@ -434,14 +464,8 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PublicTopBar
-        activeTab="demos"
-        tabs={[
-          { key: "authors", label: "作者", href: "/?view=authors" },
-          { key: "voice-actors", label: "聲演", href: "/voice-actors" },
-          { key: "demos", label: "Demo 專區", href: "/demos" },
-        ]}
-      />
+      <PublicTopBar activeTab="demos" />
+      <PublicHeroMarquee slides={bannerSlides} fullBleed compactOnMobile compactOnDesktop renderImage={demoHeroImageRenderer} labels={{ region: "Demo 頁廣告" }} />
       {submitMessage && (
         <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 z-[60] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-emerald-700/25 bg-background px-4 py-3 text-sm text-foreground shadow-xl sm:left-auto sm:right-6">
           <span className="min-w-0 flex-1">{submitMessage}</span>
@@ -450,33 +474,30 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
           </button>
         </div>
       )}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col gap-4 border-b border-border/50 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 pb-4 sm:mb-6 sm:flex sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
           {selectedGroup ? (
             <div className="flex min-w-0 items-start gap-3">
               <button type="button" onClick={returnToScriptList} className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md border border-border/70 px-2.5 py-2 text-sm hover:bg-muted/60" aria-label="返回台本清單">
                 <ChevronLeft className="h-4 w-4" aria-hidden />台本清單
               </button>
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">Demo 專區</p>
                 <h1 className="mt-1 line-clamp-2 font-serif text-2xl font-bold sm:text-3xl">{selectedGroup.title}</h1>
-                          {selectedGroup.authorName && <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：{selectedGroup.authorName}</span><span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">聲演</span>}</p>}
+                          {selectedGroup.authorName && <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-full bg-muted px-2 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-2 py-0.5 [font-size:var(--public-font-caption)] text-primary">聲演</span>}</p>}
               </div>
             </div>
           ) : (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">演出與試聽</p>
-              <h1 className="mt-1 font-serif text-3xl font-bold">Demo 專區</h1>
-              <p className="mt-2 text-sm text-muted-foreground">選一部台本，查看對應的演出與錄音。</p>
+              <h1 className="font-serif text-2xl font-bold sm:text-3xl">Demo</h1>
             </div>
           )}
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:max-w-xl sm:flex-row sm:items-center">
+          <div className="contents sm:flex sm:w-auto sm:max-w-xl sm:items-center sm:gap-2">
             {!selectedGroup && (
-              <label className="relative block min-w-0 flex-1 sm:w-80">
+              <label className="relative order-3 col-span-2 block min-w-0 sm:order-none sm:w-80 sm:flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <input
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => { setQuery(event.target.value); setVisibleCount(24); }}
                   className="h-11 w-full rounded-lg border border-border/70 bg-card pl-9 pr-3 sm:h-10 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
                   placeholder="搜尋台本或台本師"
                   aria-label="搜尋台本或台本師"
@@ -485,7 +506,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
             )}
             <Dialog.Root open={showSubmissionForm} onOpenChange={setShowSubmissionForm}>
               <Dialog.Trigger asChild>
-                <button type="button" className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-10">
+                <button type="button" className="order-2 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:order-none sm:px-5 sm:text-sm">
                   <Plus className="h-4 w-4" aria-hidden />投稿 Demo
                 </button>
               </Dialog.Trigger>
@@ -536,7 +557,6 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                                   <span className="block truncate text-sm">{option.title}</span>
                       {option.authorName && <span className="block truncate text-xs text-muted-foreground">台本師：{option.authorName}</span>}
                                 </span>
-                                <span className="shrink-0 text-[10px] text-muted-foreground">{option.type === "external" ? "外部" : "本站"}</span>
                               </button>
                             ))}
                           </div>
@@ -594,7 +614,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                           })}
                         </div>
                       ) : <p className="px-1 py-2 text-xs text-muted-foreground">目前沒有符合的公開聲演身份；其他演出者可填在下方。</p>}
-                      <p className="mt-2 px-1 text-[11px] text-muted-foreground">名單包含自填聲演身份，或已有公開 Demo 演出紀錄的身份頁。</p>
+                      <p className="mt-2 px-1 [font-size:var(--public-font-caption)] text-muted-foreground">名單包含自填聲演身份，或已有公開 Demo 演出紀錄的身份頁。</p>
                     </div>
 
                     <section className="rounded-lg border border-border/70 bg-card/40 p-3 sm:col-span-2" aria-label="新增名單外聲演">
@@ -715,89 +735,43 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
               secondaryAction={{ label: "投稿 Demo", onClick: () => setShowSubmissionForm(true) }}
             />
           ) : (
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">台本</h2>
-                <span className="text-xs text-muted-foreground">{visibleGroups.length} 部</span>
-              </div>
-              <div className="space-y-3">
-                {visibleGroups.map((group) => {
-                  const demoCoverUrl = group.demos
-                    .map((demo) => youtubeThumbnail(demo.url))
-                    .find(Boolean) || group.coverUrl || "";
+            <section aria-label="Demo 作品">
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+                {visibleGroups.slice(0, visibleCount).map((group) => {
+                  const firstDemo = group.demos[0];
+                  const artwork = demoArtwork(firstDemo.url, firstDemo.coverUrl, group.coverUrl);
+                  const actors = demoActors(firstDemo, voiceActorById);
+                  const names = [...new Set([...actors.map((actor) => actor.displayName.trim()), ...demoCastNames(firstDemo)])];
+                  const actorHrefs = new Map(actors.map((actor) => [actor.displayName.trim(), actor.externalHref || `/author/${encodeURIComponent(actor.id)}`]));
+                  firstDemo.manualVoiceActors.forEach((actor) => {
+                    const href = actor.personaId ? `/author/${encodeURIComponent(actor.personaId)}` : actor.socialUrl;
+                    if (href) actorHrefs.set(actor.name.trim(), href);
+                  });
+                  const cardTitle = group.demos.find((demo) => demo.name.includes("｜") && /PV|試聽/.test(demo.name))?.name || group.title;
                   return (
-                    <article key={group.key} className="grid min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card/40 lg:grid-cols-[minmax(17rem,0.34fr)_minmax(0,0.66fr)]">
-                      <div className="grid min-h-28 min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] border-b border-border/70 lg:min-h-0 lg:grid-cols-[minmax(7rem,0.36fr)_minmax(0,0.64fr)] lg:border-b-0 lg:border-r">
-                        <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」`} className="group relative min-h-full overflow-hidden bg-muted/40 text-left">
-                          <BookOpen className="absolute inset-0 m-auto h-7 w-7 text-muted-foreground/50" aria-hidden />
-                          {demoCoverUrl && <PublicImage src={demoCoverUrl} alt={group.coverUrl ? `${group.title}封面` : `${group.title} YouTube Demo 封面`} preset="script-cover" className="transition-transform duration-300 group-hover:scale-[1.03]" />}
-                        </button>
-                        <div className="flex min-w-0 flex-col justify-center p-3 sm:p-4">
-                          <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] text-muted-foreground">{group.scriptType === "external" ? "外部台本" : "本站台本"}</span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">{group.demos.length} 筆 Demo</span>
-                          </div>
-                          <button type="button" onClick={() => openScript(group.key)} className="line-clamp-2 text-left text-sm font-semibold leading-snug hover:text-primary">{group.title}</button>
-                          {group.authorName && <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground"><span className="truncate">台本師：{group.authorName}</span><span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px]">台本師</span>{voiceActorNames.has(group.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] text-primary">聲演</span>}</span>}
-                          <button type="button" onClick={() => openScript(group.key)} className="mt-2 inline-flex min-h-8 w-fit items-center gap-1 text-[11px] font-semibold text-primary">台本資訊 <ExternalLink className="h-3 w-3" aria-hidden /></button>
+                    <article key={group.key} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-card/40 transition-colors hover:border-primary/40">
+                      <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className="group relative aspect-video overflow-hidden bg-muted/40 text-left">
+                        <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
+                        {artwork && <PublicImage src={artwork} alt={`${cardTitle}演出圖片`} preset="script-cover" className="transition-transform duration-300 group-hover:scale-[1.03]" />}
+                        {group.demos.length > 1 && <span className="absolute bottom-1.5 left-1.5 right-1.5 rounded-md bg-black/75 px-1 py-1 text-center [font-size:var(--public-font-caption)] text-white sm:bottom-2 sm:left-auto sm:right-2 sm:px-2 sm:text-xs">多個版本</span>}
+                      </button>
+                      <div className="flex min-w-0 flex-1 flex-col p-2.5 sm:p-4">
+                        <button type="button" onClick={() => openScript(group.key)} className="line-clamp-2 text-left text-xs font-semibold leading-5 hover:text-primary sm:min-h-10 sm:text-sm">{cardTitle}</button>
+                        {group.authorName && <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><span className="shrink-0">台本師：</span><span className="min-w-0 truncate"><DemoAuthorName group={group} /></span></p>}
+                        {group.organizationName && group.organizationHref && <p className="mt-1 truncate text-xs text-muted-foreground">組織：<a href={group.organizationHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{group.organizationName}</a></p>}
+                        {names.length > 0 && <p className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1 text-xs text-muted-foreground"><span>聲演：</span>{names.map((name, index) => {
+                          const href = actorHrefs.get(name);
+                          return <span key={`${name}-${index}`} className="inline-flex items-center whitespace-nowrap rounded-md bg-muted/40 px-1.5">{href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex min-h-7 items-center text-primary underline underline-offset-2 hover:text-primary/80">{name}</a> : <span>{name}</span>}</span>;
+                        })}</p>}
+                        <div className="mt-auto hidden pt-3 sm:block">
+                          <button type="button" onClick={() => openScript(group.key)} className="inline-flex min-h-9 items-center rounded-md bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20">{group.demos.length > 1 ? "查看演出版本" : "查看演出"}</button>
                         </div>
                       </div>
-
-                      <section aria-label={`${group.title}的演出版本`} className="min-w-0">
-                        <div className="flex min-h-9 items-center justify-between gap-2 border-b border-border/70 px-3">
-                          <h3 className="text-xs font-semibold">演出與試聽</h3>
-                          <span className="text-[10px] text-muted-foreground">{group.demos.length} 筆 Demo</span>
-                        </div>
-                        <div className="divide-y divide-border/60" aria-label="Demo 清單">
-                          {group.demos.map((demo, index) => {
-                            const actors = demoActors(demo, voiceActorById);
-                            const names = [...new Set([...actors.map((actor) => actor.displayName.trim()), ...demoCastNames(demo)])];
-                            const actorHrefs = new Map<string, string>();
-                            actors.forEach((actor) => actorHrefs.set(actor.displayName.trim(), actor.externalHref || `/author/${encodeURIComponent(actor.id)}`));
-                            demo.manualVoiceActors.forEach((actor) => {
-                              const href = actor.personaId ? `/author/${encodeURIComponent(actor.personaId)}` : actor.socialUrl;
-                              if (href) actorHrefs.set(actor.name.trim(), href);
-                            });
-                            const demoTitle = demo.name && !GENERIC_DEMO_NAME_PATTERN.test(demo.name)
-                              ? demo.name
-                              : `演出版本 ${index + 1}`;
-                            const previewImage = youtubeThumbnail(demo.url) || demo.coverUrl;
-                            return (
-                              <div key={`${demo.id}-${index}`} className="grid min-h-[4.25rem] grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 hover:bg-muted/50 sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
-                                <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`播放 ${demoTitle}`} className="relative aspect-video overflow-hidden rounded-md bg-muted/70">
-                                  {previewImage ? <PublicImage src={previewImage} alt={`${demoTitle}預覽`} preset="thumbnail" /> : <Play className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground" aria-hidden />}
-                                </a>
-                                <span className="min-w-0 flex-1">
-                                  <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`開啟 ${demoTitle} 的 Demo`} className="block truncate text-xs font-medium leading-5 hover:text-primary">{demoTitle}</a>
-                                  <span className="flex min-w-0 items-center gap-1 truncate text-[10px] leading-4 text-muted-foreground">
-                                    <span className="shrink-0">聲演：</span>
-                                    {names.length > 0 ? names.map((name, nameIndex) => {
-                                      const href = actorHrefs.get(name);
-                                      const alsoAuthor = Boolean(group.authorName && name.toLocaleLowerCase() === group.authorName.trim().toLocaleLowerCase());
-                                      return (
-                                        <span key={`${name}-${nameIndex}`} className="inline-flex min-w-0 items-center gap-0.5">
-                                          {nameIndex > 0 && <span aria-hidden>、</span>}
-                                          {href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="truncate underline-offset-2 hover:text-primary hover:underline">{name}</a> : <span className="truncate">{name}</span>}
-                                          {alsoAuthor && <span className="shrink-0 rounded bg-primary/10 px-1 text-[9px] text-primary">台本師</span>}
-                                        </span>
-                                      );
-                                    }) : <span>資料未標示</span>}
-                                    {demo.voiceTypes.map((type) => <span key={type} className="ml-1 shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[9px]">{type === "male" ? "男聲演" : "女聲演"}</span>)}
-                                    <span className="ml-1 shrink-0">· {demoPlatform(demo.url)}</span>
-                                  </span>
-                                </span>
-                                <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`試聽 ${demoTitle}`} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 text-[10px] font-semibold text-primary hover:bg-primary/15">
-                                  <Play className="h-3 w-3 fill-current" aria-hidden />試聽
-                                </a>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </section>
                     </article>
                   );
                 })}
               </div>
+              {visibleGroups.length > visibleCount && <div className="mt-6 flex justify-center"><button type="button" onClick={() => setVisibleCount((count) => count + 24)} className="rounded-lg border border-border/70 px-5 py-2 text-sm hover:bg-muted/60">顯示更多</button></div>}
             </section>
           )
         ) : (
@@ -809,11 +783,8 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                   {selectedGroupCoverUrl && <PublicImage src={selectedGroupCoverUrl} alt={`${selectedGroup.title}封面`} preset="script-cover" />}
                 </div>
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] text-muted-foreground">{selectedGroup.scriptType === "external" ? "外部台本" : "本站台本"}</span>
-                    <span className="text-xs text-muted-foreground">{selectedGroup.demos.length} 筆公開 Demo</span>
-                  </div>
-                  {selectedGroup.authorName && <p className="mt-3 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：{selectedGroup.authorName}</span><span className="rounded-full bg-muted px-2 py-0.5 text-[10px]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] text-primary">聲演</span>}</p>}
+                  {selectedGroup.authorName && <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-full bg-muted px-2 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-2 py-0.5 [font-size:var(--public-font-caption)] text-primary">聲演</span>}</p>}
+                  {selectedGroup.organizationName && selectedGroup.organizationHref && <p className="mt-1 text-sm text-muted-foreground">組織：<a href={selectedGroup.organizationHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{selectedGroup.organizationName}</a></p>}
                   {selectedGroup.summary && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{selectedGroup.summary}</p>}
                   <a href={selectedGroup.sourceUrl} target={selectedGroup.scriptType === "external" ? "_blank" : undefined} rel={selectedGroup.scriptType === "external" ? "noopener noreferrer" : undefined} className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border/70 px-3 py-2 text-xs font-medium hover:bg-muted/60">
                     <BookOpen className="h-3.5 w-3.5" aria-hidden />{selectedGroup.scriptType === "external" ? "閱讀原台本" : "閱讀台本"}<ExternalLink className="h-3 w-3" aria-hidden />
@@ -825,11 +796,12 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
             <section>
               <div className="mb-3 flex items-baseline justify-between gap-3">
                 <h2 className="text-base font-semibold">演出與試聽</h2>
-                <span className="text-xs text-muted-foreground">{selectedGroup.demos.length} 筆</span>
               </div>
               <div className={selectedGroup.demos.length > 1 ? "grid gap-4 md:grid-cols-2" : "space-y-4"}>
                 {selectedGroup.demos.map((demo, index) => {
                   const actors = demo.voiceActorIds.map((id) => voiceActorById.get(id)).filter((persona): persona is PublicPersona => Boolean(persona));
+                  const namedActors = new Set([...actors.map((actor) => actor.displayName), ...demo.manualVoiceActors.map((actor) => actor.name)].map((name) => name.trim().toLocaleLowerCase()));
+                  const legacyCastNames = [...new Set(demoLegacyCastNames(demo))].filter((name) => !namedActors.has(name.toLocaleLowerCase()));
                   const artwork = youtubeThumbnail(demo.url) || selectedGroup.coverUrl || demo.coverUrl;
                   const singleDemo = selectedGroup.demos.length === 1;
                   return (
@@ -837,7 +809,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                       <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`開啟 ${demo.name || "演出 Demo"}`} className={`group relative block overflow-hidden bg-muted/40 ${singleDemo ? "aspect-video sm:aspect-auto sm:min-h-64" : "aspect-video"}`}>
                         <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
                         {artwork && <PublicImage src={artwork} alt={`${demo.name || "演出 Demo"}封面`} preset="script-cover" className="transition-transform duration-300 group-hover:scale-[1.03]" />}
-                        <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 text-[10px] font-semibold text-white">播放連結 <ExternalLink className="h-3 w-3" aria-hidden /></span>
+                        <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 [font-size:var(--public-font-caption)] font-semibold text-white">播放連結 <ExternalLink className="h-3 w-3" aria-hidden /></span>
                       </a>
                       <div className="flex min-w-0 flex-col p-4">
                         <h3 className="text-base font-semibold">{demo.name || "演出 Demo"}</h3>
@@ -846,11 +818,11 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                             {actors.map((persona) => (
                               <a key={persona.id} href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 py-1 pl-1 pr-3 text-xs hover:border-primary/40 hover:text-primary">
                                 <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-muted">
-                                  {persona.avatar ? <PublicImage src={persona.avatar} alt="" preset="avatar" sizes="28px" /> : <span className="flex h-full items-center justify-center text-[10px]">{persona.displayName.slice(0, 1)}</span>}
+                                  {persona.avatar ? <PublicImage src={persona.avatar} alt="" preset="avatar" sizes="28px" /> : <span className="flex h-full items-center justify-center [font-size:var(--public-font-caption)]">{persona.displayName.slice(0, 1)}</span>}
                                 </span>
                                 <span>
                                   <span className="block font-medium">{persona.displayName}</span>
-                                  <span className="block text-[10px] text-muted-foreground">{(persona.tags || []).find((tag) => VOICE_ACTOR_TAG_PATTERN.test(tag)) || "聲演"}</span>
+                                  <span className="block [font-size:var(--public-font-caption)] text-muted-foreground">{(persona.tags || []).find((tag) => VOICE_ACTOR_TAG_PATTERN.test(tag)) || "聲演"}</span>
                                 </span>
                               </a>
                             ))}
@@ -869,7 +841,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                             </div>
                           </div>
                         )}
-                        {demoLegacyCastNames(demo).length > 0 && <p className="mt-2 text-xs text-muted-foreground">聲演：{demoLegacyCastNames(demo).join("、")}</p>}
+                        {legacyCastNames.length > 0 && <p className="mt-2 text-xs text-muted-foreground">聲演：{legacyCastNames.join("、")}</p>}
                         {demo.voiceTypes.length > 0 && <p className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">聲演聲線：{demo.voiceTypes.map((type) => <span key={type} className="rounded-full bg-muted px-2 py-0.5">{type === "male" ? "男聲演" : "女聲演"}</span>)}</p>}
                         {demo.description && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{demo.description}</p>}
                         <a href={demo.url} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-md bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/20">

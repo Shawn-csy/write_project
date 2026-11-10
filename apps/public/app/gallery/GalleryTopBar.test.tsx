@@ -31,25 +31,21 @@ vi.mock("@/components/PublicInfoMenu", () => ({
 }));
 
 describe("GalleryTopBar", () => {
-  it("renders tabs and dispatches tab changes", () => {
-    const onTabChange = vi.fn();
+  it("links to the author route like the other sections", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={onTabChange}
         onOpenMobileFilter={() => {}}
       />
     );
 
-    fireEvent.click(screen.getAllByRole("button", { name: "作者" })[0]);
-    expect(onTabChange).toHaveBeenCalledWith("authors");
+    expect(screen.getAllByRole("link", { name: "作者" }).map((link) => link.getAttribute("href"))).toEqual(["/authors", "/authors"]);
   });
 
   it("tabs are inline (no hamburger)", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -57,15 +53,14 @@ describe("GalleryTopBar", () => {
     // No hamburger
     expect(screen.queryByRole("button", { name: "開啟導航" })).toBeNull();
     // Tabs visible inline
-    expect(screen.getAllByRole("link", { name: "Demo 專區" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "作者" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Demo" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "作者" }).length).toBeGreaterThan(0);
   });
 
   it("does not render a duplicate top-level filter trigger", () => {
     const { rerender } = render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
       />
     );
 
@@ -74,7 +69,6 @@ describe("GalleryTopBar", () => {
     rerender(
       <GalleryTopBar
         activeTab="authors"
-        onTabChange={() => {}}
       />
     );
     expect(screen.queryByRole("button", { name: "開啟篩選" })).toBeNull();
@@ -84,7 +78,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -98,7 +91,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -109,11 +101,18 @@ describe("GalleryTopBar", () => {
     expect(screen.getByRole("dialog", { name: "更多選項" })).toBeTruthy();
   });
 
+  it("closes the mobile sheet when a section is selected", () => {
+    render(<GalleryTopBar activeTab="authors" />);
+    fireEvent.click(screen.getByRole("button", { name: "更多選項" }));
+    const sheet = screen.getByRole("dialog", { name: "更多選項" });
+    fireEvent.click(sheet.querySelector('a[href="/demos"]')!);
+    expect(screen.queryByRole("dialog", { name: "更多選項" })).toBeNull();
+  });
+
   it("more sheet has studio CTA to /dashboard", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -127,7 +126,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -144,7 +142,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -159,7 +156,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -178,7 +174,6 @@ describe("GalleryTopBar", () => {
     const { unmount } = render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -195,7 +190,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -219,7 +213,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );
@@ -243,7 +236,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
       />
     );
 
@@ -254,7 +246,6 @@ describe("GalleryTopBar", () => {
     render(
       <GalleryTopBar
         activeTab="scripts"
-        onTabChange={() => {}}
         onOpenMobileFilter={() => {}}
       />
     );

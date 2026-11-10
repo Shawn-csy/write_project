@@ -40,10 +40,11 @@ interface PublisherDashboardStateProps {
   setSidebarOpen?: (open: boolean) => void;
   openMobileMenu?: () => void;
   mode?: "studio" | "community";
+  enabled?: boolean;
 }
 
 export function usePublisherDashboardState(props: PublisherDashboardStateProps) {
-  const { isSidebarOpen, setSidebarOpen, openMobileMenu, mode = "studio" } = props;
+  const { isSidebarOpen, setSidebarOpen, openMobileMenu, mode = "studio", enabled = true } = props;
   const { t } = useI18n();
   const { currentUser, profile: currentProfile } = useAuth();
   const navigate = useNavigate();
@@ -282,12 +283,12 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
   }, [currentUser, loadBootstrap]);
 
   useEffect(() => {
-    if (!currentUser || bootstrapRequestedRef.current) return;
+    if (!enabled || !currentUser || bootstrapRequestedRef.current) return;
     loadBootstrap();
-  }, [currentUser, loadBootstrap]);
+  }, [enabled, currentUser, loadBootstrap]);
 
   useEffect(() => {
-    if (!currentUser || !bootstrapRequestedRef.current) return;
+    if (!enabled || !currentUser || !bootstrapRequestedRef.current) return;
     let cancelled = false;
     const timerId = window.setTimeout(() => {
       if (!cancelled) loadWorks(false, 0);
@@ -296,7 +297,7 @@ export function usePublisherDashboardState(props: PublisherDashboardStateProps) 
       cancelled = true;
       window.clearTimeout(timerId);
     };
-  }, [currentUser, loadWorks, worksQuery]);
+  }, [enabled, currentUser, loadWorks, worksQuery]);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(location.search || "").get("tab");

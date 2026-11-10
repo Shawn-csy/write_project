@@ -17,6 +17,8 @@ describe("activityDemoLinks", () => {
         name: "第一集",
         url: "https://example.com/1",
         cast: "A",
+        voiceActorIds: [],
+        voiceTypes: [],
         description: "desc",
       },
     ]);
@@ -37,7 +39,7 @@ describe("activityDemoLinks", () => {
       { id: "x1", name: "試聽A", url: "https://example.com/a", cast: "配音A", description: "說明A" },
     ]);
     expect(serializeActivityDemoLinks(raw)).toBe(
-      JSON.stringify([{ name: "試聽A", url: "https://example.com/a", cast: "配音A", description: "說明A" }])
+      JSON.stringify([{ name: "試聽A", url: "https://example.com/a", cast: "配音A", voiceActorIds: [], voiceTypes: [], description: "說明A" }])
     );
   });
 });

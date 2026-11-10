@@ -10,7 +10,7 @@ import {
   toChapterNavModel,
 } from "@write/public-ui";
 import type { ChapterNavModel } from "@write/public-ui";
-import { liveApi } from "@/lib/liveApi";
+import { readPublicBundle } from "@/lib/readPublicBundle";
 
 // Re-export so SeriesChapterNavigation can import from one place
 export type { ChapterNavItem, ChapterNavModel } from "@write/public-ui";
@@ -31,9 +31,8 @@ export function useSeriesChapterNav(
     setNav(null);
     if (!seriesName) return;
 
-    liveApi.read("/api/public-bundle")
-      .then(({ response: r }) => (r.ok ? r.json() : null))
-      .then((data) => {
+    readPublicBundle<{ scripts?: PublicScript[] }>(["scripts"])
+      .then(({ data }) => {
         const rawScripts = (data?.scripts ?? []) as PublicScript[];
         const enriched = rawScripts.map((s) => enrichScript(toGalleryInput(s)));
         const entries = groupScriptsIntoGalleryEntries(enriched);

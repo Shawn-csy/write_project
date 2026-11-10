@@ -39,7 +39,7 @@ function HeaderVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
             <span className="text-muted-foreground">{positionLabel}</span>
           )}
           {hasNewChapter && (
-            <span className="px-1.5 py-0.5 rounded-[5px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-semibold leading-none shrink-0">
+            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 [font-size:var(--public-font-caption)] font-semibold leading-none shrink-0">
               有新章節
             </span>
           )}
@@ -112,12 +112,12 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
               <span>{seriesName}</span>
             </a>
             {hasNewChapter && (
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none shrink-0">
+              <span className="[font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none shrink-0">
                 有新章節
               </span>
             )}
           </div>
-          <span className="text-[11px] text-muted-foreground">
+          <span className="[font-size:var(--public-font-caption)] text-muted-foreground">
             {positionLabel && `${positionLabel}・`}{totalLabel}
           </span>
         </div>
@@ -125,7 +125,7 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
         {/* Latest hint */}
         {latestChapter && (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-[5px] bg-primary/10 text-primary border border-primary/20 leading-none shrink-0">
+            <span className="[font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 leading-none shrink-0">
               最新
             </span>
             <a
@@ -137,7 +137,7 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
           </div>
         )}
         {isLatest && (
-          <p className="text-[11px] text-primary/70">
+          <p className="[font-size:var(--public-font-caption)] text-primary/70">
             ✓ 你正在閱讀最新章節
           </p>
         )}

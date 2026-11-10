@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { ExternalPublicScript, PublicScript } from "@/lib/types";
 import { PublicImage } from "@/components/PublicImage";
 import { externalEntityHref } from "@/lib/externalEntity";
+import { formatPublicYear } from "@write/public-ui/public-date";
 
 interface SeriesMeta {
   name?: string;
@@ -39,7 +40,7 @@ function formatDate(value: number | string | null | undefined): string {
   if (diffDays < 7) return `${diffDays} 天前`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)} 週前`;
   if (diffDays < 365) return `${Math.floor(diffDays / 30)} 個月前`;
-  return new Date(ts).getFullYear().toString();
+  return formatPublicYear(ts);
 }
 
 function chapterLabel(order: number | null | undefined): string {
@@ -111,22 +112,22 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
 
   return (
     <main className="min-h-screen bg-background">
-      {/* Atmospheric banner — blurred cover or gradient fallback, same pattern as AuthorPageClient */}
-      <div className="relative h-48 overflow-hidden bg-gradient-to-r from-slate-900 to-slate-700">
-        {hasCover && (
+      {/* Show atmospheric artwork only when this series has a cover. */}
+      {hasCover && (
+        <div className="relative h-48 overflow-hidden bg-muted">
           <PublicImage
             src={seriesMeta!.coverUrl!}
             alt=""
             preset="hero-banner"
             className="scale-110 blur-xl opacity-60"
           />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-      </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        </div>
+      )}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
-        {/* Header card — overlaps banner, same -mt pattern as AuthorPageClient */}
-        <div className="relative -mt-16 mb-6 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8">
+        {/* Header card overlaps artwork when present. */}
+        <div className={`relative mb-6 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${hasCover ? "-mt-16" : "mt-6 sm:mt-8"}`}>
           <div className="flex flex-col sm:flex-row items-start gap-6">
             {/* Cover thumbnail */}
             {hasCover && (
@@ -141,7 +142,6 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
             )}
 
             <div className="flex-1 space-y-3 pt-1">
-              <p className="text-xs font-medium text-primary/70 uppercase tracking-widest">系列</p>
               <h1 className="text-3xl sm:text-4xl font-bold font-serif leading-tight">{seriesName}</h1>
 
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -230,14 +230,14 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
                           {chapter.item.title}
                         </span>
                         {isLatest && (
-                          <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
+                          <span className="shrink-0 [font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
                             最新
                           </span>
                         )}
                       </div>
-                      {label && <p className="text-[11px] text-muted-foreground mt-0.5">{label}</p>}
+                      {label && <p className="[font-size:var(--public-font-caption)] text-muted-foreground mt-0.5">{label}</p>}
                     </div>
-                    {dateLabel && <span className="shrink-0 text-[11px] text-muted-foreground/60 hidden sm:block">{dateLabel}</span>}
+                    {dateLabel && <span className="shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground/60 hidden sm:block">{dateLabel}</span>}
                     <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>→</span>
                   </>
                 );

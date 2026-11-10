@@ -124,6 +124,8 @@ describe("WriteTab", () => {
     managerMock.currentPath = "/";
     managerMock.visibleItems = [];
     managerMock.scripts = [];
+    vi.mocked(createScript).mockClear();
+    vi.mocked(getScript).mockClear();
     createScript.mockResolvedValue("s-new");
     getScript.mockResolvedValue({
       id: "s-new",
@@ -150,7 +152,7 @@ describe("WriteTab", () => {
     });
   });
 
-  it("opens import dialog and guide from global actions", async () => {
+  it("opens the import dialog from a global action", async () => {
     render(<WriteTab onSelectScript={vi.fn()} />);
 
     act(() => {
@@ -160,11 +162,14 @@ describe("WriteTab", () => {
       expect(screen.getByTestId("import-dialog")).toHaveTextContent("open");
     });
 
-    act(() => {
-      window.dispatchEvent(new CustomEvent("write-tab-action", { detail: { type: "open-guide" } }));
-    });
-    await waitFor(() => {
-      expect(screen.getByTestId("guide-overlay")).toHaveTextContent("open");
-    });
+  });
+
+  it("handles a creation request after a delayed mount only once", async () => {
+    const onSelectScript = vi.fn();
+    const request = { id: 1, type: "create-script" as const };
+    const { rerender } = render(<WriteTab onSelectScript={onSelectScript} requestedAction={request} />);
+    await waitFor(() => expect(createScript).toHaveBeenCalledTimes(1));
+    rerender(<WriteTab onSelectScript={onSelectScript} requestedAction={request} />);
+    expect(createScript).toHaveBeenCalledTimes(1);
   });
 });

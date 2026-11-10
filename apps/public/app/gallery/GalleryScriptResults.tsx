@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   ScriptGalleryCard,
   SeriesGalleryCard,
@@ -18,15 +19,15 @@ import {
   groupScriptsIntoGalleryEntries,
 } from "@write/public-ui";
 import { GalleryEmptyState } from "./GalleryEmptyState";
-import { PublicImage } from "@/components/PublicImage";
+import { CardCoverPriority, CardMediaImage, CardMediaRegion } from "@/components/CardMediaVisibility";
+import { publicCardAvatarRenderer } from "@/components/PublicCardAvatar";
 import { ExternalPublicScriptCard } from "@/components/ExternalPublicScriptSection";
 import { externalEntityHref } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalCoverSrc } from "@/lib/externalCover";
 
-// The server HTML only needs enough cards to cover the first screens and give
-// crawlers real links; rendering every card there cost ~5 KB each. The rest
-// mount right after hydration, so the first client render matches the server's.
+// Grid and compact views initially render enough cards for the first screens;
+// the horizontal lanes expand as readers scroll each lane.
 export const INITIAL_RENDERED_CARDS = 24;
 
 export function useProgressiveLimit(initial: number): number {
@@ -79,7 +80,7 @@ function externalGalleryInput(item: ExternalPublicScript) {
   const contentTimestamp = item.mountedAt || item.sourceCreatedAt || item.createdAt;
   return enrichScript({
     id: `external:${item.id}`,
-    title: item.title || item.remoteTitle || item.sourceDomain || "外部公開台本",
+    title: item.title || item.remoteTitle || item.sourceDomain || "未命名台本",
     synopsis: item.summary || item.remoteSummary || "",
     coverUrl: externalCoverSrc(item),
     tags: item.categories || [],
@@ -240,7 +241,7 @@ function seededShuffle<T>(items: T[], seed: number): T[] {
  * Defined outside the component to avoid re-creation on every render.
  */
 const galleryCoverImageRenderer: CoverImageRenderer = ({ src, crop, alt, className }) => (
-  <PublicImage
+  <CardMediaImage
     src={src}
     crop={crop}
     alt={alt}
@@ -289,6 +290,7 @@ function CardWithPolicy({
       onAuthorClick={onAuthorClick}
       showAgeGate={policy?.showGateIndicator ?? false}
       coverImageRenderer={galleryCoverImageRenderer}
+      avatarImageRenderer={publicCardAvatarRenderer}
     />
   );
 }
@@ -310,9 +312,6 @@ export function GalleryScriptResults({
   );
   const renderLimit = useProgressiveLimit(INITIAL_RENDERED_CARDS);
   const [randomSeed, setRandomSeed] = useState(0.314159);
-  useEffect(() => {
-    setRandomSeed(Math.random());
-  }, [mergedEntries]);
   const randomEntries = useMemo(
     () => seededShuffle(mergedEntries, randomSeed).slice(0, Math.min(8, mergedEntries.length)),
     [mergedEntries, randomSeed]
@@ -479,22 +478,30 @@ export function GalleryScriptResults({
   return (
     <div className="space-y-8 sm:space-y-9">
       {randomEntries.length > 0 && (
-        <HorizontalScrollLane key="random" title="隨機推薦" actionLabel="換一批" onAction={() => setRandomSeed(Math.random())}>
-          {randomEntries.map((entry) => (
-            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
+        <HorizontalScrollLane
+          key="random"
+          title="隨機推薦"
+          actionLabel={<><span className="sr-only sm:hidden">換一批</span><span className="hidden sm:inline">換一批</span><RefreshCw className="h-3.5 w-3.5 sm:hidden" aria-hidden /></>}
+          onAction={() => setRandomSeed(Math.random())}
+        >
+          {randomEntries.map((entry, index) => (
+            <CardCoverPriority key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} eager={index < 3}>
+            <div className={CARD_WIDTH}>
               {entry.kind === "external"
                 ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
                 : entry.kind === "external-series"
                   ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
                   : renderGalleryEntry(entry.entry, cardRenderOptions)}
             </div>
+            </CardCoverPriority>
           ))}
         </HorizontalScrollLane>
       )}
       {lanes.ordered.map((lane, laneIndex) =>
         lane.entries.length > 0 || (laneIndex === 0 && externalItems.length > 0) ? (
+          <CardMediaRegion key={lane.id} defer={randomEntries.length > 0 || laneIndex > 0}>
           <HorizontalScrollLane
-            key={lane.id}
+            initialItemCount={8}
             title={
               lane.isActive ? (
                 <span className="font-semibold">{lane.title}</span>
@@ -512,7 +519,7 @@ export function GalleryScriptResults({
               : undefined}
           >
             {laneIndex === 0
-              ? sortMixedEntries(lane.entries, externalItems).slice(0, renderLimit).map((entry) => (
+              ? sortMixedEntries(lane.entries, externalItems).map((entry) => (
                   <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
                     {entry.kind === "external"
                       ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
@@ -523,11 +530,14 @@ export function GalleryScriptResults({
                 ))
               : renderLaneEntries(lane.entries, cardRenderOptions)}
           </HorizontalScrollLane>
+          </CardMediaRegion>
         ) : null
       )}
       {featuredPracticeEntries.length > 0 && (
+        <CardMediaRegion defer={randomEntries.length > 0 || lanes.ordered.some((lane) => lane.entries.length > 0)}>
         <HorizontalScrollLane
           key="featured-student-practice"
+          initialItemCount={8}
           title={(
             <button
               type="button"
@@ -549,6 +559,7 @@ export function GalleryScriptResults({
             </div>
           ))}
         </HorizontalScrollLane>
+        </CardMediaRegion>
       )}
       {(emptyState === "no-public-scripts" || emptyState === "no-data") && (
         <GalleryEmptyState reason={emptyState} />

@@ -3,7 +3,7 @@
 import { useAnimeSegmentIndicator } from "@/lib/motion/useAnimeSegmentIndicator";
 
 const segBtnBase =
-  "relative flex-1 rounded-[5px] py-1.5 text-[0.8rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 z-10";
+  "relative flex-1 rounded-md py-1.5 text-[0.8rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 z-10";
 
 /**
  * Animated sliding pill segmented control.
@@ -39,7 +39,7 @@ export function AnimatedSegment<T extends string>({
       <div
         ref={pillRef}
         aria-hidden
-        className="absolute top-0.5 bottom-0.5 left-0 rounded-[5px] bg-background shadow-sm pointer-events-none"
+        className="absolute top-0.5 bottom-0.5 left-0 rounded-md bg-background shadow-sm pointer-events-none"
         style={{ opacity: 0, width: 0, transformOrigin: "center" }}
       />
       {options.map((opt) => {

@@ -33,7 +33,7 @@ export function GalleryEmptyState({ reason, onResetFilters, className = "" }: Ga
       icon={icon}
       title="目前沒有公開台本"
       description="作者們還在準備中，可以先看看作者與 Demo 專區。"
-      primaryAction={{ label: "瀏覽作者", href: "/?view=authors" }}
+      primaryAction={{ label: "瀏覽作者", href: "/authors" }}
       secondaryAction={{ label: "看看 Demo 專區", href: "/demos" }}
     />
   );

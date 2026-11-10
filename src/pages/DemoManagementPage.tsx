@@ -158,7 +158,7 @@ export default function DemoManagementPage(): React.JSX.Element {
 
   return (
     <StudioPage width="wide">
-      <StudioPageHeader title={t("demoManagement.title")} description={t("demoManagement.description")} actions={(
+      <StudioPageHeader title={t("demoManagement.title")} actions={(
         <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => void load()} disabled={isLoading}>
           {isLoading ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-1.5 h-3.5 w-3.5" />}{t("demoManagement.refresh")}
         </Button>

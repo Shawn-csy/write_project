@@ -6,8 +6,12 @@ import re
 
 
 # These routes are rendered by the authenticated Vite workspace.
-WORKSPACE_EXACT_PATHS = frozenset({"login", "dashboard", "studio", "admin", "community", "superadmin"})
-_WORKSPACE_EDIT_PATH = re.compile(r"^edit/[^/]+$")
+WORKSPACE_EXACT_PATHS = frozenset({
+    "login", "dashboard", "studio", "admin", "community", "superadmin",
+    "works", "works/external", "series", "demos", "settings",
+    "settings/markers", "identity",
+})
+_WORKSPACE_ENTITY_PATH = re.compile(r"^(edit|works)/[^/]+$")
 
 # These public HTML routes are retained only for direct backend compatibility.
 # Production browser traffic is owned by the Next.js public app at nginx.
@@ -23,7 +27,7 @@ def normalize_route_path(full_path: str) -> str:
 def is_workspace_spa_path(full_path: str) -> bool:
     """Return whether a path is a real client-side workspace route."""
     normalized = normalize_route_path(full_path)
-    return normalized in WORKSPACE_EXACT_PATHS or _WORKSPACE_EDIT_PATH.fullmatch(normalized) is not None
+    return normalized in WORKSPACE_EXACT_PATHS or _WORKSPACE_ENTITY_PATH.fullmatch(normalized) is not None
 
 
 def is_legacy_public_html_path(full_path: str) -> bool:

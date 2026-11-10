@@ -62,12 +62,12 @@ export function ReadWorkHeader({ model }: Props) {
         <div className="flex flex-wrap items-center justify-center gap-2 pb-2">
           <a
             href={model.series.href}
-            className="inline-flex h-6 items-center rounded-[5px] border border-border/50 bg-transparent px-2.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+            className="inline-flex h-6 items-center rounded-md border border-border/50 bg-transparent px-2.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
           >
             {model.series.name}
           </a>
           {typeof model.series.order === "number" && (
-            <span className="inline-flex h-6 items-center rounded-[5px] border border-border/40 bg-muted/40 px-2.5 text-xs font-medium text-muted-foreground">
+            <span className="inline-flex h-6 items-center rounded-md border border-border/40 bg-muted/40 px-2.5 text-xs font-medium text-muted-foreground">
               {model.series.order === 0 ? "設定／背景" : `第 ${model.series.order} 部`}
             </span>
           )}

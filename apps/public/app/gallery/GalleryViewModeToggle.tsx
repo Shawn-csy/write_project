@@ -33,7 +33,7 @@ function ModeButton({
       type="button"
       onClick={() => onChange(mode.value)}
       aria-pressed={active}
-      className={`rounded-[6px] font-medium transition-all duration-150 ${
+      className={`rounded-md font-medium transition-all duration-150 ${
         compact
           ? "h-7 px-2.5 text-[0.7rem]"
           : "min-h-[44px] px-3.5 text-[0.75rem]"

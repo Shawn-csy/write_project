@@ -5,15 +5,15 @@ const getAuth = vi.fn(() => ({ currentUser: null }));
 const isSupported = vi.fn(() => Promise.resolve(true));
 const getAnalytics = vi.fn(() => ({ name: "analytics" }));
 
-vi.mock("firebase/app", () => ({
+vi.mock("@firebase/app", () => ({
   initializeApp,
 }));
 
-vi.mock("firebase/auth", () => ({
+vi.mock("@firebase/auth", () => ({
   getAuth,
 }));
 
-vi.mock("firebase/analytics", () => ({
+vi.mock("@firebase/analytics", () => ({
   isSupported,
   getAnalytics,
   logEvent: vi.fn(),
