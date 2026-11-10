@@ -20,7 +20,7 @@ const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === "1";
 
 type Resolved = { kind: "pending" } | { kind: "missing" } | { kind: "read"; id: string } | { kind: "entity"; pathname: string };
 
-const ENTITY_PATH = /^\/(?:author|org|tag|series)\/[^/]+(?:\/[^/]+)?\/?$/;
+const ENTITY_PATH = /^\/(?:author|org|tag|series|resources)\/[^/]+(?:\/[^/]+)?\/?$/;
 
 function resolveLocation(): Resolved {
   const match = window.location.pathname.match(/^\/read\/([^/]+)\/?$/);

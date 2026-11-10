@@ -201,3 +201,138 @@ def review_resource_profile(submission_id: str, payload: schemas.ProductionResou
     db.commit()
     public_bundle.invalidate_public_bundle_cache()
     return _record(row, _resources(db))
+
+
+def _new_resource_record(row: models.ProductionResourceSubmission) -> schemas.ProductionResourceSubmissionRecord:
+    return schemas.ProductionResourceSubmissionRecord(
+        id=row.id, submitterName=row.submitterName, contactEmail=row.contactEmail,
+        profile=row.profile or {}, status=row.status, reviewNote=row.reviewNote or "",
+        publishedId=row.publishedId, reviewedAt=row.reviewedAt, createdAt=row.createdAt,
+    )
+
+
+@router.post("/production-resource-submissions", response_model=schemas.ProductionResourceProfileSubmissionResponse)
+@limiter.limit("5/hour")
+def submit_new_resource(request: Request, payload: schemas.ProductionResourceSubmissionCreate, db: Session = Depends(get_db)):
+    now = int(time.time() * 1000)
+    if payload.websiteTrap:
+        return schemas.ProductionResourceProfileSubmissionResponse(success=True, submissionId="", createdAt=now)
+    name = payload.name.strip()[:120]
+    submitter = payload.submitterName.strip()[:120]
+    email = payload.contactEmail.strip()[:320]
+    if not name or not submitter or not email or "@" not in email or " " in email:
+        raise HTTPException(status_code=400, detail="請填寫資源名稱、投稿人與有效的聯絡 Email")
+    pending = db.query(models.ProductionResourceSubmission).filter_by(status="pending").all()
+    if any((row.profile or {}).get("name", "").casefold() == name.casefold() and
+           (row.profile or {}).get("category") == payload.category for row in pending):
+        raise HTTPException(status_code=409, detail="這筆資源已經在審核中")
+    if payload.category == "voice_actor":
+        if db.query(models.Persona).filter(models.Persona.displayName == name).first():
+            raise HTTPException(status_code=409, detail="這位聲演已有頁面，請使用頁面上的補充功能")
+    elif any(item["name"].casefold() == name.casefold() and payload.category in item.get("categories", [])
+             for item in _resources(db).values()):
+        raise HTTPException(status_code=409, detail="這筆資源已有頁面，請使用頁面上的補充功能")
+    links = []
+    for link in payload.links[:12]:
+        url = _public_url(link.get("url"))
+        if url:
+            links.append({"label": str(link.get("label") or "社群連結").strip()[:120], "url": url})
+    profile_url = _public_url(payload.profileUrl)
+    if payload.category != "voice_actor" and not (profile_url or links):
+        raise HTTPException(status_code=400, detail="請提供官方、委託或社群連結，方便核對資源")
+    works = []
+    for work in payload.works[:20]:
+        url = _public_url(work.get("url"))
+        if url:
+            works.append({"url": url, "title": str(work.get("title") or "").strip()[:200],
+                          "role": str(work.get("role") or "").strip()[:120]})
+    if payload.category != "voice_actor" and not works:
+        raise HTTPException(status_code=400, detail="請至少提供一部參與作品，才能建立製作資源頁")
+    profile = {"name": name, "category": payload.category, "bio": payload.bio.strip()[:4000],
+               "avatarUrl": _public_url(payload.avatarUrl, image=True), "profileUrl": profile_url,
+               "links": links, "works": works}
+    row = models.ProductionResourceSubmission(id=str(uuid.uuid4()), submitterName=submitter,
+                                               contactEmail=email, profile=profile, status="pending", createdAt=now)
+    db.add(row)
+    db.commit()
+    return schemas.ProductionResourceProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now)
+
+
+@admin_router.get("/production-resource-submissions", response_model=schemas.ProductionResourceSubmissionListResponse)
+def list_new_resources(status: str = "pending", limit: int = 100, offset: int = 0,
+                       db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if status not in {"pending", "approved", "rejected", "all"}:
+        raise HTTPException(status_code=400, detail="無效的審核狀態")
+    query = db.query(models.ProductionResourceSubmission)
+    if status != "all":
+        query = query.filter_by(status=status)
+    total = query.count()
+    rows = query.order_by(models.ProductionResourceSubmission.createdAt.desc()).offset(max(offset, 0)).limit(min(max(limit, 1), 200)).all()
+    return schemas.ProductionResourceSubmissionListResponse(total=total, items=[_new_resource_record(row) for row in rows])
+
+
+@admin_router.patch("/production-resource-submissions/{submission_id}/status", response_model=schemas.ProductionResourceSubmissionRecord)
+def review_new_resource(submission_id: str, payload: schemas.ProductionResourceSubmissionStatusUpdate,
+                        db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.ProductionResourceSubmission).filter_by(id=submission_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail="找不到資源投稿")
+    if row.status != "pending":
+        raise HTTPException(status_code=409, detail="這筆投稿已完成審核")
+    profile = row.profile or {}
+    name = profile.get("name", "")
+    category = profile.get("category", "")
+    now = int(time.time() * 1000)
+    if payload.status == "approved":
+        if category == "voice_actor":
+            if db.query(models.Persona).filter(models.Persona.displayName == name).first():
+                raise HTTPException(status_code=409, detail="這位聲演已有頁面")
+            persona_id = str(uuid.uuid4())
+            db.add(models.Persona(id=persona_id, ownerId=None, displayName=name,
+                                  avatar=profile.get("avatarUrl") or "", bio=profile.get("bio") or "",
+                                  website=profile.get("profileUrl") or "", links=profile.get("links") or [],
+                                  voiceActorWorks=[{"title": item.get("title") or "", "role": item.get("role") or "",
+                                                    "url": item["url"], "coverUrl": ""} for item in profile.get("works", [])],
+                                  voiceActorContributors=[{"name": row.submitterName, "contributedAt": now}],
+                                  createdAt=now, updatedAt=now))
+            db.add(models.PersonaRole(personaId=persona_id, role="voice_actor", isVisible=True,
+                                      sourceTypes=["resource_submission"], createdAt=now, updatedAt=now))
+            row.publishedId = persona_id
+        else:
+            if any(item["name"].casefold() == name.casefold() and category in item.get("categories", [])
+                   for item in _resources(db).values()):
+                raise HTTPException(status_code=409, detail="這筆資源已有頁面")
+            matched = []
+            for work in profile.get("works", []):
+                audio = db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
+                if not audio:
+                    raise HTTPException(status_code=400, detail=f"作品尚未收錄於音聲目錄：{work['url']}")
+                matched.append(audio)
+            if not matched:
+                raise HTTPException(status_code=400, detail="需至少有一部已收錄的參與作品")
+            resource_id = str(uuid.uuid4())
+            source_url = profile.get("profileUrl") or (profile.get("links") or [{}])[0].get("url", "")
+            db.add(models.ProductionResource(id=resource_id, name=name, categories=[category],
+                                             summary=profile.get("bio") or "", websiteUrl=source_url,
+                                             sourceUrl=source_url, status="published",
+                                             reviewedAt=now, createdAt=now, updatedAt=now))
+            db.add(models.ProductionResourceProfileOverride(id=resource_id,
+                      profile={"bio": profile.get("bio") or "", "avatarUrl": profile.get("avatarUrl") or "",
+                               "profileUrl": profile.get("profileUrl") or "", "profileLabel": "官方／委託頁" if profile.get("profileUrl") else (profile.get("links") or [{}])[0].get("label", "聯絡方式"),
+                               "links": profile.get("links") or []},
+                      contributors=[{"name": row.submitterName, "contributedAt": now}], updatedAt=now))
+            for audio in {item.id: item for item in matched}.values():
+                db.add(models.ProductionResourceCredit(resourceId=resource_id, audioWorkId=audio.id,
+                         creditRole=category, creditedAs=name, createdAt=now))
+            row.publishedId = resource_id
+    row.status = payload.status
+    row.reviewNote = payload.reviewNote.strip()[:1000]
+    row.reviewedAt = now
+    row.reviewedBy = ownerId
+    db.commit()
+    public_bundle.invalidate_public_bundle_cache()
+    return _new_resource_record(row)

@@ -225,6 +225,41 @@ class ProductionResourceProfileSubmissionCreate(BaseModel):
     websiteTrap: str = ""
 
 
+class ProductionResourceSubmissionCreate(BaseModel):
+    name: str
+    category: Literal["voice_actor", "post_production", "cover_art", "recording_studio"]
+    bio: str = ""
+    avatarUrl: str = ""
+    profileUrl: str = ""
+    links: List[Dict[str, Any]] = []
+    works: List[Dict[str, Any]] = []
+    submitterName: str
+    contactEmail: str
+    websiteTrap: str = ""
+
+
+class ProductionResourceSubmissionStatusUpdate(BaseModel):
+    status: Literal["approved", "rejected"]
+    reviewNote: str = ""
+
+
+class ProductionResourceSubmissionRecord(BaseModel):
+    id: str
+    submitterName: str
+    contactEmail: str
+    profile: Dict[str, Any]
+    status: Literal["pending", "approved", "rejected"]
+    reviewNote: str = ""
+    publishedId: Optional[str] = None
+    reviewedAt: Optional[int] = None
+    createdAt: int
+
+
+class ProductionResourceSubmissionListResponse(BaseModel):
+    total: int
+    items: List[ProductionResourceSubmissionRecord]
+
+
 class ProductionResourceProfileSubmissionStatusUpdate(BaseModel):
     status: Literal["approved", "rejected"]
     acceptedFields: List[Literal["displayName", "bio", "avatarUrl", "profileUrl", "links", "works", "contributorName"]] = []

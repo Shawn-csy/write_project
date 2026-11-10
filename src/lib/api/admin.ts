@@ -22,6 +22,8 @@ import type {
   VoiceActorProfileSubmissionListResponse,
   ProductionResourceProfileSubmission,
   ProductionResourceProfileSubmissionListResponse,
+  ProductionResourceSubmission,
+  ProductionResourceSubmissionListResponse,
   ExternalAuthorProfileSubmission,
   ExternalAuthorProfileSubmissionListResponse,
   PublicTermsAcceptanceRecord,
@@ -155,6 +157,15 @@ export const getProductionResourceProfileSubmissionsAdmin = async ({ status = "p
   const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
   return fetchApi(`/admin/production-resource-profile-submissions?${params.toString()}`) as Promise<ProductionResourceProfileSubmissionListResponse>;
 };
+
+export const getProductionResourceSubmissionsAdmin = async ({ status = "pending", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<ProductionResourceSubmissionListResponse> => {
+  const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
+  return fetchApi(`/admin/production-resource-submissions?${params}`) as Promise<ProductionResourceSubmissionListResponse>;
+};
+
+export const updateProductionResourceSubmissionAdmin = async (submissionId: string, status: "approved" | "rejected", reviewNote = ""): Promise<ProductionResourceSubmission> => fetchApi(`/admin/production-resource-submissions/${encodeURIComponent(submissionId)}/status`, {
+  method: "PATCH", body: JSON.stringify({ status, reviewNote }),
+}) as Promise<ProductionResourceSubmission>;
 
 export const updateProductionResourceProfileSubmissionAdmin = async (submissionId: string, status: "approved" | "rejected", acceptedFields: string[] = []): Promise<ProductionResourceProfileSubmission> => fetchApi(`/admin/production-resource-profile-submissions/${encodeURIComponent(submissionId)}/status`, {
   method: "PATCH", body: JSON.stringify({ status, acceptedFields }),

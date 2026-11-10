@@ -602,6 +602,31 @@ export interface ProductionResourceProfileSubmission {
   createdAt: number;
 }
 
+export interface ProductionResourceSubmission {
+  id: string;
+  submitterName: string;
+  contactEmail: string;
+  profile: {
+    name: string;
+    category: "voice_actor" | "post_production" | "cover_art" | "recording_studio";
+    bio: string;
+    avatarUrl: string;
+    profileUrl: string;
+    links: Array<{ label: string; url: string }>;
+    works: Array<{ title: string; url: string; role: string }>;
+  };
+  status: "pending" | "approved" | "rejected";
+  reviewNote: string;
+  publishedId?: string | null;
+  reviewedAt?: number | null;
+  createdAt: number;
+}
+
+export interface ProductionResourceSubmissionListResponse {
+  total: number;
+  items: ProductionResourceSubmission[];
+}
+
 export interface ProductionResourceProfileSubmissionListResponse {
   total: number;
   items: ProductionResourceProfileSubmission[];

@@ -187,6 +187,23 @@ class ProductionResourceProfileSubmission(Base):
     createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000), index=True)
 
 
+class ProductionResourceSubmission(Base):
+    """A proposed new directory entry, invisible until moderator approval."""
+
+    __tablename__ = "production_resource_submissions"
+
+    id = Column(String, primary_key=True)
+    submitterName = Column(String, nullable=False)
+    contactEmail = Column(String, nullable=False)
+    profile = Column(JSON, nullable=False, default=dict)
+    status = Column(String, nullable=False, default="pending", index=True)
+    reviewNote = Column(Text, nullable=False, default="")
+    publishedId = Column(String, nullable=True)
+    reviewedAt = Column(BigInteger, nullable=True)
+    reviewedBy = Column(String, nullable=True)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000), index=True)
+
+
 class AudioWorkCredit(Base):
     """A source-backed production credit attached to one audio work."""
 

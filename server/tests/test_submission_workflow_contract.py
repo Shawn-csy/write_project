@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import pytest
 
 from main import app
-from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, ProductionResource, ProductionResourceCredit, ProductionResourceProfileOverride, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, PersonaRole, ProductionResource, ProductionResourceCredit, ProductionResourceProfileOverride, ProductionResourceSubmission, PublicAudioWorkSubmission, User
 from routers import public as public_router
 from routers import public_bundle as public_bundle_router
 from routers import external_public_scripts as external_router
@@ -33,6 +33,7 @@ WORKFLOWS = (
     Workflow("外部作者資料投稿", "/api/external-author-profile-submissions", "/api/admin/external-author-profile-submissions/{submission_id}/status"),
     Workflow("聲演資料投稿", "/api/voice-actor-profile-submissions", "/api/admin/voice-actor-profile-submissions/{submission_id}/status"),
     Workflow("資源資料投稿", "/api/production-resource-profile-submissions", "/api/admin/production-resource-profile-submissions/{submission_id}/status"),
+    Workflow("新資源投稿", "/api/production-resource-submissions", "/api/admin/production-resource-submissions/{submission_id}/status"),
     Workflow("聲演身份認領", "/api/voice-actor-claims", "/api/admin/voice-actor-claims/{claim_id}/status"),
 )
 
@@ -44,6 +45,7 @@ LIFECYCLE_TESTS = {
     "/api/external-author-profile-submissions": "test_external_author_profile_review_applies_only_accepted_fields",
     "/api/voice-actor-profile-submissions": "test_voice_actor_profile_review_applies_only_accepted_fields",
     "/api/production-resource-profile-submissions": "test_resource_profile_review_applies_only_accepted_fields",
+    "/api/production-resource-submissions": "test_new_resource_submission_is_private_until_approved",
     "/api/voice-actor-claims": "test_voice_actor_claim_requires_verified_google_and_cannot_overwrite_owner",
 }
 
@@ -67,6 +69,66 @@ def test_all_public_intake_routes_are_registered():
         )
     }
     assert intake_routes == {workflow.create for workflow in WORKFLOWS}
+
+
+def test_new_resource_submission_is_private_until_approved(client, db_session):
+    work_url = "https://example.com/resource-work"
+    db_session.add(PublicAudioWorkSubmission(id="resource-work", title="測試作品", url=work_url,
+                    coverUrl="https://example.com/cover.jpg", status="approved", createdAt=1000))
+    db_session.commit()
+    payload = {"name": "新後製", "category": "post_production", "bio": "混音與剪輯",
+               "avatarUrl": "https://example.com/avatar.jpg", "profileUrl": "https://example.com/profile",
+               "links": [{"label": "X", "url": "https://x.com/example"}],
+               "works": [{"title": "測試作品", "url": work_url}],
+               "submitterName": "協作者", "contactEmail": "helper@example.com"}
+    created = client.post("/api/production-resource-submissions", json=payload)
+    assert created.status_code == 200, created.text
+    submission_id = created.json()["submissionId"]
+    assert db_session.query(ProductionResourceSubmission).filter_by(id=submission_id).one().status == "pending"
+    assert not any(item["name"] == "新後製" for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"])
+    assert client.post("/api/production-resource-submissions", json=payload).status_code == 409
+    pending = client.get("/api/admin/production-resource-submissions", headers={"X-User-ID": "admin-owner"})
+    assert pending.status_code == 200 and pending.json()["total"] == 1
+    approved = client.patch(f"/api/admin/production-resource-submissions/{submission_id}/status",
+                            json={"status": "approved"}, headers={"X-User-ID": "admin-owner"})
+    assert approved.status_code == 200, approved.text
+    resource_id = approved.json()["publishedId"]
+    assert db_session.query(ProductionResourceCredit).filter_by(resourceId=resource_id, audioWorkId="resource-work").count() == 1
+    published = client.get("/api/public-bundle?sections=productionResources").json()["productionResources"]
+    resource = next(item for item in published if item["id"] == resource_id)
+    assert resource["works"][0]["title"] == "測試作品"
+    assert resource["avatarUrl"] == payload["avatarUrl"]
+    assert client.patch(f"/api/admin/production-resource-submissions/{submission_id}/status",
+                        json={"status": "approved"}, headers={"X-User-ID": "admin-owner"}).status_code == 409
+
+
+def test_new_resource_cannot_publish_without_cataloged_work(client, db_session):
+    payload = {"name": "待收錄封面師", "category": "cover_art", "profileUrl": "https://example.com/artist",
+               "works": [{"title": "未收錄作品", "url": "https://example.com/not-cataloged"}],
+               "submitterName": "投稿者", "contactEmail": "sender@example.com"}
+    created = client.post("/api/production-resource-submissions", json=payload)
+    assert created.status_code == 200
+    submission_id = created.json()["submissionId"]
+    review = client.patch(f"/api/admin/production-resource-submissions/{submission_id}/status",
+                          json={"status": "approved"}, headers={"X-User-ID": "admin-owner"})
+    assert review.status_code == 400
+    assert db_session.query(ProductionResourceSubmission).filter_by(id=submission_id).one().status == "pending"
+    assert not any(item["name"] == payload["name"] for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"])
+
+
+def test_new_voice_actor_submission_publishes_only_after_approval(client, db_session):
+    payload = {"name": "新聲演", "category": "voice_actor", "bio": "試音中",
+               "profileUrl": "https://example.com/actor", "submitterName": "協作者",
+               "contactEmail": "helper@example.com"}
+    created = client.post("/api/production-resource-submissions", json=payload)
+    assert created.status_code == 200, created.text
+    assert not any(item["displayName"] == "新聲演" for item in client.get("/api/public-personas").json())
+    approved = client.patch(f"/api/admin/production-resource-submissions/{created.json()['submissionId']}/status",
+                            json={"status": "approved"}, headers={"X-User-ID": "admin-owner"})
+    assert approved.status_code == 200, approved.text
+    persona_id = approved.json()["publishedId"]
+    assert db_session.query(PersonaRole).filter_by(personaId=persona_id, role="voice_actor").count() == 1
+    assert client.get(f"/api/public-personas/{persona_id}").json()["displayName"] == "新聲演"
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda item: item.name)

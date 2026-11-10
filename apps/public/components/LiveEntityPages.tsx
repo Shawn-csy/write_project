@@ -15,6 +15,8 @@ import { PublicTopBar } from "@/components/PublicTopBar";
 import { NotFoundBody, NotFoundContent } from "@/components/NotFoundContent";
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { AuthorPageClient } from "@/app/author/[id]/AuthorPageClient";
+import { ResourcePageClient } from "@/app/resources/[id]/ResourcePageClient";
+import type { ProductionResource } from "@/app/resources/ResourcesClient";
 import { OrgPageClient } from "@/app/org/[id]/OrgPageClient";
 import { SeriesPageClient } from "@/app/series/[name]/SeriesPageClient";
 import { TagPageClient } from "@/app/tag/[name]/TagPageClient";
@@ -92,6 +94,15 @@ async function readOrNull<T>(path: string, signal: AbortSignal): Promise<T | nul
 const VOICE_PROFILE_SECTIONS = ["scripts", "externalPublicScripts", "demoSubmissions", "organizations", "audioWorks"] as const;
 const SCRIPT_ENTITY_SECTIONS = ["scripts", "externalPublicScripts"] as const;
 const EXTERNAL_ENTITY_SECTIONS = ["externalPublicScripts"] as const;
+
+function LiveResourcePage({ id }: { id: string }) {
+  const state = useLiveData<ProductionResource>(undefined, async (signal) => {
+    const bundle = await readBundle(signal, ["productionResources"]);
+    return ((bundle as (PublicBundleLike & { productionResources?: ProductionResource[] }) | null)?.productionResources)?.find((item) => item.id === id && item.works?.length > 0) ?? null;
+  }, `resource:${id}`);
+  useDocumentTitle(state.status === "ready" ? state.data.name : null);
+  return <Frame state={state}>{state.status === "ready" && <ResourcePageClient item={state.data} />}</Frame>;
+}
 
 async function readBundle(signal: AbortSignal, sections: readonly PublicBundleSection[]): Promise<PublicBundleLike | null> {
   try {
@@ -255,6 +266,7 @@ export const LiveExternalOrgPage = (props: { rawName: string; initial?: External
 // ── Route dispatch for addresses with no prebuilt page ──────────────────────
 
 const ROUTES: Array<{ pattern: RegExp; raw?: boolean; render: (name: string) => ReactNode }> = [
+  { pattern: /^\/resources\/([^/]+)\/?$/, render: (n) => <LiveResourcePage id={n} /> },
   { pattern: /^\/author\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalAuthorPage rawName={n} chrome={{ activeTab: "authors", back: true }} /> },
   { pattern: /^\/org\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalOrgPage rawName={n} chrome={{ activeTab: "orgs", back: true }} /> },
   { pattern: /^\/author\/([^/]+)\/?$/, render: (n) => <LiveAuthorPage id={n} chrome={{ activeTab: "authors", back: true }} /> },

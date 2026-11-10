@@ -21,11 +21,12 @@ import { PublicAudioWorkSubmissionInbox } from "../components/admin/PublicAudioW
 import { PublicDemoManagement } from "../components/admin/PublicDemoManagement";
 import { VoiceActorProfileReviewInbox } from "../components/admin/VoiceActorProfileReviewInbox";
 import { ProductionResourceProfileReviewInbox } from "../components/admin/ProductionResourceProfileReviewInbox";
+import { ProductionResourceSubmissionInbox } from "../components/admin/ProductionResourceSubmissionInbox";
 import { VoiceActorClaimReviewInbox } from "../components/admin/VoiceActorClaimReviewInbox";
 import { ExternalAuthorProfileReviewInbox } from "../components/admin/ExternalAuthorProfileReviewInbox";
 import { AdminTransferModal } from "../components/admin/AdminTransferModal";
 import { useAdminPageState } from "../hooks/useAdminPageState";
-import { getExternalAuthorProfileSubmissionsAdmin, getProductionResourceProfileSubmissionsAdmin, getPublicAudioWorkSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorClaimsAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
+import { getExternalAuthorProfileSubmissionsAdmin, getProductionResourceProfileSubmissionsAdmin, getProductionResourceSubmissionsAdmin, getPublicAudioWorkSubmissionsAdmin, getPublicDemoSubmissionsAdmin, getPublicFeedbackAdmin, getVoiceActorClaimsAdmin, getVoiceActorProfileSubmissionsAdmin } from "../lib/api/admin";
 import { ADMIN_QUEUE_UPDATED_EVENT } from "../lib/adminNotifications";
 import { getMediaCropStyle } from "../lib/mediaCropRef";
 import { useStudioShell } from "../components/studio/StudioShellContext";
@@ -77,13 +78,14 @@ export default function SuperAdminPage(): React.JSX.Element {
   const [newFeedbackCount, setNewFeedbackCount] = useState(0);
   const [pendingVoiceActorProfileCount, setPendingVoiceActorProfileCount] = useState(0);
   const [pendingResourceProfileCount, setPendingResourceProfileCount] = useState(0);
+  const [pendingResourceSubmissionCount, setPendingResourceSubmissionCount] = useState(0);
   const [pendingExternalAuthorProfileCount, setPendingExternalAuthorProfileCount] = useState(0);
   const { openMobileMenu } = useStudioShell();
   const location = useLocation();
   const navigate = useNavigate();
   const searchParams = new URLSearchParams(location.search);
   const requestedSection = searchParams.get("section") || "";
-  const reviewTabs = ["applications", "signatures", "submissions", "audio-work-submissions", "claims", "voice-actor-profiles", "resource-profiles", "external-author-profiles"];
+  const reviewTabs = ["applications", "signatures", "submissions", "audio-work-submissions", "claims", "voice-actor-profiles", "resource-submissions", "resource-profiles", "external-author-profiles"];
   const activityReviewTabs = ["activity-submissions", "campaigns"];
   const activeArea = requestedSection === "directory" || requestedSection === "catalog" || requestedSection === "settings"
     ? "settings"
@@ -117,11 +119,12 @@ export default function SuperAdminPage(): React.JSX.Element {
   const resourceTab = resourceTabs.includes(requestedResourceTab) ? requestedResourceTab : "scripts";
 
   const refreshQueueCounts = useCallback(async () => {
-    const [feedbackResult, demoResult, audioWorkResult, voiceActorResult, resourceResult, externalAuthorResult, voiceActorClaimResult] = await Promise.allSettled([
+    const [feedbackResult, demoResult, audioWorkResult, voiceActorResult, resourceSubmissionResult, resourceResult, externalAuthorResult, voiceActorClaimResult] = await Promise.allSettled([
       getPublicFeedbackAdmin({ excludeKind: "demo_submission", status: "new", limit: 1, offset: 0 }),
       getPublicDemoSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getPublicAudioWorkSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getVoiceActorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
+      getProductionResourceSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getProductionResourceProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getExternalAuthorProfileSubmissionsAdmin({ status: "pending", limit: 1, offset: 0 }),
       getVoiceActorClaimsAdmin({ status: "pending", limit: 1, offset: 0 }),
@@ -130,6 +133,7 @@ export default function SuperAdminPage(): React.JSX.Element {
     if (demoResult.status === "fulfilled") setPendingDemoCount(demoResult.value.total || 0);
     if (audioWorkResult.status === "fulfilled") setPendingAudioWorkCount(audioWorkResult.value.total || 0);
     if (voiceActorResult.status === "fulfilled") setPendingVoiceActorProfileCount(voiceActorResult.value.total || 0);
+    if (resourceSubmissionResult.status === "fulfilled") setPendingResourceSubmissionCount(resourceSubmissionResult.value.total || 0);
     if (resourceResult.status === "fulfilled") setPendingResourceProfileCount(resourceResult.value.total || 0);
     if (externalAuthorResult.status === "fulfilled") setPendingExternalAuthorProfileCount(externalAuthorResult.value.total || 0);
     if (voiceActorClaimResult.status === "fulfilled") setPendingVoiceActorClaimCount(voiceActorClaimResult.value.total || 0);
@@ -214,6 +218,7 @@ export default function SuperAdminPage(): React.JSX.Element {
         { key: "audio-work-submissions", label: "音聲作品投稿", active: activeArea === "review" && reviewTab === "audio-work-submissions", go: () => goToSection("audio-work-submissions") },
         { key: "claims", label: "身份認領", active: activeArea === "review" && reviewTab === "claims", go: () => goToSection("claims") },
         { key: "voice-actor-profiles", label: "聲演頁面審核", active: activeArea === "review" && reviewTab === "voice-actor-profiles", go: () => goToSection("voice-actor-profiles") },
+        { key: "resource-submissions", label: "新資源投稿", active: activeArea === "review" && reviewTab === "resource-submissions", go: () => goToSection("resource-submissions") },
         { key: "resource-profiles", label: "資源頁面審核", active: activeArea === "review" && reviewTab === "resource-profiles", go: () => goToSection("resource-profiles") },
         { key: "external-author-profiles", label: "外部台本師頁面審核", active: activeArea === "review" && reviewTab === "external-author-profiles", go: () => goToSection("external-author-profiles") },
         { key: "activity-submissions", label: "活動頁面審核", active: activeArea === "activity-review" && activityReviewTab === "activity-submissions", go: () => goToSection("activity-submissions") },
@@ -267,7 +272,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <div className="hidden px-2.5 pb-1 pt-3 text-xs font-semibold text-muted-foreground lg:block">{group.name}</div>
               {group.items.map((item) => (
                 (() => {
-                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "audio-work-submissions" ? pendingAudioWorkCount : item.key === "claims" ? pendingVoiceActorClaimCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "resource-profiles" ? pendingResourceProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
+                  const noticeCount = item.key === "applications" ? newFeedbackCount : item.key === "submissions" ? pendingDemoCount : item.key === "audio-work-submissions" ? pendingAudioWorkCount : item.key === "claims" ? pendingVoiceActorClaimCount : item.key === "voice-actor-profiles" ? pendingVoiceActorProfileCount : item.key === "resource-submissions" ? pendingResourceSubmissionCount : item.key === "resource-profiles" ? pendingResourceProfileCount : item.key === "external-author-profiles" ? pendingExternalAuthorProfileCount : 0;
                   return (
                 <button
                   key={item.key}
@@ -570,6 +575,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <TabsTrigger value="audio-work-submissions" className={workbenchTabClass}>音聲作品投稿</TabsTrigger>
               <TabsTrigger value="claims" className={workbenchTabClass}>身份認領</TabsTrigger>
               <TabsTrigger value="voice-actor-profiles" className={workbenchTabClass}>聲演頁面審核</TabsTrigger>
+              <TabsTrigger value="resource-submissions" className={workbenchTabClass}>新資源投稿</TabsTrigger>
               <TabsTrigger value="resource-profiles" className={workbenchTabClass}>資源頁面審核</TabsTrigger>
               <TabsTrigger value="external-author-profiles" className={workbenchTabClass}>外部台本師頁面審核</TabsTrigger>
             </TabsList>
@@ -588,6 +594,7 @@ export default function SuperAdminPage(): React.JSX.Element {
             <TabsContent value="audio-work-submissions"><PublicAudioWorkSubmissionInbox /></TabsContent>
             <TabsContent value="claims"><VoiceActorClaimReviewInbox /></TabsContent>
             <TabsContent value="voice-actor-profiles"><VoiceActorProfileReviewInbox /></TabsContent>
+            <TabsContent value="resource-submissions"><ProductionResourceSubmissionInbox /></TabsContent>
             <TabsContent value="resource-profiles"><ProductionResourceProfileReviewInbox /></TabsContent>
             <TabsContent value="external-author-profiles"><ExternalAuthorProfileReviewInbox /></TabsContent>
           </Tabs>

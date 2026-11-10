@@ -10,6 +10,7 @@ import { PublicTopBar } from "@/components/PublicTopBar";
 import { ResourceAgeGate, useResourceAgeGate } from "@/components/ResourceAgeGate";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { publicAvatarColor } from "@/components/publicAvatarColor";
+import { ResourceSubmissionDialog } from "@/components/ResourceSubmissionDialog";
 import type { PublicPersona } from "@/lib/types";
 
 type Category = "voice_actor" | "post_production" | "cover_art" | "recording_studio";
@@ -150,12 +151,13 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
   return <div className="flex min-h-screen flex-col bg-background">
     <PublicTopBar activeTab="resources" />
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-      <PublicBrowseHeader title="資源" count={`${visibleCount} 筆`} actions={
+      <PublicBrowseHeader title="資源" count={`${visibleCount} 筆`} actions={<div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
         <label className="relative block w-full sm:w-80">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" aria-hidden />
           <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 w-full rounded-lg border border-border/60 bg-background/70 pl-9 pr-3 [font-size:var(--public-font-meta)] outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:h-10" placeholder="搜尋資源" aria-label="搜尋資源" />
         </label>
-      } />
+        <ResourceSubmissionDialog defaultCategory={category} />
+      </div>} />
       {ageGateReady && !ageConfirmed && <ResourceAgeGate onConfirm={confirmAge} />}
       <nav aria-label="資源類別" className="mb-5 flex flex-wrap gap-1.5">
         {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className={`h-6 rounded-md border px-2.5 [font-size:var(--public-font-caption)] font-medium transition-colors ${category === item.key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"}`}>{item.label}</button>)}
@@ -182,7 +184,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
             </a>
             <div className="flex gap-1.5 px-3 pb-2"><span className={DIRECTORY_TAG_CLASS}>{CATEGORIES.find((entry) => entry.key === category)?.label}</span>{item.kind === "credit" && <span className={DIRECTORY_TAG_CLASS}>作品署名</span>}</div>
             {(item.kind !== "credit" || item.profileUrl || item.links?.length) && <div className="flex flex-wrap gap-2 px-3 pb-2">
-              {item.kind !== "credit" && <a href={item.sourceUrl || item.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">官方／委託頁<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
+              {item.kind !== "credit" && <a href={item.sourceUrl || item.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{!item.profileUrl && item.links?.find((link) => link.url === (item.sourceUrl || item.websiteUrl))?.label || "官方／委託頁"}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
               {item.kind !== "credit" && item.profileUrl && item.profileUrl !== item.websiteUrl && item.profileUrl !== item.sourceUrl && <a href={item.profileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{item.profileLabel || "創作者連結"}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
               {item.kind === "credit" && item.profileUrl && <a href={item.profileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{item.profileLabel || "創作者連結"}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
               {item.links?.filter((link) => link.url !== item.profileUrl && link.url !== item.websiteUrl && link.url !== item.sourceUrl).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}

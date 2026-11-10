@@ -148,6 +148,7 @@ def create_app() -> FastAPI:
             ("POST", "/api/external-author-profile-submissions"): 128 * 1024,
             ("POST", "/api/voice-actor-profile-submissions"): 128 * 1024,
             ("POST", "/api/production-resource-profile-submissions"): 128 * 1024,
+            ("POST", "/api/production-resource-submissions"): 32 * 1024,
             ("POST", "/api/voice-actor-claims"): 8 * 1024,
             ("POST", "/api/my-demo-submissions"): 32 * 1024,
             ("POST", "/api/scripts"): 12 * 1024 * 1024,

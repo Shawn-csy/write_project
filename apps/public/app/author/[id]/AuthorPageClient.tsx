@@ -14,6 +14,7 @@ import { hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
 import { demoArtwork } from "@/lib/demoArtwork";
 import { liveApi } from "@/lib/liveApi";
 import { combinePublicIdentities, hasScriptwriterRole } from "@/lib/publicIdentity";
+import { PublicProfileAvatar, PublicProfileCard, PublicProfileContainer, PublicProfileLink, PublicProfileRole, PublicProfileSection, PublicProfileWorkCard } from "@/components/PublicProfileLayout";
 
 interface Props {
   persona: PublicPersona & {
@@ -180,32 +181,22 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
         </div>
       )}
 
-      <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
+      <PublicProfileContainer>
         {isVoiceActor && hasVoiceWorks && ageGateReady && !ageConfirmed && <div className="pt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
         {/* Profile header */}
-        <div className={`relative mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${persona.bannerUrl ? "-mt-16" : "mt-6 sm:mt-8"}`}>
-          <div className="flex flex-col md:flex-row items-start gap-6">
+        <PublicProfileCard overlap={Boolean(persona.bannerUrl) && (!isVoiceActor || !hasVoiceWorks || ageConfirmed)}>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             {/* Avatar */}
-            {!profileFormOpen && <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
-              {identity.avatar ? (
-                <PublicImage src={identity.avatar} alt={identity.displayName} preset="avatar" crop={persona.avatarCrop} />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-muted-foreground">
-                  {identity.displayName?.[0]}
-                </div>
-              )}
-            </div>}
+            {!profileFormOpen && <PublicProfileAvatar src={identity.avatar} name={identity.displayName} crop={persona.avatarCrop} />}
 
             <div className="flex-1 space-y-3 pt-2">
               {!profileFormOpen && <>
-              <h1 className="text-3xl font-bold font-serif">{identity.displayName}</h1>
+              <h1 className="font-serif text-3xl font-bold">{identity.displayName}</h1>
 
               {roles.length > 0 && (
                 <div className="flex flex-wrap gap-2" aria-label="創作者身份">
                   {roles.map((role) => (
-                    <span key={role} className="rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-                      {role}
-                    </span>
+                    <PublicProfileRole key={role}>{role}</PublicProfileRole>
                   ))}
                 </div>
               )}
@@ -235,7 +226,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
               {profileBio && (
                 <LinkifiedText
                   text={profileBio}
-                  className="text-foreground/85 leading-relaxed max-w-2xl"
+                  className="max-w-3xl whitespace-pre-wrap text-sm leading-7 text-muted-foreground"
                 />
               )}
 
@@ -255,12 +246,9 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <div className="flex flex-wrap gap-2 pt-1 text-sm text-muted-foreground" aria-label="聯絡與官方連結">
                 {contactItems.map((item, i) => (
-                  <span key={`${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
-                    <span className="font-medium text-foreground/80">{item.label}：</span>
-                    <span>{item.value}</span>
-                  </span>
+                  /^https?:\/\//i.test(item.value) ? <PublicProfileLink key={`${item.label}-${i}`} label={item.label} url={item.value} /> : <span key={`${item.label}-${i}`} className="break-all">{item.label}：{item.value}</span>
                 ))}
                 {privateContactItems.length > 0 && !showPrivateContacts && (
                   <button
@@ -332,14 +320,10 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
               )}
             </div>
           </div>
-        </div>
+        </PublicProfileCard>
 
         {externalScripts.length > 0 && (
-            <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-              <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
-                <h2 className="text-xl font-bold">台本作品</h2>
-                <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{externalScripts.length} 部</span>
-              </div>
+            <PublicProfileSection title="台本作品" count={externalScripts.length}>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {externalScripts.map((script) => (
                   <article key={script.id} className="overflow-hidden rounded-lg border border-border/60 bg-background">
@@ -352,15 +336,11 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                   </article>
                 ))}
               </div>
-            </section>
+            </PublicProfileSection>
         )}
 
         {ageConfirmed && performances.length > 0 && (
-          <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
-              <h2 className="text-xl font-bold">參與演出</h2>
-              <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{performances.length} 筆</span>
-            </div>
+          <PublicProfileSection title="參與演出" count={performances.length}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {performances.map((demo) => {
                 const artwork = demoArtwork(demo.demoUrl, demo.coverUrl || "");
@@ -381,27 +361,20 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                 </article>;
               })}
             </div>
-          </section>
+          </PublicProfileSection>
         )}
 
-        {ageConfirmed && audioWorks.length > 0 && <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6"><h2 className="mb-4 text-xl font-bold">音聲作品</h2><div className="grid grid-cols-2 gap-3 lg:grid-cols-3">{audioWorks.map((work) => <a key={work.id} href={work.url} target="_blank" rel="noopener noreferrer" className="overflow-hidden rounded-lg border border-border/60 bg-background hover:border-primary/50">{work.coverUrl && <div className="relative aspect-[4/3] overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" /></div>}<span className="block p-3 text-sm font-semibold">{work.title}<ExternalLink className="ml-1 inline h-3 w-3" aria-hidden /></span></a>)}</div></section>}
+        {ageConfirmed && audioWorks.length > 0 && <PublicProfileSection title="音聲作品" count={audioWorks.length}><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{audioWorks.map((work) => <PublicProfileWorkCard key={work.id} title={work.title} url={work.url} coverUrl={work.coverUrl} />)}</div></PublicProfileSection>}
 
         {ageConfirmed && (persona.voiceActorWorks || []).length > 0 && (
-          <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3"><h2 className="text-xl font-bold">參演作品</h2><span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{persona.voiceActorWorks!.length} 筆</span></div>
+          <PublicProfileSection title="參演作品" count={persona.voiceActorWorks!.length}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{persona.voiceActorWorks!.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/60 bg-background">{work.coverUrl && <div className="relative aspect-video overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} preset="script-cover" /></div>}<div className="p-3"><h3 className="text-sm font-semibold">{work.title || "未命名作品"}</h3>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">查看作品<ExternalLink className="h-3 w-3" aria-hidden /></a>}</div></article>)}</div>
-          </section>
+          </PublicProfileSection>
         )}
 
         {/* Series block */}
         {authorSeries.length > 0 && (
-          <section className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
-              <h2 className="text-xl font-bold">系列作品</h2>
-              <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full">
-                {authorSeries.length}
-              </span>
-            </div>
+          <PublicProfileSection title="系列作品" count={authorSeries.length}>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {authorSeries.map((series) => (
                 <a
@@ -421,18 +394,14 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                 </a>
               ))}
             </div>
-          </section>
+          </PublicProfileSection>
         )}
 
         {/* Scripts */}
         {(scripts.length > 0 || !isVoiceActor) && (
-          <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            <div className="mb-4 flex items-center justify-between border-b border-border/60 pb-3">
-              <h2 className="text-xl font-bold">公開作品</h2>
-              <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground">{scripts.length}</span>
-            </div>
+          <PublicProfileSection title="公開作品" count={scripts.length}>
             {scripts.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">目前沒有公開作品</p> : <EntityScriptGrid scripts={scripts} />}
-          </section>
+          </PublicProfileSection>
         )}
         {(persona.voiceActorContributors || []).length > 0 && (
           <div className="mt-4 flex justify-end border-t border-border/50 pt-3">
@@ -441,7 +410,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
             </button>
           </div>
         )}
-      </div>
+      </PublicProfileContainer>
     </main>
     <PublicFooter />
     {historyOpen && (
