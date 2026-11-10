@@ -8,6 +8,7 @@ vi.mock("@/lib/liveApi", () => ({ liveApi: { write: (...args: unknown[]) => writ
 
 import { AudioWorkSubmissionDialog } from "./AudioWorkSubmissionDialog";
 import { AudioWorkAdApplicationDialog } from "./AudioWorkAdApplicationDialog";
+import { ResourceSubmissionDialog } from "./ResourceSubmissionDialog";
 
 describe("public submission forms", () => {
   beforeEach(() => {
@@ -45,6 +46,20 @@ describe("public submission forms", () => {
     await user.type(screen.getByLabelText("結束日期（選填）"), "2026-12-01");
     await user.click(screen.getByRole("button", { name: "送出審核" }));
     expect(screen.getByRole("alert")).toHaveTextContent("結束日期不能早於開始日期");
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("keeps partially filled resource works from silently disappearing", async () => {
+    const user = userEvent.setup();
+    render(<ResourceSubmissionDialog defaultCategory="cover_art" />);
+    await user.click(screen.getByRole("button", { name: "投稿資源" }));
+    await user.type(screen.getByLabelText("名稱"), "測試封面師");
+    await user.type(screen.getByLabelText("官方／委託頁網址"), "https://example.com/artist");
+    await user.type(screen.getByLabelText("作品名稱 1"), "有名稱但沒網址");
+    await user.type(screen.getByLabelText("投稿人稱呼"), "測試人");
+    await user.type(screen.getByLabelText("聯絡 Email（不公開）"), "helper@example.com");
+    await user.click(screen.getByRole("button", { name: "送出審核" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("已填寫的參與作品都需要作品網址");
     expect(write).not.toHaveBeenCalled();
   });
 });

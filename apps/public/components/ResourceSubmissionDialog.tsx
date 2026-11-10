@@ -22,11 +22,18 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
     setError("");
     const form = new FormData(event.currentTarget);
     try {
+      if (works.some((item) => !item.url.trim() && (item.title.trim() || item.role.trim() || item.coverUrl.trim()))) {
+        throw new Error("已填寫的參與作品都需要作品網址。");
+      }
       const submittedWorks = works.filter((item) => item.url.trim()).map((item) => ({
         title: item.title.trim(), url: item.url.trim(), role: item.role.trim(),
         workType: item.workType, coverUrl: item.coverUrl.trim(),
       }));
       if (category !== "voice_actor" && submittedWorks.length === 0) throw new Error("請至少提供一部參與作品。");
+      if (submittedWorks.some((item) => !item.title)) throw new Error("請填寫每部參與作品的名稱。");
+      if (category !== "voice_actor" && !String(form.get("profileUrl") || "").trim() && !String(form.get("socialUrl") || "").trim()) {
+        throw new Error("請提供官方、委託或社群連結，方便核對資源。");
+      }
       const response = await liveApi.write("/api/production-resource-submissions", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,7 +73,7 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
           <label className="grid gap-1 text-sm">其他連結名稱<input name="socialLabel" maxLength={120} placeholder="例如 X、Instagram" className={inputClass} /></label>
           <label className="grid gap-1 text-sm">其他連結網址<input name="socialUrl" type="url" placeholder="https://…" maxLength={2000} className={inputClass} /></label>
           <div className="sm:col-span-2">
-            <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">參與作品{category === "voice_actor" ? "（選填）" : "（至少一部）"}</p><button type="button" onClick={() => setWorks([...works, emptyWork()])} className="text-sm text-primary hover:underline">新增作品</button></div>
+            <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">參與作品{category === "voice_actor" ? "（選填）" : "（至少一部）"}</p><button type="button" disabled={works.length >= 20} onClick={() => setWorks([...works, emptyWork()])} className="text-sm text-primary hover:underline disabled:opacity-50">新增作品</button></div>
             <p className="mt-1 text-xs text-muted-foreground">可填音聲、遊戲、影片或其他作品；公開頁會顯示審核通過的作品。</p>
             {works.map((work, index) => <div key={index} className="mt-2 grid gap-2 rounded-lg border border-border/70 p-2 sm:grid-cols-2">
               <input aria-label={`作品名稱 ${index + 1}`} placeholder="作品名稱" maxLength={200} value={work.title} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} className={inputClass} />

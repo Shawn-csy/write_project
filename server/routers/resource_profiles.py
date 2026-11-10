@@ -4,7 +4,7 @@ import time
 import uuid
 from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 import models
@@ -12,6 +12,7 @@ import schemas
 from dependencies import get_db, get_current_user_id, is_admin_user
 from rate_limit import limiter
 from routers import public_bundle
+from routers.admin import _send_public_paths_revalidation
 
 router = APIRouter(prefix="/api", tags=["public"])
 admin_router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -83,24 +84,29 @@ def submit_resource_profile(request: Request, payload: schemas.ProductionResourc
         raise HTTPException(status_code=400, detail="請填寫姓名與有效的聯絡 Email")
     if not contributor or not name:
         raise HTTPException(status_code=400, detail="請填寫公開名稱與資料補充者名稱")
+    if len(payload.links) > 30 or len(payload.works) > 30:
+        raise HTTPException(status_code=400, detail="連結與參與作品各最多可補充 30 筆")
     links = []
-    for link in payload.links[:30]:
+    for link in payload.links:
         label = str(link.get("label") or "").strip()[:120]
         url = _public_url(link.get("url"))
         if url:
             links.append({"label": label or "社群連結", "url": url})
     works = []
-    for work in payload.works[:30]:
+    for work in payload.works:
         role = str(work.get("creditRole") or "").strip()
         if role not in RESOURCE_ROLES or role not in item.get("categories", []):
             raise HTTPException(status_code=400, detail="參與作品的製作類別無效")
         url = _public_url(work.get("url"))
         if not url:
             raise HTTPException(status_code=400, detail="參與作品需提供網址")
+        title = str(work.get("title") or "").strip()[:200]
+        if not title:
+            raise HTTPException(status_code=400, detail="參與作品需提供名稱")
         work_type = str(work.get("workType") or "audio").strip()
         if work_type not in WORK_TYPES:
             raise HTTPException(status_code=400, detail="參與作品的類型無效")
-        works.append({"title": str(work.get("title") or "").strip()[:200], "url": url,
+        works.append({"title": title, "url": url,
                       "coverUrl": _public_url(work.get("coverUrl"), image=True),
                       "workType": work_type, "creditRole": role})
     profile = {
@@ -139,6 +145,7 @@ def list_resource_profiles(status: str = "pending", limit: int = 100, offset: in
 
 @admin_router.patch("/production-resource-profile-submissions/{submission_id}/status", response_model=schemas.ProductionResourceProfileSubmissionRecord)
 def review_resource_profile(submission_id: str, payload: schemas.ProductionResourceProfileSubmissionStatusUpdate,
+                            background_tasks: BackgroundTasks,
                             db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     if not is_admin_user(db, ownerId):
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -213,6 +220,9 @@ def review_resource_profile(submission_id: str, payload: schemas.ProductionResou
     row.reviewedBy = ownerId
     db.commit()
     public_bundle.invalidate_public_bundle_cache()
+    if payload.status == "approved":
+        background_tasks.add_task(_send_public_paths_revalidation,
+                                  ["/resources", f"/resources/{row.resourceId}", "/sitemap.xml"])
     return _record(row, _resources(db))
 
 
@@ -245,8 +255,10 @@ def submit_new_resource(request: Request, payload: schemas.ProductionResourceSub
     elif any(item["name"].casefold() == name.casefold() and payload.category in item.get("categories", [])
              for item in _resources(db).values()):
         raise HTTPException(status_code=409, detail="這筆資源已有頁面，請使用頁面上的補充功能")
+    if len(payload.links) > 12 or len(payload.works) > 20:
+        raise HTTPException(status_code=400, detail="連結最多 12 筆，參與作品最多 20 筆")
     links = []
-    for link in payload.links[:12]:
+    for link in payload.links:
         url = _public_url(link.get("url"))
         if url:
             links.append({"label": str(link.get("label") or "社群連結").strip()[:120], "url": url})
@@ -254,8 +266,10 @@ def submit_new_resource(request: Request, payload: schemas.ProductionResourceSub
     if payload.category != "voice_actor" and not (profile_url or links):
         raise HTTPException(status_code=400, detail="請提供官方、委託或社群連結，方便核對資源")
     works = []
-    for work in payload.works[:20]:
+    for work in payload.works:
         url = _public_url(work.get("url"))
+        if not url and any(str(work.get(field) or "").strip() for field in ("title", "role", "coverUrl")):
+            raise HTTPException(status_code=400, detail="每部已填寫的參與作品都需提供網址")
         if url:
             work_type = str(work.get("workType") or "audio").strip()
             if work_type not in WORK_TYPES:
@@ -295,6 +309,7 @@ def list_new_resources(status: str = "pending", limit: int = 100, offset: int = 
 
 @admin_router.patch("/production-resource-submissions/{submission_id}/status", response_model=schemas.ProductionResourceSubmissionRecord)
 def review_new_resource(submission_id: str, payload: schemas.ProductionResourceSubmissionStatusUpdate,
+                        background_tasks: BackgroundTasks,
                         db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
     if not is_admin_user(db, ownerId):
         raise HTTPException(status_code=403, detail="Not authorized")
@@ -364,4 +379,9 @@ def review_new_resource(submission_id: str, payload: schemas.ProductionResourceS
     row.reviewedBy = ownerId
     db.commit()
     public_bundle.invalidate_public_bundle_cache()
+    if payload.status == "approved" and row.publishedId:
+        paths = (["/resources", "/voice-actors", f"/author/{row.publishedId}", "/sitemap.xml"]
+                 if category == "voice_actor" else
+                 ["/resources", f"/resources/{row.publishedId}", "/sitemap.xml"])
+        background_tasks.add_task(_send_public_paths_revalidation, paths)
     return _new_resource_record(row)

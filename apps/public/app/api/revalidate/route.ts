@@ -11,7 +11,7 @@ const MAX_PATH_LENGTH = 300;
 
 // Allowed path patterns for public pages only.
 const ALLOWED_PATH_RE =
-  /^(\/|\/demos|\/read\/[^/?#]+|\/(?:author|org)\/external\/[^/?#]+|\/author\/[^/?#]+|\/org\/[^/?#]+|\/series\/[^/?#]+|\/tag\/[^/?#]+|\/sitemap\.xml)$/;
+  /^(\/|\/(?:authors|resources|voice-actors|audio-works|demos|activities)|\/read\/[^/?#]+|\/(?:author|org)\/external\/[^/?#]+|\/author\/[^/?#]+|\/org\/[^/?#]+|\/resources\/[^/?#]+|\/series\/[^/?#]+|\/tag\/[^/?#]+|\/sitemap\.xml)$/;
 
 function isAllowedPath(path: string): boolean {
   if (typeof path !== "string") return false;

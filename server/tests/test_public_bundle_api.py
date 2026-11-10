@@ -126,7 +126,7 @@ def test_production_resources_only_exposes_published_sourced_listings(client, db
         "summary": "錄音服務", "websiteUrl": "https://example.com/",
         "sourceUrl": "https://example.com/services", "reviewedAt": 1,
         "links": [],
-        "works": [{"id": "approved-work", "title": "作品甲", "url": "https://example.com/work", "coverUrl": "https://example.com/cover.jpg", "creditRole": "recording_studio", "creditedAs": "公開工作室"}],
+        "works": [{"id": "approved-work", "title": "作品甲", "url": "https://example.com/work", "coverUrl": "https://example.com/cover.jpg", "creditRole": "recording_studio", "creditedAs": "公開工作室", "workType": "audio"}],
     }]}
     public_bundle_router.invalidate_public_bundle_cache()
 

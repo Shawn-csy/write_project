@@ -32,6 +32,15 @@ export function ResourceContributionForm({ item, onClose, onSubmitted }: {
     setBusy(true);
     setError("");
     try {
+      if (works.some((work) => !work.url.trim() && (work.title.trim() || work.coverUrl.trim()))) {
+        throw new Error("已填寫的參與作品都需要作品網址。");
+      }
+      if (works.some((work) => work.url.trim() && !work.title.trim())) {
+        throw new Error("請填寫每部參與作品的名稱。");
+      }
+      if (links.some((link) => !link.url.trim() && link.label.trim())) {
+        throw new Error("已填寫名稱的連結需要網址。");
+      }
       const response = await liveApi.write("/api/production-resource-profile-submissions", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resourceId: item.id, displayName, bio, avatarUrl, profileUrl, profileLabel,
@@ -60,11 +69,11 @@ export function ResourceContributionForm({ item, onClose, onSubmitted }: {
       <label className="space-y-1 text-xs text-muted-foreground">連結名稱<input maxLength={120} value={profileLabel} onChange={(event) => setProfileLabel(event.target.value)} placeholder="官方網站、X、委託頁…" className={inputClass} /></label>
     </div>
     <section className="space-y-2 rounded-lg border border-border/60 p-3">
-      <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">其他社群與聯絡連結</h3><button type="button" onClick={() => setLinks([...links, { label: "", url: "" }])} className="inline-flex items-center gap-1 text-xs text-primary"><Plus className="h-3.5 w-3.5" />新增連結</button></div>
+      <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-semibold">其他社群與聯絡連結</h3><button type="button" disabled={links.length >= 30} onClick={() => setLinks([...links, { label: "", url: "" }])} className="inline-flex items-center gap-1 text-xs text-primary disabled:opacity-50"><Plus className="h-3.5 w-3.5" />新增連結</button></div>
       {links.map((link, index) => <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,2fr)_32px] gap-2"><input aria-label={`連結名稱 ${index + 1}`} value={link.label} onChange={(event) => setLinks(links.map((value, i) => i === index ? { ...value, label: event.target.value } : value))} placeholder="名稱" className={inputClass} /><input aria-label={`連結網址 ${index + 1}`} value={link.url} onChange={(event) => setLinks(links.map((value, i) => i === index ? { ...value, url: event.target.value } : value))} placeholder="https://…" className={inputClass} /><button type="button" aria-label="移除連結" onClick={() => setLinks(links.filter((_, i) => i !== index))} className="text-muted-foreground hover:text-destructive"><Trash2 className="mx-auto h-4 w-4" /></button></div>)}
     </section>
     <section className="space-y-2 rounded-lg border border-border/60 p-3">
-      <div className="flex items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">補充參與作品</h3><p className="text-xs text-muted-foreground">可補充音聲、遊戲、影片等作品，審核通過後會顯示在資源頁。</p></div><button type="button" onClick={() => setWorks([...works, { title: "", url: "", coverUrl: "", workType: "audio", creditRole: item.categories.find((category) => category !== "voice_actor") || "post_production" }])} className="inline-flex shrink-0 items-center gap-1 text-xs text-primary"><Plus className="h-3.5 w-3.5" />新增作品</button></div>
+      <div className="flex items-center justify-between gap-2"><div><h3 className="text-sm font-semibold">補充參與作品</h3><p className="text-xs text-muted-foreground">可補充音聲、遊戲、影片等作品，審核通過後會顯示在資源頁。</p></div><button type="button" disabled={works.length >= 30} onClick={() => setWorks([...works, { title: "", url: "", coverUrl: "", workType: "audio", creditRole: item.categories.find((category) => category !== "voice_actor") || "post_production" }])} className="inline-flex shrink-0 items-center gap-1 text-xs text-primary disabled:opacity-50"><Plus className="h-3.5 w-3.5" />新增作品</button></div>
       {works.map((work, index) => <div key={index} className="grid gap-2 rounded-md border border-border/50 p-2 sm:grid-cols-2">
         <input aria-label={`作品名稱 ${index + 1}`} value={work.title} onChange={(event) => setWorks(works.map((value, i) => i === index ? { ...value, title: event.target.value } : value))} placeholder="作品名稱" className={inputClass} />
         <input aria-label={`作品網址 ${index + 1}`} type="url" value={work.url} onChange={(event) => setWorks(works.map((value, i) => i === index ? { ...value, url: event.target.value } : value))} placeholder="作品網址" className={inputClass} />

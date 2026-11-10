@@ -48,6 +48,14 @@ describe("POST /api/revalidate", () => {
     expect(revalidateTagMock).toHaveBeenCalledWith("public-scripts", "max");
   });
 
+  it("accepts the public paths used by moderation updates", async () => {
+    const { POST } = await loadRoute();
+    const paths = ["/audio-works", "/voice-actors", "/resources", "/resources/new-studio", "/authors", "/activities"];
+    const res = await POST(request({ secret: "test-secret", paths }) as never);
+    expect(res.status).toBe(200);
+    expect(revalidatePathMock.mock.calls.map(([path]) => path)).toEqual(paths);
+  });
+
   it("does not touch caches when the request is rejected", async () => {
     const { POST } = await loadRoute();
     await POST(request({ secret: "wrong", paths: ["/"] }) as never);

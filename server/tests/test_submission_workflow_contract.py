@@ -12,6 +12,7 @@ from main import app
 from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, PersonaRole, ProductionResource, ProductionResourceCredit, ProductionResourceExternalWork, ProductionResourceProfileOverride, ProductionResourceSubmission, PublicAudioWorkSubmission, User
 from routers import public as public_router
 from routers import public_bundle as public_bundle_router
+from routers import resource_profiles as resource_profiles_router
 from routers import external_public_scripts as external_router
 from dependencies import get_current_user_claims
 
@@ -71,7 +72,9 @@ def test_all_public_intake_routes_are_registered():
     assert intake_routes == {workflow.create for workflow in WORKFLOWS}
 
 
-def test_new_resource_submission_is_private_until_approved(client, db_session):
+def test_new_resource_submission_is_private_until_approved(client, db_session, monkeypatch):
+    revalidated = []
+    monkeypatch.setattr(resource_profiles_router, "_send_public_paths_revalidation", revalidated.append)
     work_url = "https://example.com/resource-work"
     db_session.add(PublicAudioWorkSubmission(id="resource-work", title="測試作品", url=work_url,
                     coverUrl="https://example.com/cover.jpg", status="approved", createdAt=1000))
@@ -93,6 +96,7 @@ def test_new_resource_submission_is_private_until_approved(client, db_session):
                             json={"status": "approved"}, headers={"X-User-ID": "admin-owner"})
     assert approved.status_code == 200, approved.text
     resource_id = approved.json()["publishedId"]
+    assert revalidated == [["/resources", f"/resources/{resource_id}", "/sitemap.xml"]]
     assert db_session.query(ProductionResourceCredit).filter_by(resourceId=resource_id, audioWorkId="resource-work").count() == 1
     published = client.get("/api/public-bundle?sections=productionResources").json()["productionResources"]
     resource = next(item for item in published if item["id"] == resource_id)
@@ -120,6 +124,18 @@ def test_new_resource_can_publish_a_game_outside_the_audio_catalog(client, db_se
     assert item["works"][0]["title"] == "獨立遊戲"
     assert item["works"][0]["workType"] == "game"
     assert item["works"][0]["coverUrl"] == "https://example.com/game-cover.jpg"
+
+
+def test_resource_submission_rejects_incomplete_or_excess_works(client):
+    payload = {"name": "封面師乙", "category": "cover_art", "profileUrl": "https://example.com/artist",
+               "works": [{"title": "遊戲封面", "url": "https://example.com/game", "workType": "game"}],
+               "submitterName": "投稿者", "contactEmail": "sender@example.com"}
+    incomplete = {**payload, "works": [*payload["works"], {"title": "遺漏網址的作品"}]}
+    assert client.post("/api/production-resource-submissions", json=incomplete).status_code == 400
+    excessive = {**payload, "works": payload["works"] * 21}
+    assert client.post("/api/production-resource-submissions", json=excessive).status_code == 400
+    pending = client.get("/api/admin/production-resource-submissions", headers={"X-User-ID": "admin-owner"})
+    assert pending.json()["total"] == 0
 
 
 def test_new_voice_actor_submission_publishes_only_after_approval(client, db_session):
@@ -365,7 +381,9 @@ def test_voice_actor_profile_review_applies_only_accepted_fields(client, db_sess
     }, headers={"X-User-ID": "admin-owner"}).status_code == 409
 
 
-def test_resource_profile_review_applies_only_accepted_fields(client, db_session):
+def test_resource_profile_review_applies_only_accepted_fields(client, db_session, monkeypatch):
+    revalidated = []
+    monkeypatch.setattr(resource_profiles_router, "_send_public_paths_revalidation", revalidated.append)
     resource = ProductionResource(
         id="studio-resource", name="原工作室", categories=["recording_studio"],
         summary="原介紹", websiteUrl="https://example.com/studio", sourceUrl="https://example.com/studio",
@@ -383,6 +401,9 @@ def test_resource_profile_review_applies_only_accepted_fields(client, db_session
         "works": [{"title": "新作品", "url": second.url, "creditRole": "recording_studio"}],
         "submitterName": "協作者", "contactEmail": "studio@example.com", "contributorName": "協作者",
     }
+    assert client.post("/api/production-resource-profile-submissions", json={
+        **payload, "works": [{**payload["works"][0], "title": ""}],
+    }).status_code == 400
     created = client.post("/api/production-resource-profile-submissions", json=payload)
     assert created.status_code == 200, created.text
     submission_id = created.json()["submissionId"]
@@ -392,6 +413,7 @@ def test_resource_profile_review_applies_only_accepted_fields(client, db_session
     approved = client.patch(f"/api/admin/production-resource-profile-submissions/{submission_id}/status", json={
         "status": "approved", "acceptedFields": ["bio", "links", "works", "contributorName"],
     }, headers={"X-User-ID": "admin-owner"})
+    assert revalidated == [["/resources", "/resources/studio-resource", "/sitemap.xml"]]
     assert approved.status_code == 200, approved.text
     after = next(item for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"] if item["id"] == resource.id)
     assert after["name"] == "原工作室"
