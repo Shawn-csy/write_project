@@ -311,7 +311,11 @@ ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh migrate_pg=1 target_db='pos
 bash scripts/backup-db.sh
 ```
 
-輸出至 `~/write_project_backups/`，保留 14 天。每次備份會：
+輸出至 `~/write_project_backups/`，保留 14 天；設定 `BACKUP_MIRROR_DIR` 時另同步一份到該處（預設排程為外接碟 `/Volumes/Horcrux/write_project_backups`，保留 `MIRROR_KEEP_DAYS`＝180 天），與正式資料庫分在不同磁碟。同步在清理本機舊備份之前執行；外接碟未掛載或同步失敗時只記 `WARNING`，本機備份照常成功。
+
+launchd 執行的程式受 macOS 隱私保護限制：不能讀 `~/Desktop`（因此排程執行的是複製到 `~/bin/backup-db.sh` 的同一支腳本，更新後要重新複製），也不能寫入外接碟。要讓排程同步到外接碟，需在「系統設定 → 隱私權與安全性 → 完全取用磁碟」加入 `/bin/bash`；未授權時 `launchd.err.log` 會出現 `rsync … Operation not permitted`，`backup.log` 記 `WARNING 同步到 … 失敗`。
+
+每次備份會：
 
 - 驗證 gzip 完整性與資料表數（少於 10 張視為不完整並中止）
 - **檢查索引健康度**：比對 `scripts` 表的 heap 與索引筆數，不一致時寫入
