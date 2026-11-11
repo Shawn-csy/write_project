@@ -1,6 +1,6 @@
 # Cloudflare 公開站與本機工作室的部署方向
 
-狀態：preview Pages 使用獨立 Dev API（Tunnel → 8891），Dev Postgres/媒體由正式資料複製；fallback Worker/D1、R2 和每 15 分鐘同步已啟用。preview 自訂網域已啟用；正式環境尚未切換，自動 Pages 重新部署（SEO）尚未設定
+狀態：正式站已於 2026-11-11 切到 Pages，現況與操作見 `engineering/public-pages-production.md`；以下為設計背景與 preview 紀錄。preview Pages 使用獨立 Dev API（Tunnel → 8891），Dev Postgres/媒體由正式資料複製；fallback Worker/D1、R2 和每 15 分鐘同步已啟用。preview 自訂網域已啟用；正式環境尚未切換，自動 Pages 重新部署（SEO）尚未設定
 最後更新：2026-10-27
 
 ## 目標
