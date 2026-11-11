@@ -4,7 +4,8 @@
   "main": "index.ts",
   "compatibility_date": "2026-10-27",
   "compatibility_flags": ["nodejs_compat"],
-  "workers_dev": true,
+  "workers_dev": false,
+  "preview_urls": false,
   "vars": {
     // Preview only: forward to a running backend. Remove once the D1 binding below is in use.
     "BACKEND_ORIGIN": "https://open-scripts.shawnup.com",
