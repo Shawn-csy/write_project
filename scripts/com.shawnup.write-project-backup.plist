@@ -14,6 +14,9 @@
     launchctl unload ~/Library/LaunchAgents/com.shawnup.write-project-backup.plist
 
   備份輸出：~/write_project_backups/（保留 14 天，另有 backup.log）
+  副本：/Volumes/Horcrux/write_project_backups/（保留 180 天）
+  launchd 不能讀 ~/Desktop（macOS 隱私保護），實際安裝版執行的是複製到 ~/bin/backup-db.sh 的同一支腳本；
+  更新腳本後記得再複製一次。
 -->
 <plist version="1.0">
 <dict>
@@ -32,6 +35,10 @@
     <!-- OrbStack 的 docker CLI 不在 launchd 的預設 PATH 裡 -->
     <key>EnvironmentVariables</key>
     <dict>
+        <!-- 第二份副本：外接碟 Horcrux。launchd 執行的 bash 需要「完全取用磁碟」權限才能寫入外接碟，
+             見 docs/engineering/operations.md「資料庫備份」。未掛載或無權限時只記警告。 -->
+        <key>BACKUP_MIRROR_DIR</key>
+        <string>/Volumes/Horcrux/write_project_backups</string>
         <key>PATH</key>
         <string>/Users/shanti/.orbstack/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
     </dict>

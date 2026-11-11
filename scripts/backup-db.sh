@@ -10,6 +10,11 @@
 #   bash scripts/backup-db.sh              # 備份到預設目錄
 #   BACKUP_DIR=/path bash scripts/backup-db.sh
 #   KEEP_DAYS=30 bash scripts/backup-db.sh
+#   BACKUP_MIRROR_DIR=/Volumes/Horcrux/write_project_backups bash scripts/backup-db.sh
+#
+# BACKUP_MIRROR_DIR 是第二份副本（例如外接碟），與正式資料庫不在同一顆磁碟上。
+# 副本另依 MIRROR_KEEP_DAYS（預設 180 天）清理；外接碟沒接上時只記警告，
+# 本機備份照常成功。
 #
 # 排程見 scripts/com.shawnup.write-project-backup.plist
 
@@ -20,6 +25,8 @@ DB_NAME="${DB_NAME:-write_project}"
 DB_USER="${DB_USER:-write_project}"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/write_project_backups}"
 KEEP_DAYS="${KEEP_DAYS:-14}"
+BACKUP_MIRROR_DIR="${BACKUP_MIRROR_DIR:-}"
+MIRROR_KEEP_DAYS="${MIRROR_KEEP_DAYS:-180}"
 
 TS=$(date +%Y%m%d_%H%M%S)
 OUT="${BACKUP_DIR}/write_project_${TS}.sql.gz"
@@ -78,7 +85,24 @@ else
   log "WARNING 索引不一致！scripts heap=${HEAP} index=${IDX} —— 需要 REINDEX 或重建資料庫"
 fi
 
-# 清掉過期備份
+# 同步到第二顆磁碟。外接碟的掛載點在拔除後就不存在，不能讓 mkdir 在
+# /Volumes 底下建出一個同名的本機資料夾，所以要求它的上層目錄已存在。
+if [ -n "$BACKUP_MIRROR_DIR" ]; then
+  if [ ! -d "$(dirname "$BACKUP_MIRROR_DIR")" ]; then
+    log "WARNING 備份副本位置 $(dirname "$BACKUP_MIRROR_DIR") 未掛載，本次未同步"
+  elif ! mkdir -p "$BACKUP_MIRROR_DIR" \
+      || ! rsync -a --include='write_project_*.sql.gz' --exclude='*' "$BACKUP_DIR"/ "$BACKUP_MIRROR_DIR"/; then
+    log "WARNING 同步到 ${BACKUP_MIRROR_DIR} 失敗"
+  elif ! gzip -t "$BACKUP_MIRROR_DIR/$(basename "$OUT")" 2>/dev/null; then
+    log "WARNING 副本 $(basename "$OUT") 驗證失敗"
+  else
+    MIRROR_DELETED=$(find "$BACKUP_MIRROR_DIR" -name 'write_project_*.sql.gz' -type f -mtime "+${MIRROR_KEEP_DAYS}" -print -delete | wc -l | tr -d ' ')
+    [ "$MIRROR_DELETED" -gt 0 ] && log "副本清除 ${MIRROR_DELETED} 份超過 ${MIRROR_KEEP_DAYS} 天的備份"
+    log "已同步到 ${BACKUP_MIRROR_DIR}：$(find "$BACKUP_MIRROR_DIR" -name 'write_project_*.sql.gz' -type f | wc -l | tr -d ' ') 份"
+  fi
+fi
+
+# 清掉過期備份（在同步之後：每份備份都先有機會複製到副本）
 DELETED=$(find "$BACKUP_DIR" -name 'write_project_*.sql.gz' -type f -mtime "+${KEEP_DAYS}" -print -delete | wc -l | tr -d ' ')
 [ "$DELETED" -gt 0 ] && log "清除 ${DELETED} 份超過 ${KEEP_DAYS} 天的備份"
 
