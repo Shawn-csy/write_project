@@ -269,6 +269,8 @@ python3 scripts/site-release.py rollback --tag "$RELEASE_TAG"
 
 `prepare` 與 `activate` 現在也會在候選入口自動執行 RSC 快取邊界檢查，從 sitemap 抽樣首頁、台本、作者、社團與系列等頁面。2026-11-10 以現行映像排練 `prepare` 通過；用舊版公開站映像排練時因 RSC 回應仍為公開快取而拒絕，候選容器與控制資料自動清除，正式入口未切換。手動執行上方 `check-rsc-cache-boundary.py` 可在切流前查看同一項結果。
 
+舊版本的容器、映像與靜態檔由 `python3 scripts/site-release.py prune`（`--dry-run` 先看清單）刪除，只保留正式版與其回滾目標；自動部署會在每次上線後執行，規則見 [continuous-deployment.md](continuous-deployment.md)。
+
 切流穩定後，可執行 `python3 scripts/site-release.py retire-ancestors --dry-run` 檢查清單，再執行 `python3 scripts/site-release.py retire-ancestors` 停用比直接回滾版本更早的本站 API／公開站。工具會先核對正式版、直接回滾版、每個舊入口的 upstream 與預覽容器狀態；只停止舊程序，保留容器、映像、設定與靜態檔。在仍保留容器的兩層回滾範圍內，`rollback` 會先重啟其 API／公開站並驗證 readiness，再切換入口；更早版需要依留存映像與設定人工重建。2026-11-10 已停用 `candidate-fold-20261110` 與 `wp-prod-durable` 的四個舊程序，約釋放 334 MiB 常駐記憶體；正式版和直接回滾版仍運作，其他服務未重啟。
 
 2026-11-10 清理 OrbStack 容器清單：在鎖定發布流程、核對 52 個目標容器 ID 均已停止後，移除 16 組更早發布版本的 48 個容器與 4 個舊 `wp-prod` 容器。正式版、直接回滾版和第二層回滾版共 9 個 `wp-site-*` 容器保留；映像、靜態檔、控制資料、PostgreSQL、Dev 與其他服務均未刪除。清理後首頁、readiness 與雙 loopback 網路邊界正常，`retire-ancestors --dry-run` 會略過已完整移除的舊版本，仍拒絕只缺部分容器的版本。

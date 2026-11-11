@@ -501,6 +501,81 @@ def stop_prepared(tag):
     print(f"Stopped prepared containers for {tag}; immutable artifact remains.")
 
 
+ROLES = ("api", "public", "edge", "check", "old-check")
+IMAGE_REPOSITORIES = ("write_project-backend", "write_project-public")
+EDGE_PATTERN = re.compile(r"wp-site-(.+)-edge")
+
+
+def tag_of_edge(edge_name):
+    match = EDGE_PATTERN.fullmatch(edge_name or "")
+    return match.group(1) if match else None
+
+
+def known_release_tags():
+    """Every tag that still has a container, image, release directory or build output."""
+    tags = set()
+    for root in (RELEASE_ROOT, CONTROL_ROOT, ROOT / "dist" / "releases"):
+        if root.is_dir():
+            tags.update(path.name for path in root.iterdir() if path.is_dir() and not path.name.startswith("."))
+    for line in docker("ps", "-a", "--format", "{{.Names}}").stdout.splitlines():
+        for role in ROLES:
+            if line.startswith("wp-site-") and line.endswith(f"-{role}"):
+                tags.add(line[len("wp-site-"):-len(role) - 1])
+                break
+    for repository in IMAGE_REPOSITORIES:
+        tags.update(tag for tag in docker("images", repository, "--format", "{{.Tag}}").stdout.split() if tag != "<none>")
+    return {tag for tag in tags if re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", tag)}
+
+
+def prune(dry_run=False):
+    """Delete releases older than the live one and its rollback target.
+
+    Retire-ancestors only stops old services; this removes their containers,
+    images, durable static files, control data and build output. The live
+    release and the release it rolls back to are always kept whole, and a
+    release with any running container is skipped (it may be mid-deploy).
+    """
+    live_name = ingress()["Name"].lstrip("/")
+    current = release_states_by_edge().get(live_name)
+    if not current:
+        raise RuntimeError("live release has no metadata; refusing to prune")
+    keep = {current["tag"], tag_of_edge(current["previous_edge"])} - {None}
+    if tag_of_edge(current["previous_edge"]) is None:
+        raise RuntimeError(f"rollback target {current['previous_edge']} is not a site release; refusing to prune")
+    running_names = set(docker("ps", "--format", "{{.Names}}").stdout.splitlines())
+    removed = []
+    for tag in sorted(known_release_tags() - keep):
+        containers = [names(tag)[role] for role in ROLES if inspect(names(tag)[role])]
+        busy = [name for name in containers if name in running_names]
+        if busy:
+            print(f"Skipping {tag}: still running {', '.join(busy)}")
+            continue
+        images = [f"{repository}:{tag}" for repository in IMAGE_REPOSITORIES
+                  if docker("image", "inspect", f"{repository}:{tag}", check=False).returncode == 0]
+        paths = [path for path in (RELEASE_ROOT / tag, CONTROL_ROOT / tag, ROOT / "dist" / "releases" / tag) if path.exists()]
+        print(f"{'Would remove' if dry_run else 'Removing'} {tag}: "
+              f"{len(containers)} container(s), {', '.join(images) or 'no images'}, {len(paths)} director(ies)")
+        if dry_run:
+            continue
+        for name in containers:
+            stop_remove(name)
+        for image in images:
+            # No force: an image some container still uses must stay.
+            if docker("rmi", image, check=False).returncode != 0:
+                print(f"  kept {image}: still in use")
+        for path in paths:
+            shutil.rmtree(path)
+        removed.append(tag)
+    # Build output of kept releases was copied into the durable release directory at prepare.
+    for tag in sorted(keep):
+        build = ROOT / "dist" / "releases" / tag
+        if build.exists() and (RELEASE_ROOT / tag).exists():
+            print(f"{'Would remove' if dry_run else 'Removing'} build output dist/releases/{tag} (copied at prepare)")
+            if not dry_run:
+                shutil.rmtree(build)
+    print(f"Kept {', '.join(sorted(keep))}" + ("" if dry_run else f"; removed {len(removed)} older release(s)"))
+
+
 def main():
     def interrupted(signum, frame):
         raise RuntimeError(f"site release interrupted by signal {signum}")
@@ -508,12 +583,12 @@ def main():
     signal.signal(signal.SIGINT, interrupted)
     signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("status", "current-api", "prepare", "activate", "rollback", "stop-prepared", "retire-ancestors"))
+    parser.add_argument("action", choices=("status", "current-api", "prepare", "activate", "rollback", "stop-prepared", "retire-ancestors", "prune"))
     parser.add_argument("--tag", default=os.environ.get("RELEASE_TAG"))
-    parser.add_argument("--dry-run", action="store_true", help="show eligible retired services without stopping them")
+    parser.add_argument("--dry-run", action="store_true", help="show what retire-ancestors or prune would do without doing it")
     args = parser.parse_args()
-    if args.dry_run and args.action != "retire-ancestors":
-        parser.error("--dry-run is only available with retire-ancestors")
+    if args.dry_run and args.action not in ("retire-ancestors", "prune"):
+        parser.error("--dry-run is only available with retire-ancestors and prune")
     if args.action == "status":
         item = ingress()
         print(f"Live ingress: {item['Name'].lstrip('/')} ({item['Id'][:12]})")
@@ -526,7 +601,7 @@ def main():
         api, _public = upstreams(mount(item, "/etc/nginx/conf.d").joinpath("default.conf").read_text())
         print(api)
         return
-    if args.action != "retire-ancestors" and not args.tag:
+    if args.action not in ("retire-ancestors", "prune") and not args.tag:
         parser.error("--tag or RELEASE_TAG is required")
     CONTROL_ROOT.mkdir(parents=True, exist_ok=True)
     with (CONTROL_ROOT / ".lock").open("a+") as lock:
@@ -536,6 +611,8 @@ def main():
             raise RuntimeError("another site release operation is running") from error
         if args.action == "retire-ancestors":
             retire_ancestors(dry_run=args.dry_run)
+        elif args.action == "prune":
+            prune(dry_run=args.dry_run)
         else:
             {"prepare": prepare, "activate": activate, "rollback": rollback,
              "stop-prepared": stop_prepared}[args.action](args.tag)

@@ -51,6 +51,72 @@ class SiteReleaseTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "dual-loopback"):
                 site.ingress()
 
+    def _prune_fixture(self, root, running=()):
+        """Releases old, middle (rollback target), live and stuck; returns calls made to docker."""
+        release_root = root / "releases"
+        control = release_root / ".site-release"
+        for tag in ("old", "middle", "live", "stuck"):
+            (release_root / tag).mkdir(parents=True)
+            (control / tag).mkdir(parents=True)
+        (control / "live" / "release.json").write_text(
+            '{"tag": "live", "previous_edge": "wp-site-middle-edge"}')
+        containers = {f"wp-site-{tag}-{role}" for tag in ("old", "middle", "live", "stuck") for role in ("api", "public", "edge")}
+        images = {f"{repo}:{tag}" for repo in site.IMAGE_REPOSITORIES for tag in ("old", "middle", "live", "stuck")}
+        calls = []
+
+        def docker(*args, check=True):
+            calls.append(args)
+            if args[:2] == ("ps", "-a"):
+                return SimpleNamespace(stdout="\n".join(sorted(containers)), returncode=0)
+            if args[0] == "ps":
+                return SimpleNamespace(stdout="\n".join(running), returncode=0)
+            if args[0] == "images":
+                return SimpleNamespace(stdout="\n".join(i.split(":")[1] for i in images if i.startswith(args[1] + ":")), returncode=0)
+            if args[:2] == ("image", "inspect"):
+                return SimpleNamespace(returncode=0 if args[2] in images else 1)
+            return SimpleNamespace(stdout="", returncode=0)
+
+        patches = [
+            patch.object(site, "RELEASE_ROOT", release_root),
+            patch.object(site, "CONTROL_ROOT", control),
+            patch.object(site, "ROOT", root),
+            patch.object(site, "docker", side_effect=docker),
+            patch.object(site, "inspect", side_effect=lambda name: {"Name": name} if name in containers else None),
+            patch.object(site, "ingress", return_value={"Name": "/wp-site-live-edge"}),
+            patch.object(site, "stop_remove", side_effect=lambda name: calls.append(("stop_remove", name))),
+        ]
+        for item in patches:
+            item.start()
+            self.addCleanup(item.stop)
+        return release_root, calls
+
+    def test_prune_keeps_live_and_rollback_target_and_skips_running_releases(self):
+        with tempfile.TemporaryDirectory() as directory:
+            release_root, calls = self._prune_fixture(Path(directory), running=("wp-site-stuck-api",))
+            site.prune()
+            self.assertEqual(sorted(path.name for path in release_root.iterdir() if not path.name.startswith(".")),
+                             ["live", "middle", "stuck"])
+            removed_images = {args[1] for args in calls if args[0] == "rmi"}
+            self.assertEqual(removed_images, {"write_project-backend:old", "write_project-public:old"})
+            self.assertEqual({args[1] for args in calls if args[0] == "stop_remove"},
+                             {"wp-site-old-api", "wp-site-old-public", "wp-site-old-edge"})
+            self.assertFalse(any({"-f", "--force"} & set(args) for args in calls if args[0] == "rmi"))
+
+    def test_prune_dry_run_changes_nothing(self):
+        with tempfile.TemporaryDirectory() as directory:
+            release_root, calls = self._prune_fixture(Path(directory))
+            site.prune(dry_run=True)
+            self.assertTrue((release_root / "old").exists())
+            self.assertFalse(any(args[0] in ("rmi", "stop_remove") for args in calls))
+
+    def test_prune_refuses_without_live_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            release_root, _ = self._prune_fixture(Path(directory))
+            (release_root / ".site-release" / "live" / "release.json").unlink()
+            with self.assertRaisesRegex(RuntimeError, "no metadata"):
+                site.prune()
+            self.assertTrue((release_root / "old").exists())
+
     def test_snapshot_digest_detects_mutation_and_rejects_symlinks(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

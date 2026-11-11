@@ -8,7 +8,8 @@
 #   scripts/release.sh pages            build and upload the Cloudflare Pages front end
 #   scripts/release.sh verify           smoke-check the public domains
 #   scripts/release.sh all <tag> [--apply-schema]   every step above, in order
-#   scripts/release.sh auto             unattended: tag auto-<sha>, apply schema, retire old releases
+#   scripts/release.sh auto             unattended: tag auto-<sha>, apply schema, retire and prune old releases
+#   scripts/release.sh prune [--dry-run]   delete releases older than the live one and its rollback target
 #
 # Environment for runs outside the canonical checkout (the deploy runner):
 #   WP_RELEASE_ROOT      directory the live ingress mounts releases from
@@ -160,6 +161,14 @@ cmd_auto() {
   cmd_all "$tag" --apply-schema
   log "stopping releases older than the rollback target"
   python3 scripts/site-release.py retire-ancestors || log "retire-ancestors failed; old releases are still running"
+  cmd_prune
+}
+
+# Delete releases older than the live one and its rollback target. A failed
+# cleanup never fails the deploy that just went live.
+cmd_prune() {
+  log "removing images, containers and files of releases older than the rollback target"
+  python3 scripts/site-release.py prune "$@" || log "prune failed; old releases are still on disk"
 }
 
 cmd_all() {
@@ -180,6 +189,7 @@ case "$action" in
   build|prepare|activate) [ $# -eq 1 ] || die "usage: $0 $action <tag>"; "cmd_$action" "$1" ;;
   schema) cmd_schema "${1:-}" ;;
   pages|verify) cmd_$action ;;
+  prune) cmd_prune "$@" ;;
   all) [ $# -ge 1 ] || die "usage: $0 all <tag> [--apply-schema]"; cmd_all "$@" ;;
   auto) cmd_auto ;;
   *) awk 'NR > 1 && /^set -euo/ {exit} NR > 1' "$0"; exit 2 ;;
