@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { publicSiteUrl } from "../../lib/publicSiteUrl";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { getProductionResourceSubmissionsAdmin, updateProductionResourceSubmissionAdmin } from "../../lib/api/admin";
@@ -55,7 +56,7 @@ export function ProductionResourceSubmissionInbox() {
       {item.profile.links?.map((link) => <p key={link.url}>{link.label}：<a href={link.url} target="_blank" rel="noopener noreferrer" className="break-all text-primary hover:underline">{link.url}</a></p>)}
       {item.profile.works?.length > 0 && <div><p className="font-medium">參與作品</p><ul className="mt-1 space-y-1">{item.profile.works.map((work) => <li key={work.url}><span className="text-muted-foreground">{workLabels[work.workType || "audio"]} · </span><a href={work.url} target="_blank" rel="noopener noreferrer" className="break-all text-primary hover:underline">{work.title || work.url}</a>{work.role && ` · ${work.role}`}{work.coverUrl && <> · <a href={work.coverUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">封面圖</a></>}</li>)}</ul></div>}
       {item.reviewNote && <p className="text-xs text-muted-foreground">審核備註：{item.reviewNote}</p>}
-      {item.publishedId && <a href={`${window.location.hostname.startsWith("studio-dev-") ? "https://dev-open-scripts.shawnup.com" : "https://open-scripts.shawnup.com"}${item.profile.category === "voice_actor" ? `/author/${item.publishedId}` : `/resources/${item.publishedId}`}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">查看公開頁</a>}
+      {item.publishedId && <a href={publicSiteUrl(item.profile.category === "voice_actor" ? `/author/${item.publishedId}` : `/resources/${item.publishedId}`)} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">查看公開頁</a>}
       {item.status === "pending" && <div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={busyId === item.id} onClick={() => void review(item, "rejected")}>退回</Button><Button size="sm" disabled={busyId === item.id} onClick={() => void review(item, "approved")}>核准上架</Button></div>}
     </article>)}
   </div>;

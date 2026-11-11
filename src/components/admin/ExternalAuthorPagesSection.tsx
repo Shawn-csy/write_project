@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { publicSiteUrl } from "../../lib/publicSiteUrl";
 import { ExternalLink, Loader2, Pencil, RefreshCw, Search, Trash2, UserCircle, RotateCcw } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -230,7 +231,7 @@ export function ExternalAuthorPagesSection(): React.JSX.Element {
                     {group.profileUrl && <a href={group.profileUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 truncate text-xs text-primary hover:underline">作者社群 <ExternalLink className="h-3 w-3 shrink-0" /></a>}
                   </div>
                   <div className="flex shrink-0 flex-wrap justify-end gap-1">
-                    {group.isHidden ? <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs" disabled={isSaving} onClick={() => void restorePage(group)}><RotateCcw className="mr-1 h-3.5 w-3.5" />還原</Button> : <a href={group.linkedPersonaId ? `https://dev-open-scripts.shawnup.com/author/${encodeURIComponent(group.linkedPersonaId)}` : `https://dev-open-scripts.shawnup.com/author/external/${encodeURIComponent(group.name)}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-input px-2.5 text-xs font-medium hover:bg-muted/60"><ExternalLink className="h-3.5 w-3.5" />預覽</a>}
+                    {group.isHidden ? <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs" disabled={isSaving} onClick={() => void restorePage(group)}><RotateCcw className="mr-1 h-3.5 w-3.5" />還原</Button> : <a href={publicSiteUrl(group.linkedPersonaId ? `/author/${encodeURIComponent(group.linkedPersonaId)}` : `/author/external/${encodeURIComponent(group.name)}`)} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 items-center justify-center gap-1 rounded-md border border-input px-2.5 text-xs font-medium hover:bg-muted/60"><ExternalLink className="h-3.5 w-3.5" />預覽</a>}
                     <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs" onClick={() => openEditor(group)}><Pencil className="mr-1 h-3.5 w-3.5" />編輯</Button>
                     {!group.isHidden && <Button type="button" variant="outline" size="sm" className="h-8 px-2 text-xs text-destructive hover:text-destructive" onClick={() => setPendingHide(group)}><Trash2 className="mr-1 h-3.5 w-3.5" />撤下</Button>}
                   </div>
