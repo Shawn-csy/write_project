@@ -24,6 +24,10 @@ from services.route_contract import (
 )
 from services.seo import inject_seo_for_route
 from services.request_body_limit import RequestBodyLimitMiddleware
+from services.media_types import register_media_types
+
+register_media_types()
+
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)

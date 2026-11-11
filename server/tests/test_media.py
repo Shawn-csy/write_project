@@ -68,3 +68,28 @@ def test_media_upload_rejects_mismatched_signature(client, tmp_path, monkeypatch
     listed = client.get("/api/media/items", headers=headers)
     assert listed.status_code == 200
     assert listed.json().get("items", []) == []
+
+
+def test_media_static_files_serve_webp_with_an_image_content_type(tmp_path):
+    """Cross-origin <img> of an octet-stream + nosniff response is blocked by the browser."""
+    import mimetypes
+
+    from fastapi import FastAPI
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.testclient import TestClient
+
+    from services.media_types import register_media_types
+
+    # Simulate a Python/OS build whose mimetypes table lacks .webp.
+    mimetypes.init()
+    mimetypes._db.types_map[True].pop(".webp", None)
+    assert mimetypes.guess_type("x.webp")[0] is None
+
+    register_media_types()
+
+    (tmp_path / "cover.webp").write_bytes(b"RIFF\x00\x00\x00\x00WEBP")
+    app = FastAPI()
+    app.mount("/media", StaticFiles(directory=str(tmp_path)), name="media")
+    response = TestClient(app).get("/media/cover.webp")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("image/webp")
