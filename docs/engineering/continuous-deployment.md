@@ -15,7 +15,26 @@ scripts/release.sh auto
   pages     建置並上傳 Cloudflare Pages
   verify    正式網域煙霧測試
   retire-ancestors  停用比直接回滾版本更舊的 API／公開站
+  prune     刪除更舊版本的容器、映像、靜態檔、控制資料與建置輸出
 ```
+
+## 舊版本清理
+
+每次發布會留下一組 Docker 映像（API 約 1 GB、公開站約 340 MB）與一份靜態檔。`release.sh auto` 在切流成功後執行 `site-release.py prune`：
+
+- **保留**：正式版，以及它記錄的回滾目標（`release.json` 的 `previous_edge`）。兩者的容器、映像、靜態檔與控制資料都完整留著，`rollback` 隨時可用。
+- **刪除**：更舊版本的 `wp-site-<tag>-*` 容器、`write_project-backend/public:<tag>` 映像、`releases/<tag>`、`releases/.site-release/<tag>` 與 `dist/releases/<tag>`；保留版本已複製到 `releases/` 的 `dist/releases` 建置輸出也一併刪除。
+- **不會碰**：還有容器在執行的版本（例如部署中途）整個略過；正式版缺少發布紀錄時拒絕清理；刪映像不加 `-f`，任何容器使用中的映像都刪不掉。其他專案（如 `motto_web`）、PostgreSQL 映像、Dev 映像與共用的 Docker build cache 都不在範圍內。
+- 清理失敗不會讓已上線的部署變成失敗，只會在 log 留紀錄。
+
+手動執行：
+
+```bash
+bash scripts/release.sh prune --dry-run   # 先看會刪什麼
+bash scripts/release.sh prune
+```
+
+刪掉的版本無法再用 `rollback` 接回；需要時從對應 commit 重新建置。
 
 任一步失敗就停在那裡：`prepare` 之前失敗不影響正式站；`activate` 驗證失敗會自動接回原入口。失敗時 GitHub 會寄出 workflow 失敗通知，這台 Mac 也會跳出系統通知。
 
