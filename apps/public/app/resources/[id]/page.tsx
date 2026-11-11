@@ -14,6 +14,8 @@ import type { ProductionResource } from "../ResourcesClient";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
+const DIRECTORY_SENTINEL = "index";
+
 export const revalidate = 300;
 export const dynamicParams = true;
 
@@ -32,7 +34,9 @@ const loadResources = cache(async (): Promise<ProductionResource[]> => {
 export async function generateStaticParams(): Promise<Array<{ id: string }>> {
   if (process.env.CF_STATIC_EXPORT !== "1" && process.env.PREBUILD_PUBLIC_PAGES !== "1") return [];
   const ids = (await loadResources()).flatMap((item) => item.legacyIds || []);
-  return Array.from(new Set(ids)).map((id) => ({ id }));
+  // A static export needs at least one page per dynamic route; with no retired
+  // addresses, publish one that sends visitors to the directory.
+  return Array.from(new Set(ids.length ? ids : [DIRECTORY_SENTINEL])).map((id) => ({ id }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -46,7 +50,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function LegacyResourcePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const href = identityHrefForLegacyResource(await loadResources(), decodeURIComponent(id));
+  const href = id === DIRECTORY_SENTINEL ? "/resources" : identityHrefForLegacyResource(await loadResources(), decodeURIComponent(id));
   if (!href) notFound();
   if (STATIC_EXPORT) return <IdentityRedirect href={href} />;
   permanentRedirect(href);
