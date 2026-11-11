@@ -695,6 +695,17 @@ def _public_script_identity_ids(db: Session) -> tuple[set[str], set[str], set[st
     return script_ids, persona_ids, org_ids
 
 
+_CORE_ROLES = {"scriptwriter", "voice_actor"}
+
+
+def _visible_production_roles(db: Session, persona_id: str) -> set[str]:
+    return {row[0] for row in db.query(models.PersonaRole.role).filter(
+        models.PersonaRole.personaId == persona_id,
+        models.PersonaRole.role.in_(models.PRODUCTION_ROLES),
+        models.PersonaRole.isVisible.is_(True),
+    ).all()}
+
+
 def _is_voice_actor_persona(persona: models.Persona) -> bool:
     return any(
         str(tag).strip().casefold() in {"聲演", "配音", "voice actor", "voice-actor", "voiceactor"}
@@ -785,12 +796,69 @@ def _build_public_identity_context(
         }
     return {
         "roles": roles_by_persona,
+        "productionCredits": _production_credits_by_persona(db, ids),
         "internalScripts": internal_scripts_by_persona,
         "demos": demos_by_persona,
         "externalAuthors": external_authors_by_persona,
         "externalScripts": external_scripts_by_author,
         "supplements": supplements_by_key,
     }
+
+
+_CREDIT_SOURCE_ROLES = {"post_production": "post_production", "cover_art": "cover_art", "recording": "recording_studio"}
+
+
+def _production_credits_by_persona(db: Session, persona_ids: list[str]) -> dict[str, list[dict]]:
+    """Reviewed production credits plus catalog credits whose printed name maps to the identity."""
+    result: dict[str, list[dict]] = {value: [] for value in persona_ids}
+    if not persona_ids:
+        return result
+    seen: set[tuple[str, str, str]] = set()
+    approved = models.PublicAudioWorkSubmission.status == "approved"
+
+    def add(persona_id: str, item: dict) -> None:
+        key = (persona_id, item["creditRole"], item.get("audioWorkId") or item["url"])
+        if key in seen:
+            return
+        seen.add(key)
+        result.setdefault(persona_id, []).append(item)
+
+    rows = db.query(models.PersonaCredit, models.PublicAudioWorkSubmission).outerjoin(
+        models.PublicAudioWorkSubmission, models.PublicAudioWorkSubmission.id == models.PersonaCredit.audioWorkId,
+    ).filter(models.PersonaCredit.personaId.in_(persona_ids)).order_by(models.PersonaCredit.createdAt.desc()).all()
+    for credit, work in rows:
+        if credit.audioWorkId and (work is None or work.status != "approved"):
+            continue
+        add(credit.personaId, {
+            "id": work.id if work else credit.id, "audioWorkId": credit.audioWorkId,
+            "title": (work.title if work else credit.title) or "", "url": work.url if work else credit.url,
+            "coverUrl": (work.coverUrl if work else credit.coverUrl) or "", "creditRole": credit.role,
+            "creditedAs": credit.creditedAs or "", "workType": "audio" if work else (credit.workType or "other"),
+            "publishedAt": (work.publishedAt or work.createdAt) if work else credit.createdAt,
+        })
+
+    names = db.query(models.PersonaCreditName).filter(models.PersonaCreditName.personaId.in_(persona_ids)).all()
+    owner_by_name = {(row.role, row.creditedAs): row.personaId for row in names}
+    if owner_by_name:
+        catalog = db.query(models.AudioWorkCredit, models.PublicAudioWorkSubmission).join(
+            models.PublicAudioWorkSubmission, models.PublicAudioWorkSubmission.id == models.AudioWorkCredit.audioWorkId,
+        ).filter(
+            models.AudioWorkCredit.role.in_(tuple(_CREDIT_SOURCE_ROLES)), approved,
+            models.AudioWorkCredit.creditedAs.in_({row.creditedAs for row in names}),
+        ).all()
+        for credit, work in catalog:
+            role = _CREDIT_SOURCE_ROLES[credit.role]
+            persona_id = owner_by_name.get((role, credit.creditedAs))
+            if not persona_id:
+                continue
+            add(persona_id, {
+                "id": work.id, "audioWorkId": work.id, "title": work.title or "", "url": work.url,
+                "coverUrl": work.coverUrl or "", "creditRole": role, "creditedAs": credit.creditedAs,
+                "workType": "audio", "publishedAt": work.publishedAt or work.createdAt,
+            })
+    for items in result.values():
+        items.sort(key=lambda item: item.get("publishedAt") or 0, reverse=True)
+    return result
 
 
 def _public_identity_projection(
@@ -826,12 +894,18 @@ def _public_identity_projection(
         for row in context.get("externalScripts", {}).get(author.id, [])
     ]
 
+    # Production roles never decide whether writing or acting is derived from works.
+    core_records = [row for row in role_records if row.role in _CORE_ROLES]
+    production_credits = context.get("productionCredits", {}).get(persona.id, [])
     roles: list[str] = []
-    if "scriptwriter" in visible_role_names or (not role_records and (has_internal_scripts or external_rows)):
+    if "scriptwriter" in visible_role_names or (not core_records and (has_internal_scripts or external_rows)):
         roles.append("scriptwriter")
-    if "voice_actor" in visible_role_names or (not role_records and not persona.voiceActorHidden and (self_declared_voice_actor or has_voice_performances)):
+    if "voice_actor" in visible_role_names or (not core_records and not persona.voiceActorHidden and (self_declared_voice_actor or has_voice_performances)):
         roles.append("voice_actor")
+    credited_roles = {item["creditRole"] for item in production_credits}
+    roles.extend(role for role in models.PRODUCTION_ROLES if role in visible_role_names and role in credited_roles)
     result.roles = roles
+    result.productionCredits = [item for item in production_credits if item["creditRole"] in roles]
 
     sources = ["persona"]
     if "scriptwriter" in roles and has_internal_scripts:
@@ -894,6 +968,11 @@ def _public_identity_projection(
         result.voiceActorOrganizations = [item for item in voice_profile.get("organizations") or result.voiceActorOrganizations if isinstance(item, dict)]
         result.voiceActorContributors = [item for item in voice_profile.get("contributors") or result.voiceActorContributors if isinstance(item, dict)]
     result.roleProfiles = role_profiles
+    contributors = [item for item in crud._ensure_list(persona.voiceActorContributors) if isinstance(item, dict)]
+    for profile in role_profiles.values():
+        contributors.extend(item for item in (profile.get("contributors") or []) if isinstance(item, dict))
+    unique_contributors = {(item.get("name"), item.get("contributedAt")): item for item in contributors}
+    result.profileContributors = sorted(unique_contributors.values(), key=lambda item: item.get("contributedAt") or 0)
     return result
 
 
@@ -913,7 +992,7 @@ def _is_public_voice_actor_identity(db: Session, persona: models.Persona) -> boo
     if persona.voiceActorHidden:
         return False
     roles = db.query(models.PersonaRole.role, models.PersonaRole.isVisible).filter(
-        models.PersonaRole.personaId == persona.id
+        models.PersonaRole.personaId == persona.id, models.PersonaRole.role.in_(_CORE_ROLES)
     ).all()
     if roles:
         return any(role == "voice_actor" and is_visible for role, is_visible in roles)
@@ -923,7 +1002,7 @@ def _is_public_voice_actor_identity(db: Session, persona: models.Persona) -> boo
 def _is_public_scriptwriter_identity(db: Session, persona: models.Persona) -> bool:
     """Match scriptwriter eligibility to the public identity projection's role rules."""
     context = _build_public_identity_context(db, [persona.id])
-    role_records = context.get("roles", {}).get(persona.id, [])
+    role_records = [row for row in context.get("roles", {}).get(persona.id, []) if row.role in _CORE_ROLES]
     if role_records:
         return any(row.role == "scriptwriter" and row.isVisible for row in role_records)
     if context.get("internalScripts", {}).get(persona.id):
@@ -1259,10 +1338,15 @@ def create_voice_actor_profile_submission(
     requested_profile_kind = payload.profileKind
     if not persona:
         raise HTTPException(status_code=404, detail="找不到公開身份")
+    production_roles = _visible_production_roles(db, persona.id)
     if requested_profile_kind == "author":
         profile_kind = "author"
         if not _is_public_scriptwriter_identity(db, persona):
             raise HTTPException(status_code=404, detail="找不到公開的作者身份")
+    elif requested_profile_kind == "production":
+        profile_kind = "production"
+        if not production_roles:
+            raise HTTPException(status_code=404, detail="找不到公開的製作身份")
     else:
         profile_kind = requested_profile_kind or "voice_actor"
         if not _is_public_voice_actor_identity(db, persona):
@@ -1288,13 +1372,28 @@ def create_voice_actor_profile_submission(
     email = payload.contactEmail.strip()[:320]
     if not submitter_name or not email or "@" not in email or " " in email:
         raise HTTPException(status_code=400, detail="請填寫姓名與有效的聯絡 Email")
-    contributor_name = payload.contributorName.strip()[:120] if profile_kind == "voice_actor" else ""
-    if profile_kind == "voice_actor" and not contributor_name:
+    contributor_name = payload.contributorName.strip()[:120] if profile_kind != "author" else ""
+    if profile_kind != "author" and not contributor_name:
         raise HTTPException(status_code=400, detail="請填寫公開顯示的資料補充者名稱")
     display_name = payload.displayName.strip()[:120]
     if not display_name:
         raise HTTPException(status_code=400, detail="請填寫公開顯示名稱")
     works = []
+    for item in (payload.works[:30] if profile_kind == "production" else []):
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("creditRole") or "").strip()
+        if role not in production_roles:
+            raise HTTPException(status_code=400, detail="參與作品的製作類別無效")
+        url = _public_profile_url(item.get("url"))
+        title = str(item.get("title") or "").strip()[:200]
+        if not url or not title:
+            raise HTTPException(status_code=400, detail="參與作品需提供名稱與網址")
+        work_type = str(item.get("workType") or "audio").strip()
+        if work_type not in {"audio", "game", "video", "other"}:
+            raise HTTPException(status_code=400, detail="參與作品的類型無效")
+        works.append({"title": title, "url": url, "coverUrl": _public_profile_url(item.get("coverUrl"), image=True),
+                      "workType": work_type, "creditRole": role})
     for item in (payload.works[:50] if profile_kind == "voice_actor" else []):
         if not isinstance(item, dict):
             continue
@@ -1344,8 +1443,10 @@ def create_voice_actor_profile_submission(
     )
     db.add(row)
     db.commit()
-    background_tasks.add_task(notify_approval_request, "author_profile" if profile_kind == "author" else "voice_actor_profile", {
-        "id": row.id, "voiceActor" if profile_kind == "voice_actor" else "author": persona.displayName, "submitterName": row.submitterName,
+    notification_kind = {"author": "author_profile", "production": "resource_profile"}.get(profile_kind, "voice_actor_profile")
+    background_tasks.add_task(notify_approval_request, notification_kind, {
+        "id": row.id, "voiceActor" if profile_kind == "voice_actor" else "author": persona.displayName,
+        "name": persona.displayName, "personaId": persona.id, "submitterName": row.submitterName,
         "contactEmail": row.contactEmail,
     })
     return schemas.VoiceActorProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now_ms)

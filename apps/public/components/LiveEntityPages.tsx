@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * Author, organization, tag, series and external author/organization pages for
- * the static build.
+ * Identity (author / voice actor / production), organization, tag, series and
+ * external organization pages for the static build.
  *
  * Each page hydrates with the data baked in at build time and then rebuilds
  * itself from the live API, so editing a profile, a tag or a series in the
@@ -15,7 +15,8 @@ import { PublicTopBar } from "@/components/PublicTopBar";
 import { NotFoundBody, NotFoundContent } from "@/components/NotFoundContent";
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { AuthorPageClient } from "@/app/author/[id]/AuthorPageClient";
-import { ResourcePageClient } from "@/app/resources/[id]/ResourcePageClient";
+import { IdentityRedirect } from "@/components/IdentityRedirect";
+import { identityHrefForLegacyResource } from "@/lib/legacyResourceRedirect";
 import type { ProductionResource } from "@/app/resources/ResourcesClient";
 import { OrgPageClient } from "@/app/org/[id]/OrgPageClient";
 import { SeriesPageClient } from "@/app/series/[name]/SeriesPageClient";
@@ -95,13 +96,13 @@ const VOICE_PROFILE_SECTIONS = ["scripts", "externalPublicScripts", "demoSubmiss
 const SCRIPT_ENTITY_SECTIONS = ["scripts", "externalPublicScripts"] as const;
 const EXTERNAL_ENTITY_SECTIONS = ["externalPublicScripts"] as const;
 
-function LiveResourcePage({ id }: { id: string }) {
-  const state = useLiveData<ProductionResource>(undefined, async (signal) => {
+/** A retired /resources/<id> address: send it to the identity page that replaced it. */
+function LiveLegacyResourceRedirect({ id }: { id: string }) {
+  const state = useLiveData<string>(undefined, async (signal) => {
     const bundle = await readBundle(signal, ["productionResources"]);
-    return ((bundle as (PublicBundleLike & { productionResources?: ProductionResource[] }) | null)?.productionResources)?.find((item) => item.id === id && item.works?.length > 0) ?? null;
+    return identityHrefForLegacyResource((bundle as { productionResources?: ProductionResource[] } | null)?.productionResources, id);
   }, `resource:${id}`);
-  useDocumentTitle(state.status === "ready" ? state.data.name : null);
-  return <Frame state={state}>{state.status === "ready" && <ResourcePageClient item={state.data} />}</Frame>;
+  return <Frame state={state}>{state.status === "ready" && <IdentityRedirect href={state.data} />}</Frame>;
 }
 
 async function readBundle(signal: AbortSignal, sections: readonly PublicBundleSection[]): Promise<PublicBundleLike | null> {
@@ -264,7 +265,7 @@ export const LiveExternalOrgPage = (props: { rawName: string; initial?: External
 // ── Route dispatch for addresses with no prebuilt page ──────────────────────
 
 const ROUTES: Array<{ pattern: RegExp; raw?: boolean; render: (name: string) => ReactNode }> = [
-  { pattern: /^\/resources\/([^/]+)\/?$/, render: (n) => <LiveResourcePage id={n} /> },
+  { pattern: /^\/resources\/([^/]+)\/?$/, render: (n) => <LiveLegacyResourceRedirect id={n} /> },
   { pattern: /^\/author\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalAuthorPage rawName={n} chrome={{ activeTab: "authors", back: true }} /> },
   { pattern: /^\/org\/external\/([^/]+)\/?$/, raw: true, render: (n) => <LiveExternalOrgPage rawName={n} chrome={{ activeTab: "orgs", back: true }} /> },
   { pattern: /^\/author\/([^/]+)\/?$/, render: (n) => <LiveAuthorPage id={n} chrome={{ activeTab: "authors", back: true }} /> },

@@ -75,6 +75,8 @@ def main():
                 ))
                 count += 1
         db.commit()
+        from services.identity_convergence import converge_and_commit
+        converge_and_commit(db)
     print(f"Imported {count} credits for {len(approved)} approved works")
 
 

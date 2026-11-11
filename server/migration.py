@@ -973,7 +973,22 @@ def _run_postgres_migrations():
         conn.commit()
 
 
+def _ensure_identity_columns():
+    """Link legacy production resources to the identity that replaced them."""
+    from sqlalchemy import inspect
+
+    inspector = inspect(engine)
+    if "production_resources" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("production_resources")}
+    with engine.begin() as conn:
+        if "personaId" not in columns:
+            conn.execute(text('ALTER TABLE production_resources ADD COLUMN "personaId" TEXT REFERENCES personas(id) ON DELETE SET NULL'))
+        conn.execute(text('CREATE INDEX IF NOT EXISTS "ix_production_resources_personaId" ON production_resources ("personaId")'))
+
+
 def run_migrations():
+    _ensure_identity_columns()
     if engine.dialect.name == "postgresql":
         _run_postgres_migrations()
         return

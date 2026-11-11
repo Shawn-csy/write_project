@@ -207,6 +207,21 @@ export interface PublicOrg {
   externalHref?: string;
 }
 
+export type ProductionRole = "post_production" | "cover_art" | "recording_studio";
+export type PublicIdentityRole = "scriptwriter" | "voice_actor" | ProductionRole;
+export const PRODUCTION_ROLES: readonly ProductionRole[] = ["post_production", "cover_art", "recording_studio"];
+
+export interface PublicProductionCredit {
+  id: string;
+  audioWorkId?: string | null;
+  title: string;
+  url: string;
+  coverUrl: string;
+  creditRole: ProductionRole;
+  creditedAs: string;
+  workType?: "audio" | "game" | "video" | "other";
+}
+
 export interface PublicPersona {
   id: string;
   ownerId?: string;
@@ -217,9 +232,13 @@ export interface PublicPersona {
   website?: string;
   links?: Array<{ url?: string; label?: string }> | string;
   tags?: string[];
-  roles?: Array<"scriptwriter" | "voice_actor">;
+  roles?: PublicIdentityRole[];
   profileSources?: string[];
-  roleProfiles?: Partial<Record<"scriptwriter" | "voice_actor", Record<string, unknown>>>;
+  roleProfiles?: Partial<Record<PublicIdentityRole, Record<string, unknown>>>;
+  /** Post-production, cover art and recording credits, newest first. */
+  productionCredits?: PublicProductionCredit[];
+  /** Everyone whose reviewed edits shaped this profile, oldest first. */
+  profileContributors?: Array<{ name?: string; contributedAt?: number }>;
   voiceActorCollaborationEnabled?: boolean;
   voiceActorClaimed?: boolean;
   voiceActorHidden?: boolean;

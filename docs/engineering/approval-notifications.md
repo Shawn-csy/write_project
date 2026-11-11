@@ -9,9 +9,9 @@
 | `demo` | `POST /api/public-demo-submissions`（活動頁投稿會自動核可，不通知） |
 | `audio_work` | `POST /api/public-audio-work-submissions` |
 | `external_author_profile` | `POST /api/external-author-profile-submissions` |
-| `voice_actor_profile` | `POST /api/voice-actor-profile-submissions` |
+| `voice_actor_profile` / `author_profile` | `POST /api/voice-actor-profile-submissions`（`profileKind` 為 `voice_actor` 或 `author`） |
 | `voice_actor_claim` | `POST /api/voice-actor-claims` |
-| `resource_profile` | `POST /api/production-resource-profile-submissions` |
+| `resource_profile` | `POST /api/voice-actor-profile-submissions`（`profileKind: "production"`，後製／封面／錄音室） |
 | `new_resource` | `POST /api/production-resource-submissions` |
 
 意見回饋（`/api/public-feedback`）原本就有自己的 Email，沿用 `services/public_feedback_email.py`。機器人欄位（honeypot）與重複投稿（409）不會觸發通知。

@@ -113,6 +113,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       personaMap.set(persona.id, demoVoiceActorDates.get(persona.id) || now);
     }
   }
+  // External writers linked to an identity and production people share the identity page.
+  for (const item of externalScripts) {
+    if (!item.authorPersonaId) continue;
+    const ts = toSitemapDate(item.updatedAt ?? item.createdAt, now);
+    if (!personaMap.has(item.authorPersonaId) || ts > personaMap.get(item.authorPersonaId)!) personaMap.set(item.authorPersonaId, ts);
+  }
+  for (const item of externalBundle?.productionResources || []) {
+    if (!item.personaId || !item.works?.length) continue;
+    const newest = Math.max(0, ...item.works.map((work) => Number((work as { publishedAt?: number }).publishedAt) || 0));
+    const ts = toSitemapDate(newest || undefined, now);
+    if (!personaMap.has(item.personaId) || ts > personaMap.get(item.personaId)!) personaMap.set(item.personaId, ts);
+  }
   const authorEntries: MetadataRoute.Sitemap = Array.from(personaMap.entries()).map(([id, ts]) => ({
     url: authorUrl(id),
     lastModified: ts,
@@ -161,7 +173,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const externalOrgMap = new Map<string, { name: string; profileUrl?: string; ts: string }>();
   for (const item of externalScripts) {
     const ts = toSitemapDate(item.updatedAt ?? item.createdAt, now);
-    if (item.authorName?.trim()) {
+    if (item.authorName?.trim() && !item.authorPersonaId) {
       const name = item.authorName.trim();
       const key = name.toLocaleLowerCase();
       const current = externalAuthorMap.get(key);
@@ -183,13 +195,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: ts,
   }));
 
-  const resourceEntries: MetadataRoute.Sitemap = (externalBundle?.productionResources || [])
-    .filter((item) => item.id && item.works?.length > 0)
-    .map((item) => ({
-      url: `${BASE_URL}/resources/${encodeURIComponent(item.id)}`,
-      lastModified: toSitemapDate(item.reviewedAt, now),
-    }));
-
   // Tags excluded by default (shouldIncludeTagsInSitemap() === false).
 
   const contentEntries = [
@@ -198,7 +203,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...orgEntries,
     ...externalAuthorEntries,
     ...externalOrgEntries,
-    ...resourceEntries,
     ...seriesEntries,
   ];
   const newestContentTimestamp = contentEntries.reduce(
@@ -218,7 +222,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...orgEntries,
     ...externalAuthorEntries,
     ...externalOrgEntries,
-    ...resourceEntries,
     ...seriesEntries,
   ]);
 }

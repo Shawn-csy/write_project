@@ -92,6 +92,8 @@ def main() -> None:
             ))
             work_count += 1
         db.commit()
+        from services.identity_convergence import converge_and_commit
+        converge_and_commit(db)
     print(f"Imported {len(records)} production resources and {work_count} work credits")
 
 

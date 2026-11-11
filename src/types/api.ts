@@ -551,7 +551,7 @@ export interface PublicAudioWorkSubmissionListResponse {
 export interface VoiceActorProfileSubmission {
   id: string;
   personaId: string;
-  profileKind?: "voice_actor" | "author";
+  profileKind?: "voice_actor" | "author" | "production";
   personaName: string;
   submitterName: string;
   contactEmail: string;
@@ -564,7 +564,7 @@ export interface VoiceActorProfileSubmission {
     website?: string;
     links?: Array<{ label?: string; url?: string }>;
     organizations?: Array<{ name?: string; url?: string }>;
-    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string; creditRole?: string; workType?: string }>;
   };
   acceptedFields?: string[];
   profile: {
@@ -575,7 +575,7 @@ export interface VoiceActorProfileSubmission {
     website?: string;
     links?: Array<{ label?: string; url?: string }>;
     organizations?: Array<{ name?: string; url?: string }>;
-    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string; creditRole?: string; workType?: string }>;
   };
   status: "pending" | "approved" | "rejected";
   reviewNote?: string;
@@ -586,21 +586,6 @@ export interface VoiceActorProfileSubmission {
 export interface VoiceActorProfileSubmissionListResponse {
   total: number;
   items: VoiceActorProfileSubmission[];
-}
-
-export interface ProductionResourceProfileSubmission {
-  id: string;
-  resourceId: string;
-  resourceName: string;
-  submitterName: string;
-  contactEmail: string;
-  currentProfile: Record<string, unknown>;
-  profile: Record<string, unknown>;
-  acceptedFields: string[];
-  status: "pending" | "approved" | "rejected";
-  reviewNote: string;
-  reviewedAt?: number | null;
-  createdAt: number;
 }
 
 export interface ProductionResourceSubmission {
@@ -626,11 +611,6 @@ export interface ProductionResourceSubmission {
 export interface ProductionResourceSubmissionListResponse {
   total: number;
   items: ProductionResourceSubmission[];
-}
-
-export interface ProductionResourceProfileSubmissionListResponse {
-  total: number;
-  items: ProductionResourceProfileSubmission[];
 }
 
 export interface ExternalAuthorProfileSubmission {

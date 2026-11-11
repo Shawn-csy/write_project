@@ -47,6 +47,9 @@ if AUTO_CREATE_TABLES:
         models.Base.metadata.create_all(bind=database.engine)
 if RUN_LEGACY_MIGRATIONS:
     migration.run_migrations()
+if _env_bool("DB_RUN_IDENTITY_CONVERGENCE", True):
+    from services.identity_convergence import run_identity_convergence_on_startup
+    run_identity_convergence_on_startup()
 
 SERVER_DIR = os.path.dirname(__file__)
 DIST_CANDIDATES = [

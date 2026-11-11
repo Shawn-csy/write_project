@@ -22,11 +22,20 @@ const sectionConfig: Array<{ key: SectionKey; label: string; fields: FieldKey[] 
   { key: "contributors", label: "資料協力者", fields: ["contributorName"] },
 ];
 const fieldKeys = Object.keys(fieldLabels) as FieldKey[];
+const PROFILE_FIELDS: FieldKey[] = ["displayName", "bio", "avatar", "website", "links"];
+/** Fields each kind of proposal may change; production proposals add credited works, never replace them. */
+const KIND_FIELDS: Record<NonNullable<VoiceActorProfileSubmission["profileKind"]>, FieldKey[]> = {
+  author: PROFILE_FIELDS,
+  voice_actor: fieldKeys,
+  production: [...PROFILE_FIELDS, "works", "contributorName"],
+};
+const KIND_LABELS: Record<NonNullable<VoiceActorProfileSubmission["profileKind"]>, string> = { author: "作者", voice_actor: "聲演", production: "製作" };
+const CREDIT_ROLE_LABELS: Record<string, string> = { post_production: "後製", cover_art: "封面", recording_studio: "錄音室" };
 
 function getChangedFields(item: VoiceActorProfileSubmission): FieldKey[] {
   const before = item.currentProfile || {};
   const after = item.profile || {};
-  const applicableFields = item.profileKind === "author" ? fieldKeys.filter((key) => ["displayName", "bio", "avatar", "website", "links"].includes(key)) : fieldKeys;
+  const applicableFields = fieldKeys.filter((key) => KIND_FIELDS[item.profileKind || "voice_actor"].includes(key));
   return applicableFields.filter((key) => {
     if (key === "contributorName") return Boolean(item.contributorName || after.contributorName);
     return JSON.stringify(before[key] ?? (["links", "organizations", "works"].includes(key) ? [] : "")) !==
@@ -55,7 +64,7 @@ function PagePreview({ item, version }: { item: VoiceActorProfileSubmission; ver
         <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border-4 border-background bg-muted text-2xl font-semibold text-muted-foreground sm:h-24 sm:w-24">
           {avatar ? <img src={avatar} alt={`${displayName}頭像`} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : displayName.slice(0, 1)}
         </div>
-        <div className="min-w-0 flex-1 pb-1"><h2 className="truncate text-2xl font-bold font-serif sm:text-3xl">{displayName}</h2><span className="mt-1 inline-flex rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">{isAuthor ? "作者" : "聲演"}</span></div>
+        <div className="min-w-0 flex-1 pb-1"><h2 className="truncate text-2xl font-bold font-serif sm:text-3xl">{displayName}</h2><span className="mt-1 inline-flex rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] text-primary">{KIND_LABELS[item.profileKind || "voice_actor"]}</span></div>
       </div>
       {profile.bio && <p className="mt-4 max-w-3xl whitespace-pre-wrap text-sm leading-relaxed text-foreground/85">{profile.bio}</p>}
       {(profile.website || links.length > 0) && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs">
@@ -63,7 +72,7 @@ function PagePreview({ item, version }: { item: VoiceActorProfileSubmission; ver
         {links.map((link, index) => <a key={`${link.label}-${index}`} className="inline-flex items-center gap-1 text-primary hover:underline" href={link.url} target="_blank" rel="noopener noreferrer">{link.label || "社群連結"}<ExternalLink className="h-3 w-3" /></a>)}
       </div>}
       {!isAuthor && organizations.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><div className="mb-2 flex items-center gap-2"><h3 className="font-semibold">所屬團體</h3><Badge variant="secondary" className="text-[10px]">{organizations.length}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{organizations.map((org, index) => <div key={`${org.name}-${index}`} className="rounded-lg border border-border/70 bg-muted/20 p-3"><p className="text-sm font-medium">{org.name || "未命名團體"}</p>{org.url && <a className="mt-1 inline-flex items-center gap-1 break-all text-xs text-primary hover:underline" href={org.url} target="_blank" rel="noopener noreferrer">{org.url}<ExternalLink className="h-3 w-3 shrink-0" /></a>}</div>)}</div></section>}
-      {!isAuthor && works.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><div className="mb-2 flex items-center gap-2"><h3 className="font-semibold">參演作品</h3><Badge variant="secondary" className="text-[10px]">{works.length}</Badge></div><div className="grid gap-3 sm:grid-cols-2">{works.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/70 bg-muted/10">{work.coverUrl && <img src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} className="aspect-video w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />}<div className="p-3"><h4 className="text-sm font-semibold">{work.title || "未命名作品"}</h4>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{work.description}</p>}{work.url && <a className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline" href={work.url} target="_blank" rel="noopener noreferrer">查看作品<ExternalLink className="h-3 w-3" /></a>}</div></article>)}</div></section>}
+      {!isAuthor && works.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><div className="mb-2 flex items-center gap-2"><h3 className="font-semibold">{item.profileKind === "production" ? (version === "proposal" ? "新增參與作品" : "參與作品") : "參演作品"}</h3><Badge variant="secondary" className="text-[10px]">{works.length}</Badge></div><div className="grid gap-3 sm:grid-cols-2">{works.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/70 bg-muted/10">{work.coverUrl && <img src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} className="aspect-video w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />}<div className="p-3"><h4 className="text-sm font-semibold">{work.title || "未命名作品"}</h4>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.creditRole && <p className="mt-1 text-xs text-muted-foreground">負責：{CREDIT_ROLE_LABELS[String(work.creditRole)] || String(work.creditRole)}</p>}{work.description && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{work.description}</p>}{work.url && <a className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline" href={work.url} target="_blank" rel="noopener noreferrer">查看作品<ExternalLink className="h-3 w-3" /></a>}</div></article>)}</div></section>}
       {!isAuthor && collaborators.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><h3 className="font-semibold">資料協力者</h3><div className="mt-2 flex flex-wrap gap-2">{collaborators.map((person, index) => <span key={`${person.name}-${index}`} className="rounded-full border border-border bg-muted/20 px-3 py-1 text-xs">{person.name}</span>)}</div></section>}
       {!profile.bio && !profile.website && !links.length && (isAuthor || (!organizations.length && !works.length && !collaborators.length)) && <p className="mt-5 rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">這個頁面目前還沒有補充其他資料。</p>}
     </div>
@@ -137,16 +146,16 @@ export function VoiceActorProfileReviewInbox(): React.JSX.Element {
       <span className="shrink-0 text-xs text-muted-foreground">共 {total} 筆</span>
     </div>
     {error && <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>}
-    {!loading && !error && items.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">目前沒有符合的作者或聲演資料申請。</div>}
+    {!loading && !error && items.length === 0 && <div className="py-8 text-center text-sm text-muted-foreground">目前沒有符合的個人頁資料申請。</div>}
     <div className="space-y-2">{items.map((item) => {
       const changed = getChangedFields(item);
       const isAuthor = item.profileKind === "author";
-      const itemSections = isAuthor ? sectionConfig.filter((section) => section.key === "profile") : sectionConfig;
+      const itemSections = sectionConfig.filter((section) => section.fields.some((field) => KIND_FIELDS[item.profileKind || "voice_actor"].includes(field)));
       const selected = selectedFields[item.id] ?? changed;
       const isOpen = openId === item.id;
       const version = pageVersions[item.id] || "proposal";
       return <article key={item.id} className="rounded-lg border border-border/70 bg-background/60 p-3 text-sm">
-        <div className="flex flex-wrap items-start justify-between gap-2"><div className="flex min-w-0 flex-wrap items-center gap-2"><Badge variant={item.status === "pending" ? "secondary" : item.status === "approved" ? "default" : "destructive"}>{item.status === "pending" ? "待審核" : item.status === "approved" ? "已核准" : "已退回"}</Badge><Badge variant="outline">{isAuthor ? "作者" : "聲演"}</Badge><strong>{item.personaName}</strong><span className="text-xs text-muted-foreground">{item.submitterName}</span><span className="text-xs text-muted-foreground">{changed.map((key) => fieldLabels[key]).join("、") || "沒有資料變更"}</span></div><div className="flex flex-wrap items-center gap-2"><Button variant="outline" size="sm" className="h-8" onClick={() => toggleOpen(item)} aria-expanded={isOpen}>{isOpen ? "收合預覽" : "檢視內容"}</Button>{item.status === "pending" && <Button size="sm" className="h-8" disabled={busyId === item.id || selected.length === 0} onClick={() => void review(item, "approved", selected)}>{busyId === item.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}核准變更</Button>}</div></div>
+        <div className="flex flex-wrap items-start justify-between gap-2"><div className="flex min-w-0 flex-wrap items-center gap-2"><Badge variant={item.status === "pending" ? "secondary" : item.status === "approved" ? "default" : "destructive"}>{item.status === "pending" ? "待審核" : item.status === "approved" ? "已核准" : "已退回"}</Badge><Badge variant="outline">{KIND_LABELS[item.profileKind || "voice_actor"]}</Badge><strong>{item.personaName}</strong><span className="text-xs text-muted-foreground">{item.submitterName}</span><span className="text-xs text-muted-foreground">{changed.map((key) => fieldLabels[key]).join("、") || "沒有資料變更"}</span></div><div className="flex flex-wrap items-center gap-2"><Button variant="outline" size="sm" className="h-8" onClick={() => toggleOpen(item)} aria-expanded={isOpen}>{isOpen ? "收合預覽" : "檢視內容"}</Button>{item.status === "pending" && <Button size="sm" className="h-8" disabled={busyId === item.id || selected.length === 0} onClick={() => void review(item, "approved", selected)}>{busyId === item.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}核准變更</Button>}</div></div>
         {!isAuthor && item.contributorName && <p className="mt-2 text-xs text-muted-foreground">本次提案的公開協力者：<strong className="text-foreground">{item.contributorName}</strong></p>}
         {!isAuthor && (item.collaborators || []).length > 0 && <p className="mt-1 text-xs text-muted-foreground">既有協力者：{item.collaborators!.map((contributor) => contributor.name).filter(Boolean).join("、")}</p>}
         {item.acceptedFields?.length && item.status !== "pending" ? <p className="mt-1 text-xs text-muted-foreground">已套用：{item.acceptedFields.map((key) => fieldLabels[key as FieldKey] || key).join("、")}</p> : null}

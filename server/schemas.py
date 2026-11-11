@@ -123,7 +123,9 @@ class Persona(PersonaBase):
 
 class PersonaPublic(Persona):
     organizations: List[Organization] = []
-    roles: List[Literal["scriptwriter", "voice_actor"]] = []
+    roles: List[Literal["scriptwriter", "voice_actor", "post_production", "cover_art", "recording_studio"]] = []
+    productionCredits: List[Dict[str, Any]] = []
+    profileContributors: List[Dict[str, Any]] = []
     profileSources: List[str] = []
     roleProfiles: Dict[str, Any] = {}
     voiceActorCollaborationEnabled: bool = True
@@ -163,7 +165,7 @@ class AdminVoiceActorCreate(BaseModel):
 
 class VoiceActorProfileSubmissionCreate(BaseModel):
     personaId: str
-    profileKind: Optional[Literal["voice_actor", "author"]] = None
+    profileKind: Optional[Literal["voice_actor", "author", "production"]] = None
     displayName: str
     submitterName: str
     contactEmail: str
@@ -186,7 +188,7 @@ class VoiceActorProfileSubmissionStatusUpdate(BaseModel):
 class VoiceActorProfileSubmissionRecord(BaseModel):
     id: str
     personaId: str
-    profileKind: Literal["voice_actor", "author"] = "voice_actor"
+    profileKind: Literal["voice_actor", "author", "production"] = "voice_actor"
     personaName: str = ""
     submitterName: str = ""
     contactEmail: str = ""

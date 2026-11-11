@@ -30,6 +30,8 @@ def main():
             for field in ("resourceId", "label", "url", "sourceUrl", "checkedAt"):
                 setattr(row, field, item[field])
         db.commit()
+        from services.identity_convergence import converge_and_commit
+        converge_and_commit(db)
     print(f"Imported {len(links)} additional resource links")
 
 

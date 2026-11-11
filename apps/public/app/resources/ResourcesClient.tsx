@@ -10,7 +10,7 @@ import { ResourceAgeGate, useResourceAgeGate } from "@/components/ResourceAgeGat
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { publicAvatarColor } from "@/components/publicAvatarColor";
 import { ResourceSubmissionDialog } from "@/components/ResourceSubmissionDialog";
-import type { PublicPersona } from "@/lib/types";
+import type { ProductionRole, PublicPersona, PublicProductionCredit } from "@/lib/types";
 
 type Category = "voice_actor" | "post_production" | "cover_art" | "recording_studio";
 const CATEGORIES: { key: Category; label: string }[] = [
@@ -50,30 +50,33 @@ function ActorTags({ tags, onSelect }: { tags: string[]; onSelect: (tag: string)
   </div>;
 }
 
+/** One person with production roles, as listed in the resource directory; the row links to their identity page. */
 export interface ProductionResource {
   id: string;
+  personaId: string;
   name: string;
-  categories: Category[];
+  categories: ProductionRole[];
+  otherRoles?: string[];
   summary: string;
-  websiteUrl: string;
-  sourceUrl: string;
-  reviewedAt: number;
-  kind?: "credit";
-  profileUrl?: string;
-  profileLabel?: string;
-  avatarUrl?: string;
   bio?: string;
-  links?: Array<{ label: string; url: string }>;
-  contributors?: Array<{ name: string; contributedAt?: number }>;
-  works: Array<{
-    id: string;
-    title: string;
-    url: string;
-    coverUrl: string;
-    creditRole: Category;
-    creditedAs: string;
-    workType?: "audio" | "game" | "video" | "other";
-  }>;
+  avatarUrl?: string;
+  websiteUrl: string;
+  links?: Array<{ label?: string; url: string }>;
+  /** Addresses of the retired /resources/<id> pages that now redirect to this identity. */
+  legacyIds?: string[];
+  works: PublicProductionCredit[];
+}
+
+function resourceLinks(item: ProductionResource): Array<{ label: string; url: string }> {
+  const seen = new Set<string>();
+  return [
+    ...(item.websiteUrl ? [{ label: "官方／委託頁", url: item.websiteUrl }] : []),
+    ...(item.links || []).map((link) => ({ label: link.label || "連結", url: link.url })),
+  ].filter((link) => {
+    if (!/^https?:\/\//i.test(link.url) || seen.has(link.url)) return false;
+    seen.add(link.url);
+    return true;
+  });
 }
 
 function ResourceWorks({ works }: {
@@ -132,11 +135,10 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
   const actors = useMemo(() => personas.filter((persona) => !persona.voiceActorHidden && persona.roles?.includes("voice_actor"))
     .filter((persona) => !needle || `${persona.displayName} ${persona.bio || ""} ${(persona.tags || []).join(" ")}`.toLocaleLowerCase().includes(needle))
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, needle]);
-  const listings = useMemo(() => resources.filter((item) => item.categories.includes(category)
+  const listings = useMemo(() => resources.filter((item) => category !== "voice_actor" && item.categories.includes(category)
       && item.works.some((work) => work.creditRole === category))
     .filter((item) => !needle || `${item.name} ${item.summary}`.toLocaleLowerCase().includes(needle))
-    .sort((a, b) => Number(a.kind === "credit") - Number(b.kind === "credit")
-      || b.works.filter((work) => work.creditRole === category).length - a.works.filter((work) => work.creditRole === category).length
+    .sort((a, b) => b.works.filter((work) => work.creditRole === category).length - a.works.filter((work) => work.creditRole === category).length
       || a.name.localeCompare(b.name, "zh-Hant")), [resources, category, needle]);
   const visibleCount = category === "voice_actor" ? actors.length : listings.length;
 
@@ -180,7 +182,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
             </div>}
             </div>}
           </article>) : listings.map((item) => <article key={item.id} className="min-w-0 overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)]">
-            <a href={`/resources/${encodeURIComponent(item.id)}?category=${category}`} aria-label={`${item.name}資源詳頁`} className="flex min-w-0 items-center gap-2.5 p-2.5 hover:text-primary sm:gap-3 sm:p-3">
+            <a href={`/author/${encodeURIComponent(item.personaId || item.id)}`} aria-label={`${item.name}的個人頁`} className="flex min-w-0 items-center gap-2.5 p-2.5 hover:text-primary sm:gap-3 sm:p-3">
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full sm:h-12 sm:w-12"><PublicAvatarImage src={item.avatarUrl} name={item.name} sizes="48px" fallbackClassName={publicAvatarColor(item.name)} /></div>
               <div className="min-w-0 flex-1">
                 <h2 className="truncate font-medium [font-size:var(--public-font-body)]">{item.name}</h2>
@@ -188,13 +190,13 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
                 {ageConfirmed && item.bio && <p className="mt-0.5 line-clamp-1 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground sm:line-clamp-2">{item.bio}</p>}
               </div>
             </a>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 pb-2 sm:px-3"><span className={DIRECTORY_TAG_CLASS}>{CATEGORIES.find((entry) => entry.key === category)?.label}</span>{item.kind === "credit" && <span className={DIRECTORY_TAG_CLASS}>作品署名</span>}
-            {(item.kind !== "credit" || item.profileUrl || item.links?.length) && <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {item.kind !== "credit" && <a href={item.sourceUrl || item.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{!item.profileUrl && item.links?.find((link) => link.url === (item.sourceUrl || item.websiteUrl))?.label || "官方／委託頁"}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
-              {item.kind !== "credit" && item.profileUrl && item.profileUrl !== item.websiteUrl && item.profileUrl !== item.sourceUrl && <a href={item.profileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{item.profileLabel || "創作者連結"}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
-              {item.kind === "credit" && item.profileUrl && <a href={item.profileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{item.profileLabel || "創作者連結"}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>}
-              {item.links?.filter((link) => link.url !== item.profileUrl && link.url !== item.websiteUrl && link.url !== item.sourceUrl).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
-            </div>}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 pb-2 sm:px-3">
+              {item.categories.map((role) => <span key={role} className={DIRECTORY_TAG_CLASS}>{CATEGORIES.find((entry) => entry.key === role)?.label}</span>)}
+              {item.otherRoles?.includes("voice_actor") && <span className={DIRECTORY_TAG_CLASS}>聲演</span>}
+              {item.otherRoles?.includes("scriptwriter") && <span className={DIRECTORY_TAG_CLASS}>台本師</span>}
+              {resourceLinks(item).length > 0 && <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {resourceLinks(item).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
+              </div>}
             </div>
             {ageConfirmed && <ResourceWorks works={(item.works || []).filter((work) => work.creditRole === category)} />}
           </article>)}

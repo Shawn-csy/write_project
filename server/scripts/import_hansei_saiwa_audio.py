@@ -131,6 +131,8 @@ def main():
         print(f"{org_data['name']}: {len(works)} works, {changes} changes")
         if args.apply:
             db.commit()
+            from services.identity_convergence import converge_and_commit
+            converge_and_commit(db)
             invalidate_public_bundle_cache()
             print("Applied to Dev database")
         else:

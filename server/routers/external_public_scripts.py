@@ -537,6 +537,13 @@ def _enrich_profile_bios(metadata: dict[str, Any], payload: Any) -> dict[str, An
     return enriched
 
 
+def _converge_identities(db: Session) -> None:
+    """A newly published external writer gets (or joins) an identity page right away."""
+    from services.identity_convergence import converge_and_commit
+
+    converge_and_commit(db)
+
+
 def _invalidate_public_bundle_cache() -> None:
     import routers.public_bundle as public_bundle_router
 
@@ -743,6 +750,7 @@ def create_external_public_script(
             profile.linkedPersonaId = persona.id
             profile.updatedAt = now_ms
     db.commit()
+    _converge_identities(db)
     db.refresh(item)
     _invalidate_public_bundle_cache()
     _queue_external_revalidation(background_tasks, item)
@@ -915,6 +923,7 @@ def update_external_public_script(
     item.authorKey = external_author.canonicalKey
     item.updatedAt = int(time.time() * 1000)
     db.commit()
+    _converge_identities(db)
     db.refresh(item)
     _invalidate_public_bundle_cache()
     _queue_external_revalidation(background_tasks, previous_public_item, item)

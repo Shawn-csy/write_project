@@ -10,7 +10,6 @@ import pytest
     ("POST", "/api/public-audio-work-submissions", 16 * 1024),
     ("POST", "/api/external-author-profile-submissions", 128 * 1024),
     ("POST", "/api/voice-actor-profile-submissions", 128 * 1024),
-    ("POST", "/api/production-resource-profile-submissions", 128 * 1024),
     ("POST", "/api/voice-actor-claims", 8 * 1024),
     ("POST", "/api/my-demo-submissions", 32 * 1024),
     ("PUT", "/api/my-demo-submissions/submission-1", 32 * 1024),

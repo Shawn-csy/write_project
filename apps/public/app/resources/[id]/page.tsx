@@ -1,47 +1,53 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
-import { BASE_URL, SITE_NAME } from "@/lib/seo";
+import { BASE_URL } from "@/lib/seo";
+import { IdentityRedirect } from "@/components/IdentityRedirect";
+import { identityHrefForLegacyResource } from "@/lib/legacyResourceRedirect";
 import type { ProductionResource } from "../ResourcesClient";
-import { ResourcePageClient } from "./ResourcePageClient";
+
+/**
+ * Retired address. Production people now have one identity page at /author/<id>
+ * like every writer and voice actor; old links redirect there.
+ */
+
+const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
 export const revalidate = 300;
 export const dynamicParams = true;
 
 const loadResources = cache(async (): Promise<ProductionResource[]> => {
-  const bundle = await apiFetch<{ productionResources?: ProductionResource[] }>(
-    "/public-bundle?sections=productionResources",
-    { next: { revalidate: 300, tags: ["public-bundle"] } },
-  );
-  return Array.isArray(bundle.productionResources) ? bundle.productionResources : [];
+  try {
+    const bundle = await apiFetch<{ productionResources?: ProductionResource[] }>(
+      "/public-bundle?sections=productionResources",
+      { next: { revalidate: 300, tags: ["public-bundle"] } },
+    );
+    return Array.isArray(bundle.productionResources) ? bundle.productionResources : [];
+  } catch {
+    return [];
+  }
 });
 
 export async function generateStaticParams(): Promise<Array<{ id: string }>> {
   if (process.env.CF_STATIC_EXPORT !== "1" && process.env.PREBUILD_PUBLIC_PAGES !== "1") return [];
-  return (await loadResources())
-    .filter((item) => item.id && item.works?.length > 0)
-    .map((item) => ({ id: item.id }));
+  const ids = (await loadResources()).flatMap((item) => item.legacyIds || []);
+  return Array.from(new Set(ids)).map((id) => ({ id }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
-  const item = (await loadResources()).find((resource) => resource.id === id);
-  if (!item) return { title: `找不到資源｜${SITE_NAME}` };
-  const title = `${item.name}｜資源｜${SITE_NAME}`;
-  const description = (item.bio || item.summary || `${item.name} 的音聲製作與參與作品`).slice(0, 200);
-  const url = `${BASE_URL}/resources/${encodeURIComponent(id)}`;
+  const href = identityHrefForLegacyResource(await loadResources(), decodeURIComponent(id));
   return {
-    title,
-    description,
-    alternates: { canonical: url },
-    openGraph: { title, description, url, siteName: SITE_NAME, locale: "zh_TW" },
+    robots: { index: false, follow: true },
+    ...(href ? { alternates: { canonical: `${BASE_URL}${href}` } } : {}),
   };
 }
 
-export default async function ResourcePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function LegacyResourcePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const item = (await loadResources()).find((resource) => resource.id === id);
-  if (!item || !item.works?.length) notFound();
-  return <ResourcePageClient item={item} refreshOnMount={process.env.CF_STATIC_EXPORT === "1"} />;
+  const href = identityHrefForLegacyResource(await loadResources(), decodeURIComponent(id));
+  if (!href) notFound();
+  if (STATIC_EXPORT) return <IdentityRedirect href={href} />;
+  permanentRedirect(href);
 }
