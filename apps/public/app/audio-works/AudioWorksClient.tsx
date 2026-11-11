@@ -71,6 +71,11 @@ const HANSEI_SAIWA_OFFICIAL_LINKS = [
   { label: "星良 · Instagram", url: "https://www.instagram.com/seira_st/" },
   { label: "星良 · X", url: "https://x.com/SeiRa_ST126" },
 ] as const;
+const HANDORU_ORG_ID = "98f266a8-aa17-5463-a8e1-eef92ee91a3f";
+const HANDORU_OFFICIAL_LINKS = [
+  { label: "X", url: "https://x.com/HandoruClub" },
+  { label: "DLsite", url: "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG63553.html" },
+] as const;
 
 export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOnMount = false }: { initialWorks: PublicAudioWork[]; initialOrganizations: PublicOrg[]; refreshOnMount?: boolean }) {
   // Confirm on each visit; the choice is intentionally not persisted between pages.
@@ -181,6 +186,7 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
     : selected?.org.id === MAN_RESEARCH_ORG_ID ? MAN_RESEARCH_OFFICIAL_LINKS
     : selected?.org.id === WANWAN_VOICE_ORG_ID ? WANWAN_VOICE_OFFICIAL_LINKS
     : selected?.org.id === HANSEI_SAIWA_ORG_ID ? HANSEI_SAIWA_OFFICIAL_LINKS
+    : selected?.org.id === HANDORU_ORG_ID ? HANDORU_OFFICIAL_LINKS
     : [];
   const select = (id: string | null) => {
     const url = new URL(window.location.href);
