@@ -8,9 +8,15 @@
 #   scripts/release.sh pages            build and upload the Cloudflare Pages front end
 #   scripts/release.sh verify           smoke-check the public domains
 #   scripts/release.sh all <tag> [--apply-schema]   every step above, in order
+#   scripts/release.sh auto             unattended: tag auto-<sha>, apply schema, retire old releases
 #
-# `all` stops before touching the schema unless --apply-schema is given, so an
-# unattended run never changes production tables on its own.
+# Environment for runs outside the canonical checkout (the deploy runner):
+#   WP_RELEASE_ROOT      directory the live ingress mounts releases from
+#   WP_STUDIO_ENV_FILE   env file with the studio's public Firebase settings
+#
+# `all` stops before touching the schema unless --apply-schema is given. `auto`
+# passes it: the owner chose unattended schema changes (rehearsed on a copy and
+# backed up first) on 2026-11-11.
 # Rollback: python3 scripts/site-release.py rollback --tag <tag> (the API and
 # ingress), and the Cloudflare Pages deployment list for the front end. Data
 # written by migrations or convergence is not rolled back.
@@ -29,27 +35,40 @@ require_tag() {
   [[ "${1:-}" =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || die "tag must be lowercase letters, digits or hyphens (max 40)"
 }
 
-# The commit being released must be main as pushed, with both CI workflows green.
+# The commit being released must be main as pushed (a detached checkout of it is
+# fine), and every CI workflow that ran for it must have finished green.
+# Exit status 3 means "not yet": CI for this commit is still running.
 require_releasable_main() {
-  [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || die "check out main first"
-  [ -z "$(git status --porcelain)" ] || die "working tree has uncommitted changes"
+  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "working tree has uncommitted changes"
   git fetch -q origin main
   local head
   head="$(git rev-parse HEAD)"
-  [ "$head" = "$(git rev-parse origin/main)" ] || die "local main is not origin/main"
-  for workflow in "${WORKFLOWS[@]}"; do
-    local result
-    result="$(gh run list --branch main --commit "$head" --workflow "$workflow" --limit 1 \
-      --json status,conclusion -q '.[0] | "\(.status) \(.conclusion)"' 2>/dev/null || true)"
-    [ "$result" = "completed success" ] || die "CI '$workflow' for ${head:0:7} is '${result:-missing}', not green"
-  done
-  log "main ${head:0:7} is pushed and green"
+  [ "$head" = "$(git rev-parse origin/main)" ] || die "HEAD ${head:0:7} is not origin/main"
+  local runs
+  runs="$(gh run list --branch main --commit "$head" --limit 50 \
+    --json workflowName,status,conclusion,event -q '.[] | select(.event == "push") | "\(.status)|\(.conclusion)|\(.workflowName)"')"
+  [ -n "$runs" ] || die "no CI ran for ${head:0:7}"
+  if grep -qv '^completed|' <<<"$runs"; then
+    printf '[release] CI for %s is still running; nothing to do yet\n' "${head:0:7}"
+    exit 3
+  fi
+  if grep -qv '^completed|success|' <<<"$runs"; then
+    die "CI for ${head:0:7} is not green: $(grep -v '^completed|success|' <<<"$runs" | tr '\n' ' ')"
+  fi
+  log "main ${head:0:7} is pushed and every CI workflow passed"
 }
 
 cmd_build() {
   local tag="$1"; require_tag "$tag"
   require_releasable_main
   [ -e "dist/releases/$tag" ] && die "dist/releases/$tag already exists; pick a new tag"
+  # The studio build reads public Firebase settings from an untracked env file;
+  # a runner checkout has none, so it is pointed at the canonical one.
+  if [ -n "${WP_STUDIO_ENV_FILE:-}" ]; then
+    [ -f "$WP_STUDIO_ENV_FILE" ] || die "WP_STUDIO_ENV_FILE not found: $WP_STUDIO_ENV_FILE"
+    cp "$WP_STUDIO_ENV_FILE" .env.production.local
+  fi
+  [ -f .env ] || [ -f .env.production.local ] || die "no studio env file (.env or WP_STUDIO_ENV_FILE)"
   log "building write_project-backend:$tag"
   docker build -t "write_project-backend:$tag" server
   log "building write_project-public:$tag"
@@ -125,6 +144,24 @@ cmd_verify() {
   log "public smoke check passed"
 }
 
+# Unattended release of origin/main, for the deploy workflow. Safe to call
+# repeatedly: a commit that is already live or already attempted is skipped.
+cmd_auto() {
+  local head tag
+  head="$(git rev-parse HEAD)"
+  tag="auto-${head:0:7}"
+  local releases="${WP_RELEASE_ROOT:-$ROOT/releases}"
+  if python3 scripts/site-release.py status | grep -q "wp-site-${tag}-edge"; then
+    log "$tag is already live"; return 0
+  fi
+  if [ -e "$releases/$tag" ] || [ -e "dist/releases/$tag" ]; then
+    die "$tag was already attempted; inspect it, then run 'stop-prepared --tag $tag' or deploy a new commit"
+  fi
+  cmd_all "$tag" --apply-schema
+  log "stopping releases older than the rollback target"
+  python3 scripts/site-release.py retire-ancestors || log "retire-ancestors failed; old releases are still running"
+}
+
 cmd_all() {
   local tag="$1" apply_schema="${2:-}"
   cmd_build "$tag"
@@ -144,5 +181,6 @@ case "$action" in
   schema) cmd_schema "${1:-}" ;;
   pages|verify) cmd_$action ;;
   all) [ $# -ge 1 ] || die "usage: $0 all <tag> [--apply-schema]"; cmd_all "$@" ;;
-  *) sed -n '2,17p' "$0"; exit 2 ;;
+  auto) cmd_auto ;;
+  *) awk 'NR > 1 && /^set -euo/ {exit} NR > 1' "$0"; exit 2 ;;
 esac
