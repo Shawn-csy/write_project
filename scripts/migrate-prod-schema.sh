@@ -3,7 +3,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-BACKEND=write_project-write_project-backend-1
+# The live API sits behind the 1090 ingress and changes name with each release.
+BACKEND="${MIGRATION_SOURCE_BACKEND:-$(python3 "$ROOT_DIR/scripts/site-release.py" current-api)}"
 POSTGRES=write_project-write_project-postgres-1
 NETWORK=write_project_default
 MODE="${1:---plan}"

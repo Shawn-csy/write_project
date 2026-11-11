@@ -26,7 +26,7 @@
 
 `server/services/identity_convergence.py` 把上述來源併入身份，具冪等性，會在：
 
-- API 啟動時（`DB_RUN_IDENTITY_CONVERGENCE=0` 可關閉）
+- API 啟動時（僅限開發環境：`DB_RUN_IDENTITY_CONVERGENCE` 預設跟隨 `DB_RUN_LEGACY_MIGRATIONS`，正式環境為 0；正式環境由 `scripts/release.sh activate` 在切流後執行）
 - 核准音聲作品、建立／更新外部台本、各匯入腳本完成後
 
 自動執行。名字只有在**恰好對到一個**既有身份時才合併，同名多人時一律另建新身份。上線前可先預覽：

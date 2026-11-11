@@ -34,7 +34,11 @@ it("loads both identity directories only after opening a people view", async () 
     },
     source: "primary",
   });
-  const { result } = renderHook(() => useGalleryController(baseOptions));
+  // The authors directory lists only identities with a public work.
+  const { result } = renderHook(() => useGalleryController({
+    ...baseOptions,
+    initialScripts: [{ id: "s1", title: "作品甲", tags: [], persona: { id: "p1", displayName: "作者甲" } }] as PublicScript[],
+  }));
   expect(mockReadBundle).not.toHaveBeenCalled();
 
   act(() => {
