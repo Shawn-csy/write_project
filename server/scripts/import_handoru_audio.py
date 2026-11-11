@@ -23,10 +23,9 @@ SOURCE = "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG63553.html"
 ORG_ID = str(uuid.uuid5(uuid.NAMESPACE_URL, SOURCE))
 REVIEWER = "handoru-reviewed-import"
 ROLE_NAMES = {"作者": "author", "シナリオ": "script", "イラスト": "illustration", "声優": "voice_actor"}
-# These exact names already have public roles in production. 晚晚 is kept as a
-# printed credit because the source does not establish that she is the same person.
-LINKED_EXISTING_ACTORS = {"伊橙/Kurihara Risako", "霏筱雨"}
-TEXT_ONLY_ACTORS = {"晚晚"}
+# These exact names already have public roles in production. The user confirmed
+# that the 晚晚 credited on 夢蝶村 is the existing 晚晚 identity.
+LINKED_EXISTING_ACTORS = {"伊橙/Kurihara Risako", "霏筱雨", "晚晚"}
 
 
 def main():
@@ -77,8 +76,6 @@ def main():
                     changes += 1
         actors = {}
         for name in sorted({name for work in works for name in work["voiceActors"]}):
-            if name in TEXT_ONLY_ACTORS:
-                continue
             existing = db.query(Persona).filter_by(displayName=name).all()
             if len(existing) > 1:
                 raise SystemExit(f"Ambiguous voice actor identity: {name}")
