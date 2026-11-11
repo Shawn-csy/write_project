@@ -18,6 +18,7 @@ from dependencies import get_db, get_current_user_id, get_current_user_claims, v
 from rate_limit import client_ip_digest, limiter, resolve_client_ip
 from crud_ops.scripts_command import AnonymousLikeLimitExceeded
 from utils import normalize_homepage_banner_value, safe_json_list
+from services.admin_notifications import notify_approval_request
 from services.public_feedback_email import send_public_feedback_notification
 from services.public_view_windows import claim_recent_view
 
@@ -293,6 +294,7 @@ def create_public_feedback(
 def create_public_demo_submission(
     request: Request,
     payload: schemas.PublicDemoSubmissionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """Accept public demo suggestions; submissions stay private until approved."""
@@ -401,6 +403,11 @@ def create_public_demo_submission(
     if activity:
         from routers import public_bundle
         public_bundle.invalidate_public_bundle_cache()
+    else:
+        background_tasks.add_task(notify_approval_request, "demo", {
+            "id": row.id, "scriptTitle": row.scriptTitle, "demoName": row.demoName,
+            "displayName": row.displayName, "contactEmail": row.contactEmail, "demoUrl": row.demoUrl,
+        })
     return schemas.PublicDemoSubmissionResponse(submissionId=row.id, createdAt=now_ms)
 
 
@@ -409,6 +416,7 @@ def create_public_demo_submission(
 def create_public_audio_work_submission(
     request: Request,
     payload: schemas.PublicAudioWorkSubmissionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     """Accept public audio work promotions; list them only after admin approval."""
@@ -451,6 +459,10 @@ def create_public_audio_work_submission(
     )
     db.add(row)
     db.commit()
+    background_tasks.add_task(notify_approval_request, "audio_work", {
+        "id": row.id, "title": row.title, "creatorName": row.creatorName,
+        "url": row.url, "contactEmail": row.contactEmail,
+    })
     return schemas.PublicAudioWorkSubmissionResponse(submissionId=row.id, createdAt=now_ms)
 
 
@@ -1112,6 +1124,7 @@ def read_public_script_raw(script_id: str, db: Session = Depends(get_db)):
 def create_external_author_profile_submission(
     request: Request,
     payload: schemas.ExternalAuthorProfileSubmissionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     now_ms = int(time.time() * 1000)
@@ -1189,6 +1202,10 @@ def create_external_author_profile_submission(
     )
     db.add(row)
     db.commit()
+    background_tasks.add_task(notify_approval_request, "external_author_profile", {
+        "id": row.id, "authorName": row.authorName, "submitterName": row.submitterName,
+        "contactEmail": row.contactEmail,
+    })
     return schemas.ExternalAuthorProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now_ms)
 
 
@@ -1197,6 +1214,7 @@ def create_external_author_profile_submission(
 def create_voice_actor_profile_submission(
     request: Request,
     payload: schemas.VoiceActorProfileSubmissionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     now_ms = int(time.time() * 1000)
@@ -1274,6 +1292,10 @@ def create_voice_actor_profile_submission(
     )
     db.add(row)
     db.commit()
+    background_tasks.add_task(notify_approval_request, "voice_actor_profile", {
+        "id": row.id, "voiceActor": persona.displayName, "submitterName": row.submitterName,
+        "contactEmail": row.contactEmail,
+    })
     return schemas.VoiceActorProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now_ms)
 
 
@@ -1282,6 +1304,7 @@ def create_voice_actor_profile_submission(
 async def create_voice_actor_claim_request(
     request: Request,
     payload: schemas.VoiceActorClaimRequestCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     claims: dict = Depends(get_current_user_claims),
 ):
@@ -1317,6 +1340,10 @@ async def create_voice_actor_claim_request(
     else:
         user.email = email
     db.commit()
+    background_tasks.add_task(notify_approval_request, "voice_actor_claim", {
+        "id": row.id, "voiceActor": persona.displayName, "verifiedEmail": email,
+        "contactEmail": email, "proofUrl": row.proofUrl, "note": row.note,
+    })
     return schemas.VoiceActorClaimRequestRecord(
         id=row.id, personaId=persona.id, personaName=persona.displayName or "", requesterId=user_id,
         requesterName=(user.displayName if user else str(claims.get("name") or "")), verifiedEmail=email,

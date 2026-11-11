@@ -11,6 +11,7 @@ import models
 import schemas
 from dependencies import get_db, get_current_user_id, is_admin_user
 from rate_limit import limiter
+from services.admin_notifications import notify_approval_request
 from routers import public_bundle
 from routers.admin import _send_public_paths_revalidation
 
@@ -67,7 +68,7 @@ def _record(row: models.ProductionResourceProfileSubmission, resources: dict[str
 
 @router.post("/production-resource-profile-submissions", response_model=schemas.ProductionResourceProfileSubmissionResponse)
 @limiter.limit("5/hour")
-def submit_resource_profile(request: Request, payload: schemas.ProductionResourceProfileSubmissionCreate, db: Session = Depends(get_db)):
+def submit_resource_profile(request: Request, payload: schemas.ProductionResourceProfileSubmissionCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     now = int(time.time() * 1000)
     if payload.websiteTrap:
         return schemas.ProductionResourceProfileSubmissionResponse(success=True, submissionId="", createdAt=now)
@@ -124,6 +125,10 @@ def submit_resource_profile(request: Request, payload: schemas.ProductionResourc
     )
     db.add(row)
     db.commit()
+    background_tasks.add_task(notify_approval_request, "resource_profile", {
+        "id": row.id, "resourceId": row.resourceId, "name": profile.get("displayName"),
+        "submitterName": row.submitterName, "contactEmail": row.contactEmail,
+    })
     return schemas.ProductionResourceProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now)
 
 
@@ -236,7 +241,7 @@ def _new_resource_record(row: models.ProductionResourceSubmission) -> schemas.Pr
 
 @router.post("/production-resource-submissions", response_model=schemas.ProductionResourceProfileSubmissionResponse)
 @limiter.limit("5/hour")
-def submit_new_resource(request: Request, payload: schemas.ProductionResourceSubmissionCreate, db: Session = Depends(get_db)):
+def submit_new_resource(request: Request, payload: schemas.ProductionResourceSubmissionCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     now = int(time.time() * 1000)
     if payload.websiteTrap:
         return schemas.ProductionResourceProfileSubmissionResponse(success=True, submissionId="", createdAt=now)
@@ -289,6 +294,10 @@ def submit_new_resource(request: Request, payload: schemas.ProductionResourceSub
                                                contactEmail=email, profile=profile, status="pending", createdAt=now)
     db.add(row)
     db.commit()
+    background_tasks.add_task(notify_approval_request, "new_resource", {
+        "id": row.id, "name": profile.get("name"), "category": profile.get("category"),
+        "submitterName": row.submitterName, "contactEmail": row.contactEmail,
+    })
     return schemas.ProductionResourceProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now)
 
 

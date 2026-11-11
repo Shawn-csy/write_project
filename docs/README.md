@@ -30,6 +30,7 @@
 - `engineering/database-architecture-current.md`：資料庫架構現況（含 dev/prod 資料目錄分離）
 - `engineering/database-runtime.md`：資料庫 runtime 行為
 - `engineering/public-seo-preindex-checklist.md`：公開頁上線前的 SEO 檢查清單
+- `engineering/approval-notifications.md`：待核可項目（各種投稿、認領）的 Email 通知與 SMTP 設定
 - `engineering/public-pages-production.md`：正式公開站（Cloudflare Pages）的資源、重新部署、D1／R2 同步與備援驗證
 
 ## 架構參考
