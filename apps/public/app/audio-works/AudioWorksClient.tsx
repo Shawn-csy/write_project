@@ -63,6 +63,14 @@ const WANWAN_VOICE_OFFICIAL_LINKS = [
   { label: "X", url: "https://x.com/wanwan_voice" },
   { label: "YouTube", url: "https://www.youtube.com/@wanwan_voice" },
 ] as const;
+const HANSEI_SAIWA_ORG_ID = "c089d422-41d7-5ccc-9cc0-f95b58ff5112";
+const HANSEI_SAIWA_OFFICIAL_LINKS = [
+  { label: "DLsite · BL", url: "https://www.dlsite.com/bl/circle/profile/=/maker_id/RG01023757.html" },
+  { label: "DLsite · 乙女向", url: "https://www.dlsite.com/girls/circle/profile/=/maker_id/RG01023757.html" },
+  { label: "Facebook · DLsite 女性向繁中", url: "https://www.facebook.com/girlsmaniax" },
+  { label: "星良 · Instagram", url: "https://www.instagram.com/seira_st/" },
+  { label: "星良 · X", url: "https://x.com/SeiRa_ST126" },
+] as const;
 
 export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOnMount = false }: { initialWorks: PublicAudioWork[]; initialOrganizations: PublicOrg[]; refreshOnMount?: boolean }) {
   // Confirm on each visit; the choice is intentionally not persisted between pages.
@@ -172,6 +180,7 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
     : selected?.org.id === FRAGRANT_LILY_ORG_ID ? FRAGRANT_LILY_OFFICIAL_LINKS
     : selected?.org.id === MAN_RESEARCH_ORG_ID ? MAN_RESEARCH_OFFICIAL_LINKS
     : selected?.org.id === WANWAN_VOICE_ORG_ID ? WANWAN_VOICE_OFFICIAL_LINKS
+    : selected?.org.id === HANSEI_SAIWA_ORG_ID ? HANSEI_SAIWA_OFFICIAL_LINKS
     : [];
   const select = (id: string | null) => {
     const url = new URL(window.location.href);
@@ -204,6 +213,7 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
         <div className="mb-5 flex flex-col gap-3 border-b border-border/70 pb-4 sm:mb-7 sm:flex-row sm:items-center sm:justify-between sm:pb-5">
           <div className="flex min-w-0 items-center gap-3">
             {selected && <button type="button" onClick={() => select(null)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-muted" aria-label="返回音聲作品總覽"><ArrowLeft className="h-4 w-4" /></button>}
+            {selected?.org.logoUrl && <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border bg-card"><PublicImage src={selected.org.logoUrl} alt={`${selected.org.name}圖像`} preset="logo" /></span>}
             <h1 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">{selected?.org.name || "音聲作品"}</h1>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
@@ -270,6 +280,7 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
                 return <button type="button" key={org.id} onClick={() => select(org.id)} className="group flex w-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card/50 text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <span className="relative block aspect-[2.4/1] w-full overflow-hidden bg-gradient-to-br from-primary/15 via-muted to-background">
                     {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : <span className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_75%_25%,hsl(var(--primary)/0.22),transparent_50%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))] text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-primary/70" aria-hidden /><span className="block px-4 font-serif text-2xl font-semibold tracking-wide text-foreground/85">{org.name}</span></span></span>}
+                    {org.logoUrl && <span className="absolute bottom-3 left-3 h-14 w-14 overflow-hidden rounded-full border-2 border-white bg-white shadow-md"><PublicImage src={org.logoUrl} alt={`${org.name}圖像`} preset="logo" /></span>}
                   </span>
                   <span className="flex flex-1 flex-col gap-2 px-5 py-4">
                     <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><span className="text-lg font-semibold sm:text-xl">{org.name}</span><span className="text-xs text-muted-foreground">{orgWorks.length} 件作品</span></span>
