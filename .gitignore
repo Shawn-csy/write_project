@@ -116,3 +116,11 @@ skills
 !tests-e2e/
 tests-e2e/test-results/
 tests-e2e/playwright-report/
+
+# Scratch / generated
+tmp/
+server/coverage.json
+apps/public/.wrangler/
+mobile-*.png
+!.env.local.example
+!apps/public/.env.local.example
