@@ -12,6 +12,9 @@
     "deploy:api-fallback-preview": "wrangler deploy --config worker/wrangler.fallback.jsonc",
     "sync:public-preview": "node ../../scripts/sync-public-cloudflare.mjs --preview",
     "sync:public-preview:scheduled": "node ../../scripts/sync-public-cloudflare.mjs --preview --scheduled",
+    "deploy:api-fallback": "wrangler deploy --config worker/wrangler.fallback.prod.jsonc",
+    "sync:public": "node ../../scripts/sync-public-cloudflare.mjs --production",
+    "sync:public:scheduled": "node ../../scripts/sync-public-cloudflare.mjs --production --scheduled",
     "deploy:pages-preview": "npm run build:pages-preview && wrangler pages deploy out --project-name write-project-public-site-preview --branch main"
   },
   "dependencies": {

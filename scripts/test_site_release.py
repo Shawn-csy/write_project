@@ -19,6 +19,11 @@ class SiteReleaseTests(unittest.TestCase):
         result = site.config_for(original, "new-api", "new-public")
         self.assertEqual(result, 'set $backend "new-api";\nset $public "new-public";\nreturn 200 "ok";\n')
 
+    def test_api_host_backend_follows_the_api_upstream(self):
+        original = 'set $backend "old-api";\nset $public "old-public";\nset $api_backend "old-api";\n'
+        result = site.config_for(original, "new-api", "new-public")
+        self.assertEqual(result, 'set $backend "new-api";\nset $public "new-public";\nset $api_backend "new-api";\n')
+
     def test_ambiguous_upstreams_are_rejected(self):
         with self.assertRaisesRegex(RuntimeError, "one \\$backend"):
             site.config_for('set $backend "a";\nset $backend "b";\nset $public "p";', "c", "q")

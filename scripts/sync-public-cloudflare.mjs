@@ -10,20 +10,21 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const appRoot = join(repositoryRoot, "apps/public");
 const wranglerCandidates = [join(appRoot, "node_modules/.bin/wrangler"), join(repositoryRoot, "node_modules/.bin/wrangler")];
 const wrangler = wranglerCandidates.find((candidate) => existsSync(candidate)) || "wrangler";
-const fallbackConfig = join(appRoot, "worker/wrangler.fallback.jsonc");
 const preview = process.argv.includes("--preview");
+const production = process.argv.includes("--production");
 const scheduled = process.argv.includes("--scheduled");
 
-if (!preview) {
-  throw new Error("This sync command is currently scoped to the preview D1 and R2 resources; pass --preview.");
+if (preview === production) {
+  throw new Error("Pass exactly one of --preview or --production; each targets its own D1 database and R2 bucket.");
 }
+const fallbackConfig = join(appRoot, production ? "worker/wrangler.fallback.prod.jsonc" : "worker/wrangler.fallback.jsonc");
 
 const trimOrigin = (value) => (value || "").replace(/\/+$/, "");
 const apiOrigin = trimOrigin(process.env.PUBLIC_SYNC_API_ORIGIN || "https://open-scripts.shawnup.com");
 const mediaOrigin = trimOrigin(process.env.PUBLIC_SYNC_MEDIA_ORIGIN || apiOrigin);
 const r2PublicOrigin = trimOrigin(process.env.PUBLIC_SYNC_R2_PUBLIC_ORIGIN || "");
-const database = process.env.PUBLIC_SYNC_D1_DATABASE || "write-project-public-preview";
-const bucket = process.env.PUBLIC_SYNC_R2_BUCKET || "write-project-public-preview-media";
+const database = process.env.PUBLIC_SYNC_D1_DATABASE || (production ? "write-project-public" : "write-project-public-preview");
+const bucket = process.env.PUBLIC_SYNC_R2_BUCKET || (production ? "write-project-public-media" : "write-project-public-preview-media");
 const maxParallel = 4;
 const sqlChunkLength = 60_000; // Keep every generated D1 statement below Cloudflare's 100 KB limit.
 const maxD1RowBytes = 2_000_000;

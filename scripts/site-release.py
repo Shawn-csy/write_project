@@ -87,7 +87,7 @@ def upstreams(config):
 
 def config_for(config, api, public):
     upstreams(config)
-    for variable, name in (("backend", api), ("public", public)):
+    for variable, name in (("backend", api), ("public", public), ("api_backend", api)):
         config = re.sub(rf'^(\s*set \${variable} ")[A-Za-z0-9_.-]+(";)',
                         lambda match: match.group(1) + name + match.group(2), config, count=1, flags=re.M)
     return config

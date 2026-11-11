@@ -50,11 +50,11 @@ const fallbackApiOrigin = origin("NEXT_PUBLIC_FALLBACK_API_ORIGIN");
 // Images: the local media origin first, the R2 public bucket when it is down.
 const mediaOrigin = origin("NEXT_PUBLIC_MEDIA_ORIGIN") || apiOrigin;
 const mediaFallbackOrigin = origin("NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN");
-if (preview && !fallbackApiOrigin) {
-  throw new Error("The development Pages build requires NEXT_PUBLIC_FALLBACK_API_ORIGIN for D1 failover.");
+if (!fallbackApiOrigin) {
+  throw new Error(`The ${deployEnvironment} Pages build requires NEXT_PUBLIC_FALLBACK_API_ORIGIN for D1 failover.`);
 }
-if (preview && !mediaFallbackOrigin) {
-  throw new Error("The development Pages build requires NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN for R2 failover.");
+if (!mediaFallbackOrigin) {
+  throw new Error(`The ${deployEnvironment} Pages build requires NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN for R2 failover.`);
 }
 // The writing studio is not in this site; "進入工作室" links to wherever it is served.
 const studioOrigin = origin("NEXT_PUBLIC_STUDIO_ORIGIN");
