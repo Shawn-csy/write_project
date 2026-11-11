@@ -83,12 +83,14 @@ launchd 工作每 15 分鐘執行 `scripts/sync-public-cloudflare.mjs --producti
 ```bash
 PUBLIC_SYNC_API_ORIGIN=https://api-open-scripts.shawnup.com \
 PUBLIC_SYNC_MEDIA_ORIGIN=https://api-open-scripts.shawnup.com \
+PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN=http://127.0.0.1:1090 \
 PUBLIC_SYNC_R2_PUBLIC_ORIGIN=https://media-open-scripts.shawnup.com \
 node scripts/sync-public-cloudflare.mjs --production
 ```
 
+- 外部封面（`/api/public-media/external/<id>`）是 Next.js 路由，API 專用網域不提供，所以另用 `PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN=http://127.0.0.1:1090`（本機入口）；手動同步時也要加上這個變數，否則 31 張外部封面會被略過。
 - 同步讀的是 `api-open-scripts`，不是本機 `127.0.0.1:1090`：後者的主站 server block 對 `/api/public-*` 有動態讀取限流，完整同步會收到 429。
-- 同步會略過在正式站回 404 的外部封面，這些圖片在主站與備援都可能缺圖。
+- 封面檔名來自作品標題，可能含空格、逗號、括號；同步對「整個欄位就是媒體網址」的值整串處理，不能只靠空白斷詞。
 - 修改備援 Worker（`apps/public/worker/`）後重新部署：`npm run deploy:api-fallback -w apps/public`。D1 的 schema 定義在 `worker/schema.sql`，新資料庫要先套用再同步。
 
 停用或重裝排程：

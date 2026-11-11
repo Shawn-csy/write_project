@@ -22,6 +22,9 @@ const fallbackConfig = join(appRoot, production ? "worker/wrangler.fallback.prod
 const trimOrigin = (value) => (value || "").replace(/\/+$/, "");
 const apiOrigin = trimOrigin(process.env.PUBLIC_SYNC_API_ORIGIN || "https://open-scripts.shawnup.com");
 const mediaOrigin = trimOrigin(process.env.PUBLIC_SYNC_MEDIA_ORIGIN || apiOrigin);
+// External covers come from /api/public-media/external/<id>, a Next.js route.
+// The API-only host does not serve it, so production points this at the ingress that does.
+const externalCoverOrigin = trimOrigin(process.env.PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN || apiOrigin);
 const r2PublicOrigin = trimOrigin(process.env.PUBLIC_SYNC_R2_PUBLIC_ORIGIN || "");
 const database = process.env.PUBLIC_SYNC_D1_DATABASE || (production ? "write-project-public" : "write-project-public-preview");
 const bucket = process.env.PUBLIC_SYNC_R2_BUCKET || (production ? "write-project-public-media" : "write-project-public-preview-media");
@@ -160,6 +163,14 @@ function mediaPathFromUrl(raw, allowedOrigin) {
 const mediaAssets = new Map();
 function collectMedia(value, target = mediaAssets) {
   if (typeof value === "string") {
+    // A field that is only a media URL may contain spaces, commas or parentheses
+    // (cover file names come from work titles), so take it whole.
+    const whole = value.match(/^(?:(https?:\/\/[^/\s"'<>]+))?(\/media\/[^?#"<>]+)$/);
+    if (whole) {
+      const asset = mediaPathFromUrl(whole[1] ? `${whole[1]}${encodeURI(whole[2])}` : encodeURI(whole[2]), mediaOrigin);
+      if (asset) target.set(asset.key, asset);
+      return;
+    }
     const matches = value.matchAll(/(?:(https?:\/\/[^/\s"'<>]+))?(\/media\/[^\s"'<>?#),]+)/g);
     for (const match of matches) {
       const full = match[1] ? `${match[1]}${match[2]}` : match[2];
@@ -293,7 +304,7 @@ function inferImageType(path, responseType) {
 }
 
 async function uploadAsset(asset, index) {
-  const sourceOrigin = asset.external ? apiOrigin : mediaOrigin;
+  const sourceOrigin = asset.external ? externalCoverOrigin : mediaOrigin;
   const response = await fetchResponse(sourceOrigin, asset.path || asset.urlPath);
   const bytes = Buffer.from(await response.arrayBuffer());
   const contentType = inferImageType(asset.path || asset.urlPath, response.headers.get("content-type"));

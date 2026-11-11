@@ -38,6 +38,8 @@
         <string>https://api-open-scripts.shawnup.com</string>
         <key>PUBLIC_SYNC_MEDIA_ORIGIN</key>
         <string>https://api-open-scripts.shawnup.com</string>
+        <key>PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN</key>
+        <string>http://127.0.0.1:1090</string>
         <key>PUBLIC_SYNC_R2_PUBLIC_ORIGIN</key>
         <string>https://media-open-scripts.shawnup.com</string>
     </dict>
