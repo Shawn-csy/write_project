@@ -163,6 +163,7 @@ class AdminVoiceActorCreate(BaseModel):
 
 class VoiceActorProfileSubmissionCreate(BaseModel):
     personaId: str
+    profileKind: Optional[Literal["voice_actor", "author"]] = None
     displayName: str
     submitterName: str
     contactEmail: str
@@ -185,6 +186,7 @@ class VoiceActorProfileSubmissionStatusUpdate(BaseModel):
 class VoiceActorProfileSubmissionRecord(BaseModel):
     id: str
     personaId: str
+    profileKind: Literal["voice_actor", "author"] = "voice_actor"
     personaName: str = ""
     submitterName: str = ""
     contactEmail: str = ""

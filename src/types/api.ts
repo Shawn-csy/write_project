@@ -551,6 +551,7 @@ export interface PublicAudioWorkSubmissionListResponse {
 export interface VoiceActorProfileSubmission {
   id: string;
   personaId: string;
+  profileKind?: "voice_actor" | "author";
   personaName: string;
   submitterName: string;
   contactEmail: string;

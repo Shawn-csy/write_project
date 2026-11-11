@@ -2138,7 +2138,10 @@ def list_voice_actor_profile_submissions_admin(
     query = db.query(models.VoiceActorProfileSubmission).join(
         models.Persona,
         models.Persona.id == models.VoiceActorProfileSubmission.personaId,
-    ).filter(models.Persona.ownerId.is_(None))
+    ).filter(
+        models.Persona.ownerId.is_(None)
+        | (models.VoiceActorProfileSubmission.profile["profileKind"].as_string() == "author")
+    )
     if status != "all":
         if status not in {"pending", "approved", "rejected"}:
             raise HTTPException(status_code=400, detail="無效的審核狀態")
@@ -2158,6 +2161,7 @@ def list_voice_actor_profile_submissions_admin(
         persona = db.query(models.Persona).filter(models.Persona.id == row.personaId).first()
         items.append(schemas.VoiceActorProfileSubmissionRecord(
             id=row.id, personaId=row.personaId, personaName=persona.displayName if persona else "（身份已刪除）",
+            profileKind="author" if str((row.profile or {}).get("profileKind") or "voice_actor") == "author" else "voice_actor",
             submitterName=row.submitterName, contactEmail=row.contactEmail,
             contributorName=str((row.profile or {}).get("contributorName") or ""),
             collaborators=persona.voiceActorContributors if persona and isinstance(persona.voiceActorContributors, list) else [],
@@ -2191,12 +2195,20 @@ def review_voice_actor_profile_submission_admin(
     persona = db.query(models.Persona).filter(models.Persona.id == row.personaId).first()
     if not persona:
         raise HTTPException(status_code=404, detail="原聲演身份已不存在")
-    if persona.ownerId:
+    profile = row.profile if isinstance(row.profile, dict) else {}
+    profile_kind = str(profile.get("profileKind") or "voice_actor")
+    if profile_kind not in {"voice_actor", "author"}:
+        raise HTTPException(status_code=400, detail="無效的資料申請類型")
+    if profile_kind != "author" and persona.ownerId:
         raise HTTPException(status_code=409, detail="此聲演已由本人管理，請由本人審核這筆資料補充")
     now_ms = int(time.time() * 1000)
     if payload.status == "approved":
-        profile = row.profile if isinstance(row.profile, dict) else {}
         accepted_fields = set(payload.acceptedFields)
+        allowed_fields = {"displayName", "bio", "avatar", "website", "links"}
+        if profile_kind == "voice_actor":
+            allowed_fields |= {"organizations", "works", "contributorName"}
+        if accepted_fields - allowed_fields:
+            raise HTTPException(status_code=400, detail="此類型申請包含不支援的資料欄位")
         if not accepted_fields:
             raise HTTPException(status_code=400, detail="請至少選擇一個要採用的資料欄位")
         if "displayName" in accepted_fields:
@@ -2209,41 +2221,42 @@ def review_voice_actor_profile_submission_admin(
             persona.website = str(profile.get("website") or "").strip()[:2000]
         if "links" in accepted_fields:
             persona.links = [item for item in profile.get("links", []) if isinstance(item, dict)][:30]
-        if "organizations" in accepted_fields:
+        if profile_kind == "voice_actor" and "organizations" in accepted_fields:
             persona.voiceActorOrganizations = [item for item in profile.get("organizations", []) if isinstance(item, dict)][:20]
-        if "works" in accepted_fields:
+        if profile_kind == "voice_actor" and "works" in accepted_fields:
             persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
-        if "contributorName" in accepted_fields:
+        if profile_kind == "voice_actor" and "contributorName" in accepted_fields:
             contributors = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
             contributor_name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
             persona.voiceActorContributors = [*contributors, {"name": contributor_name, "contributedAt": now_ms}][:100]
-        persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
         persona.updatedAt = now_ms
-        role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
-        role_profile = {
-            "works": persona.voiceActorWorks,
-            "organizations": persona.voiceActorOrganizations,
-            "contributors": persona.voiceActorContributors,
-        }
-        if not role:
-            role = models.PersonaRole(
-                id=str(uuid.uuid4()), personaId=persona.id, role="voice_actor",
-                isVisible=not persona.voiceActorHidden,
-                sourceTypes=["profile_submission"], profile=role_profile,
-                createdAt=now_ms, updatedAt=now_ms,
-            )
-            db.add(role)
-        else:
-            sources = list(role.sourceTypes or [])
-            if "profile_submission" not in sources:
-                sources.append("profile_submission")
-            role.sourceTypes = sources
-            existing_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
-            if "collaborationEnabled" in existing_profile:
-                role_profile["collaborationEnabled"] = existing_profile["collaborationEnabled"]
-            role.profile = role_profile
-            role.isVisible = not persona.voiceActorHidden
-            role.updatedAt = now_ms
+        if profile_kind == "voice_actor":
+            persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
+            role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
+            role_profile = {
+                "works": persona.voiceActorWorks,
+                "organizations": persona.voiceActorOrganizations,
+                "contributors": persona.voiceActorContributors,
+            }
+            if not role:
+                role = models.PersonaRole(
+                    id=str(uuid.uuid4()), personaId=persona.id, role="voice_actor",
+                    isVisible=not persona.voiceActorHidden,
+                    sourceTypes=["profile_submission"], profile=role_profile,
+                    createdAt=now_ms, updatedAt=now_ms,
+                )
+                db.add(role)
+            else:
+                sources = list(role.sourceTypes or [])
+                if "profile_submission" not in sources:
+                    sources.append("profile_submission")
+                role.sourceTypes = sources
+                existing_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
+                if "collaborationEnabled" in existing_profile:
+                    role_profile["collaborationEnabled"] = existing_profile["collaborationEnabled"]
+                role.profile = role_profile
+                role.isVisible = not persona.voiceActorHidden
+                role.updatedAt = now_ms
         row.acceptedFields = sorted(accepted_fields)
     else:
         row.acceptedFields = []
@@ -2254,9 +2267,10 @@ def review_voice_actor_profile_submission_admin(
     db.commit()
     from routers import public_bundle
     public_bundle.invalidate_public_bundle_cache()
-    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", "/voice-actors")
+    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", *( ["/voice-actors"] if profile_kind == "voice_actor" else []))
     return schemas.VoiceActorProfileSubmissionRecord(
         id=row.id, personaId=row.personaId, personaName=persona.displayName or "", submitterName=row.submitterName,
+        profileKind="author" if profile_kind == "author" else "voice_actor",
         contactEmail=row.contactEmail, contributorName=str((row.profile or {}).get("contributorName") or ""),
         collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
         currentProfile={

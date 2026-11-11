@@ -28,6 +28,7 @@ APPROVAL_KINDS = {
     "audio_work": "音聲作品投稿",
     "external_author_profile": "外部作者資料補充",
     "voice_actor_profile": "聲演資料補充",
+    "author_profile": "作者資料補充",
     "voice_actor_claim": "聲演身份認領",
     "resource_profile": "製作資源資料補充",
     "new_resource": "新增製作資源",

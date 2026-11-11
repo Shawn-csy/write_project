@@ -899,6 +899,20 @@ def _is_public_voice_actor_identity(db: Session, persona: models.Persona) -> boo
     return _is_voice_actor_persona(persona) or _has_approved_demo_for_persona(db, persona.id)
 
 
+def _is_public_scriptwriter_identity(db: Session, persona: models.Persona) -> bool:
+    """Match scriptwriter eligibility to the public identity projection's role rules."""
+    context = _build_public_identity_context(db, [persona.id])
+    role_records = context.get("roles", {}).get(persona.id, [])
+    if role_records:
+        return any(row.role == "scriptwriter" and row.isVisible for row in role_records)
+    if context.get("internalScripts", {}).get(persona.id):
+        return True
+    for author in context.get("externalAuthors", {}).get(persona.id, []):
+        if context.get("externalScripts", {}).get(author.id):
+            return True
+    return False
+
+
 def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
     scripts = db.query(models.Script).filter(models.Script.organizationId == org_id).all()
     return any(_is_publicly_visible_script(db, script) for script in scripts)
@@ -1221,31 +1235,46 @@ def create_voice_actor_profile_submission(
     if payload.websiteTrap:
         return schemas.VoiceActorProfileSubmissionResponse(success=True, submissionId="", createdAt=now_ms)
     persona = db.query(models.Persona).filter(models.Persona.id == payload.personaId).first()
-    if not persona or not _is_public_voice_actor_identity(db, persona):
-        raise HTTPException(status_code=404, detail="找不到公開的聲演身份")
-    if persona.ownerId:
+    requested_profile_kind = payload.profileKind
+    if not persona:
+        raise HTTPException(status_code=404, detail="找不到公開身份")
+    if requested_profile_kind == "author":
+        profile_kind = "author"
+        if not _is_public_scriptwriter_identity(db, persona):
+            raise HTTPException(status_code=404, detail="找不到公開的作者身份")
+    else:
+        profile_kind = requested_profile_kind or "voice_actor"
+        if not _is_public_voice_actor_identity(db, persona):
+            # Older public pages did not send a profileKind. If their actor
+            # button is still open from cache but this identity is an author,
+            # accept the shared profile fields as an author proposal.
+            if _is_public_scriptwriter_identity(db, persona):
+                profile_kind = "author"
+            else:
+                raise HTTPException(status_code=404, detail="找不到公開身份")
+    if profile_kind == "voice_actor" and persona.ownerId:
         role = db.query(models.PersonaRole).filter_by(personaId=persona.id, role="voice_actor").first()
         role_profile = dict(role.profile) if role and isinstance(role.profile, dict) else {}
         if role_profile.get("collaborationEnabled") is False:
             raise HTTPException(status_code=403, detail="此聲演目前未開放協作者補充資料")
-    pending = db.query(models.VoiceActorProfileSubmission).filter(
+    pending_rows = db.query(models.VoiceActorProfileSubmission).filter(
         models.VoiceActorProfileSubmission.personaId == persona.id,
         models.VoiceActorProfileSubmission.status == "pending",
-    ).first()
-    if pending:
-        raise HTTPException(status_code=409, detail="這個聲演身份已有一筆資料補充申請正在審核")
+    ).all()
+    if any(str((row.profile or {}).get("profileKind") or "voice_actor") == profile_kind for row in pending_rows):
+        raise HTTPException(status_code=409, detail="這個身份已有一筆同類型資料補充申請正在審核")
     submitter_name = payload.submitterName.strip()[:120]
     email = payload.contactEmail.strip()[:320]
     if not submitter_name or not email or "@" not in email or " " in email:
         raise HTTPException(status_code=400, detail="請填寫姓名與有效的聯絡 Email")
-    contributor_name = payload.contributorName.strip()[:120]
-    if not contributor_name:
+    contributor_name = payload.contributorName.strip()[:120] if profile_kind == "voice_actor" else ""
+    if profile_kind == "voice_actor" and not contributor_name:
         raise HTTPException(status_code=400, detail="請填寫公開顯示的資料補充者名稱")
     display_name = payload.displayName.strip()[:120]
     if not display_name:
         raise HTTPException(status_code=400, detail="請填寫公開顯示名稱")
     works = []
-    for item in payload.works[:50]:
+    for item in (payload.works[:50] if profile_kind == "voice_actor" else []):
         if not isinstance(item, dict):
             continue
         cover_url = str(item.get("coverUrl") or "").strip()[:2000]
@@ -1269,7 +1298,7 @@ def create_voice_actor_profile_submission(
         if label or url:
             links.append({"label": label, "url": url})
     organizations = []
-    for item in payload.organizations[:20]:
+    for item in (payload.organizations[:20] if profile_kind == "voice_actor" else []):
         if not isinstance(item, dict):
             continue
         name = str(item.get("name") or "").strip()[:200]
@@ -1277,6 +1306,7 @@ def create_voice_actor_profile_submission(
         if name or url:
             organizations.append({"name": name, "url": url})
     profile = {
+        "profileKind": profile_kind,
         "displayName": display_name,
         "contributorName": contributor_name,
         "bio": payload.bio.strip()[:4000],
@@ -1292,8 +1322,8 @@ def create_voice_actor_profile_submission(
     )
     db.add(row)
     db.commit()
-    background_tasks.add_task(notify_approval_request, "voice_actor_profile", {
-        "id": row.id, "voiceActor": persona.displayName, "submitterName": row.submitterName,
+    background_tasks.add_task(notify_approval_request, "author_profile" if profile_kind == "author" else "voice_actor_profile", {
+        "id": row.id, "voiceActor" if profile_kind == "voice_actor" else "author": persona.displayName, "submitterName": row.submitterName,
         "contactEmail": row.contactEmail,
     })
     return schemas.VoiceActorProfileSubmissionResponse(success=True, submissionId=row.id, createdAt=now_ms)
@@ -1424,7 +1454,8 @@ def list_my_voice_actor_personas(db: Session = Depends(get_db), user_id: str = D
         if not role:
             continue
         role_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
-        pending_count = db.query(models.VoiceActorProfileSubmission).filter_by(personaId=persona.id, status="pending").count()
+        pending_rows = db.query(models.VoiceActorProfileSubmission).filter_by(personaId=persona.id, status="pending").all()
+        pending_count = sum(1 for row in pending_rows if str((row.profile or {}).get("profileKind") or "voice_actor") == "voice_actor")
         items.append({"id": persona.id, "displayName": persona.displayName or "", "collaborationEnabled": role_profile.get("collaborationEnabled") is not False, "pendingSubmissionCount": pending_count})
     return items
 
@@ -1455,7 +1486,11 @@ def list_owned_voice_actor_profile_submissions(
     db: Session = Depends(get_db),
     user_id: str = Depends(get_current_user_id),
 ):
-    query = db.query(models.VoiceActorProfileSubmission).join(models.Persona).filter(models.Persona.ownerId == user_id)
+    profile_kind = models.VoiceActorProfileSubmission.profile["profileKind"].as_string()
+    query = db.query(models.VoiceActorProfileSubmission).join(models.Persona).filter(
+        models.Persona.ownerId == user_id,
+        profile_kind.is_(None) | (profile_kind == "voice_actor"),
+    )
     if status != "all":
         query = query.filter(models.VoiceActorProfileSubmission.status == status)
     rows = query.order_by(models.VoiceActorProfileSubmission.createdAt.desc()).limit(100).all()
@@ -1464,6 +1499,7 @@ def list_owned_voice_actor_profile_submissions(
         persona = row.persona
         records.append(schemas.VoiceActorProfileSubmissionRecord(
             id=row.id, personaId=row.personaId, personaName=persona.displayName or "",
+            profileKind="voice_actor",
             submitterName=row.submitterName, contactEmail=row.contactEmail,
             contributorName=str((row.profile or {}).get("contributorName") or ""),
             collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
@@ -1510,6 +1546,8 @@ def review_owned_voice_actor_profile_submission(
     row = db.query(models.VoiceActorProfileSubmission).filter_by(id=submission_id).first()
     if not row or not row.persona or row.persona.ownerId != user_id:
         raise HTTPException(status_code=404, detail="找不到待你審核的資料補充")
+    if str((row.profile or {}).get("profileKind") or "voice_actor") != "voice_actor":
+        raise HTTPException(status_code=404, detail="找不到待你審核的聲演資料補充")
     if row.status != "pending":
         raise HTTPException(status_code=409, detail="這筆申請已完成審核")
     persona = row.persona
@@ -1550,6 +1588,7 @@ def review_owned_voice_actor_profile_submission(
     _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", "/voice-actors")
     return schemas.VoiceActorProfileSubmissionRecord(
         id=row.id, personaId=row.personaId, personaName=persona.displayName or "", submitterName=row.submitterName,
+        profileKind="voice_actor",
         contactEmail=row.contactEmail, contributorName=str((row.profile or {}).get("contributorName") or ""),
         collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
         currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else []},

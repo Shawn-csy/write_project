@@ -219,6 +219,12 @@ python3 scripts/site-release.py rollback --tag rsc-cache-all-20261110
 
 同日將修正版切至 `wp-site-v0-7-4-r5-edge`。此版把工作室 Demo 管理移至 `/studio/demos`，公開 `/demos` 保持由 Next.js 提供；修正 CI 在新版 FastAPI 的路由檢查及後端缺少 `mcp` 依賴。首次候選建置因未帶入 Vite 公開登入設定，瀏覽器檢查發現 Firebase 錯誤，已停止該候選版並用正式設定重建。`r5` 預備檢查通過 14 條路徑、IPv4／IPv6、RSC 快取邊界；寫入與讀取限流檢查通過，375px 與 811px 的公開 Demo、資源及工作室管理頁沒有頁面錯誤或橫向溢出。正式網址複查三頁回應 200 且無瀏覽器錯誤；main 的兩組 CI 均通過，前端 2,515 項測試通過。現在回滾請用 `python3 scripts/site-release.py rollback --tag v0-7-4-r5`，直接回到 `r3`。資料庫不會隨入口回滾而回復。
 
+2026-11-11 發布 `wp-site-v0-7-4-r12-edge`，加入 Persona 作者頁資料補充，以及管理端作者／聲演共用審核。申請沿用既有 profile submission table，以 JSON `profileKind` 區分種類，不需資料庫 schema migration。公開站、FastAPI 與 Vite 工作室均以同一 tag 建置；候選版通過 14 條路徑、IPv4／IPv6、RSC 快取邊界、寫入與讀取限流檢查後，只交接雙 loopback `1090`，PostgreSQL 與其他服務未重啟。Cloudflare Pages 前端當時未同步重建，故正式網域仍顯示舊表單。
+
+同日發布 `wp-site-v0-7-4-r13-edge` 並重新部署 Cloudflare Pages。根因是指定身份公開的是作者角色，聲演角色則未公開；舊頁面仍將資料送成聲演申請，因而回覆「找不到公開的聲演身份」。新版表單預設更新作者資料並改用通用「更新資料」標題，後端也會把舊頁面送來的聲演申請轉成作者申請。候選版指定作者頁回 200 並顯示新文案，RSC 邊界及入口讀寫限流檢查通過；切換後 readiness 回 200。Pages 部署 `70f4475f.write-project-public-site.pages.dev` 與正式網域指定作者頁均回 200，舊標題已不再出現。回滾後端使用 `python3 scripts/site-release.py rollback --tag v0-7-4-r13`；Cloudflare Pages 可從 `write-project-public-site` 的部署記錄回滾。
+
+清理舊發布資產時保留正式版 r13 與唯一回滾版 r12，移除本機 r3、r5–r11 的服務容器、映像標籤及部署檔；Cloudflare Pages 保留目前部署和一個前版。
+
 ### 後續版本的網站專用發布
 
 新版本需先有相同 tag 的 `write_project-backend:<tag>`、`write_project-public:<tag>` 映像，以及 `dist/releases/<tag>/index.html`。設定新的 release tag 後執行：

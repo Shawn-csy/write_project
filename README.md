@@ -135,7 +135,7 @@ npm run test:e2e         # Playwright E2E
 - `apps/public/Dockerfile` 建置 Next public app，並納入 workspace packages。
 - Vite studio build output 仍由 root build 流程產生。
 - Nginx 設定見 `nginx.conf`。
-- `main` 是目前的維護與發布分支。2026-11-10 的 v0.7.4 已發布於 [正式網站](https://open-scripts.shawnup.com/)；正式入口目前使用 `v0-7-4-r5`，保留前一版供回滾。
+- `main` 是目前的維護與發布分支。v0.7.4 已發布於 [正式網站](https://open-scripts.shawnup.com/)；正式版為 `v0-7-4-r13`，唯一保留的回滾版為 `v0-7-4-r12`。回滾指令：`python3 scripts/site-release.py rollback --tag v0-7-4-r13`。
 - 正式資料庫已完成資源結構遷移，並匯入 Dev 已核准的音聲、資源、Demo 與外部作者公開資料；詳細驗證與回滾方式見 [維運紀錄](./docs/engineering/operations.md)。
 
 ## 主要文件入口

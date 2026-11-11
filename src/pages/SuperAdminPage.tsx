@@ -217,7 +217,7 @@ export default function SuperAdminPage(): React.JSX.Element {
         { key: "submissions", label: "Demo 投稿", active: activeArea === "review" && reviewTab === "submissions", go: () => goToSection("submissions") },
         { key: "audio-work-submissions", label: "音聲作品投稿", active: activeArea === "review" && reviewTab === "audio-work-submissions", go: () => goToSection("audio-work-submissions") },
         { key: "claims", label: "身份認領", active: activeArea === "review" && reviewTab === "claims", go: () => goToSection("claims") },
-        { key: "voice-actor-profiles", label: "聲演頁面審核", active: activeArea === "review" && reviewTab === "voice-actor-profiles", go: () => goToSection("voice-actor-profiles") },
+        { key: "voice-actor-profiles", label: "作者／聲演頁面審核", active: activeArea === "review" && reviewTab === "voice-actor-profiles", go: () => goToSection("voice-actor-profiles") },
         { key: "resource-submissions", label: "新資源投稿", active: activeArea === "review" && reviewTab === "resource-submissions", go: () => goToSection("resource-submissions") },
         { key: "resource-profiles", label: "資源頁面審核", active: activeArea === "review" && reviewTab === "resource-profiles", go: () => goToSection("resource-profiles") },
         { key: "external-author-profiles", label: "外部台本師頁面審核", active: activeArea === "review" && reviewTab === "external-author-profiles", go: () => goToSection("external-author-profiles") },
@@ -574,7 +574,7 @@ export default function SuperAdminPage(): React.JSX.Element {
               <TabsTrigger value="submissions" className={workbenchTabClass}>Demo 投稿</TabsTrigger>
               <TabsTrigger value="audio-work-submissions" className={workbenchTabClass}>音聲作品投稿</TabsTrigger>
               <TabsTrigger value="claims" className={workbenchTabClass}>身份認領</TabsTrigger>
-              <TabsTrigger value="voice-actor-profiles" className={workbenchTabClass}>聲演頁面審核</TabsTrigger>
+              <TabsTrigger value="voice-actor-profiles" className={workbenchTabClass}>作者／聲演頁面審核</TabsTrigger>
               <TabsTrigger value="resource-submissions" className={workbenchTabClass}>新資源投稿</TabsTrigger>
               <TabsTrigger value="resource-profiles" className={workbenchTabClass}>資源頁面審核</TabsTrigger>
               <TabsTrigger value="external-author-profiles" className={workbenchTabClass}>外部台本師頁面審核</TabsTrigger>

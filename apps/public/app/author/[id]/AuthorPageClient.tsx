@@ -62,6 +62,7 @@ function createProfileForm(persona: PublicPersona) {
 
 const profileInputClass = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm placeholder:text-muted-foreground/70";
 const profileAreaClass = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground/70";
+type ProfileFormKind = "voice_actor" | "author";
 
 export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [] }: Props) {
   const identity = combinePublicIdentities([persona], externalScripts)[0];
@@ -72,6 +73,8 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
   const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
   const hasVoiceWorks = performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
   const isScriptwriter = persona.roles?.includes("scriptwriter") || hasScriptwriterRole(persona, scripts, externalScripts);
+  const canEditVoiceActorProfile = isVoiceActor && persona.voiceActorCollaborationEnabled !== false;
+  const defaultProfileFormKind: ProfileFormKind = isScriptwriter ? "author" : "voice_actor";
   const roles = [
     ...(scripts.length > 0 || isScriptwriter || externalScripts.length > 0 ? ["台本師"] : []),
     ...(isVoiceActor ? ["聲演"] : []),
@@ -107,11 +110,13 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
   const [profileFormLoading, setProfileFormLoading] = useState(false);
   const [profileFormNotice, setProfileFormNotice] = useState("");
   const [profileFormError, setProfileFormError] = useState("");
+  const [profileFormKind, setProfileFormKind] = useState<ProfileFormKind>("voice_actor");
   const [profileForm, setProfileForm] = useState(() => createProfileForm(identity));
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  const openProfileEditor = async () => {
+  const openProfileEditor = async (kind: ProfileFormKind) => {
     setProfileFormError("");
+    setProfileFormKind(kind);
     setProfileFormLoading(true);
     try {
       const { data } = await liveApi.readJson<PublicPersona>(`/api/public-personas/${encodeURIComponent(persona.id)}`);
@@ -131,18 +136,18 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     setProfileFormError("");
     try {
       const links = profileForm.links.filter((item) => item.label.trim() || item.url.trim()).map((item) => ({ label: item.label.trim(), url: item.url.trim() }));
-      const organizations = profileForm.organizations.filter((item) => item.name.trim() || item.url.trim()).map((item) => ({ name: item.name.trim(), url: item.url.trim() }));
-      const works = profileForm.works.filter((item) => item.title.trim() || item.role.trim() || item.url.trim() || item.coverUrl.trim()).map((item) => ({ title: item.title.trim(), role: item.role.trim(), url: item.url.trim(), coverUrl: item.coverUrl.trim() }));
+      const organizations = profileFormKind === "voice_actor" ? profileForm.organizations.filter((item) => item.name.trim() || item.url.trim()).map((item) => ({ name: item.name.trim(), url: item.url.trim() })) : [];
+      const works = profileFormKind === "voice_actor" ? profileForm.works.filter((item) => item.title.trim() || item.role.trim() || item.url.trim() || item.coverUrl.trim()).map((item) => ({ title: item.title.trim(), role: item.role.trim(), url: item.url.trim(), coverUrl: item.coverUrl.trim() })) : [];
       const response = await liveApi.write("/api/voice-actor-profile-submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ personaId: persona.id, ...profileForm, links, organizations, works }),
+        body: JSON.stringify({ personaId: persona.id, profileKind: profileFormKind, ...profileForm, contributorName: profileFormKind === "voice_actor" ? profileForm.contributorName : "", links, organizations, works }),
       });
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.detail || "送出失敗，請稍後再試。 ");
       }
-      setProfileFormNotice("資料已送交審核；核准後才會更新公開聲演頁面。謝謝你協助補充資料。");
+      setProfileFormNotice(profileFormKind === "author" ? "作者資料已送交管理員審核；核准後才會更新公開作者頁。謝謝你協助補充資料。" : "資料已送交審核；核准後才會更新公開聲演頁面。謝謝你協助補充資料。");
       setProfileFormOpen(false);
     } catch (error) {
       setProfileFormError(error instanceof Error ? error.message : "送出失敗，請稍後再試。 ");
@@ -268,26 +273,27 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
               </div>
               </>}
 
-              {isVoiceActor && persona.voiceActorCollaborationEnabled !== false && (
+              {(isScriptwriter || canEditVoiceActorProfile) && (
                 <div className="pt-1">
-                  {!profileFormOpen && !profileFormNotice && <button type="button" disabled={profileFormLoading} onClick={() => void openProfileEditor()} className="rounded-md border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60">{profileFormLoading ? "讀取目前資料…" : "補充／更新聲演資料"}</button>}
+                  {!profileFormOpen && !profileFormNotice && <button type="button" disabled={profileFormLoading} onClick={() => void openProfileEditor(defaultProfileFormKind)} className="rounded-md border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10 disabled:opacity-60">{profileFormLoading ? "讀取目前資料…" : "更新資料"}</button>}
                   {profileFormNotice && <p role="status" className="text-sm text-emerald-400">{profileFormNotice}</p>}
                   {profileFormError && <p role="alert" className="mb-2 text-sm text-destructive">{profileFormError}</p>}
                   {profileFormOpen && (
                     <form onSubmit={submitProfile} className="mt-0 w-full max-w-5xl space-y-3 rounded-xl border border-border/70 bg-background p-3 sm:p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/60 pb-3"><div><h2 className="font-semibold">補充／更新聲演頁</h2><p className="mt-1 text-xs text-muted-foreground">可接續補充個人資料、作品與團體；送出後由{persona.voiceActorClaimed ? "聲演本人" : "管理員"}審核，核准後才會更新公開頁面。</p></div><span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1 [font-size:var(--public-font-caption)] text-primary">協作補充</span></div>
+                      <div className="flex flex-wrap items-start justify-between gap-2 border-b border-border/60 pb-3"><div><h2 className="font-semibold">更新資料</h2><p className="mt-1 text-xs text-muted-foreground">可更新公開名稱、頭像、個人介紹、網站與社群連結；{profileFormKind === "author" ? "作者資料" : "聲演資料"}送出後由{profileFormKind === "author" || !persona.voiceActorClaimed ? "管理員" : "本人"}審核，核准後更新公開頁。</p></div><span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-1 [font-size:var(--public-font-caption)] text-primary">更新公開資料</span></div>
+                      {isScriptwriter && canEditVoiceActorProfile && <div className="flex items-center gap-2 text-xs"><span className="text-muted-foreground">資料類型</span><button type="button" aria-pressed={profileFormKind === "author"} onClick={() => setProfileFormKind("author")} className={`rounded-full border px-2.5 py-1 ${profileFormKind === "author" ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>作者資料</button><button type="button" aria-pressed={profileFormKind === "voice_actor"} onClick={() => setProfileFormKind("voice_actor")} className={`rounded-full border px-2.5 py-1 ${profileFormKind === "voice_actor" ? "border-primary/40 bg-primary/10 text-primary" : "border-border text-muted-foreground"}`}>聲演資料</button></div>}
 
                       <section className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-5">
                         <div className="flex flex-col gap-4 sm:flex-row">
                           <div className="flex shrink-0 items-center gap-3 sm:block">
                             <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-border bg-muted text-2xl font-semibold text-muted-foreground sm:h-28 sm:w-28">
-                              {profileForm.avatar ? <img src={profileForm.avatar} alt="聲演頭像預覽" className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : (profileForm.displayName.trim()[0] || <UserRound className="h-8 w-8" />)}
+                              {profileForm.avatar ? <img src={profileForm.avatar} alt={`${profileFormKind === "author" ? "作者" : "聲演"}頭像預覽`} className="h-full w-full object-cover" referrerPolicy="no-referrer" /> : (profileForm.displayName.trim()[0] || <UserRound className="h-8 w-8" />)}
                             </div>
                             <label className="block min-w-0 flex-1 space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground sm:mt-2 sm:w-40">頭像圖片網址<input maxLength={2000} value={profileForm.avatar} onChange={(e) => setProfileForm({ ...profileForm, avatar: e.target.value })} placeholder="貼上圖片網址" className={`${profileInputClass} mt-1 h-8 px-2 text-xs`} /></label>
                           </div>
                           <div className="min-w-0 flex-1 space-y-3">
                             <label className="block space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">公開名稱<input required maxLength={120} value={profileForm.displayName} onChange={(e) => setProfileForm({ ...profileForm, displayName: e.target.value })} placeholder="輸入你想顯示的名稱" className="h-11 w-full rounded-md border border-transparent bg-transparent px-2 text-2xl font-bold font-serif text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 hover:border-border focus:border-primary focus:bg-background sm:text-3xl" /></label>
-                            <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">聲演</span>
+                            <span className="inline-flex rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">公開資料</span>
                             <label className="block space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">個人介紹<textarea rows={3} maxLength={4000} value={profileForm.bio} onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })} placeholder="輸入想放在個人頁上的介紹…" className={`${profileAreaClass} min-h-24 resize-y bg-background/70`} /></label>
                             <label className="block space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">個人網站<input maxLength={2000} value={profileForm.website} onChange={(e) => setProfileForm({ ...profileForm, website: e.target.value })} placeholder="https://…" className={profileInputClass} /></label>
                             <div className="space-y-2">
@@ -298,22 +304,22 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                         </div>
                       </section>
 
-                      <section className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-5">
+                      {profileFormKind === "voice_actor" && <section className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-5">
                         <div className="mb-3 flex items-center justify-between gap-2"><div><h3 className="flex items-center gap-2 text-sm font-semibold"><Building2 className="h-4 w-4 text-primary" />所屬團體</h3><p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">會以團體卡片顯示在你的公開頁。</p></div><button type="button" onClick={() => setProfileForm({ ...profileForm, organizations: [...profileForm.organizations, { name: "", url: "" }] })} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs hover:bg-muted"><Plus className="h-3.5 w-3.5" />新增團體</button></div>
                         <div className="grid gap-2 sm:grid-cols-2">{profileForm.organizations.map((org, index) => <div key={`org-${index}`} className="rounded-lg border border-border/60 bg-background p-2.5"><div className="flex gap-2"><input aria-label={`團體名稱 ${index + 1}`} value={org.name} onChange={(e) => setProfileForm({ ...profileForm, organizations: profileForm.organizations.map((item, i) => i === index ? { ...item, name: e.target.value } : item) })} placeholder="團體名稱" className={`${profileInputClass} min-w-0 font-medium`} /><button type="button" aria-label="移除團體" onClick={() => setProfileForm({ ...profileForm, organizations: profileForm.organizations.filter((_, i) => i !== index) })} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></div><input aria-label={`團體網址 ${index + 1}`} value={org.url} onChange={(e) => setProfileForm({ ...profileForm, organizations: profileForm.organizations.map((item, i) => i === index ? { ...item, url: e.target.value } : item) })} placeholder="團體網站或社群（選填）" className={`${profileInputClass} mt-2 h-8 border-transparent bg-transparent px-1 text-xs`} /></div>)}</div>
-                      </section>
+                      </section>}
 
-                      <section className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-5">
+                      {profileFormKind === "voice_actor" && <section className="rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-5">
                         <div className="mb-3 flex items-center justify-between gap-2"><div><h3 className="flex items-center gap-2 text-sm font-semibold"><BriefcaseBusiness className="h-4 w-4 text-primary" />參演作品</h3><p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">作品會以清單卡片顯示在你的公開頁。</p></div><button type="button" onClick={() => setProfileForm({ ...profileForm, works: [...profileForm.works, { title: "", role: "", url: "", coverUrl: "" }] })} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs hover:bg-muted"><Plus className="h-3.5 w-3.5" />新增作品</button></div>
                         <div className="grid gap-2 sm:grid-cols-2">{profileForm.works.map((work, index) => <div key={`work-${index}`} className="overflow-hidden rounded-lg border border-border/60 bg-background">
                           {work.coverUrl && <div className="relative aspect-video overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "作品"}封面預覽`} preset="script-cover" /></div>}
                           <div className="p-3"><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><input aria-label={`作品名稱 ${index + 1}`} value={work.title} onChange={(e) => setProfileForm({ ...profileForm, works: profileForm.works.map((item, i) => i === index ? { ...item, title: e.target.value } : item) })} placeholder="作品／台本名稱" className={`${profileInputClass} border-transparent bg-transparent px-1 font-semibold`} /><input aria-label={`參演角色 ${index + 1}`} value={work.role} onChange={(e) => setProfileForm({ ...profileForm, works: profileForm.works.map((item, i) => i === index ? { ...item, role: e.target.value } : item) })} placeholder="參演角色或補充（選填）" className={`${profileInputClass} mt-1 h-8 border-transparent bg-transparent px-1 text-xs`} /></div><button type="button" aria-label="移除參演作品" onClick={() => setProfileForm({ ...profileForm, works: profileForm.works.filter((_, i) => i !== index) })} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></div><input aria-label={`作品網址 ${index + 1}`} value={work.url} onChange={(e) => setProfileForm({ ...profileForm, works: profileForm.works.map((item, i) => i === index ? { ...item, url: e.target.value } : item) })} placeholder="作品連結（選填）" className={`${profileInputClass} mt-2 h-8 border-transparent bg-transparent px-1 text-xs`} /><label className="mt-2 block space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">封面圖片網址<input type="text" inputMode="url" aria-label={`封面圖片網址 ${index + 1}`} value={work.coverUrl} onChange={(e) => setProfileForm({ ...profileForm, works: profileForm.works.map((item, i) => i === index ? { ...item, coverUrl: e.target.value } : item) })} placeholder="https://… 或 /media/…" className={`${profileInputClass} h-8 px-2 text-xs`} /></label></div>
                         </div>)}</div>
-                      </section>
+                      </section>}
 
-                      <section className="rounded-lg border border-border/60 p-3"><h3 className="mb-2 text-xs font-semibold">資料補充者與審核聯絡方式</h3><div className="grid gap-2 sm:grid-cols-2"><label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">資料補充者名稱（公開顯示）<input required maxLength={120} value={profileForm.contributorName} onChange={(e) => setProfileForm({ ...profileForm, contributorName: e.target.value })} placeholder="輸入公開署名或暱稱" className={profileInputClass} /><span className="block [font-size:var(--public-font-caption)]">核准後會和核准時間一起列在聲演頁。</span></label><label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">聯絡姓名（不公開）<input required maxLength={120} value={profileForm.submitterName} onChange={(e) => setProfileForm({ ...profileForm, submitterName: e.target.value })} className={profileInputClass} /></label><label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground sm:col-span-2">聯絡 Email（不公開）<input required type="email" maxLength={320} value={profileForm.contactEmail} onChange={(e) => setProfileForm({ ...profileForm, contactEmail: e.target.value })} className={profileInputClass} /></label></div></section>
+                      <section className="rounded-lg border border-border/60 p-3"><h3 className="mb-2 text-xs font-semibold">資料補充者與審核聯絡方式</h3><div className="grid gap-2 sm:grid-cols-2">{profileFormKind === "voice_actor" && <label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">資料補充者名稱（公開顯示）<input required maxLength={120} value={profileForm.contributorName} onChange={(e) => setProfileForm({ ...profileForm, contributorName: e.target.value })} placeholder="輸入公開署名或暱稱" className={profileInputClass} /><span className="block [font-size:var(--public-font-caption)]">核准後會和核准時間一起列在聲演頁。</span></label>}<label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">聯絡姓名（不公開）<input required maxLength={120} value={profileForm.submitterName} onChange={(e) => setProfileForm({ ...profileForm, submitterName: e.target.value })} className={profileInputClass} /></label><label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground sm:col-span-2">聯絡 Email（不公開）<input required type="email" maxLength={320} value={profileForm.contactEmail} onChange={(e) => setProfileForm({ ...profileForm, contactEmail: e.target.value })} className={profileInputClass} /></label></div></section>
 
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3"><p className="text-xs text-muted-foreground">送出後整頁內容會進入審核，核准前不會公開變更。</p><div className="flex justify-end gap-2"><button type="button" onClick={() => { setProfileFormOpen(false); setProfileFormError(""); }} className="rounded-md border border-border px-3 py-1.5 text-sm">取消編輯</button><button type="submit" disabled={profileFormBusy} className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60">{profileFormBusy ? "送出中…" : "送交審核"}</button></div></div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3"><p className="text-xs text-muted-foreground">送出後提案會進入審核，核准前不會公開變更。</p><div className="flex justify-end gap-2"><button type="button" onClick={() => { setProfileFormOpen(false); setProfileFormError(""); }} className="rounded-md border border-border px-3 py-1.5 text-sm">取消編輯</button><button type="submit" disabled={profileFormBusy} className="rounded-md bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-60">{profileFormBusy ? "送出中…" : "送交審核"}</button></div></div>
                     </form>
                   )}
                 </div>
