@@ -5,6 +5,7 @@ from sqlalchemy import orm
 from sqlalchemy.orm import Session
 import json
 import os
+import re
 import time
 import uuid
 import unicodedata
@@ -60,6 +61,23 @@ def _public_profile_url(value: object, *, image: bool = False) -> str:
     if parsed.scheme in {"http", "https"} and parsed.hostname:
         return raw
     raise HTTPException(status_code=400, detail="請使用有效的公開 http(s) 網址")
+
+
+def _public_profile_contact_value(label: str, value: object, existing_links: list) -> str:
+    raw = str(value or "").strip()[:2000]
+    if not raw:
+        return ""
+    # Existing profiles can contain contact handles rather than URLs. Keep an
+    # unchanged value valid when a contributor edits other profile fields.
+    if any(isinstance(item, dict) and str(item.get("label") or "").strip() == label
+           and str(item.get("url") or "").strip() == raw for item in existing_links):
+        return raw
+    kind = label.casefold()
+    if kind in {"email", "e-mail", "電子郵件"} and re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", raw):
+        return raw
+    if kind == "discord" and re.fullmatch(r"[A-Za-z0-9_.]{2,32}", raw):
+        return raw
+    return _public_profile_url(raw)
 
 _banner_cache: tuple[dict, float] | None = None
 _BANNER_TTL = 120  # seconds
@@ -739,12 +757,15 @@ def _build_public_identity_context(
                 demos_by_persona[persona_id].append(demo)
 
     external_authors_by_persona: dict[str, list[models.ExternalAuthor]] = {value: [] for value in ids}
-    external_authors = db.query(models.ExternalAuthor).filter(
-        models.ExternalAuthor.linkedPersonaId.in_(ids),
-        models.ExternalAuthor.isHidden.is_(False),
-    ).all()
-    for author in external_authors:
-        external_authors_by_persona.setdefault(author.linkedPersonaId, []).append(author)
+    author_profiles = {row.authorKey: row for row in db.query(models.ExternalAuthorPageProfile).all()}
+    external_authors = []
+    for author in db.query(models.ExternalAuthor).all():
+        profile = author_profiles.get(author.canonicalKey)
+        linked_id = profile.linkedPersonaId if profile else author.linkedPersonaId
+        if author.isHidden or (profile and profile.isHidden) or linked_id not in ids:
+            continue
+        external_authors_by_persona.setdefault(linked_id, []).append(author)
+        external_authors.append(author)
     author_ids = [author.id for author in external_authors]
     external_scripts_by_author: dict[str, list[models.ExternalPublicScript]] = {}
     if author_ids:
@@ -1290,11 +1311,12 @@ def create_voice_actor_profile_submission(
     avatar_url = _public_profile_url(payload.avatar, image=True) if payload.avatar.strip() else ""
     website_url = _public_profile_url(payload.website) if payload.website.strip() else ""
     links = []
+    existing_links = crud._ensure_list(persona.links)
     for item in payload.links[:30]:
         if not isinstance(item, dict):
             continue
         label = str(item.get("label") or "").strip()[:120]
-        url = _public_profile_url(item.get("url")) if str(item.get("url") or "").strip() else ""
+        url = _public_profile_contact_value(label, item.get("url"), existing_links)
         if label or url:
             links.append({"label": label, "url": url})
     organizations = []
@@ -1651,6 +1673,14 @@ def list_public_personas(db: Session = Depends(get_db)):
         for row in db.query(models.ExternalAuthor.linkedPersonaId).filter(
             models.ExternalAuthor.linkedPersonaId.isnot(None),
             models.ExternalAuthor.isHidden.is_(False),
+        ).distinct().all()
+        if row[0]
+    )
+    persona_ids.extend(
+        row[0]
+        for row in db.query(models.ExternalAuthorPageProfile.linkedPersonaId).filter(
+            models.ExternalAuthorPageProfile.linkedPersonaId.isnot(None),
+            models.ExternalAuthorPageProfile.isHidden.is_(False),
         ).distinct().all()
         if row[0]
     )

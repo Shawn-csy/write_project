@@ -69,7 +69,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
   const model = buildAuthorEntityModel(identity, scripts);
   const profileBio = identity.bio || "";
   const links = parseLinks(identity.links);
-  const isVoiceActor = persona.roles?.includes("voice_actor") || hasVoiceActorSelfTag(persona) || performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
+  const isVoiceActor = persona.roles?.includes("voice_actor") ?? (hasVoiceActorSelfTag(persona) || performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0);
   const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
   const hasVoiceWorks = performances.length > 0 || audioWorks.length > 0 || (persona.voiceActorWorks || []).length > 0;
   const isScriptwriter = persona.roles?.includes("scriptwriter") || hasScriptwriterRole(persona, scripts, externalScripts);
@@ -206,20 +206,6 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                 </div>
               )}
 
-              {/* Org links */}
-              {persona.organizations && persona.organizations.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {persona.organizations.map((org) => (
-                    <a
-                      key={org.id}
-                      href={`/org/${org.id}`}
-                      className="flex items-center gap-1 text-sm text-primary hover:underline"
-                    >
-                      🏢 {org.name}
-                    </a>
-                  ))}
-                </div>
-              )}
               {(persona.voiceActorOrganizations || []).length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {persona.voiceActorOrganizations!.map((org, index) => org.url ? (
@@ -328,23 +314,6 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
           </div>
         </PublicProfileCard>
 
-        {externalScripts.length > 0 && (
-            <PublicProfileSection title="台本作品" count={externalScripts.length}>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {externalScripts.map((script) => (
-                  <article key={script.id} className="overflow-hidden rounded-lg border border-border/60 bg-background">
-                    {script.coverUrl && <div className="relative aspect-[16/10] overflow-hidden bg-muted"><PublicImage src={script.coverUrl} alt={`${script.title}封面`} preset="script-cover" /></div>}
-                    <div className="p-3">
-                      <h3 className="line-clamp-2 text-sm font-semibold">{script.title || script.remoteTitle || "未命名台本"}</h3>
-                      {script.summary && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{script.summary}</p>}
-                      <a href={script.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs hover:bg-muted/60">閱讀台本<ExternalLink className="h-3 w-3" aria-hidden /></a>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </PublicProfileSection>
-        )}
-
         {ageConfirmed && performances.length > 0 && (
           <PublicProfileSection title="參與演出" count={performances.length}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -405,11 +374,20 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
         )}
 
         {/* Scripts */}
-        {(scripts.length > 0 || !isVoiceActor) && (
-          <PublicProfileSection title="公開作品" count={scripts.length}>
-            {scripts.length === 0 ? <p className="py-8 text-center text-sm text-muted-foreground">目前沒有公開作品</p> : <EntityScriptGrid scripts={scripts} />}
-          </PublicProfileSection>
-        )}
+        {isScriptwriter && <PublicProfileSection title="台本作品" count={scripts.length + externalScripts.length}>
+          {scripts.length === 0 && externalScripts.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">目前沒有公開台本</p>}
+          {scripts.length > 0 && <EntityScriptGrid scripts={scripts} />}
+          {externalScripts.length > 0 && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {externalScripts.map((script) => <article key={script.id} className="overflow-hidden rounded-lg border border-border/60 bg-background">
+              {script.coverUrl && <div className="relative aspect-[16/10] overflow-hidden bg-muted"><PublicImage src={script.coverUrl} alt={`${script.title}封面`} preset="script-cover" /></div>}
+              <div className="p-3">
+                <h3 className="line-clamp-2 text-sm font-semibold">{script.title || script.remoteTitle || "未命名台本"}</h3>
+                {script.summary && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{script.summary}</p>}
+                <a href={script.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs hover:bg-muted/60">閱讀台本<ExternalLink className="h-3 w-3" aria-hidden /></a>
+              </div>
+            </article>)}
+          </div>}
+        </PublicProfileSection>}
         {(persona.voiceActorContributors || []).length > 0 && (
           <div className="mt-4 flex justify-end border-t border-border/50 pt-3">
             <button type="button" onClick={() => setHistoryOpen(true)} className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">

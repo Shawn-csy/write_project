@@ -370,10 +370,10 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   const selectedGroupCoverUrl = selectedGroup
     ? selectedGroup.demos.map((demo) => youtubeThumbnail(demo.url)).find(Boolean) || selectedGroup.coverUrl || ""
     : "";
-  const voiceActors = useMemo(() => personas.filter((persona) => !persona.voiceActorHidden && (
+  const voiceActors = useMemo(() => personas.filter((persona) => !persona.voiceActorHidden && (persona.roles?.includes("voice_actor") ?? (
     hasVoiceActorSelfTag(persona)
     || getPublicVoicePerformances(persona.id, { scripts, externalPublicScripts: externalScripts, demoSubmissions: submissions }).length > 0
-  )).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, scripts, externalScripts, submissions]);
+  ))).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, scripts, externalScripts, submissions]);
   const voiceActorNames = useMemo(() => new Set(voiceActors.map((persona) => persona.displayName.trim().toLocaleLowerCase())), [voiceActors]);
   const voiceActorById = useMemo(() => new Map(personas.map((persona) => [persona.id, persona])), [personas]);
   const selectedVoiceActors = voiceActorIds.map((id) => voiceActorById.get(id)).filter((persona): persona is PublicPersona => Boolean(persona));

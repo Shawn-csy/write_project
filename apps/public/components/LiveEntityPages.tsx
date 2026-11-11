@@ -35,7 +35,7 @@ import {
 import { LiveApiError, liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import type { PublicBundleSection } from "@/lib/publicBundleProjection";
-import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
+import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
 import { externalScriptsForPersona } from "@/lib/publicIdentity";
 import { externalScriptsForOrganization } from "@/lib/organizationExternalScripts";
 import { TITLE_SUFFIX } from "@/lib/seo";
@@ -142,9 +142,7 @@ export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: 
     return { persona, scripts: scripts ?? [], performances, externalScripts, audioWorks };
   }, `author:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.persona.displayName : null);
-  const resolvedChrome = state.status === "ready" && chrome && (hasVoiceActorSelfTag(state.data.persona) || state.data.performances.length > 0)
-    ? { ...chrome, activeTab: "voice-actors" }
-    : chrome;
+  const resolvedChrome = chrome ? { ...chrome, activeTab: "authors" } : undefined;
   return (
     <Frame state={state} chrome={resolvedChrome}>
       {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} />}

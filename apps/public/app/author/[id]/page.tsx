@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
-import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
+import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
 import { combinePublicIdentities, externalScriptsForPersona } from "@/lib/publicIdentity";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
@@ -125,7 +125,7 @@ export default async function AuthorPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "resources" : "authors"} showBack backHref={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "/resources" : "/authors"} backLabel="返回名錄" />
+      <PublicTopBar activeTab="authors" showBack backHref="/authors" backLabel="返回作者" />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{persona.displayName}</h1>
