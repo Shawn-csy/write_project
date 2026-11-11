@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "public-dev",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd apps/public && BACKEND_API_URL=http://localhost:8891 NEXT_PUBLIC_DEPLOY_ENV=development npx next dev -p 3100"],
+      "port": 3100
+    }
+  ]
+}

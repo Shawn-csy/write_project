@@ -124,3 +124,6 @@ apps/public/.wrangler/
 mobile-*.png
 !.env.local.example
 !apps/public/.env.local.example
+
+# Claude Code local settings
+.claude/settings.local.json
