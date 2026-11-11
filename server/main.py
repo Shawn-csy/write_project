@@ -47,7 +47,10 @@ if AUTO_CREATE_TABLES:
         models.Base.metadata.create_all(bind=database.engine)
 if RUN_LEGACY_MIGRATIONS:
     migration.run_migrations()
-if _env_bool("DB_RUN_IDENTITY_CONVERGENCE", True):
+# Production starts with migrations off and converges once, after the new
+# release has taken traffic (scripts/release.sh). Running it here would let a
+# candidate container rewrite identities while the old release still serves.
+if _env_bool("DB_RUN_IDENTITY_CONVERGENCE", RUN_LEGACY_MIGRATIONS):
     from services.identity_convergence import run_identity_convergence_on_startup
     run_identity_convergence_on_startup()
 

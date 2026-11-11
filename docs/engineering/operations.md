@@ -227,6 +227,22 @@ python3 scripts/site-release.py rollback --tag rsc-cache-all-20261110
 
 2026-11-11 發布 `wp-site-v0-7-4-r14-edge` 與 Cloudflare Pages。管理端的外部作者頁已有 `linkedPersonaId`，但舊 `ExternalAuthor` 紀錄仍為空；公開資料包先讀舊紀錄，導致同一作者分裂成外部作者卡與聲演 Persona 卡。修正後公開身份投影以管理端明確連結為準，外部台本寫入流程亦同步該連結；伊橙與安里的既有作者頁透過管理介面重新儲存，讓資料庫紀錄一致。作者名錄只列有已公開台本關係的身份，雙角色頁將台本作品與音聲作品放在同一頁；作者路由固定顯示作者導覽。另移除作者頁舊組織關聯的展示，並接受原有 Email／Discord 聯絡值隨資料補充一併送審。候選與正式網址的指定頁面均回 200，作者名錄各只顯示一張伊橙、安里卡片。後端回滾使用 `python3 scripts/site-release.py rollback --tag v0-7-4-r14`。
 
+### 一鍵發布腳本（2026-11-11 起）
+
+`scripts/release.sh` 把下方手動流程串成固定步驟，並補上身份收斂與 Cloudflare Pages：
+
+```bash
+bash scripts/release.sh build <tag>      # 只接受已推送、兩組 CI 皆綠燈的 main；建 API／公開站映像與工作室靜態檔
+bash scripts/release.sh schema           # 列出 schema 缺口（--apply 會先排練、備份再遷移）
+bash scripts/release.sh prepare <tag>    # site-release prepare ＋ 讀寫限流與 RSC 快取邊界檢查
+bash scripts/release.sh activate <tag>   # 交接 1090，接著在新 API 執行身份收斂
+bash scripts/release.sh pages            # 建置並上傳 Cloudflare Pages
+bash scripts/release.sh verify           # 正式網域煙霧測試
+bash scripts/release.sh all <tag>        # 依序執行；需要 schema 遷移時會停下，除非加 --apply-schema
+```
+
+正式 API 以 `DB_RUN_LEGACY_MIGRATIONS=0` 啟動，因此啟動時**不會**執行身份收斂（`DB_RUN_IDENTITY_CONVERGENCE` 預設跟隨該開關）；`activate` 切流後才執行，避免候選容器在舊版仍服務時改寫資料。`migrate-prod-schema.sh`、`rehearse-prod-schema.sh` 等腳本改由 `site-release.py current-api` 找出 1090 背後的現行 API，不再寫死已不存在的 `write_project-write_project-backend-1`；必要時可用 `MIGRATION_SOURCE_BACKEND` 指定。`prepare` 複製舊容器環境變數時會去除重複鍵（先前每次發布都會累加一份）。
+
 ### 後續版本的網站專用發布
 
 新版本需先有相同 tag 的 `write_project-backend:<tag>`、`write_project-public:<tag>` 映像，以及 `dist/releases/<tag>/index.html`。設定新的 release tag 後執行：

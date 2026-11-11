@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE_PG=write_project-write_project-postgres-1
-SOURCE_API=write_project-write_project-backend-1
+SOURCE_API="${MIGRATION_SOURCE_BACKEND:-$(python3 "$ROOT_DIR/scripts/site-release.py" current-api)}"
 SUFFIX="$(python3 -c 'import secrets; print(secrets.token_hex(5))')"
 CLONE_NETWORK="wp-schema-${SUFFIX}"
 CLONE_VOLUME="wp-schema-${SUFFIX}"

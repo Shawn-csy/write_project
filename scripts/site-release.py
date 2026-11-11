@@ -259,10 +259,17 @@ def prepare(tag):
         try:
             for item in (api_item, public_item):
                 with tempfile.NamedTemporaryFile(mode="w", prefix="wp-site-env-", delete=False) as handle:
+                    # Docker keeps every -e given at creation; copying the list
+                    # verbatim made it grow with each release. Keep the last value.
+                    env = {}
                     for entry in item["Config"]["Env"]:
                         if "\n" in entry or "\r" in entry:
                             raise RuntimeError("multiline environment variable cannot be copied")
-                        handle.write(entry + "\n")
+                        key, _, value = entry.partition("=")
+                        env.pop(key, None)
+                        env[key] = value
+                    for key, value in env.items():
+                        handle.write(f"{key}={value}\n")
                     env_files.append(handle.name)
             data_mount = mount(api_item, "/data")
             secrets_mount = mount(api_item, "/secrets")
@@ -498,7 +505,7 @@ def main():
     signal.signal(signal.SIGINT, interrupted)
     signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("status", "prepare", "activate", "rollback", "stop-prepared", "retire-ancestors"))
+    parser.add_argument("action", choices=("status", "current-api", "prepare", "activate", "rollback", "stop-prepared", "retire-ancestors"))
     parser.add_argument("--tag", default=os.environ.get("RELEASE_TAG"))
     parser.add_argument("--dry-run", action="store_true", help="show eligible retired services without stopping them")
     args = parser.parse_args()
@@ -509,6 +516,12 @@ def main():
         print(f"Live ingress: {item['Name'].lstrip('/')} ({item['Id'][:12]})")
         print(f"Static: {mount(item, '/usr/share/nginx/html')}")
         print(f"Config: {mount(item, '/etc/nginx/conf.d')}")
+        return
+    if args.action == "current-api":
+        # The API container behind the live ingress, for jobs that must reuse its image and settings.
+        item = ingress()
+        api, _public = upstreams(mount(item, "/etc/nginx/conf.d").joinpath("default.conf").read_text())
+        print(api)
         return
     if args.action != "retire-ancestors" and not args.tag:
         parser.error("--tag or RELEASE_TAG is required")
