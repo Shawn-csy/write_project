@@ -106,6 +106,8 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.shawnup.write-projec
 - 預設 block（`server_name _`）：供工作室與舊入口，部分公開讀取（`/api/public-bundle`、`public-personas`、`public-organizations`、`public-terms-config`、`public-media`）經 Next.js，**不帶 CORS 標頭**。
 - `api-open-scripts.shawnup.com` block：`/api/` 與 `/media/` 一律交給 FastAPI，由它負責 CORS 允許清單（含 `https://open-scripts.shawnup.com`）。其餘路徑回 404。
 
+- `/media/*.webp` 另有規則把 `Content-Type` 改成 `image/webp`：FastAPI 的靜態檔以 `application/octet-stream` 加 `nosniff` 回應 `.webp`，同網域沒事，但跨網域 `<img>` 會被瀏覽器（ORB）擋下。根本修法是後端補上 `.webp` 的 MIME 對照；在此之前請保留這條規則。若改動了 `/media/` 的標頭，要到 Cloudflare 對 `api-open-scripts.shawnup.com` 做「依主機名稱」清除快取（最長 4 小時的舊標頭會留在邊緣）。
+
 修改 nginx 設定要走 `scripts/site-release.py` 的新 release（`prepare`、檢查、`activate`），詳見 `operations.md`。`site-release.py` 會把兩個 server block 的上游一併改寫；`$api_backend` 與 `$backend` 各只能出現一次。
 
 ## 驗證備援切換
