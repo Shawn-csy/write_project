@@ -19,7 +19,10 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-CONTROL_ROOT = ROOT / "releases" / ".site-release"
+# Durable release files are mounted by the live ingress, so they live in one
+# fixed place even when this script runs from another checkout (the deploy runner).
+RELEASE_ROOT = Path(os.environ.get("WP_RELEASE_ROOT") or ROOT / "releases").resolve()
+CONTROL_ROOT = RELEASE_ROOT / ".site-release"
 NETWORK = "write_project_default"
 ROUTES = ("/healthz", "/api/health/ready", "/api/public-bundle", "/", "/authors", "/audio-works", "/voice-actors", "/activities", "/demos", "/resources", "/help", "/license", "/login", "/studio/demos")
 ORIGIN = "http://127.0.0.1:1090"
@@ -178,7 +181,7 @@ def names(tag):
 def release(tag):
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,39}", tag):
         raise RuntimeError("release tag must contain lowercase letters, digits or hyphens (max 40)")
-    return ROOT / "releases" / tag, names(tag)
+    return RELEASE_ROOT / tag, names(tag)
 
 
 def state_path(artifact):
@@ -221,7 +224,7 @@ def prepare(tag):
     api_item, public_item = inspect(old_api), inspect(old_public)
     if not api_item or not public_item or not running(old_api) or not running(old_public):
         raise RuntimeError("current API or public service is unavailable")
-    if not old_static.is_relative_to(ROOT / "releases"):
+    if not old_static.is_relative_to(RELEASE_ROOT):
         raise RuntimeError("current static mount is not a durable release")
     if any(inspect(name) for name in target.values()):
         raise RuntimeError("target release containers already exist")

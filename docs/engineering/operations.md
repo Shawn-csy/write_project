@@ -243,6 +243,12 @@ bash scripts/release.sh all <tag>        # 依序執行；需要 schema 遷移�
 
 正式 API 以 `DB_RUN_LEGACY_MIGRATIONS=0` 啟動，因此啟動時**不會**執行身份收斂（`DB_RUN_IDENTITY_CONVERGENCE` 預設跟隨該開關）；`activate` 切流後才執行，避免候選容器在舊版仍服務時改寫資料。`migrate-prod-schema.sh`、`rehearse-prod-schema.sh` 等腳本改由 `site-release.py current-api` 找出 1090 背後的現行 API，不再寫死已不存在的 `write_project-write_project-backend-1`；必要時可用 `MIGRATION_SOURCE_BACKEND` 指定。`prepare` 複製舊容器環境變數時會去除重複鍵（先前每次發布都會累加一份）。
 
+### 自動部署
+
+main 的 CI 全綠後由 GitHub Actions 自架 runner 自動執行 `release.sh auto`，詳見 [continuous-deployment.md](continuous-deployment.md)。下方的手動流程仍可用於需要人工把關的發布。
+
+2026-11-11 以 `release.sh` 手動發布 `v0-7-4-r15`（#38 統一身份頁、#39 發布修正）。先以 `release.sh schema --apply` 新增 `persona_credits`、`persona_credit_names` 兩表與 `production_resources.personaId` 欄位，排練讀寫最慢約 30 ms、無錯誤，備份 `/Users/shanti/write_project_backups/write_project_20261111_154017.sql.gz`；`prepare` 通過全部檢查後切流，接著在新 API 執行身份收斂：新建 63 個身份，一介、海聶、芽瑪合併進既有身份，連結 14 位外部作者與 8 筆舊資源。Cloudflare Pages 部署 `0e91b6d8.write-project-public-site.pages.dev`；正式網域主要路徑與 API readiness 回 200，舊 `/resources/credit-…` 網址轉至身份頁。回滾使用 `python3 scripts/site-release.py rollback --tag v0-7-4-r15`（接回 r14）；資料不隨之回復。
+
 ### 後續版本的網站專用發布
 
 新版本需先有相同 tag 的 `write_project-backend:<tag>`、`write_project-public:<tag>` 映像，以及 `dist/releases/<tag>/index.html`。設定新的 release tag 後執行：

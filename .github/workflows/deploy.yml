@@ -1,0 +1,53 @@
+name: Deploy production
+
+# Releases main to production after its CI is green, on the self-hosted runner
+# that lives on the production machine. See docs/engineering/continuous-deployment.md.
+
+on:
+  workflow_run:
+    workflows: ["Public read and security contracts", "Submission workflows"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only this repository's own pushes to main. A fork PR from a branch that is
+    # also named main produces workflow_run events too; it must never reach the
+    # production runner.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: [self-hosted, macOS, write-project-prod]
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      WP_RELEASE_ROOT: /Users/shanti/Desktop/write_project/releases
+      WP_STUDIO_ENV_FILE: /Users/shanti/Desktop/write_project/.env
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - run: npm ci
+      - name: Release
+        run: |
+          set +e
+          bash scripts/release.sh auto
+          status=$?
+          # 3: another workflow for this commit is still running; its completion deploys.
+          if [ "$status" -eq 3 ]; then exit 0; fi
+          exit "$status"
+      - name: Notify on this machine
+        if: failure()
+        run: osascript -e 'display notification "自動部署失敗，請看 GitHub Actions" with title "write_project"' || true
