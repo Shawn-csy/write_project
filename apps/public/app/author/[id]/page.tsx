@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
-import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
+import { getPublicVoicePerformances } from "@/lib/publicVoicePerformances";
 import { combinePublicIdentities, externalScriptsForPersona } from "@/lib/publicIdentity";
 import { AuthorPageClient } from "./AuthorPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
@@ -11,8 +11,18 @@ import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from
 import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticAuthorParams } from "@/lib/staticParams";
 import { LiveAuthorPage } from "@/components/LiveEntityPages";
+import { ROLE_LABELS } from "@/components/identity/identityRoles";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
+
+/** Back to the directory this person is most likely reached from. */
+function identityTopBar(persona: PublicPersona): { activeTab: string; backHref: string; backLabel: string } {
+  const roles = persona.roles || [];
+  if (roles.includes("scriptwriter")) return { activeTab: "authors", backHref: "/authors", backLabel: "返回作者" };
+  const production = roles.find((role) => role !== "voice_actor");
+  if (roles.includes("voice_actor") || !production) return { activeTab: "resources", backHref: "/resources", backLabel: "返回資源" };
+  return { activeTab: "resources", backHref: `/resources?category=${production}`, backLabel: "返回資源" };
+}
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -61,7 +71,8 @@ export async function generateMetadata({
   if (!persona) return { title: `找不到作者｜${TITLE_SUFFIX}` };
 
   const title = `${persona.displayName}｜${TITLE_SUFFIX}`;
-  const description = (persona.bio || `${persona.displayName} 的公開台本作品`).slice(0, 200);
+  const roleNames = (persona.roles || []).map((role) => ROLE_LABELS[role]).filter(Boolean).join("、");
+  const description = (persona.bio || `${persona.displayName}${roleNames ? `（${roleNames}）` : ""} 的公開作品與參與紀錄`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/author/${id}`;
   const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl);
 
@@ -125,14 +136,14 @@ export default async function AuthorPage({
   return (
     <>
       <JsonLdScript data={structuredData} />
-      <PublicTopBar activeTab={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "resources" : "authors"} showBack backHref={hasVoiceActorSelfTag(persona) || performances.length > 0 ? "/resources" : "/authors"} backLabel="返回名錄" />
+      <PublicTopBar {...identityTopBar(persona)} showBack />
       <noscript>
         <article style={{ maxWidth: 800, margin: "0 auto", padding: "2rem", fontFamily: "serif" }}>
           <h1>{persona.displayName}</h1>
           {displayPersona.bio && <p>{displayPersona.bio}</p>}
           {scripts.length > 0 && (
             <>
-              <h2>公開作品</h2>
+              <h2>台本作品</h2>
               <ul>
                 {scripts.map((s) => (
                   <li key={s.id}>

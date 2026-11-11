@@ -49,86 +49,12 @@ def test_public_audio_works_include_only_approved_credits(client, db_session):
     public_bundle_router.invalidate_public_bundle_cache()
 
 
-def test_unlisted_staff_appear_as_work_credits_in_resources(client, db_session):
-    public_bundle_router.invalidate_public_bundle_cache()
-    db_session.add_all([
-        models.PublicAudioWorkSubmission(id="staff-work", title="作品甲", url="https://example.com/a", status="approved"),
-        models.PublicAudioWorkSubmission(id="staff-pending", title="作品乙", url="https://example.com/b", status="pending"),
-    ])
-    db_session.flush()
-    db_session.add_all([
-        models.AudioWorkCredit(audioWorkId="staff-work", role="cover_art", sourceRole="封面", creditedAs="新畫師", provenance="official_page", sourceUrl="https://example.com/a", checkedAt=1),
-        models.AudioWorkCredit(audioWorkId="staff-pending", role="cover_art", sourceRole="封面", creditedAs="新畫師", provenance="official_page", sourceUrl="https://example.com/b", checkedAt=1),
-    ])
-    db_session.commit()
-    response = client.get("/api/public-bundle?sections=productionResources")
-    assert response.status_code == 200
-    listings = response.json()["productionResources"]
-    assert len(listings) == 1
-    assert listings[0]["name"] == "新畫師"
-    assert listings[0]["kind"] == "credit"
-    assert [(work["id"], work["creditRole"]) for work in listings[0]["works"]] == [("staff-work", "cover_art")]
-    db_session.add(models.ProductionResourceEnrichment(
-        id=listings[0]["id"], profileUrl="https://example.com/artist", profileLabel="個人網站",
-        avatarUrl="https://example.com/avatar.jpg", bio="插畫創作者",
-        sourceUrl="https://example.com/a", checkedAt=1,
-    ))
-    db_session.add(models.ProductionResourceLink(
-        id="artist-social", resourceId=listings[0]["id"], label="X",
-        url="https://x.com/artist", sourceUrl="https://example.com/a", checkedAt=1,
-    ))
-    db_session.commit()
-    public_bundle_router.invalidate_public_bundle_cache()
-    enriched = client.get("/api/public-bundle?sections=productionResources").json()["productionResources"][0]
-    assert enriched["profileUrl"] == "https://example.com/artist"
-    assert enriched["avatarUrl"] == "https://example.com/avatar.jpg"
-    assert enriched["bio"] == "插畫創作者"
-    assert enriched["links"] == [{"label": "X", "url": "https://x.com/artist"}]
-    public_bundle_router.invalidate_public_bundle_cache()
-
-
 def test_explicit_production_credit_parser_handles_combined_roles():
     assert set(credited_roles("錄音・後期：所有聲音製作\n封面：玫臼惹\n故事裡提到後製：不是署名")) == {
         ("recording_studio", "所有聲音製作"),
         ("post_production", "所有聲音製作"),
         ("cover_art", "玫臼惹"),
     }
-
-
-def test_production_resources_only_exposes_published_sourced_listings(client, db_session):
-    public_bundle_router.invalidate_public_bundle_cache()
-    db_session.add_all([
-        models.ProductionResource(
-            id="listed", name="公開工作室", categories=["recording_studio"],
-            summary="錄音服務", websiteUrl="https://example.com/",
-            sourceUrl="https://example.com/services", status="published", reviewedAt=1,
-        ),
-        models.ProductionResource(
-            id="draft", name="待查工作室", categories=["recording_studio"],
-            summary="待查", websiteUrl="https://example.org/",
-            sourceUrl="https://example.org/", status="draft", reviewedAt=1,
-        ),
-    ])
-    db_session.add_all([
-        models.PublicAudioWorkSubmission(id="approved-work", title="作品甲", url="https://example.com/work", coverUrl="https://example.com/cover.jpg", status="approved"),
-        models.PublicAudioWorkSubmission(id="pending-work", title="作品乙", url="https://example.com/private", status="pending"),
-    ])
-    db_session.flush()
-    db_session.add_all([
-        models.ProductionResourceCredit(resourceId="listed", audioWorkId="approved-work", creditRole="recording_studio", creditedAs="公開工作室"),
-        models.ProductionResourceCredit(resourceId="listed", audioWorkId="pending-work", creditRole="recording_studio", creditedAs="公開工作室"),
-    ])
-    db_session.commit()
-    response = client.get("/api/public-bundle?sections=productionResources")
-    assert response.status_code == 200
-    assert response.json() == {"productionResources": [{
-        "id": "listed", "name": "公開工作室", "categories": ["recording_studio"],
-        "summary": "錄音服務", "websiteUrl": "https://example.com/",
-        "sourceUrl": "https://example.com/services", "reviewedAt": 1,
-        "links": [],
-        "works": [{"id": "approved-work", "title": "作品甲", "url": "https://example.com/work", "coverUrl": "https://example.com/cover.jpg", "creditRole": "recording_studio", "creditedAs": "公開工作室", "workType": "audio"}],
-    }]}
-    public_bundle_router.invalidate_public_bundle_cache()
 
 
 def test_public_external_cover_looks_up_one_published_record(client, db_session):

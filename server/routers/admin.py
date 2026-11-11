@@ -467,6 +467,10 @@ def update_public_audio_work_submission_status(
     row.reviewedBy = ownerId if payload.status != "pending" else None
     db.commit()
     db.refresh(row)
+    if row.status == "approved":
+        # Production credits printed on a newly listed work need an identity to show on.
+        from services.identity_convergence import converge_and_commit
+        converge_and_commit(db)
     from routers import public_bundle
     public_bundle.invalidate_public_bundle_cache()
     _queue_demo_revalidation(background_tasks, "/audio-works", "/sitemap.xml")
@@ -2124,6 +2128,36 @@ def review_voice_actor_claim_admin(
     return _voice_actor_claim_record(row)
 
 
+def _profile_kind(profile: object) -> str:
+    kind = str((profile if isinstance(profile, dict) else {}).get("profileKind") or "voice_actor")
+    return kind if kind in {"author", "production"} else "voice_actor"
+
+
+def _apply_production_profile(db: Session, persona: models.Persona, profile: dict, accepted_fields: set, now_ms: int) -> None:
+    """Approved production works become credits on the identity; the contributor joins its history."""
+    from services.identity_convergence import _Converger
+
+    converger = _Converger(db)
+    if "works" in accepted_fields:
+        for work in profile.get("works") or []:
+            if not isinstance(work, dict) or work.get("creditRole") not in models.PRODUCTION_ROLES or not work.get("url"):
+                continue
+            audio = (db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
+                     if work.get("workType", "audio") == "audio" else None)
+            converger.ensure_role(persona.id, work["creditRole"], "profile_submission")
+            converger.add_credit(
+                persona.id, work["creditRole"], url=audio.url if audio else work["url"],
+                title=audio.title if audio else str(work.get("title") or ""),
+                cover_url=(audio.coverUrl if audio else work.get("coverUrl")) or "",
+                work_type="audio" if audio else str(work.get("workType") or "other"),
+                credited_as=persona.displayName or "", audio_work_id=audio.id if audio else None,
+                source="profile_submission",
+            )
+    if "contributorName" in accepted_fields:
+        name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
+        converger.add_contributors(persona, [{"name": name, "contributedAt": now_ms}])
+
+
 @router.get("/voice-actor-profile-submissions", response_model=schemas.VoiceActorProfileSubmissionListResponse)
 def list_voice_actor_profile_submissions_admin(
     q: Optional[str] = None,
@@ -2140,7 +2174,7 @@ def list_voice_actor_profile_submissions_admin(
         models.Persona.id == models.VoiceActorProfileSubmission.personaId,
     ).filter(
         models.Persona.ownerId.is_(None)
-        | (models.VoiceActorProfileSubmission.profile["profileKind"].as_string() == "author")
+        | (models.VoiceActorProfileSubmission.profile["profileKind"].as_string().in_(("author", "production")))
     )
     if status != "all":
         if status not in {"pending", "approved", "rejected"}:
@@ -2161,7 +2195,7 @@ def list_voice_actor_profile_submissions_admin(
         persona = db.query(models.Persona).filter(models.Persona.id == row.personaId).first()
         items.append(schemas.VoiceActorProfileSubmissionRecord(
             id=row.id, personaId=row.personaId, personaName=persona.displayName if persona else "（身份已刪除）",
-            profileKind="author" if str((row.profile or {}).get("profileKind") or "voice_actor") == "author" else "voice_actor",
+            profileKind=_profile_kind(row.profile),
             submitterName=row.submitterName, contactEmail=row.contactEmail,
             contributorName=str((row.profile or {}).get("contributorName") or ""),
             collaborators=persona.voiceActorContributors if persona and isinstance(persona.voiceActorContributors, list) else [],
@@ -2197,9 +2231,9 @@ def review_voice_actor_profile_submission_admin(
         raise HTTPException(status_code=404, detail="原聲演身份已不存在")
     profile = row.profile if isinstance(row.profile, dict) else {}
     profile_kind = str(profile.get("profileKind") or "voice_actor")
-    if profile_kind not in {"voice_actor", "author"}:
+    if profile_kind not in {"voice_actor", "author", "production"}:
         raise HTTPException(status_code=400, detail="無效的資料申請類型")
-    if profile_kind != "author" and persona.ownerId:
+    if profile_kind == "voice_actor" and persona.ownerId:
         raise HTTPException(status_code=409, detail="此聲演已由本人管理，請由本人審核這筆資料補充")
     now_ms = int(time.time() * 1000)
     if payload.status == "approved":
@@ -2207,6 +2241,8 @@ def review_voice_actor_profile_submission_admin(
         allowed_fields = {"displayName", "bio", "avatar", "website", "links"}
         if profile_kind == "voice_actor":
             allowed_fields |= {"organizations", "works", "contributorName"}
+        if profile_kind == "production":
+            allowed_fields |= {"works", "contributorName"}
         if accepted_fields - allowed_fields:
             raise HTTPException(status_code=400, detail="此類型申請包含不支援的資料欄位")
         if not accepted_fields:
@@ -2229,6 +2265,8 @@ def review_voice_actor_profile_submission_admin(
             contributors = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
             contributor_name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
             persona.voiceActorContributors = [*contributors, {"name": contributor_name, "contributedAt": now_ms}][:100]
+        if profile_kind == "production":
+            _apply_production_profile(db, persona, profile, accepted_fields, now_ms)
         persona.updatedAt = now_ms
         if profile_kind == "voice_actor":
             persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
@@ -2267,10 +2305,10 @@ def review_voice_actor_profile_submission_admin(
     db.commit()
     from routers import public_bundle
     public_bundle.invalidate_public_bundle_cache()
-    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", *( ["/voice-actors"] if profile_kind == "voice_actor" else []))
+    _queue_demo_revalidation(background_tasks, f"/author/{persona.id}", *({"voice_actor": ["/voice-actors"], "production": ["/resources"]}.get(profile_kind, [])))
     return schemas.VoiceActorProfileSubmissionRecord(
         id=row.id, personaId=row.personaId, personaName=persona.displayName or "", submitterName=row.submitterName,
-        profileKind="author" if profile_kind == "author" else "voice_actor",
+        profileKind=_profile_kind(row.profile),
         contactEmail=row.contactEmail, contributorName=str((row.profile or {}).get("contributorName") or ""),
         collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
         currentProfile={

@@ -1,5 +1,4 @@
 import time
-import hashlib
 from collections import OrderedDict
 from concurrent.futures import Future
 from threading import Lock
@@ -31,15 +30,6 @@ _BUNDLE_SECTIONS = frozenset({
     "scripts", "personas", "organizations", "topTags", "banner", "demoBanner",
     "externalPublicScripts", "demoSubmissions", "audioWorks", "activityPages", "productionResources",
 })
-_RESOURCE_CREDIT_ALIASES = {
-    ("post_production", "TAKA"): "Taka",
-    ("post_production", "韾笙重工(他卡)"): "韾笙重工",
-    ("post_production", "韾笙重工(鍋子)"): "韾笙重工",
-    ("post_production", "韾笙重工（他卡）"): "韾笙重工",
-    ("post_production", "韾笙重工（鍋子）"): "韾笙重工",
-    ("cover_art", "雨宮luky"): "雨宮ルキ",
-    ("cover_art", "キャロット(蘿蔔)"): "キャロット（蘿蔔）",
-}
 
 
 def _parse_bundle_sections(value: str | None) -> tuple[str, ...] | None:
@@ -267,114 +257,52 @@ def _build_bundle_sections(db: Session, requested: frozenset[str]) -> dict:
     if "audioWorks" in requested:
         result["audioWorks"] = _get_approved_audio_work_submissions(db)
     if "productionResources" in requested:
-        rows = db.query(models.ProductionResource).filter(
-            models.ProductionResource.status == "published"
-        ).order_by(models.ProductionResource.name).all()
-        resource_ids = [row.id for row in rows]
-        work_credits: dict[str, list[dict]] = {resource_id: [] for resource_id in resource_ids}
-        if resource_ids:
-            credits = db.query(models.ProductionResourceCredit, models.PublicAudioWorkSubmission).join(
-                models.PublicAudioWorkSubmission,
-                models.PublicAudioWorkSubmission.id == models.ProductionResourceCredit.audioWorkId,
-            ).filter(
-                models.ProductionResourceCredit.resourceId.in_(resource_ids),
-                models.PublicAudioWorkSubmission.status == "approved",
-            ).order_by(models.PublicAudioWorkSubmission.publishedAt.desc(), models.PublicAudioWorkSubmission.createdAt.desc()).all()
-            for credit, work in credits:
-                work_credits[credit.resourceId].append({
-                    "id": work.id,
-                    "title": work.title,
-                    "url": work.url,
-                    "coverUrl": work.coverUrl or "",
-                    "creditRole": credit.creditRole,
-                    "creditedAs": credit.creditedAs,
-                    "workType": "audio",
-                })
-        result["productionResources"] = [{
-            "id": row.id,
-            "name": row.name,
-            "categories": row.categories or [],
-            "summary": row.summary,
-            "websiteUrl": row.websiteUrl,
-            "sourceUrl": row.sourceUrl,
-            "reviewedAt": row.reviewedAt,
-            "links": [],
-            "works": work_credits[row.id],
-        } for row in rows]
-        known_names = {(work["creditRole"], work["creditedAs"]) for works in work_credits.values() for work in works}
-        credit_rows = db.query(models.AudioWorkCredit, models.PublicAudioWorkSubmission).join(
-            models.PublicAudioWorkSubmission,
-            models.PublicAudioWorkSubmission.id == models.AudioWorkCredit.audioWorkId,
-        ).filter(
-            models.AudioWorkCredit.role.in_(("post_production", "cover_art", "recording")),
-            models.PublicAudioWorkSubmission.status == "approved",
-        ).order_by(models.PublicAudioWorkSubmission.publishedAt.desc(), models.PublicAudioWorkSubmission.createdAt.desc()).all()
-        derived: dict[tuple[str, str], dict] = {}
-        for credit, work in credit_rows:
-            role = "recording_studio" if credit.role == "recording" else credit.role
-            raw_key = (role, credit.creditedAs)
-            key = (role, _RESOURCE_CREDIT_ALIASES.get(raw_key, credit.creditedAs))
-            if raw_key in known_names or key in known_names:
-                continue
-            if key not in derived:
-                digest = hashlib.sha256(f"{role}\0{credit.creditedAs}".encode()).hexdigest()[:16]
-                derived[key] = {
-                    "id": f"credit-{digest}", "name": credit.creditedAs,
-                    "categories": [role], "summary": "", "websiteUrl": "", "sourceUrl": "",
-                    "reviewedAt": credit.checkedAt, "kind": "credit", "links": [], "works": [],
-                }
-            if any(item["id"] == work.id for item in derived[key]["works"]):
-                continue
-            derived[key]["works"].append({
-                "id": work.id, "title": work.title, "url": work.url,
-                "coverUrl": work.coverUrl or "", "creditRole": role,
-                "creditedAs": credit.creditedAs, "workType": "audio",
-            })
-        result["productionResources"].extend(derived.values())
-        resource_by_id = {item["id"]: item for item in result["productionResources"]}
-        if resource_by_id:
-            external_works = db.query(models.ProductionResourceExternalWork).filter(
-                models.ProductionResourceExternalWork.resourceId.in_(resource_by_id)
-            ).order_by(models.ProductionResourceExternalWork.createdAt.desc()).all()
-            for work in external_works:
-                resource_by_id[work.resourceId]["works"].append({
-                    "id": work.id, "title": work.title, "url": work.url,
-                    "coverUrl": work.coverUrl or "", "creditRole": work.creditRole,
-                    "creditedAs": work.creditedAs, "workType": work.workType,
-                })
-            enrichments = db.query(models.ProductionResourceEnrichment).filter(
-                models.ProductionResourceEnrichment.id.in_(resource_by_id)
-            ).all()
-            for enrichment in enrichments:
-                resource_by_id[enrichment.id].update({
-                    "profileUrl": enrichment.profileUrl,
-                    "profileLabel": enrichment.profileLabel,
-                    "avatarUrl": enrichment.avatarUrl,
-                    "bio": enrichment.bio,
-                    "profileSourceUrl": enrichment.sourceUrl,
-                })
-            links = db.query(models.ProductionResourceLink).filter(
-                models.ProductionResourceLink.resourceId.in_(resource_by_id)
-            ).all()
-            for link in links:
-                resource_by_id[link.resourceId]["links"].append({
-                    "label": link.label, "url": link.url,
-                })
-            overrides = db.query(models.ProductionResourceProfileOverride).filter(
-                models.ProductionResourceProfileOverride.id.in_(resource_by_id)
-            ).all()
-            for override in overrides:
-                resource = resource_by_id[override.id]
-                profile = override.profile if isinstance(override.profile, dict) else {}
-                for field in ("bio", "avatarUrl", "profileUrl", "profileLabel", "links"):
-                    if field in profile:
-                        resource[field] = profile[field]
-                if profile.get("displayName"):
-                    resource["name"] = profile["displayName"]
-                resource["contributors"] = override.contributors if isinstance(override.contributors, list) else []
+        result["productionResources"] = _production_directory(db)
     if "activityPages" in requested:
         result["activityPages"] = _get_published_activity_pages(db)
     return jsonable_encoder(result)
+
+
+def _production_directory(db: Session) -> list[dict]:
+    """Directory rows for people with production roles; every row links to the person's identity page."""
+    from services.identity_convergence import legacy_credit_resource_id
+
+    persona_ids = [row[0] for row in db.query(models.PersonaRole.personaId).filter(
+        models.PersonaRole.role.in_(models.PRODUCTION_ROLES), models.PersonaRole.isVisible.is_(True),
+    ).distinct().all()]
+    if not persona_ids:
+        return []
+    personas = db.query(models.Persona).filter(models.Persona.id.in_(persona_ids)).all()
+    context = public_router._build_public_identity_context(db, persona_ids)
+    legacy_ids: dict[str, list[str]] = {value: [] for value in persona_ids}
+    for resource_id, persona_id in db.query(models.ProductionResource.id, models.ProductionResource.personaId).filter(
+        models.ProductionResource.personaId.in_(persona_ids)
+    ).all():
+        legacy_ids[persona_id].append(resource_id)
+    for row in db.query(models.PersonaCreditName).filter(models.PersonaCreditName.personaId.in_(persona_ids)).all():
+        legacy_ids[row.personaId].append(legacy_credit_resource_id(row.role, row.creditedAs))
+    items = []
+    for persona in personas:
+        projected = public_router._public_identity_projection(db, persona, [], context)
+        categories = [role for role in projected.roles if role in models.PRODUCTION_ROLES]
+        if not categories:
+            continue
+        items.append({
+            "id": persona.id,
+            "personaId": persona.id,
+            "name": projected.displayName or "",
+            "categories": categories,
+            "otherRoles": [role for role in projected.roles if role not in models.PRODUCTION_ROLES],
+            "summary": projected.bio or "",
+            "bio": projected.bio or "",
+            "avatarUrl": projected.avatar or "",
+            "websiteUrl": projected.website or "",
+            "links": [item for item in crud._ensure_list(projected.links) if isinstance(item, dict) and item.get("url")],
+            "works": projected.productionCredits,
+            "legacyIds": sorted(set(legacy_ids.get(persona.id, []))),
+        })
+    items.sort(key=lambda item: item["name"])
+    return items
 
 
 def _build_bundle(db: Session) -> dict:

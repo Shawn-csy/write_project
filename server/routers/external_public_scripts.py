@@ -115,6 +115,10 @@ def _resolve_external_author(
             raise HTTPException(status_code=400, detail="找不到指定的公開身份")
         author.linkedPersonaId = persona.id
         _ensure_persona_role(db, persona.id, "scriptwriter", "external_script")
+    else:
+        profile = db.query(models.ExternalAuthorPageProfile).filter_by(authorKey=author.canonicalKey).first()
+        if profile:
+            author.linkedPersonaId = profile.linkedPersonaId
     author.displayName = author_name or author.displayName or ""
     author.bio = author_bio or author.bio or ""
     author.profileUrl = _safe_link_url(author_url) or author.profileUrl or ""
@@ -533,6 +537,13 @@ def _enrich_profile_bios(metadata: dict[str, Any], payload: Any) -> dict[str, An
     return enriched
 
 
+def _converge_identities(db: Session) -> None:
+    """A newly published external writer gets (or joins) an identity page right away."""
+    from services.identity_convergence import converge_and_commit
+
+    converge_and_commit(db)
+
+
 def _invalidate_public_bundle_cache() -> None:
     import routers.public_bundle as public_bundle_router
 
@@ -739,6 +750,7 @@ def create_external_public_script(
             profile.linkedPersonaId = persona.id
             profile.updatedAt = now_ms
     db.commit()
+    _converge_identities(db)
     db.refresh(item)
     _invalidate_public_bundle_cache()
     _queue_external_revalidation(background_tasks, item)
@@ -911,6 +923,7 @@ def update_external_public_script(
     item.authorKey = external_author.canonicalKey
     item.updatedAt = int(time.time() * 1000)
     db.commit()
+    _converge_identities(db)
     db.refresh(item)
     _invalidate_public_bundle_cache()
     _queue_external_revalidation(background_tasks, previous_public_item, item)
@@ -973,7 +986,9 @@ def get_published_external_public_scripts(db: Session) -> list[dict[str, Any]]:
         profile = profiles.get(author_key)
         supplement = supplements.get(author_key)
         if author:
-            item["authorPersonaId"] = author.linkedPersonaId or None
+            # The curated author-page link is authoritative for this author
+            # group. Older ExternalAuthor rows may predate that admin link.
+            item["authorPersonaId"] = profile.linkedPersonaId if profile else author.linkedPersonaId
             if author.isHidden:
                 item.update({"authorName": "", "authorBio": "", "authorUrl": "", "authorAvatarUrl": ""})
             else:

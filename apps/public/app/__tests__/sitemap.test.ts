@@ -112,16 +112,17 @@ describe("sitemap", () => {
     expect(urls).toContain(`${BASE}/series/${encodeURIComponent("Epic Series")}`);
   });
 
-  it("includes resource detail pages with credited works", async () => {
+  it("lists production people on their identity page, never on retired resource addresses", async () => {
     vi.mocked(apiFetch).mockImplementation(async (path) => path === "/public-scripts"
       ? [makeScript()]
       : { productionResources: [
-        { id: "credit-one", reviewedAt: Date.parse("2026-11-10T00:00:00Z"), works: [{ id: "work-1" }] },
-        { id: "empty", reviewedAt: 1, works: [] },
+        { id: "person-one", personaId: "person-one", legacyIds: ["credit-one"], works: [{ id: "work-1", publishedAt: Date.parse("2026-11-10T00:00:00Z") }] },
+        { id: "empty", personaId: "empty", works: [] },
       ] } as never);
     const urls = (await getSitemap()).map((entry) => entry.url);
-    expect(urls).toContain(`${BASE}/resources/credit-one`);
-    expect(urls).not.toContain(`${BASE}/resources/empty`);
+    expect(urls).toContain(`${BASE}/author/person-one`);
+    expect(urls).not.toContain(`${BASE}/author/empty`);
+    expect(urls.some((url) => url.includes("/resources/"))).toBe(false);
   });
 
   it("excludes /gallery", async () => {

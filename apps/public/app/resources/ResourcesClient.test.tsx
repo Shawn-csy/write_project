@@ -6,8 +6,7 @@ import { liveApi } from "@/lib/liveApi";
 
 const base = {
   categories: ["post_production"], summary: "", websiteUrl: "https://example.com/",
-  sourceUrl: "https://example.com/", reviewedAt: 1,
-} satisfies Omit<ProductionResource, "id" | "name" | "works" | "categories"> & { categories: ProductionResource["categories"] };
+} satisfies Pick<ProductionResource, "categories" | "summary" | "websiteUrl">;
 
 describe("ResourcesClient", () => {
   it("submits an independent game credit without requiring audio catalog entry", async () => {
@@ -45,42 +44,40 @@ describe("ResourcesClient", () => {
 
   it("hides production resources without a credited work in the selected category", () => {
     const resources: ProductionResource[] = [
-      { ...base, id: "empty", name: "沒有作品", works: [] },
-      { ...base, id: "listed", name: "有作品", works: [{ id: "work-1", title: "作品甲", url: "https://example.com/work", coverUrl: "", creditRole: "post_production", creditedAs: "有作品" }] },
+      { ...base, id: "empty", personaId: "empty", name: "沒有作品", works: [] },
+      { ...base, id: "listed", personaId: "listed", name: "有作品", works: [{ id: "work-1", title: "作品甲", url: "https://example.com/work", coverUrl: "", creditRole: "post_production", creditedAs: "有作品" }] },
     ];
     render(<ResourcesClient initialPersonas={[]} initialResources={resources} />);
     fireEvent.click(screen.getByRole("button", { name: "後製" }));
     expect(screen.getByText("1 筆")).toBeTruthy();
     expect(screen.getByText("有作品")).toBeTruthy();
     expect(screen.queryByText("沒有作品")).toBeNull();
-    expect(screen.getByRole("link", { name: "有作品資源詳頁" }).getAttribute("href")).toBe("/resources/listed?category=post_production");
+    expect(screen.getByRole("link", { name: "有作品的個人頁" }).getAttribute("href")).toBe("/author/listed");
   });
 
   it("shows resource avatars and contact links before revealing work covers", () => {
     render(<ResourcesClient initialPersonas={[]} initialResources={[{
-      ...base, id: "studio", name: "韾笙重工", avatarUrl: "https://example.com/avatar.jpg",
-      profileUrl: "https://www.youtube.com/@oseizyuukou", profileLabel: "YouTube",
+      ...base, id: "studio", personaId: "studio", name: "韾笙重工", avatarUrl: "https://example.com/avatar.jpg",
+      otherRoles: ["voice_actor"],
       links: [{ label: "X", url: "https://x.com/oseizyuukou" }],
       works: [{ id: "work-1", title: "作品甲", url: "https://example.com/work", coverUrl: "https://example.com/cover.jpg", creditRole: "post_production", creditedAs: "韾笙重工" }],
     }]} />);
     fireEvent.click(screen.getByRole("button", { name: "後製" }));
     expect(screen.getByAltText("韾笙重工").getAttribute("src")).toBe("https://example.com/avatar.jpg");
     expect(screen.getByRole("link", { name: "X" }).getAttribute("href")).toBe("https://x.com/oseizyuukou");
+    expect(screen.getAllByText("聲演")).toHaveLength(2);
     expect(screen.queryByAltText("作品甲封面")).toBeNull();
   });
 
-  it("asks for age confirmation on entry and keeps it for resource details", async () => {
+  it("asks for age confirmation once before showing work covers", () => {
     window.sessionStorage.clear();
-    const item: ProductionResource = { ...base, id: "studio", name: "製作人甲",
+    const item: ProductionResource = { ...base, id: "studio", personaId: "studio", name: "製作人甲",
       works: [{ id: "work-1", title: "作品甲", url: "https://example.com/work", coverUrl: "https://example.com/cover.jpg", creditRole: "post_production", creditedAs: "製作人甲" }],
     };
-    const listing = render(<ResourcesClient initialPersonas={[]} initialResources={[item]} />);
+    render(<ResourcesClient initialPersonas={[]} initialResources={[item]} />);
+    fireEvent.click(screen.getByRole("button", { name: "後製" }));
     fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲，顯示作品" }));
     expect(window.sessionStorage.getItem("public-resources-adult-confirmed")).toBe("1");
-    listing.unmount();
-    const { ResourcePageClient } = await import("./[id]/ResourcePageClient");
-    render(<ResourcePageClient item={item} />);
-    expect(screen.queryByRole("button", { name: "我已年滿 18 歲，顯示作品" })).toBeNull();
     expect(screen.getByRole("link", { name: "前往作品：作品甲" })).toBeTruthy();
     window.sessionStorage.clear();
   });

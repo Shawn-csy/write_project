@@ -92,6 +92,8 @@ def main() -> None:
             work.creditRole = "recording_studio"
             work.creditedAs = NAME
         db.commit()
+        from services.identity_convergence import converge_and_commit
+        converge_and_commit(db)
     print(f"Published {NAME} with {len(WORKS)} sourced works")
 
 

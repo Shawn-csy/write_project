@@ -100,12 +100,59 @@ class PersonaRole(Base):
     persona = relationship("Persona", backref=backref("roleRecords", cascade="all, delete-orphan"))
 
 
+PRODUCTION_ROLES = ("post_production", "cover_art", "recording_studio")
+
+
+class PersonaCredit(Base):
+    """A reviewed production credit (post-production, cover art, recording) owned by one identity.
+
+    A credit either points at a work in the audio catalog (audioWorkId) or
+    carries its own title/url for a work outside the catalog.
+    """
+
+    __tablename__ = "persona_credits"
+    __table_args__ = (UniqueConstraint("personaId", "role", "url", name="uq_persona_credit"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    personaId = Column(String, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, nullable=False, index=True)
+    audioWorkId = Column(String, ForeignKey("public_audio_work_submissions.id", ondelete="CASCADE"), nullable=True, index=True)
+    title = Column(Text, nullable=False, default="")
+    url = Column(Text, nullable=False)
+    coverUrl = Column(Text, nullable=False, default="")
+    workType = Column(String, nullable=False, default="audio")
+    creditedAs = Column(Text, nullable=False, default="")
+    source = Column(String, nullable=False, default="")
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
+class PersonaCreditName(Base):
+    """Maps a name printed in a source credit list (AudioWorkCredit.creditedAs) to an identity.
+
+    Catalog imports keep the name exactly as credited; this table decides which
+    person that name means, so spelling variants of one person share one page.
+    """
+
+    __tablename__ = "persona_credit_names"
+    __table_args__ = (UniqueConstraint("role", "creditedAs", name="uq_persona_credit_name"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    personaId = Column(String, ForeignKey("personas.id", ondelete="CASCADE"), nullable=False, index=True)
+    role = Column(String, nullable=False)
+    creditedAs = Column(Text, nullable=False)
+    createdAt = Column(BigInteger, nullable=False, default=lambda: int(time.time() * 1000))
+
+
 class ProductionResource(Base):
-    """A sourced, editorially reviewed production service listing."""
+    """Legacy production service listing; each row now points at the identity that replaced it.
+
+    Kept so old /resources/<id> addresses can redirect to /author/<personaId>.
+    """
 
     __tablename__ = "production_resources"
 
     id = Column(String, primary_key=True)
+    personaId = Column(String, ForeignKey("personas.id", ondelete="SET NULL"), nullable=True, index=True)
     name = Column(String, nullable=False)
     categories = Column(JSON, nullable=False, default=list)
     summary = Column(Text, nullable=False, default="")

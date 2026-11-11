@@ -225,6 +225,8 @@ python3 scripts/site-release.py rollback --tag rsc-cache-all-20261110
 
 清理舊發布資產時保留正式版 r13 與唯一回滾版 r12，移除本機 r3、r5–r11 的服務容器、映像標籤及部署檔；Cloudflare Pages 保留目前部署和一個前版。
 
+2026-11-11 發布 `wp-site-v0-7-4-r14-edge` 與 Cloudflare Pages。管理端的外部作者頁已有 `linkedPersonaId`，但舊 `ExternalAuthor` 紀錄仍為空；公開資料包先讀舊紀錄，導致同一作者分裂成外部作者卡與聲演 Persona 卡。修正後公開身份投影以管理端明確連結為準，外部台本寫入流程亦同步該連結；伊橙與安里的既有作者頁透過管理介面重新儲存，讓資料庫紀錄一致。作者名錄只列有已公開台本關係的身份，雙角色頁將台本作品與音聲作品放在同一頁；作者路由固定顯示作者導覽。另移除作者頁舊組織關聯的展示，並接受原有 Email／Discord 聯絡值隨資料補充一併送審。候選與正式網址的指定頁面均回 200，作者名錄各只顯示一張伊橙、安里卡片。後端回滾使用 `python3 scripts/site-release.py rollback --tag v0-7-4-r14`。
+
 ### 後續版本的網站專用發布
 
 新版本需先有相同 tag 的 `write_project-backend:<tag>`、`write_project-public:<tag>` 映像，以及 `dist/releases/<tag>/index.html`。設定新的 release tag 後執行：

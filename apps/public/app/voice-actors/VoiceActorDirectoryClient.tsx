@@ -58,8 +58,8 @@ export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initi
 
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return personas.filter((persona) => !persona.voiceActorHidden && (persona.roles?.includes("voice_actor") || hasVoiceActorSelfTag(persona)
-      || (performanceCounts.get(persona.id) || 0) > 0))
+    return personas.filter((persona) => !persona.voiceActorHidden && (persona.roles?.includes("voice_actor") ?? (hasVoiceActorSelfTag(persona)
+      || (performanceCounts.get(persona.id) || 0) > 0)))
       .filter((persona) => !needle || `${persona.displayName} ${persona.bio || ""} ${(persona.tags || []).join(" ")}`.toLocaleLowerCase().includes(needle))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant"));
   }, [personas, performanceCounts, query]);
