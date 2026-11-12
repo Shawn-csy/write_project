@@ -55,6 +55,18 @@ describe("ResourcesClient", () => {
     expect(screen.getByRole("link", { name: "有作品的個人頁" }).getAttribute("href")).toBe("/author/listed");
   });
 
+  it("lists a creator with sourced commission terms before production credits exist", () => {
+    const resources: ProductionResource[] = [{
+      ...base, id: "wind", personaId: "wind", name: "風蓮/Hong Liân",
+      commissionCategories: ["post_production"], works: [],
+    }];
+    render(<ResourcesClient initialPersonas={[]} initialResources={resources} />);
+    fireEvent.click(screen.getByRole("button", { name: "後製" }));
+    expect(screen.getByText("1 筆")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "風蓮/Hong Liân的個人頁" }).getAttribute("href")).toBe("/author/wind");
+    expect(screen.getByText("提供委託資訊")).toBeTruthy();
+  });
+
   it("shows resource avatars and contact links before revealing work covers", () => {
     render(<ResourcesClient initialPersonas={[]} initialResources={[{
       ...base, id: "studio", personaId: "studio", name: "韾笙重工", avatarUrl: "https://example.com/avatar.jpg",

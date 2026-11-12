@@ -23,6 +23,23 @@ def _credit(db, work, role, name):
                                   provenance="official_page", sourceUrl=work.url, checkedAt=1))
 
 
+def test_sourced_commission_without_production_credit_appears_in_resource_directory(client, db_session):
+    person = models.Persona(id="commission-person", displayName="台本與後製者", links=[], createdAt=1, updatedAt=1)
+    role = models.PersonaRole(
+        id="commission-post", personaId=person.id, role="post_production", isVisible=True,
+        sourceTypes=["admin"], profile={"commissionOffers": [{"service": "後製", "details": "每分鐘 $250"}]},
+        createdAt=1, updatedAt=1,
+    )
+    db_session.add_all([person, role])
+    db_session.commit()
+
+    [item] = _bundle(client)
+    assert item["name"] == "台本與後製者"
+    assert item["categories"] == ["post_production"]
+    assert item["commissionCategories"] == ["post_production"]
+    assert item["works"] == []
+
+
 def test_catalog_credit_name_becomes_an_identity_with_legacy_profile(client, db_session):
     approved, pending = _work(db_session, "a"), _work(db_session, "b", status="pending")
     _credit(db_session, approved, "cover_art", "新畫師")

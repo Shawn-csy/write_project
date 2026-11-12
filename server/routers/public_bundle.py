@@ -284,7 +284,11 @@ def _production_directory(db: Session) -> list[dict]:
     items = []
     for persona in personas:
         projected = public_router._public_identity_projection(db, persona, [], context)
-        categories = [role for role in projected.roles if role in models.PRODUCTION_ROLES]
+        commission_categories = [role for role in models.PRODUCTION_ROLES
+                                 if isinstance((projected.roleProfiles or {}).get(role, {}).get("commissionOffers"), list)
+                                 and (projected.roleProfiles or {})[role]["commissionOffers"]]
+        categories = [role for role in models.PRODUCTION_ROLES
+                      if role in projected.roles or role in commission_categories]
         if not categories:
             continue
         items.append({
@@ -292,6 +296,7 @@ def _production_directory(db: Session) -> list[dict]:
             "personaId": persona.id,
             "name": projected.displayName or "",
             "categories": categories,
+            "commissionCategories": commission_categories,
             "otherRoles": [role for role in projected.roles if role not in models.PRODUCTION_ROLES],
             "summary": projected.bio or "",
             "bio": projected.bio or "",

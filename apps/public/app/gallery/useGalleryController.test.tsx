@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { DEFAULT_URL_STATE } from "@write/public-ui";
-import type { PublicScript, ExternalPublicScript } from "@/lib/types";
+import type { PublicScript, ExternalPublicScript, PublicPersona } from "@/lib/types";
 import { useGalleryController } from "./useGalleryController";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 
@@ -52,6 +52,20 @@ it("loads both identity directories only after opening a people view", async () 
   expect(mockReadBundle).toHaveBeenCalledExactlyOnceWith(["personas", "organizations"]);
   expect(result.current.authors.some((author) => author.id === "p1")).toBe(true);
   expect(result.current.orgs.some((org) => org.id === "o1")).toBe(true);
+});
+
+it("lists a scriptwriter with a sourced commission profile", () => {
+  const options = {
+    ...baseOptions,
+    initialPersonas: [{
+      id: "wind", displayName: "風蓮/Hong Liân", roles: ["scriptwriter"],
+      roleProfiles: { scriptwriter: { commissionOffers: [{ service: "台本師" }] } },
+    }] as PublicPersona[],
+    initialOrganizations: [],
+    initialUrlState: { ...DEFAULT_URL_STATE, view: "authors" as const },
+  };
+  const { result } = renderHook(() => useGalleryController(options));
+  expect(result.current.authors.some((author) => author.id === "wind")).toBe(true);
 });
 
 it("shows a retry state when the identity projection is incomplete", async () => {

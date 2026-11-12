@@ -56,6 +56,7 @@ export interface ProductionResource {
   personaId: string;
   name: string;
   categories: ProductionRole[];
+  commissionCategories?: ProductionRole[];
   otherRoles?: string[];
   summary: string;
   bio?: string;
@@ -136,7 +137,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
     .filter((persona) => !needle || `${persona.displayName} ${persona.bio || ""} ${(persona.tags || []).join(" ")}`.toLocaleLowerCase().includes(needle))
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, needle]);
   const listings = useMemo(() => resources.filter((item) => category !== "voice_actor" && item.categories.includes(category)
-      && item.works.some((work) => work.creditRole === category))
+      && (item.works.some((work) => work.creditRole === category) || item.commissionCategories?.includes(category)))
     .filter((item) => !needle || `${item.name} ${item.summary}`.toLocaleLowerCase().includes(needle))
     .sort((a, b) => b.works.filter((work) => work.creditRole === category).length - a.works.filter((work) => work.creditRole === category).length
       || a.name.localeCompare(b.name, "zh-Hant")), [resources, category, needle]);
@@ -186,7 +187,7 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full sm:h-12 sm:w-12"><PublicAvatarImage src={item.avatarUrl} name={item.name} sizes="48px" fallbackClassName={publicAvatarColor(item.name)} /></div>
               <div className="min-w-0 flex-1">
                 <h2 className="truncate font-medium [font-size:var(--public-font-body)]">{item.name}</h2>
-                <p className="mt-0.5 [font-size:var(--public-font-caption)] text-muted-foreground">{item.works.filter((work) => work.creditRole === category).length} 部參與作品</p>
+                <p className="mt-0.5 [font-size:var(--public-font-caption)] text-muted-foreground">{item.works.some((work) => work.creditRole === category) ? `${item.works.filter((work) => work.creditRole === category).length} 部參與作品` : "提供委託資訊"}</p>
                 {ageConfirmed && item.bio && <p className="mt-0.5 line-clamp-1 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground sm:line-clamp-2">{item.bio}</p>}
               </div>
             </a>
