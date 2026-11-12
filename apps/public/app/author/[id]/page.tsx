@@ -12,6 +12,7 @@ import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticAuthorParams } from "@/lib/staticParams";
 import { LiveAuthorPage } from "@/components/LiveEntityPages";
 import { ROLE_LABELS } from "@/components/identity/identityRoles";
+import { audioScriptWorksForPersona } from "@/lib/audioScriptWorks";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
@@ -121,6 +122,7 @@ export default async function AuthorPage({
   const performances = getPublicVoicePerformances(id, bundle);
   const externalScripts = externalScriptsForPersona(persona, bundle.externalPublicScripts || []);
   const audioWorks = (bundle.audioWorks || []).filter((work) => work.voiceActors?.some((actor) => actor.id === id));
+  const audioScriptWorks = audioScriptWorksForPersona(persona, bundle.audioWorks || []);
   const displayPersona = combinePublicIdentities([persona], externalScripts)[0];
 
   const structuredData = {
@@ -156,9 +158,9 @@ export default async function AuthorPage({
         </article>
       </noscript>
       {STATIC_EXPORT ? (
-        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks }} />
+        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks, audioScriptWorks }} />
       ) : (
-        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} />
+        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} audioScriptWorks={audioScriptWorks} />
       )}
     </>
   );

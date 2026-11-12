@@ -1018,6 +1018,13 @@ def _has_public_script_for_organization(db: Session, org_id: str) -> bool:
     return any(_is_publicly_visible_script(db, script) for script in scripts)
 
 
+def _has_public_audio_work_for_organization(db: Session, org_id: str) -> bool:
+    return db.query(models.PublicAudioWorkSubmission.id).filter(
+        models.PublicAudioWorkSubmission.organizationId == org_id,
+        models.PublicAudioWorkSubmission.status == "approved",
+    ).first() is not None
+
+
 def _get_public_org_map(
     db: Session, org_ids: list[str], visible_org_ids: set[str] | None = None,
 ) -> dict[str, models.Organization]:
@@ -1029,10 +1036,11 @@ def _get_public_org_map(
     orgs = db.query(models.Organization).filter(models.Organization.id.in_(uniq_ids)).all()
     out = {}
     for org in orgs:
+        has_public_audio = _has_public_audio_work_for_organization(db, org.id)
         if visible_org_ids is None:
-            if not _has_public_script_for_organization(db, org.id):
+            if not _has_public_script_for_organization(db, org.id) and not has_public_audio:
                 continue
-        elif org.id not in visible_org_ids:
+        elif org.id not in visible_org_ids and not has_public_audio:
             continue
         if isinstance(org.tags, str):
             try:

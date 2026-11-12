@@ -1,6 +1,6 @@
 import pytest
 import time
-from models import User, Script, Persona, Organization, PersonaOrganizationMembership
+from models import User, Script, Persona, Organization, PersonaOrganizationMembership, PublicAudioWorkSubmission
 
 def setup_data(db_session):
     now = int(time.time() * 1000)
@@ -98,6 +98,28 @@ def test_public_persona_filters_non_public_orgs(client, db_session):
     returned_org_ids = [o["id"] for o in payload.get("organizations", [])]
     assert "org-public-1" in returned_org_ids
     assert "org-private-1" not in returned_org_ids
+
+
+def test_public_persona_includes_org_with_approved_audio_work(client, db_session):
+    setup_data(db_session)
+    now = int(time.time() * 1000)
+    db_session.add(Organization(
+        id="org-audio-only", name="Audio Circle", ownerId="user-has-persona",
+        createdAt=now, updatedAt=now,
+    ))
+    db_session.add(PersonaOrganizationMembership(
+        id="pom-audio-only", orgId="org-audio-only", personaId="persona-public-1",
+        createdAt=now, updatedAt=now,
+    ))
+    db_session.add(PublicAudioWorkSubmission(
+        id="audio-only-work", organizationId="org-audio-only", status="approved",
+        title="Audio Work", url="https://example.com/audio", createdAt=now,
+    ))
+    db_session.commit()
+
+    response = client.get("/api/public-personas/persona-public-1")
+    assert response.status_code == 200
+    assert "org-audio-only" in [org["id"] for org in response.json()["organizations"]]
 
 def test_get_public_persona_invalid_json(client, db_session):
     setup_data(db_session)
