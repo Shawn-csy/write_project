@@ -176,7 +176,9 @@ export function useGalleryController({
   const scriptwriterAuthors = useMemo(() => {
     return allAuthors.filter((author) => author.externalHref
       || rawScripts.some((script) => script.persona?.id === author.id)
-      || publishedExternalPublicScripts.some((script) => script.authorPersonaId === author.id));
+      || publishedExternalPublicScripts.some((script) => script.authorPersonaId === author.id)
+      || (author.roles?.includes("scriptwriter") && Array.isArray(author.roleProfiles?.scriptwriter?.commissionOffers)
+        && author.roleProfiles.scriptwriter.commissionOffers.length > 0));
   }, [allAuthors, rawScripts, publishedExternalPublicScripts]);
   const allOrgs = useMemo(() => {
     const map = new Map(orgs.map((org) => [org.name.trim().toLocaleLowerCase(), org]));
