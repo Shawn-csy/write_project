@@ -31,6 +31,7 @@ interface Props {
   performances?: PublicDemoSubmission[];
   externalScripts?: ExternalPublicScript[];
   audioWorks?: PublicAudioWork[];
+  audioScriptWorks?: PublicAudioWork[];
 }
 
 interface SectionContext {
@@ -39,6 +40,7 @@ interface SectionContext {
   externalScripts: ExternalPublicScript[];
   performances: PublicDemoSubmission[];
   audioWorks: PublicAudioWork[];
+  audioScriptWorks: PublicAudioWork[];
   credits: PublicProductionCredit[];
   series: Array<{ name: string; count: number; coverUrl: string | null }>;
 }
@@ -122,6 +124,11 @@ const SECTIONS: IdentitySection[] = [
     render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{ctx.audioWorks.map((work) => <PublicProfileWorkCard key={work.id} title={work.title} url={work.url} coverUrl={work.coverUrl} />)}</div>,
   },
   {
+    id: "audioScriptWorks", title: "參與音聲台本", roles: ["scriptwriter"], ageGated: true,
+    count: (ctx) => ctx.audioScriptWorks.length,
+    render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{ctx.audioScriptWorks.map((work) => <PublicProfileWorkCard key={work.id} title={work.title} url={work.url} coverUrl={work.coverUrl} />)}</div>,
+  },
+  {
     id: "voiceActorWorks", title: "參演作品", roles: ["voice_actor"], ageGated: true,
     count: (ctx) => (ctx.persona.voiceActorWorks || []).length,
     render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{(ctx.persona.voiceActorWorks || []).map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/60 bg-background">{work.coverUrl && <div className="relative aspect-video overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} preset="script-cover" /></div>}<div className="p-3"><h3 className="text-sm font-semibold">{work.title || "未命名作品"}</h3>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">查看作品<ExternalLink className="h-3 w-3" aria-hidden /></a>}</div></article>)}</div>,
@@ -156,7 +163,7 @@ const SECTIONS: IdentitySection[] = [
   },
 ];
 
-export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [] }: Props) {
+export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [], audioScriptWorks = [] }: Props) {
   const identity = combinePublicIdentities([persona], externalScripts)[0];
   const model = buildAuthorEntityModel(identity, scripts);
   const roles = resolveIdentityRoles(persona, { scripts, externalScripts, performances, audioWorks });
@@ -183,7 +190,15 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     return Array.from(map.values());
   }, [scripts]);
 
-  const ctx: SectionContext = { persona, scripts, externalScripts, performances, audioWorks, credits: persona.productionCredits || [], series };
+  const ctx: SectionContext = { persona, scripts, externalScripts, performances, audioWorks, audioScriptWorks, credits: persona.productionCredits || [], series };
+  const commissionOffers = Object.values(persona.roleProfiles || {}).flatMap((profile) => {
+    const raw = profile?.commissionOffers;
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((offer): offer is { service: string; details: string; scope: string; sourceUrl: string; sourceUpdatedOn: string } =>
+      !!offer && typeof offer.service === "string" && typeof offer.details === "string"
+      && typeof offer.scope === "string" && typeof offer.sourceUrl === "string"
+      && typeof offer.sourceUpdatedOn === "string");
+  });
   const sections = SECTIONS.filter((section) => section.roles.some((role) => roles.includes(role)) && (section.count(ctx) > 0 || section.showWhenEmpty));
   const needsAgeGate = sections.some((section) => section.ageGated && section.count(ctx) > 0);
   const contributors = persona.profileContributors?.length ? persona.profileContributors : persona.voiceActorContributors || [];
@@ -291,6 +306,19 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
             </div>
           </div>
         </PublicProfileCard>
+
+        {commissionOffers.length > 0 && (
+          <PublicProfileSection title="音聲委託參考價" count={commissionOffers.length}>
+            <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{commissionOffers[0].scope} 來源於 {commissionOffers[0].sourceUpdatedOn} 更新的公開資料，實際報價與可接案狀態請向創作者確認。</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {commissionOffers.map((offer, index) => <article key={`${offer.service}-${index}`} className="rounded-lg border border-border/60 bg-background p-3">
+                <h3 className="text-sm font-semibold">{offer.service}</h3>
+                <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{offer.details}</p>
+              </article>)}
+            </div>
+            <a href={commissionOffers[0].sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline">查看收費標準來源<ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
+          </PublicProfileSection>
+        )}
 
         {sections.map((section) => (
           (!section.ageGated || ageConfirmed) && (

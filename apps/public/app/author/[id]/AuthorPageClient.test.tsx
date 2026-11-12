@@ -2,7 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorPageClient } from "./AuthorPageClient";
-import type { PublicPersona } from "@/lib/types";
+import type { PublicAudioWork, PublicPersona } from "@/lib/types";
 
 describe("AuthorPageClient resource age confirmation", () => {
   it("keeps voice work covers behind the shared resource confirmation", () => {
@@ -21,6 +21,24 @@ describe("AuthorPageClient resource age confirmation", () => {
 });
 
 describe("AuthorPageClient as the one identity page", () => {
+  it("shows sourced commission terms and credited audio scripts", () => {
+    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
+    const persona = {
+      id: "writer", displayName: "風蓮/Hong Liân", roles: ["scriptwriter"],
+      roleProfiles: { scriptwriter: { commissionOffers: [{
+        service: "台本師", details: "每字 $2", scope: "商用含稅參考價",
+        sourceUrl: "https://ci-en.dlsite.com/example", sourceUpdatedOn: "2026-11-05",
+      }] } },
+    } as PublicPersona;
+    render(<AuthorPageClient persona={persona} scripts={[]} audioScriptWorks={[{
+      id: "audio-1", title: "音聲台本甲", url: "https://example.com/audio", coverUrl: "",
+    } as PublicAudioWork]} />);
+    expect(screen.getByRole("region", { name: "音聲委託參考價" }).textContent).toContain("每字 $2");
+    expect(screen.getByRole("link", { name: /查看收費標準來源/ }).getAttribute("href")).toBe("https://ci-en.dlsite.com/example");
+    expect(screen.getByRole("region", { name: "參與音聲台本" }).textContent).toContain("音聲台本甲");
+    window.sessionStorage.clear();
+  });
+
   it("opens the sections each role brings and hides the rest", () => {
     window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
     const persona = {
