@@ -1,14 +1,16 @@
 # Frontend Runtime Boundaries
 
-Last updated: 2026-06-22
+Last updated: 2026-11-13 (checked-in architecture; no live verification)
 
 ## Purpose
 
 This document defines the long-term ownership boundary between the Next.js public frontend, the Vite editor frontend, and shared workspace packages.
 
-The product now has two different frontend runtimes for different reasons:
+The public source supports two deployment modes: production Pages static export with browser live reads, and a retained local Next server for adapters. The studio remains Vite. See [Pages operations](../engineering/public-pages-production.md) and the [canonical release procedure](../engineering/continuous-deployment.md).
 
-- `apps/public` exists to serve public pages with SEO, SSR/ISR, canonical metadata, and stable public URLs.
+The product has these ownership boundaries:
+
+- `apps/public` owns public pages, build-time SEO snapshots, canonical metadata, stable URLs, browser primary/fallback API adapters, and retained Next server-mode SSR/ISR/BFF adapters. Pages does not execute ISR. D1/R2 are read-only public fallbacks; writes remain with the primary API.
 - `src/` exists to serve authenticated editor and workspace workflows.
 - `packages/*` exists to hold product semantics that must be shared by both runtimes without copying behavior.
 
@@ -30,7 +32,7 @@ The goal is not to gradually duplicate Vite in Next.js. The goal is to make publ
 
 ### `apps/public`
 
-`apps/public` is the canonical public runtime.
+`apps/public` is the canonical public source. Pages serves its static output; a separate local Next server still supplies server-only adapters.
 
 Owns:
 
@@ -38,9 +40,9 @@ Owns:
 - public reader routes
 - author, organization, series, and tag pages
 - public metadata, Open Graph, structured data, sitemap-related public contracts
-- public BFF route handlers
+- public BFF route handlers in Next server mode; Pages browser API origin/fallback adapters
 - public route-level consent and age gate wiring
-- public deployment container and runtime configuration
+- public static export and local Next container configuration
 - host-specific href builders and route composition
 
 May import:
@@ -183,7 +185,9 @@ If a Vite route still presents public content, it should either:
 
 It must not continue as a parallel public implementation.
 
-## Migration and Cleanup Sequence
+## Migration and Cleanup Sequence (historical plan / acceptance criteria)
+
+The phases below describe boundary intent and acceptance criteria, not a statement that every phase is complete. Current checked-in runtime ownership is described above; remaining route/UI feature work and its example module are [pending](../pending/architecture-maintenance-roadmap.md).
 
 ### Phase 1: Boundary Declaration
 
@@ -221,7 +225,7 @@ Never write `window.location.href = "/public-path"` directly at call sites.
 
 | Deployment scenario | Value |
 |---|---|
-| Production (same-origin, nginx proxies public paths to Next container) | unset or `""` — helper returns relative paths, nginx routes correctly |
+| Local server-mode deployment (same-origin nginx proxies public paths to Next) | unset or `""` — helper returns relative paths, nginx routes correctly |
 | Local dev with separate Next.js port (e.g. `next dev` on :3001) | `http://localhost:3001` |
 | Split-domain deployment (public app on separate domain) | `https://public.example.com` |
 
@@ -284,9 +288,9 @@ Unacceptable outcome:
 
 Completion standard:
 
-- production public domain routes public traffic to `apps/public`
+- production public domain serves the Pages artifact built from `apps/public`; browser primary/fallback API paths work
 - Vite deployment is scoped to editor/workspace traffic
-- Next Docker deployment is verified
+- retained Next Docker adapters are verified separately from the Pages artifact
 - public browser QA passes on a production-like runtime
 - Vite editor smoke test passes after public route removal
 - docs list any accepted residual differences
@@ -305,7 +309,7 @@ Do not mark a public replacement phase complete because the Vite page still work
 
 ## Browser QA Standard
 
-Public QA must use `next start` or a clean Next dev port with working hydration.
+Public QA must cover the actual Pages static artifact with browser primary/fallback API reads and fresh/missing route behavior. Use `next start` or a clean hydrated Next dev port separately for server-only adapters; a server-mode pass does not establish Pages acceptance.
 
 Known caveat:
 
