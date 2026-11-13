@@ -76,12 +76,12 @@ class CIContracts(unittest.TestCase):
 
     def test_deployment_gate_names_remain_compatible(self):
         deploy = (ROOT / ".github/workflows/deploy.yml").read_text()
-        release = (ROOT / "scripts/release.sh").read_text()
+        release = (ROOT / "scripts/release-workflow.py").read_text()
         for workflow, name in WORKFLOWS.items():
             source = (ROOT / f".github/workflows/{workflow}.yml").read_text()
             self.assertEqual(source.splitlines()[0], f"name: {name}")
             self.assertIn(f'"{name}"', deploy)
-            self.assertIn(f'"{name}"', release)
+            self.assertIn(repr(name), release)
         self.assertIn("github.event.workflow_run.event == 'push'", deploy)
         self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", deploy)
 

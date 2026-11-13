@@ -66,6 +66,8 @@ jobs:
           python -m pip_audit -r server/requirements.txt --strict
       - name: Check CI workflow contracts
         run: python3 scripts/check-ci-contracts.py
+      - name: Check release orchestration contracts
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - name: Check production network boundary
         run: python3 scripts/check-prod-network-boundary.py
       - name: Check backend contracts
