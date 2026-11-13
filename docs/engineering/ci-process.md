@@ -1,77 +1,35 @@
-# CI 流程（建議）
-最後更新：2026-08-21
+# CI 流程
 
-本專案目前沒有 CI，以下提供可直接套用的流程。建議先放在文件中，未來可轉成 GitHub Actions / GitLab CI。
+最後更新：2026-11-13
 
-## 環境需求
-- Node.js：**必要** `20.19+`（jsdom 27 需要）
-- Python：`3.11+`
+GitHub Actions 已啟用兩個工作流程：`Public read and security contracts` 與 `Submission workflows`。兩者對 main push 和 pull request 使用相同的 paths，確保同一版本的部署閘門都會啟動。
 
-## 前端流程
-1. 安裝依賴
-```
-npm ci
-```
+## 變更範圍
 
-2. 執行測試（Vitest）
-```
-npm test
-```
+工作流程涵蓋 `src/**`、`packages/**`、`apps/public/**`、`server/**`、`public/**`、`deploy/**`、`nginx.conf`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、HTML、TypeScript、Vite/Vitest、Tailwind/PostCSS、Dockerfile 和 Docker Compose 設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。只修改 `docs/**` 或 README 不會啟動這兩個工作流程，也不會觸發自動部署。
 
-3. 型別檢查
-```
-npm run typecheck
-```
+## 必要檢查
 
-4. 相依套件稽核（**high 以上會讓 CI 失敗**）
-```
-npm audit --omit=dev --audit-level=high
-```
+Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端依賴。
 
-已接受風險記錄於 `docs/engineering/dependency-audit.md`。
-原本仰賴「每季人工 audit」，實務上會逾期 —— 該文件曾停在 2026-06-30，
-期間 `react-router` 中了新的 CSRF advisory 卻沒被發現，因此改由 CI 把關。
+`Public read and security contracts` 包含：
 
-5. （可選）前端 build 驗證
-```
-npm run build
-```
+- 後端依賴稽核、production network boundary、後端完整契約測試。
+- CI 工作流程契約回歸檢查：`python3 scripts/check-ci-contracts.py`。
+- 根目錄型別檢查：`npm run typecheck`。
+- studio 與共用套件測試：`npx vitest run --project main`。
+- studio 正式建置：`npm run build`。
+- public 測試與獨立型別檢查：`npx vitest run apps/public`、`npx tsc --noEmit -p apps/public/tsconfig.json`。
+- public standalone 與靜態 Pages 雙建置：`python3 scripts/check-public-builds.py`，使用本機唯讀 API fixture，不依賴 production API。
 
-## 後端流程
-1. 安裝依賴
-```
-python3 -m pip install -r server/requirements.txt
-```
+`Submission workflows` 另外執行投稿、審核與回饋的後端契約及 public 表單測試。以上步驟失敗會使工作流程失敗。
 
-2. 執行測試（Pytest）
-```
-cd server
-python3 -m pytest -q
-```
+## 部署串接
 
-## 最小可用 CI 流程（建議）
-```
-npm ci
-npm test
-npm run typecheck
-npm audit --omit=dev --audit-level=high
-python3 -m pip install -r server/requirements.txt
-cd server
-python3 -m pytest -q
-```
+既有 `Deploy production` 監聽上述兩個固定名稱的 workflow completion；只有本 repository 的 main push 成功事件可自動進入部署。`scripts/release.sh` 會再確認同一個 main commit 的 CI 都已成功，尚有執行中的 CI 則回傳 3，等待後續 completion 事件。因此請保留兩個名稱與一致的觸發範圍。手動 `workflow_dispatch` 是既有的獨立入口，不受 docs-only 自動觸發規則影響。
 
-## 一鍵 CI 腳本（本機）
-```
-bash scripts/ci.sh
-```
+## 本機檢查
 
-## （可選）E2E
-```
-npx playwright install
-npx playwright test
-```
+可逐項執行上述指令；僅檢查 workflow 契約不需要安裝任何依賴。`bash scripts/ci.sh` 是既有的本機前後端測試、型別及依賴稽核工具，並未等同所有 Actions 建置步驟。其 `AUTO_DEPLOY=1` 會另外呼叫部署腳本，單純驗證時不要設定此變數。
 
-## 備註
-- 前端測試環境使用 `jsdom`（Node 需 `20.19+`）。
-- 若 CI 使用容器或鎖定版本，請固定 Node.js 至 `20.19+`。
-- `scripts/ci.sh` 目前已支援 `python3` / `python` 自動 fallback。
+端對端測試仍可另外執行 `npx playwright test`；目前不是這兩個工作流程的必要閘門。
