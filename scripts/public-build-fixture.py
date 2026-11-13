@@ -2,6 +2,7 @@
 """Minimal read-only API fixture for checking that the public Next app builds."""
 
 import argparse
+import copy
 import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlsplit
@@ -17,6 +18,9 @@ SCRIPT = {
 }
 PERSONA = {"id": "fixture-persona", "displayName": "Fixture Author", "tags": []}
 ORGANIZATION = {"id": "fixture-org", "name": "Fixture Organization", "members": []}
+WITHDRAWN_SCRIPT = {**SCRIPT, "id": "fixture-withdrawn", "title": "Withdrawn Fixture"}
+NEW_SCRIPT = {**SCRIPT, "id": "fixture-new", "title": "New Published Fixture"}
+SCRIPTS = [SCRIPT, WITHDRAWN_SCRIPT]
 EXTERNAL_SCRIPT = {
     "id": "fixture-external", "sourceUrl": "https://example.com/fixture-script",
     "title": "Fixture External Script", "status": "published",
@@ -24,7 +28,7 @@ EXTERNAL_SCRIPT = {
     "categories": ["FixtureTag"], "seriesName": "FixtureSeries",
 }
 BUNDLE = {
-    "scripts": [SCRIPT],
+    "scripts": SCRIPTS,
     "personas": [PERSONA],
     "organizations": [ORGANIZATION],
     "topTags": [],
@@ -48,6 +52,23 @@ BUNDLE = {
 }
 
 
+def configure_revision(revision):
+    """Model publish/edit/withdraw using only public responses, never real data."""
+    global SCRIPTS
+    if revision == "updated":
+        updated = copy.deepcopy(SCRIPT)
+        updated.update(title="Updated Fixture Script", content="INT. ROOM - DAY\nUpdated fixture dialogue.", lastModified=1700000100000)
+        SCRIPTS = [updated, copy.deepcopy(NEW_SCRIPT)]
+    elif revision == "empty":
+        SCRIPTS = []
+        for key, value in BUNDLE.items():
+            if isinstance(value, list):
+                BUNDLE[key] = []
+    else:
+        SCRIPTS = [copy.deepcopy(SCRIPT), copy.deepcopy(WITHDRAWN_SCRIPT)]
+    BUNDLE["scripts"] = SCRIPTS
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlsplit(self.path)
@@ -56,17 +77,22 @@ class Handler(BaseHTTPRequestHandler):
             selected = parse_qs(parsed.query).get("sections")
             body = {key: BUNDLE[key] for key in selected[0].split(",")} if selected else BUNDLE
         elif path == "/api/public-personas":
-            body = [PERSONA]
+            body = BUNDLE["personas"]
         elif path == "/api/public-personas/fixture-persona":
             body = PERSONA
         elif path == "/api/public-organizations":
-            body = [ORGANIZATION]
+            body = BUNDLE["organizations"]
         elif path == "/api/public-organizations/fixture-org":
             body = ORGANIZATION
         elif path == "/api/public-scripts":
-            body = [SCRIPT]
-        elif path == "/api/public-scripts/fixture-script":
-            body = SCRIPT
+            body = SCRIPTS
+        elif path.startswith("/api/public-scripts/"):
+            body = next((item for item in SCRIPTS if item["id"] == path.rsplit("/", 1)[-1]), None)
+            if body is None:
+                self.send_error(404)
+                return
+        elif path == "/api/themes/public":
+            body = []
         elif path == "/healthz":
             body = {"ok": True}
         else:
@@ -86,5 +112,7 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", type=int, default=18891)
+    parser.add_argument("--revision", choices=("initial", "updated", "empty"), default="initial")
     args = parser.parse_args()
+    configure_revision(args.revision)
     ThreadingHTTPServer(("127.0.0.1", args.port), Handler).serve_forever()

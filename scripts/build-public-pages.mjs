@@ -104,6 +104,23 @@ if (!outputOverride) rmSync(outputRoot, { recursive: true, force: true });
 copySourceTree(appRoot, stageRoot);
 makeRouteConfigStatic(join(stageRoot, "app"));
 
+// Next static export cannot compile an empty generateStaticParams route. Only
+// the validated content snapshot may prove these allowlisted directories empty;
+// remove their page entry from the temporary source copy. Keep shared reader/
+// profile components for imports by the 404 fallback and live entity pages.
+if (process.env.PUBLIC_PAGES_EMPTY_ROUTES) {
+  const allowed = new Set([
+    "read/[id]", "author/[id]", "org/[id]", "author/external/[name]",
+    "org/external/[name]", "series/[name]", "tag/[name]", "resources/[id]",
+  ]);
+  const emptyRoutes = JSON.parse(process.env.PUBLIC_PAGES_EMPTY_ROUTES);
+  if (!Array.isArray(emptyRoutes) || emptyRoutes.some((route) => !allowed.has(route))) {
+    throw new Error("Invalid validated empty route manifest.");
+  }
+  for (const route of emptyRoutes) rmSync(join(stageRoot, "app", route, "page.tsx"), { force: true });
+}
+
+
 const nextBin = join(appRoot, "node_modules/next/dist/bin/next");
 const result = spawnSync(process.execPath, [nextBin, "build", stageRoot, "--webpack"], {
   cwd: appRoot,

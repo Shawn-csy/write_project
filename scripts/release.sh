@@ -98,12 +98,11 @@ cmd_converge() {
   docker exec "wp-site-${tag}-api" python -m services.identity_convergence
 }
 
-cmd_pages() {
-  [ "$(curl --connect-timeout 5 --max-time 20 -s -o /dev/null -w '%{http_code}' "$API_ORIGIN/healthz")" = 200 ] || die "$API_ORIGIN/healthz is not 200"
+cmd_pages_build() {
   log "building the production Pages front end"
   (
     cd apps/public
-    BACKEND_API_URL="$API_ORIGIN" \
+    BACKEND_API_URL="${BACKEND_API_URL:-$API_ORIGIN}" \
     NEXT_PUBLIC_DEPLOY_ENV=production \
     NEXT_PUBLIC_API_ORIGIN="$API_ORIGIN" \
     NEXT_PUBLIC_FALLBACK_API_ORIGIN=https://fallback-open-scripts.shawnup.com \
@@ -112,12 +111,20 @@ cmd_pages() {
     NEXT_PUBLIC_STUDIO_ORIGIN=https://studio-open-scripts.shawnup.com \
     NEXT_PUBLIC_BASE_URL="$PUBLIC_ORIGIN" \
     npm run build:pages
-    if grep -rlq "dev-open-scripts" out; then die "Pages output still references the Dev domain"; fi
-    grep -q 'data-deploy-environment="production"' out/index.html || die "Pages output is not a production build"
-    [ -f out/404.html ] || die "Pages output has no 404.html"
-    log "uploading to Cloudflare Pages"
-    npx wrangler pages deploy out --project-name write-project-public-site --branch main
+    if grep -rlq "dev-open-scripts" "${PUBLIC_PAGES_OUTPUT_DIR:-out}"; then die "Pages output still references the Dev domain"; fi
+    grep -q 'data-deploy-environment="production"' "${PUBLIC_PAGES_OUTPUT_DIR:-out}/index.html" || die "Pages output is not a production build"
+    [ -f "${PUBLIC_PAGES_OUTPUT_DIR:-out}/404.html" ] || die "Pages output has no 404.html"
   )
+}
+
+cmd_pages_upload() {
+  [ -d "$1" ] || die "Pages output directory missing"
+  (cd apps/public; npx wrangler pages deploy "$1" --project-name write-project-public-site --branch main)
+}
+
+cmd_pages() {
+  # All callers share the same stage/output/upload lock, including manual Pages.
+  python3 scripts/content-pages-lock.py
 }
 
 cmd_verify() {
@@ -158,6 +165,8 @@ action="${1:-}"; shift || true
 case "$action" in
   build|prepare|activate|cutover|converge) [ $# -eq 1 ] || die "usage: $0 $action <tag>"; "cmd_$action" "$1" ;;
   schema) cmd_schema "${1:-}" ;;
+  pages-build) cmd_pages_build ;;
+  pages-upload) [ $# -eq 1 ] || die "pages-upload requires output directory"; cmd_pages_upload "$1" ;;
   pages|verify) cmd_$action ;;
   prune) cmd_prune "$@" ;;
   schema-check) cmd_schema_check "${1:-}" ;;

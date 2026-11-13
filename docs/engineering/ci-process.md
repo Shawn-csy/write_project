@@ -33,3 +33,5 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 可逐項執行上述指令；僅檢查 workflow 契約不需要安裝任何依賴。`bash scripts/ci.sh` 是既有的本機前後端測試、型別及依賴稽核工具，並未等同所有 Actions 建置步驟。其 `AUTO_DEPLOY=1` 會另外呼叫部署腳本，單純驗證時不要設定此變數。
 
 端對端測試仍可另外執行 `npx playwright test`；目前不是這兩個工作流程的必要閘門。
+
+內容更新沿用 Python 標準函式庫測試探索，驗證公開資料擷取、內容指紋、固定快照服務、鎖、正式版本解析與失敗重試。`check-public-builds.py` 除 standalone 建置外，也實際匯出「新增／修改／下架」和「公開目錄完全清空」兩份 Pages 產物；匯出前關閉原始 fixture API，只讓建置讀快照。內容排程只有 schedule／manual 事件，與程式發布互斥，第二次 checkout 綁定解析出的正式 SHA，不接受 PR 事件或修改 API／資料庫。

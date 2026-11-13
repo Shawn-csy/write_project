@@ -104,3 +104,9 @@ runner 從自己的 checkout 建置，但兩樣東西必須用正式位置：
 ## 回滾
 
 與手動發布相同：`python3 scripts/site-release.py rollback --tag auto-<sha>` 接回上一版入口；Cloudflare Pages 從部署記錄回滾。schema 遷移與身份收斂寫入的資料不會回滾，需要時從 `~/write_project_backups/` 的備份還原。
+
+### 內容更新與程式發布的分工
+
+`.github/workflows/content-refresh.yml` 提供每約 15 分鐘及手動的內容更新入口，與程式發布共用 `production-deploy` concurrency 和可信任 runner。首次使用前須正常發布一個包含新工具且紀錄為 `complete` 的版本；本次尚未部署。GitHub 排程可能延後，還要計入建置時間。
+
+main checkout 只負責唯讀解析正式版本，真正建置使用該完整 SHA，避免帶入尚未發布的程式。內容流程持有發布、入口及 Pages 鎖，只有 Pages 產物與狀態紀錄會更新；不執行 API 切流、schema、身份收斂或清理。D1／R2 同步獨立運作。一般 `release.sh pages` 也使用共用 Pages 鎖、固定快照及新的輸出目錄，因此公開內容清空後仍可正常發布後續程式版本。狀態、重試、緊急下架與人工回滾注意事項見 [Pages 操作](public-pages-production.md#published-content-refresh)。
