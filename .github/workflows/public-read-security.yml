@@ -24,6 +24,8 @@ on:
       - 'docker-compose*.yml'
       - 'scripts/**'
       - '.github/workflows/**'
+      - 'docs/**'
+      - '!**/*.md'
   push:
     branches: [main]
     paths:
@@ -48,6 +50,8 @@ on:
       - 'docker-compose*.yml'
       - 'scripts/**'
       - '.github/workflows/**'
+      - 'docs/**'
+      - '!**/*.md'
 
 jobs:
   backend-contracts:

@@ -43,7 +43,7 @@ bash scripts/release.sh prune
 
 任一步失敗就停在那裡：`prepare` 之前失敗不影響正式站；`activate` 驗證失敗會自動接回原入口。失敗時 GitHub 會寄出 workflow 失敗通知，這台 Mac 也會跳出系統通知。
 
-兩組 CI 使用相同的路徑篩選；對精確完整 commit SHA，兩組具名 workflow 都必須完成並成功。只讀取 main push 的最新 run（GitHub run list 回傳該 run 最新 rerun 的狀態），排除 Deploy production 本身、其他 workflow 與 PR。任一組尚未出現或仍執行中回傳 3，失敗則停止。只改文件、沒有 CI completion 的 commit 不會自動部署。
+兩組 CI 使用相同的路徑篩選；對精確完整 commit SHA，兩組具名 workflow 都必須完成並成功。只讀取 main push 的最新 run（GitHub run list 回傳該 run 最新 rerun 的狀態），排除 Deploy production 本身、其他 workflow 與 PR。任一組尚未出現或仍執行中回傳 3，失敗則停止。只改 Markdown 文件由獨立的 `Documentation checks` 檢查，沒有兩組程式 CI completion 的 commit 不會自動部署。此時 main 可以領先正式 deployed SHA；內容刷新仍固定使用 live SHA。手動部署仍須滿足精確 SHA 的兩組成功 CI，不會接受 skipped／未出現的檢查。若程式提交後、部署前又合入文件提交，既有 latest-main guard 可能擋住前一個程式版本的發布；目前保留此保守行為，等待下一個正常程式／設定變更通過 CI 後發布。
 
 ## 中斷後續跑
 
