@@ -23,6 +23,10 @@
 ## 工程操作
 
 - [持續部署與發布程序](engineering/continuous-deployment.md)：網站發布的 canonical procedure
+- [正式環境精簡](engineering/production-runtime-simplification.md)：API-only 執行邊界、媒體搬遷與舊版回滾
+- [Pages 發布狀態](engineering/publication-status.md)：工作室顯示範圍、驗證時間與狀態掛載
+- [正式環境監控](engineering/production-monitoring.md)：健康、延遲、同步新鮮度與磁碟檢查
+- [備份與還原演練](engineering/backup-restore.md)：資料庫及媒體備份、異機傳送與隔離還原
 
 - `engineering/operations.md`：操作手冊（Compose 分工、部署、備份、CDN 快取、health endpoints、故障排查）
 - `engineering/ci-process.md`：CI 流程（測試、型別檢查、相依稽核門檻）

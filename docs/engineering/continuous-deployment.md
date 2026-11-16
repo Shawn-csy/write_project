@@ -1,6 +1,6 @@
 # 自動部署（CD）
 
-最後更新：2026-11-13
+最後更新：2026-11-16（本分支精簡流程尚未部署）
 
 ## 流程
 
@@ -8,9 +8,9 @@ main 有新的 push，而且這個 commit 觸發的 CI workflow（`Public read a
 
 ```
 scripts/release.sh auto
-  build     建 API／公開站映像與工作室靜態檔（tag：auto-<commit 前 7 碼>）
+  build     建 API 映像與工作室靜態檔（tag：auto-<commit 前 7 碼>）
   schema    有缺口就自動套用：先在正式資料副本排練讀寫、完整備份，再遷移
-  prepare   候選版在現行網站旁啟動，跑 14 條路徑、IPv4／IPv6、讀寫限流、RSC 快取邊界檢查
+  prepare   候選 API／入口在現行網站旁啟動，驗證工作室、API、媒體路由、公開站轉址、IPv4／IPv6 與讀寫限流
   activate  交接 1090（先寫入 activation-intent）
   converge  在新 API 執行身份收斂，成功後才進入 Pages
   pages     建置並上傳 Cloudflare Pages
@@ -21,7 +21,7 @@ scripts/release.sh auto
 
 ## 舊版本清理
 
-每次發布會留下一組 Docker 映像（API 約 1 GB、公開站約 340 MB）與一份靜態檔。`release.sh auto` 在切流成功後執行 `site-release.py prune`：
+新版發布只建立 API 映像與工作室靜態檔，不再建立 Next server 映像。舊版回滾目標仍可能包含 Next server，須依舊版紀錄完整保留。`release.sh auto` 在切流成功後執行 `site-release.py prune`：
 
 - **保留**：正式版，以及它記錄的回滾目標（`release.json` 的 `previous_edge`）。兩者的容器、映像、靜態檔與控制資料都完整留著，`rollback` 隨時可用。
 - **刪除**：更舊版本的 `wp-site-<tag>-*` 容器、`write_project-backend/public:<tag>` 映像、`releases/<tag>`、`releases/.site-release/<tag>` 與 `dist/releases/<tag>`；保留版本已複製到 `releases/` 的 `dist/releases` 建置輸出也一併刪除。

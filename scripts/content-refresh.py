@@ -135,11 +135,15 @@ class Refresh:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             state = json.loads(self.path.read_text()) if self.path.exists() else {}
             stage = 'capture'
+            state.update(running=True, started_at=release.now(), updated_at=release.now(), failure=None)
+            release.atomic_json(self.path, state)
             try:
                 snapshot = self.collector()
                 digest = fingerprint(snapshot)
                 key = sha + ':' + digest
                 if state.get('phase') == 'complete' and state.get('completed_key') == key and self.commands.receipt_matches(state.get('receipt')):
+                    state.update(running=False, checked_at=release.now(), updated_at=release.now())
+                    release.atomic_json(self.path, state)
                     print('Published content unchanged')
                     return
                 retry_verify = state.get('pending_key') == key and state.get('phase') == 'uploaded' and isinstance(state.get('receipt'), dict) and state['receipt'].get('digest') == digest and state['receipt'].get('commit') == sha
@@ -154,7 +158,7 @@ class Refresh:
                         self.commands.build(output, snapshot)
                         stage = 'recapture'
                         if fingerprint(self.collector()) != digest:
-                            state.update(phase='deferred', updated_at=release.now())
+                            state.update(phase='deferred', running=False, updated_at=release.now())
                             release.atomic_json(self.path, state)
                             print('Content changed during build; deferred to next run')
                             return
@@ -171,11 +175,11 @@ class Refresh:
                 self.guard()
                 self.commands.verify(state['receipt'], snapshot)
                 self.guard()
-                state.update(completed_key=key, phase='complete', failure=None, updated_at=release.now())
+                state.update(completed_key=key, phase='complete', running=False, failure=None, completed_at=release.now(), checked_at=release.now(), updated_at=release.now())
                 release.atomic_json(self.path, state)
                 print('Public content refresh complete')
             except BaseException:
-                state.update(failure={'stage': stage, 'at': release.now()}, updated_at=release.now())
+                state.update(running=False, failure={'stage': stage, 'at': release.now()}, updated_at=release.now())
                 release.atomic_json(self.path, state)
                 raise
 

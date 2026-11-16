@@ -1,16 +1,16 @@
 # Frontend Runtime Boundaries
 
-Last updated: 2026-11-13 (checked-in architecture; no live verification)
+Last updated: 2026-11-16 (simplification branch; not yet deployed)
 
 ## Purpose
 
 This document defines the long-term ownership boundary between the Next.js public frontend, the Vite editor frontend, and shared workspace packages.
 
-The public source supports two deployment modes: production Pages static export with browser live reads, and a retained local Next server for adapters. The studio remains Vite. See [Pages operations](../engineering/public-pages-production.md) and the [canonical release procedure](../engineering/continuous-deployment.md).
+Production uses Pages static export with browser live reads to FastAPI. Next server mode is a local development tool, not a production service. The studio remains Vite. See [Pages operations](../engineering/public-pages-production.md) and the [canonical release procedure](../engineering/continuous-deployment.md).
 
 The product has these ownership boundaries:
 
-- `apps/public` owns public pages, build-time SEO snapshots, canonical metadata, stable URLs, browser primary/fallback API adapters, and retained Next server-mode SSR/ISR/BFF adapters. Pages does not execute ISR. D1/R2 are read-only public fallbacks; writes remain with the primary API.
+- `apps/public` owns public pages, build-time SEO snapshots, canonical metadata, stable URLs, browser primary/fallback API adapters, and local development page rendering. Production JSON/media routes are owned by FastAPI. Pages does not execute ISR. D1/R2 are read-only public fallbacks; writes remain with the primary API.
 - `src/` exists to serve authenticated editor and workspace workflows.
 - `packages/*` exists to hold product semantics that must be shared by both runtimes without copying behavior.
 
@@ -32,7 +32,7 @@ The goal is not to gradually duplicate Vite in Next.js. The goal is to make publ
 
 ### `apps/public`
 
-`apps/public` is the canonical public source. Pages serves its static output; a separate local Next server still supplies server-only adapters.
+`apps/public` is the canonical public source. Pages serves its static output; FastAPI supplies public JSON and media. Local Next development forwards media requests to the same backend.
 
 Owns:
 
@@ -40,9 +40,9 @@ Owns:
 - public reader routes
 - author, organization, series, and tag pages
 - public metadata, Open Graph, structured data, sitemap-related public contracts
-- public BFF route handlers in Next server mode; Pages browser API origin/fallback adapters
+- Pages browser API origin/fallback adapters; any retained local development BFF handlers are not a production deployment dependency
 - public route-level consent and age gate wiring
-- public static export and local Next container configuration
+- public static export and local Next development configuration
 - host-specific href builders and route composition
 
 May import:
@@ -160,7 +160,7 @@ Vite public pages are retired when all of the following are true:
 - the equivalent public route exists in `apps/public`
 - the route has server-side metadata and browser-visible content
 - shared product semantics live in packages, not copied app-local code
-- browser QA has passed on a production-like Next runtime
+- browser QA has passed on a production-like Pages export and FastAPI
 - Vite editor workflows no longer route users through the old public page
 
 Retirement does not mean deleting the entire Vite app. It means public ownership moves to Next.js while Vite remains responsible for editor/workspace flows.
@@ -225,7 +225,7 @@ Never write `window.location.href = "/public-path"` directly at call sites.
 
 | Deployment scenario | Value |
 |---|---|
-| Local server-mode deployment (same-origin nginx proxies public paths to Next) | unset or `""` — helper returns relative paths, nginx routes correctly |
+| Legacy server-mode deployment (rollback compatibility only) | unset or `""` — helper returns relative paths, nginx routes correctly |
 | Local dev with separate Next.js port (e.g. `next dev` on :3001) | `http://localhost:3001` |
 | Split-domain deployment (public app on separate domain) | `https://public.example.com` |
 

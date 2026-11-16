@@ -65,13 +65,14 @@ class CIContracts(unittest.TestCase):
             "npx vitest run apps/public", "npx tsc --noEmit -p apps/public/tsconfig.json",
             "python3 scripts/check-public-builds.py", "python3 scripts/check-ci-contracts.py",
             "python3 scripts/check-prod-network-boundary.py", "python -m pytest -q tests",
+            "RUN_NGINX_INTEGRATION=1 python3 -m unittest discover -s scripts -p 'test_site_release_nginx.py'",
         ):
             self.assertIn(command, actual)
         submissions = (ROOT / ".github/workflows/submission-workflows.yml").read_text()
         self.assertTrue(any("test_submission_workflow_contract.py" in (a or b) for a, b in commands(submissions)))
         self.assertTrue(any("SubmissionDialogs.test.tsx" in (a or b) for a, b in commands(submissions)))
         build_check = (ROOT / "scripts/check-public-builds.py").read_text()
-        self.assertIn('["npm", "run", "build", "-w", "apps/public"]', build_check)
+        self.assertNotIn('["npm", "run", "build", "-w", "apps/public"]', build_check)
         self.assertIn('"scripts/build-public-pages.mjs"', build_check)
 
     def test_deployment_gate_names_remain_compatible(self):

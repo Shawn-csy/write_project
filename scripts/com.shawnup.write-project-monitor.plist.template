@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- TEMPLATE ONLY: replace absolute paths; create config/log directory before manual installation. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.shawnup.write-project-monitor</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/python3</string>
+    <string>/ABSOLUTE/CHECKOUT/scripts/monitor-production.py</string>
+    <string>--config</string><string>/ABSOLUTE/PRIVATE/monitor.json</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>WP_RELEASE_ROOT</key><string>/ABSOLUTE/DURABLE/releases</string>
+  </dict>
+  <key>StartInterval</key><integer>300</integer>
+  <key>StandardOutPath</key><string>/ABSOLUTE/LOGS/monitor.jsonl</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/LOGS/monitor.stderr.log</string>
+</dict></plist>

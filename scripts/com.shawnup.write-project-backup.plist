@@ -13,10 +13,10 @@
     launchctl list | grep write-project
     launchctl unload ~/Library/LaunchAgents/com.shawnup.write-project-backup.plist
 
-  備份輸出：~/write_project_backups/（保留 14 天，另有 backup.log）
+  備份輸出：~/write_project_backups/（保留 14 天，日誌見 launchd.out.log）
   副本：/Volumes/Horcrux/write_project_backups/（保留 180 天）
   launchd 不能讀 ~/Desktop（macOS 隱私保護），實際安裝版執行的是複製到 ~/bin/backup-db.sh 的同一支腳本；
-  更新腳本後記得再複製一次。
+  更新時須一併複製 backup-db.sh 與 backup-bundle.py，並設定 MEDIA_STORAGE_ROOT。
 -->
 <plist version="1.0">
 <dict>
@@ -26,7 +26,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/shanti/Desktop/write_project/scripts/backup-db.sh</string>
+        <string>/Users/shanti/bin/backup-db.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -36,7 +36,12 @@
     <key>EnvironmentVariables</key>
     <dict>
         <!-- 第二份副本：外接碟 Horcrux。launchd 執行的 bash 需要「完全取用磁碟」權限才能寫入外接碟，
-             見 docs/engineering/operations.md「資料庫備份」。未掛載或無權限時只記警告。 -->
+             見 docs/engineering/operations.md「資料庫備份」。未掛載或無權限時備份失敗。 -->
+        <!-- Install BOTH backup-db.sh and backup-bundle.py into ~/bin.
+             Explicit production media source is required when wrapper lives outside repo.
+             External disk is not offsite; see backup-restore.md. -->
+        <key>MEDIA_STORAGE_ROOT</key>
+        <string>/Users/shanti/Desktop/write_project/server/data/media</string>
         <key>BACKUP_MIRROR_DIR</key>
         <string>/Volumes/Horcrux/write_project_backups</string>
         <key>PATH</key>

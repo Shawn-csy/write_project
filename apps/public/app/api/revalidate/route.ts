@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const REVALIDATE_SECRET = process.env.REVALIDATE_SECRET;
 
-// Tags attached to cached upstream fetches in app/page.tsx, app/sitemap.ts and lib/publicMediaProxy.ts.
+// Tags attached to cached upstream fetches in app/page.tsx and app/sitemap.ts (local development only).
 const DATA_CACHE_TAGS = ["public-bundle", "public-scripts"] as const;
 
 const MAX_PATHS = 50;

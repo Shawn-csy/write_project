@@ -14,6 +14,22 @@ spec.loader.exec_module(site)
 
 
 class SiteReleaseTests(unittest.TestCase):
+    def test_publication_mount_is_narrow_readonly_and_preserves_evidence(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(site, "RELEASE_ROOT", Path(directory)):
+            args = site.publication_mount_args()
+            evidence = Path(directory) / ".content-refresh" / "state.json"
+            evidence.write_text('{"phase":"complete"}')
+            self.assertEqual(site.publication_mount_args(), args)
+            self.assertEqual(evidence.read_text(), '{"phase":"complete"}')
+            self.assertEqual(args[-1], f"{evidence.parent}:/run/wp-publication:ro")
+            self.assertIn("WP_PUBLICATION_STATE_DIR=/run/wp-publication", args)
+
+    def test_publication_mount_rejects_symlink_to_other_release_state(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(site, "RELEASE_ROOT", Path(directory)):
+            (Path(directory) / ".content-refresh").symlink_to(Path(directory))
+            with self.assertRaisesRegex(RuntimeError, "symlink"):
+                site.publication_mount_args()
+
     def test_config_replaces_only_the_two_upstreams(self):
         original = 'set $backend "old-api";\nset $public "old-public";\nreturn 200 "ok";\n'
         result = site.config_for(original, "new-api", "new-public")
@@ -217,6 +233,86 @@ class SiteReleaseTests(unittest.TestCase):
         self.assertLess(events.index(("ready", "prior-public", "public")), events.index(("preview",)))
         self.assertTrue(running["prior-edge"])
         self.assertFalse(running["live-edge"])
+
+    def test_rollback_to_api_only_previous_release_skips_public_container(self):
+        target = {"edge": "live-edge", "old-check": "preview-edge"}
+        state = {
+            "previous_edge": "prior-edge", "previous_edge_id": "old-id",
+            "version": 2, "previous_api": "prior-api", "previous_public": None,
+            "previous_static": "/unused/static", "previous_config": "/unused/config",
+            "previous_digest": "same", "baseline": {"/": 200},
+        }
+        running = {"live-edge": True, "prior-edge": False, "prior-api": False, "prior-public": False}
+        events = []
+
+        def fake_docker(*args, **_kwargs):
+            events.append(args)
+            if args[0] == "start":
+                running[args[1]] = True
+            elif args[0] == "stop":
+                running[args[-1]] = False
+            return SimpleNamespace(returncode=0)
+
+        with patch.object(site, "state_and_names", return_value=(Path("/unused"), target, state)), \
+             patch.object(site, "ingress", return_value={"Name": "/live-edge"}), \
+             patch.object(site, "inspect", side_effect=lambda name: None if name == "preview-edge" else ({"Id": "old-id", "State": {"Running": False}} if name == "prior-edge" else {"Name": name})), \
+             patch.object(site, "running", side_effect=lambda name: running.get(name, False)), \
+             patch.object(site, "snapshot_digest", return_value="same"), \
+             patch.object(site, "docker", side_effect=fake_docker), \
+             patch.object(site, "wait_service", side_effect=lambda name, role: events.append(("ready", name, role))), \
+             patch.object(site, "edge", side_effect=lambda *_args: events.append(("preview",))), \
+             patch.object(site, "probe"), \
+             patch.object(site, "stop_remove"):
+            site.rollback("live")
+
+        self.assertLess(events.index(("ready", "prior-api", "api")), events.index(("preview",)))
+        self.assertNotIn(("ready", "prior-public", "public"), events)
+        self.assertTrue(running["prior-edge"])
+        self.assertFalse(running["live-edge"])
+
+
+class ApiOnlyReleaseTests(unittest.TestCase):
+    def test_new_manifest_roles_and_legacy_compatibility(self):
+        self.assertEqual(site.service_roles({}), ("api", "public"))
+        self.assertEqual(site.service_roles({"version": 2}), ("api",))
+        with self.assertRaisesRegex(RuntimeError, "unsupported"):
+            site.service_roles({"version": 3})
+
+    def test_api_only_upstream_rewrite_has_explicit_absent_public(self):
+        source = 'set $backend "old-api";\nset $api_backend "old-api";\n'
+        result = site.config_for(source, "candidate-api")
+        self.assertEqual(site.upstreams(result), ("candidate-api", None))
+        self.assertIn('set $api_backend "candidate-api";', result)
+
+    def test_api_only_rejects_a_legacy_source_config(self):
+        with self.assertRaisesRegex(RuntimeError, "cannot retain"):
+            site.config_for('set $backend "api";\nset $public "public";\n', "candidate-api")
+
+    def test_api_only_routes_serve_studio_and_redirect_legacy_public(self):
+        expected = site.expected_routes({"version": 2})
+        for route in ("/", "/login", "/studio/demos", "/api/public-bundle"):
+            self.assertEqual(expected[route], 200)
+        for route in ("/authors", "/resources", "/help"):
+            self.assertEqual(expected[route], 308)
+        self.assertEqual(site.expected_routes({})["/authors"], 200)
+
+    def test_api_only_retirement_ignores_absent_public(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Path(directory)
+            (config / "default.conf").write_text('set $backend "old-api";')
+            edge = {"Mounts": [{"Destination": "/etc/nginx/conf.d", "Type": "bind", "Source": directory}]}
+            with patch.object(site, "inspect", side_effect=lambda name: edge if name == "old-edge" else {"Name": name}), \
+                 patch.object(site, "running", return_value=False):
+                self.assertTrue(site.retired_triplet_present("old-edge", "old-api", None, {"live-api"}))
+
+    def test_mixed_ancestry_retains_direct_rollback_target(self):
+        states = {
+            "live": {"version": 2, "previous_edge": "prior", "previous_api": "prior-api", "previous_public": None},
+            "prior": {"version": 2, "previous_edge": "older", "previous_api": "older-api", "previous_public": "older-public"},
+            "older": {"previous_edge": "legacy", "previous_api": "legacy-api", "previous_public": None},
+        }
+        self.assertEqual(site.retired_ancestor_services("live", states), [
+            ("older", "older-api", "older-public"), ("legacy", "legacy-api", None)])
 
 
 if __name__ == "__main__":

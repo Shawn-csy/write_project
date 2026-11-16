@@ -53,8 +53,6 @@ cmd_build() {
   [ -f .env ] || [ -f .env.production.local ] || die "no studio env file (.env or WP_STUDIO_ENV_FILE)"
   log "building write_project-backend:$tag"
   docker build -t "write_project-backend:$tag" server
-  log "building write_project-public:$tag"
-  docker build -t "write_project-public:$tag" -f apps/public/Dockerfile .
   log "building studio static files into dist/releases/$tag"
   npx vite build --mode production --outDir "dist/releases/$tag" --emptyOutDir
   [ -f "dist/releases/$tag/index.html" ] || die "studio build produced no index.html"
@@ -77,7 +75,6 @@ cmd_prepare() {
   log "ingress limits and cache boundary on candidate port $port"
   python3 scripts/check-ingress-write-limits.py --base-url "http://127.0.0.1:${port}"
   python3 scripts/check-ingress-read-limits.py --base-url "http://127.0.0.1:${port}"
-  python3 scripts/check-rsc-cache-boundary.py --base-url "http://127.0.0.1:${port}" --sample-sitemap
 }
 
 cmd_activate() {

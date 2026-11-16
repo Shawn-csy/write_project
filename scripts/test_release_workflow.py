@@ -334,5 +334,22 @@ class CommandBoundaryTests(unittest.TestCase):
             docker.assert_not_called()
 
 
+
+class ApiOnlyWorkflowTests(WorkflowTests):
+    """Run state-machine recovery contracts against API-only ingress metadata."""
+    def setUp(self):
+        super().setUp()
+        activate = self.commands.activate
+        def api_only_activate(tag):
+            activate(tag)
+            self.commands.live_value['public'] = None
+        self.commands.activate = api_only_activate
+
+    def test_api_only_matches_rejects_an_unrelated_public_service(self):
+        self.commands.activate(TAG)
+        self.assertTrue(self.flow.matches(self.commands.live(), TAG))
+        self.commands.live_value['public'] = 'unrelated-public'
+        self.assertFalse(self.flow.matches(self.commands.live(), TAG))
+
 if __name__ == '__main__':
     unittest.main()

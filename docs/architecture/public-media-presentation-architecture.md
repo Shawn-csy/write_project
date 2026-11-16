@@ -1,6 +1,11 @@
 # Public Media Presentation Architecture
 
-Last updated: 2026-10-20
+Last updated: 2026-11-16 (runtime simplification branch; not yet deployed)
+
+Production media serving is owned by FastAPI (`server/services/public_media.py`),
+including external covers and bounded thumbnail generation. Pages has no Next
+image optimizer service. Local Next development forwards `/api/public-media`
+requests to that same API; [runtime migration details](../engineering/production-runtime-simplification.md).
 
 ## Phase Status
 
@@ -334,7 +339,7 @@ Reason:
 
 - Production nginx serves `/media/...` by proxying to backend.
 - Next dev/standalone uses `next.config.ts` rewrites for `/media/:path*`.
-- `/api/public-*` routes are routed to the Next BFF in nginx so deployment method
+- `/api/public-*` routes are routed to FastAPI in nginx so deployment method
   does not change public frontend API behavior.
 
 ### Implementation Notes

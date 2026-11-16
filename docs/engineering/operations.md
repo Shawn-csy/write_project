@@ -1,5 +1,5 @@
 # 操作手冊（開發 / 測試 / 部署）
-最後更新：2026-11-13（版本庫設定；未重新查驗線上）
+最後更新：2026-11-16（本分支精簡設定；尚未部署）
 
 ## 1. 環境需求
 - Node.js：`20.19+`
@@ -96,7 +96,7 @@ docker compose -f docker-compose.prod.yml up --build -d
 - `write_project-frontend`：Nginx，只綁 `127.0.0.1:1090` 與 `[::1]:1090`。
 - `write_project-backend`：FastAPI，internal network，不 publish host port。
 - `write_project-postgres`：PostgreSQL，internal network，不 publish host port。
-- `write_project-public`：Next server adapters，internal port `3000`；保留 BFF、外部封面與 server-mode 頁面。
+- 公開 JSON 與 `/api/public-media`：統一由 FastAPI 提供；新版正式部署不再啟動 `write_project-public`。舊版回滾紀錄可保留 Next server。
 - `write_project-frontend-build`：Vite 工作室建置。
 
 正式公開入口採 Pages 靜態檔，瀏覽器跨網域讀 Tunnel 主 API，失聯時讀 D1／R2 唯讀備援；工作室經 Tunnel 進本機 Nginx。Compose 基線不證明線上 release 容器的設定，實際 port bindings 與 readiness 須依發布程序驗證。
@@ -157,22 +157,9 @@ Production Compose 預設 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=
 bash scripts/backup-db.sh
 ```
 
-輸出至 `~/write_project_backups/`，保留 14 天；設定 `BACKUP_MIRROR_DIR` 時另同步一份到該處（預設排程為外接碟 `/Volumes/Horcrux/write_project_backups`，保留 `MIRROR_KEEP_DAYS`＝180 天），與正式資料庫分在不同磁碟。同步在清理本機舊備份之前執行；外接碟未掛載或同步失敗時只記 `WARNING`，本機備份照常成功。
+新版產生 PostgreSQL custom dump + media 私有 bundle，保留 14 天；舊 `.sql.gz` 不轉換、不刪除。外接碟副本不代表異地備份。實際排程目前只有本機／外接碟設定，異地目的地尚未設定，也未上傳任何資料。
 
-launchd 執行的程式受 macOS 隱私保護限制：不能讀 `~/Desktop`（因此排程執行的是複製到 `~/bin/backup-db.sh` 的同一支腳本，更新後要重新複製），也不能寫入外接碟。要讓排程同步到外接碟，需在「系統設定 → 隱私權與安全性 → 完全取用磁碟」加入 `/bin/bash`；未授權時 `launchd.err.log` 會出現 `rsync … Operation not permitted`，`backup.log` 記 `WARNING 同步到 … 失敗`。
-
-每次備份會：
-
-- 驗證 gzip 完整性與資料表數（少於 10 張視為不完整並中止）
-- **檢查索引健康度**：比對 `scripts` 表的 heap 與索引筆數，不一致時寫入
-  `WARNING` —— 這正是 2026-08-17 事故最早可觀察到的訊號
-
-排程（macOS launchd，每日 04:00）：
-
-```bash
-cp scripts/com.shawnup.write-project-backup.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.shawnup.write-project-backup.plist
-```
+安裝新版時必須同時複製 `backup-db.sh`、`backup-bundle.py` 到 `~/bin`，並明確設定 `MEDIA_STORAGE_ROOT`；只更新 wrapper 會失敗。此變更未安裝或修改既有排程。完整設定、驗證、還原演練與一致性限制見 [backup-restore.md](backup-restore.md)。
 
 ### Cloudflare 快取清除
 
@@ -260,7 +247,7 @@ heap 有 84 列而索引只認得 69 列、主鍵出現重複值，4 篇公開�
 **注意**：
 - 端點會跑全表掃描，結果以 60 秒 TTL 快取，避免公開輪詢放大成 DB 負載。
 - 規劃器提示（`enable_seqscan` 等）是 Postgres 專屬；其他 dialect 回 `status: skipped`。
-- `scripts/backup-db.sh` 每日備份時也會做同一項檢查並寫入 log。
+- `scripts/backup-bundle.py drill` 在隔離還原資料庫執行 `pg_amcheck`，驗證資料列與索引；每日備份本身不等同完成還原演練。見 [備份與還原](backup-restore.md)。
 
 Public server adapters（Next.js container internal port 3000；不適用 Pages 靜態入口）：
 

@@ -15,8 +15,8 @@ from dependencies import get_db
 from rate_limit import limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from routers import analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio, health
-from routers import public_bundle, export, external_public_scripts, mcp_demos, resource_profiles
+from routers import publication, analysis, scripts, users, orgs, personas, tags, themes, admin, public, seo, media, series, studio, health
+from routers import public_media, public_bundle, export, external_public_scripts, mcp_demos, resource_profiles
 from services.route_contract import (
     is_legacy_public_html_path,
     is_workspace_spa_path,
@@ -220,10 +220,12 @@ def create_app() -> FastAPI:
     app.include_router(resource_profiles.admin_router)
     app.include_router(seo.router)
     app.include_router(media.router)
+    app.include_router(public_media.router)
     app.include_router(series.router)
     app.include_router(studio.router)
     app.include_router(export.router)
     app.include_router(health.router)
+    app.include_router(publication.router)
 
     @app.get("/llms.txt", response_class=Response)
     @app.get("/.well-known/llms.txt", response_class=Response)

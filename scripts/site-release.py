@@ -36,6 +36,16 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
 
 
+def publication_mount_args():
+    """Expose only publication evidence, never the release control journals."""
+    directory = RELEASE_ROOT / ".content-refresh"
+    if directory.is_symlink():
+        raise RuntimeError("publication state directory must not be a symlink")
+    directory.mkdir(parents=True, exist_ok=True)
+    return ("-e", "WP_PUBLICATION_STATE_DIR=/run/wp-publication",
+            "-v", f"{directory}:/run/wp-publication:ro")
+
+
 def command(*args, check=True):
     result = subprocess.run(args, text=True, capture_output=True)
     if check and result.returncode:
@@ -82,15 +92,18 @@ def upstreams(config):
     names = []
     for variable in ("backend", "public"):
         found = re.findall(rf'^\s*set \${variable} "([A-Za-z0-9_.-]+)";', config, re.M)
-        if len(found) != 1:
+        if len(found) > 1 or (variable == "backend" and not found):
             raise RuntimeError(f"expected one ${variable} upstream in site config")
-        names.append(found[0])
+        names.append(found[0] if found else None)
     return tuple(names)
 
 
-def config_for(config, api, public):
-    upstreams(config)
+def config_for(config, api, public=None):
+    if upstreams(config)[1] is not None and public is None:
+        raise RuntimeError("API-only config cannot retain a public upstream")
     for variable, name in (("backend", api), ("public", public), ("api_backend", api)):
+        if name is None:
+            continue
         config = re.sub(rf'^(\s*set \${variable} ")[A-Za-z0-9_.-]+(";)',
                         lambda match: match.group(1) + name + match.group(2), config, count=1, flags=re.M)
     return config
@@ -208,7 +221,42 @@ def snapshot_digest(root):
 
 
 def read_state(artifact):
-    return json.loads(state_path(artifact).read_text())
+    state = json.loads(state_path(artifact).read_text())
+    service_roles(state)  # Reject unsupported manifests before any mutation.
+    return state
+
+
+def service_roles(state):
+    version = state.get("version", 1)
+    if version not in (1, 2):
+        raise RuntimeError(f"unsupported release manifest version: {version}")
+    return ("api", "public") if version == 1 else ("api",)
+
+
+def expected_routes(state):
+    return {route: (308 if state.get("version", 1) == 2 and route not in
+            ("/", "/healthz", "/api/health/ready", "/api/public-bundle", "/login", "/studio/demos") else 200)
+            for route in ROUTES}
+
+
+def probe_candidate(name, state):
+    probe(name, expected_routes(state))
+    if state.get("version", 1) == 1:
+        probe_rsc_cache_boundary(name)
+        return
+    base = f"http://127.0.0.1:{port(name, '127.0.0.1')}"
+    for route in ("/authors?sort=recent", "/read/probe.webp?source=release", "/resources/probe?x=1"):
+        try:
+            response = HTTP.open(base + route, timeout=15)
+        except urllib.error.HTTPError as error:
+            response = error
+        with response:
+            if response.status != 308 or response.headers.get("Location") != "https://open-scripts.shawnup.com" + route:
+                raise RuntimeError(f"{name} canonical redirect mismatch: {route}")
+    for route in ("/not-a-studio-route", "/readiness-unrelated"):
+        if code(base, route) != 404:
+            raise RuntimeError(f"{name} unknown route returned a soft 404: {route}")
+
 
 
 def prepare(tag):
@@ -220,9 +268,10 @@ def prepare(tag):
     old_config_text = (old_config / "default.conf").read_text()
     source_config = (ROOT / "deploy" / "nginx" / "default.conf").read_text()
     old_api, old_public = upstreams(old_config_text)
-    upstreams(source_config)
-    api_item, public_item = inspect(old_api), inspect(old_public)
-    if not api_item or not public_item or not running(old_api) or not running(old_public):
+    if upstreams(source_config)[1] is not None:
+        raise RuntimeError("API-only release source config must not contain a public upstream")
+    api_item = inspect(old_api)
+    if not api_item or not running(old_api) or (old_public and not running(old_public)):
         raise RuntimeError("current API or public service is unavailable")
     if not old_static.is_relative_to(RELEASE_ROOT):
         raise RuntimeError("current static mount is not a durable release")
@@ -231,7 +280,7 @@ def prepare(tag):
     source = ROOT / "dist" / "releases" / tag
     if not (source / "index.html").is_file():
         raise RuntimeError(f"missing candidate static build: {source}")
-    for image in (f"write_project-backend:{tag}", f"write_project-public:{tag}"):
+    for image in (f"write_project-backend:{tag}",):
         docker("image", "inspect", image)
     if artifact.exists() or (CONTROL_ROOT / tag).exists():
         raise RuntimeError(f"release tag already used: {tag}")
@@ -246,8 +295,8 @@ def prepare(tag):
         if snapshot_digest(artifact) != source_digest:
             raise RuntimeError("candidate static copy differs from source")
         new_config.mkdir(parents=True)
-        (new_config / "default.conf").write_text(config_for(source_config, target["api"], target["public"]))
-        metadata = {"tag": tag, "previous_edge": old_name, "previous_edge_id": old_edge["Id"],
+        (new_config / "default.conf").write_text(config_for(source_config, target["api"]))
+        metadata = {"version": 2, "tag": tag, "previous_edge": old_name, "previous_edge_id": old_edge["Id"],
                     "previous_static": str(old_static), "previous_config": str(old_config),
                     "previous_api": old_api, "previous_public": old_public, "baseline": baseline,
                     "candidate_digest": source_digest, "previous_digest": previous_digest}
@@ -260,7 +309,7 @@ def prepare(tag):
     try:
         env_files = []
         try:
-            for item in (api_item, public_item):
+            for item in (api_item,):
                 with tempfile.NamedTemporaryFile(mode="w", prefix="wp-site-env-", delete=False) as handle:
                     # Docker keeps every -e given at creation; copying the list
                     # verbatim made it grow with each release. Keep the last value.
@@ -271,6 +320,8 @@ def prepare(tag):
                         key, _, value = entry.partition("=")
                         env.pop(key, None)
                         env[key] = value
+                    for key in ("NEXTJS_REVALIDATE_URL", "REVALIDATE_SECRET"):
+                        env.pop(key, None)
                     for key, value in env.items():
                         handle.write(f"{key}={value}\n")
                     env_files.append(handle.name)
@@ -280,25 +331,20 @@ def prepare(tag):
                    "--network", NETWORK, "--network-alias", target["api"], "--env-file", env_files[0],
                    "-e", "DB_AUTO_CREATE_TABLES=0", "-e", "DB_RUN_LEGACY_MIGRATIONS=0",
                    "-e", f"TRUSTED_PROXY_HOSTNAME={target['edge']}",
-                   "-e", f"NEXTJS_REVALIDATE_URL=http://{target['public']}:3000/api/revalidate",
                    "-v", f"{data_mount}:/data", "-v", f"{secrets_mount}:/secrets:ro",
+                   *publication_mount_args(),
                    "-v", f"{artifact}:/app/dist:ro", f"write_project-backend:{tag}")
             started.append(target["api"])
-            docker("run", "-d", "--name", target["public"], "--restart", "unless-stopped", "--memory", "512m",
-                   "--network", NETWORK, "--network-alias", target["public"], "--env-file", env_files[1],
-                   "-e", f"BACKEND_API_URL=http://{target['api']}:1091", f"write_project-public:{tag}")
-            started.append(target["public"])
         finally:
             for path in env_files:
                 Path(path).unlink(missing_ok=True)
-        for role in ("api", "public"):
+        for role in ("api",):
             wait_service(target[role], role)
         edge(target["check"], new_config, artifact, target["edge"])
         started.append(target["check"])
         edge(target["old-check"], old_config, old_static, old_name)
         started.append(target["old-check"])
-        probe(target["check"], {route: 200 for route in ROUTES})
-        probe_rsc_cache_boundary(target["check"])
+        probe_candidate(target["check"], metadata)
         probe(target["old-check"], baseline)
     except BaseException:
         for name in reversed(started):
@@ -321,6 +367,7 @@ def release_states_by_edge():
     states = {}
     for path in CONTROL_ROOT.glob("*/release.json"):
         state = json.loads(path.read_text())
+        service_roles(state)
         tag = state.get("tag")
         if tag != path.parent.name:
             raise RuntimeError(f"release metadata tag mismatch: {path}")
@@ -345,7 +392,7 @@ def retired_ancestor_services(live_edge, states):
         seen.add(older)
         state = states[older]
         predecessor = state["previous_edge"]
-        retired.append((predecessor, state["previous_api"], state["previous_public"]))
+        retired.append((predecessor, state["previous_api"], state.get("previous_public")))
         older = predecessor
     return retired
 
@@ -363,9 +410,9 @@ def wait_service(name, role):
 
 
 def retired_triplet_present(edge_name, api, public, protected):
-    if set((api, public)) & protected:
+    if {name for name in (api, public) if name} & protected:
         raise RuntimeError(f"retired services overlap the live rollback pair: {edge_name}")
-    items = [inspect(name) for name in (edge_name, api, public)]
+    items = [inspect(name) for name in (edge_name, api, public) if name]
     if not any(items):
         return False  # An earlier cleanup already removed this whole generation.
     if not all(items):
@@ -389,11 +436,11 @@ def retire_ancestors(dry_run=False):
     live_config = mount(live, "/etc/nginx/conf.d")
     live_services = upstreams((live_config / "default.conf").read_text())
     expected = names(current["tag"])
-    if live_services != (expected["api"], expected["public"]):
+    if live_services != (expected["api"], expected["public"] if "public" in service_roles(current) else None):
         raise RuntimeError("live ingress upstreams do not match release metadata")
-    if not running(current["previous_api"]) or not running(current["previous_public"]):
+    if not running(current["previous_api"]) or (current.get("previous_public") and not running(current["previous_public"])):
         raise RuntimeError("immediate rollback services must remain running")
-    protected = set(live_services) | {current["previous_api"], current["previous_public"]}
+    protected = {name for name in (*live_services, current["previous_api"], current.get("previous_public")) if name}
     retired = retired_ancestor_services(live_name, states)
     active_previews = [name for name in docker("ps", "--format", "{{.Names}}").stdout.splitlines()
                        if name.startswith("wp-site-") and name.endswith(("-check", "-old-check"))]
@@ -406,7 +453,7 @@ def retire_ancestors(dry_run=False):
             print(f"Would retire {edge_name}: {api}, {public}")
             continue
         for name in (public, api):
-            if running(name):
+            if name and running(name):
                 docker("stop", "-t", "10", name)
         print(f"Retired {edge_name} API/public; containers and images remain for recovery.")
 
@@ -420,17 +467,16 @@ def activate(tag):
         raise RuntimeError("candidate static files changed after prepare")
     if snapshot_digest(Path(state["previous_static"])) != state["previous_digest"]:
         raise RuntimeError("previous static files changed after prepare")
-    if any(not running(target[role]) for role in ("api", "public", "check", "old-check")):
+    if any(not running(target[role]) for role in (*service_roles(state), "check", "old-check")):
         raise RuntimeError("prepared containers are not all running")
-    probe(target["check"], {route: 200 for route in ROUTES})
-    probe_rsc_cache_boundary(target["check"])
+    probe_candidate(target["check"], state)
     probe(target["old-check"], state["baseline"])
     switched = False
     try:
         switched = True
         docker("stop", "-t", "10", state["previous_edge"])
         edge(target["edge"], config_path(artifact), artifact, target["edge"], fixed=True)
-        probe(target["edge"], {route: 200 for route in ROUTES})
+        probe_candidate(target["edge"], state)
     except BaseException:
         if switched:
             stop_remove(target["edge"])
@@ -453,7 +499,7 @@ def rollback(tag):
     previous = inspect(state["previous_edge"])
     if not previous or previous["Id"] != state["previous_edge_id"] or previous["State"]["Running"]:
         raise RuntimeError("previous ingress is missing or not stopped")
-    if not inspect(state["previous_api"]) or not inspect(state["previous_public"]):
+    if not inspect(state["previous_api"]) or (state.get("previous_public") and not inspect(state["previous_public"])):
         raise RuntimeError("previous API or public service container is missing")
     if snapshot_digest(Path(state["previous_static"])) != state["previous_digest"]:
         raise RuntimeError("previous static files changed after prepare")
@@ -463,7 +509,9 @@ def rollback(tag):
     started = []
     try:
         for role in ("api", "public"):
-            name = state[f"previous_{role}"]
+            name = state.get(f"previous_{role}")
+            if not name:
+                continue
             if not running(name):
                 docker("start", name)
                 started.append(name)
@@ -482,7 +530,7 @@ def rollback(tag):
                 docker("stop", state["previous_edge"], check=False)
             if not running(target["edge"]):
                 docker("start", target["edge"])
-            probe(target["edge"], {route: 200 for route in ROUTES})
+            probe_candidate(target["edge"], state)
             raise
     except BaseException:
         if running(target["edge"]):

@@ -70,6 +70,8 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - name: Check production network boundary
         run: python3 scripts/check-prod-network-boundary.py
+      - name: Check isolated production ingress routing and limits
+        run: RUN_NGINX_INTEGRATION=1 python3 -m unittest discover -s scripts -p 'test_site_release_nginx.py'
       - name: Check backend contracts
         run: python -m pytest -q tests
         working-directory: server
@@ -87,6 +89,8 @@ jobs:
       - run: npm ci
       - name: Check studio and shared package types
         run: npm run typecheck
+      - name: Check durable sync status receipts
+        run: node --test scripts/test_sync_status.mjs
       - name: Check studio and shared package contracts
         run: npx vitest run --project main
       - name: Build studio
@@ -95,5 +99,5 @@ jobs:
         run: npx vitest run apps/public
       - name: Check public app types
         run: npx tsc --noEmit -p apps/public/tsconfig.json
-      - name: Build standalone and static public apps
+      - name: Build production Pages exports
         run: python3 scripts/check-public-builds.py

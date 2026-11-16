@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build public apps against fixtures and the content publisher's frozen adapter."""
+"""Build production Pages exports against the content publisher's frozen adapter."""
 
 import os
 import json
@@ -90,7 +90,6 @@ def static_build(snapshot):
 def main() -> None:
     with fixture_api() as origin:
         initial = capture(lambda path: read_json(origin + path))
-        subprocess.run(["npm", "run", "build", "-w", "apps/public"], cwd=ROOT, env={**os.environ, "BACKEND_API_URL": origin}, check=True)
     with fixture_api("updated") as origin:
         updated = capture(lambda path: read_json(origin + path))
     if fingerprint(initial) == fingerprint(updated):
