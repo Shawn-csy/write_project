@@ -36,6 +36,21 @@ def snapshot():
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_tag_relation_order_is_not_content_skew(self):
+        tags = [{'id': 'a', 'name': 'A'}, {'id': 'b', 'name': 'B'}]
+        snap.require_common_fields({'tags': tags}, {'tags': list(reversed(tags))})
+        with self.assertRaises(snap.ContentError):
+            snap.require_common_fields({'tags': tags}, {'tags': [{'id': 'a', 'name': 'Changed'}, tags[1]]})
+
+    def test_public_json_uses_identified_publisher_request(self):
+        handle = io.BytesIO(b'{"ok": true}')
+        handle.status = 200
+        with patch.object(snap, 'urlopen', return_value=handle) as fetch:
+            self.assertEqual(snap.read_json(snap.API + '/api/public-bundle'), {'ok': True})
+        request = fetch.call_args.args[0]
+        self.assertEqual(request.get_header('User-agent'), snap.USER_AGENT)
+        self.assertEqual(request.get_header('Accept'), 'application/json')
+
     def test_content_counter_order_and_nested_order(self):
         data = snapshot(); before = snap.fingerprint(data)
         data['/api/public-scripts'][0]['views'] = 123
@@ -108,9 +123,10 @@ class SmokeTests(unittest.TestCase):
         receipt = {'digest': 'digest', 'commit': 'a' * 40}
         responses = {'/': homepage, '/authors': homepage, '/sitemap.xml': sitemap, '/read/fixture%20script': reader}
         requested = []
-        def response(url, timeout):
+        def response(request, timeout):
             from urllib.parse import urlsplit
-            path = urlsplit(url).path
+            self.assertEqual(request.get_header('User-agent'), snap.USER_AGENT)
+            path = urlsplit(request.full_url).path
             requested.append(path)
             handle = io.BytesIO(responses[path].encode())
             handle.status = 200

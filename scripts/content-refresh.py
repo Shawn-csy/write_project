@@ -15,7 +15,7 @@ import tempfile
 import time
 from urllib.parse import quote
 
-from content_snapshot import API, PUBLIC, ContentError, capture, empty_routes, fingerprint, frozen_server, read_json, validate_export, validate_html, validate_sitemap
+from content_snapshot import API, PUBLIC, ContentError, capture, empty_routes, fingerprint, frozen_server, public_request, read_json, validate_export, validate_html, validate_sitemap
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('release_workflow', ROOT / 'scripts/release-workflow.py')
@@ -91,7 +91,7 @@ class Commands(release.Commands):
         paths = [('/', None), ('/authors', None), ('/sitemap.xml', None)]
         paths += [('/read/' + quote(item['id'], safe=''), snapshot['/api/public-scripts/' + quote(item['id'], safe='')]) for item in snapshot['/api/public-scripts'][:3]]
         for path, script in paths:
-            with urlopen(PUBLIC + path + '?refresh=' + nonce, timeout=30) as response:
+            with urlopen(public_request(PUBLIC + path + '?refresh=' + nonce, '*/*'), timeout=30) as response:
                 payload = response.read(32 * 1024 * 1024 + 1)
                 if response.status != 200 or not payload or len(payload) > 32 * 1024 * 1024:
                     raise ContentError('Public smoke failed')

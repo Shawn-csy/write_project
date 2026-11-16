@@ -15,6 +15,7 @@ API = 'https://api-open-scripts.shawnup.com'
 PUBLIC = 'https://open-scripts.shawnup.com'
 MAX_BYTES = 32 * 1024 * 1024
 MAX_REQUESTS = 20000
+USER_AGENT = 'OpenScriptsPublisher/1.0'
 LISTS = ('scripts', 'personas', 'organizations', 'topTags', 'externalPublicScripts', 'demoSubmissions', 'audioWorks', 'activityPages', 'productionResources')
 
 
@@ -22,8 +23,14 @@ class ContentError(RuntimeError):
     pass
 
 
+def public_request(url, accept='application/json'):
+    # Identify our publisher consistently at Cloudflare; the default urllib
+    # user agent is rejected by the production edge before reaching the API.
+    return Request(url, headers={'Accept': accept, 'User-Agent': USER_AGENT})
+
+
 def read_json(url):
-    with urlopen(Request(url, headers={'Accept': 'application/json'}), timeout=30) as response:
+    with urlopen(public_request(url), timeout=30) as response:
         if response.status != 200:
             raise ContentError('Public read did not return 200')
         payload = response.read(MAX_BYTES + 1)
@@ -123,7 +130,15 @@ def require_common_fields(left, right):
               'activityName', 'activityBannerUrl', 'activityContent', 'activityWorkUrl',
               'activityDemoLinks', 'disableCopy')
     for field in fields:
-        if field in left and field in right and left[field] != right[field]:
+        if field not in left or field not in right:
+            continue
+        a, b = left[field], right[field]
+        if field == 'tags' and isinstance(a, list) and isinstance(b, list):
+            # List and detail queries return the same tag relation in different
+            # database order. Compare every tag field, without requiring order.
+            a = sorted(json.dumps(item, sort_keys=True) for item in a)
+            b = sorted(json.dumps(item, sort_keys=True) for item in b)
+        if a != b:
             raise ContentError('Public content projections disagree; retry next schedule')
     # Detail handlers normalize persona JSON and organization tags; those full
     # objects intentionally differ. Their stable displayed identity fields must
