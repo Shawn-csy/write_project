@@ -1,8 +1,8 @@
 import type { PublicAudioWork, PublicPersona } from "@/lib/types";
 
-/** Link a credited audio script only when the source uses this exact identity name. */
+/** Only backend-confirmed identity links may associate a script with an author. */
 export function audioScriptWorksForPersona(persona: PublicPersona, works: PublicAudioWork[]): PublicAudioWork[] {
-  return works.filter((work) => work.credits?.some((credit) =>
-    (credit.role === "script" || credit.role === "author") && credit.creditedAs === persona.displayName,
-  ));
+  const ids = new Set((persona.workParticipations || [])
+    .filter((credit) => credit.creditRole === "scriptwriter").map((credit) => credit.audioWorkId));
+  return works.filter((work) => ids.has(work.id));
 }

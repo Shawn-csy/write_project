@@ -13,6 +13,7 @@ import uuid
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
+from services.work_participations import record_source_credit
 from database import SessionLocal
 from models import AudioWorkCredit, Organization, Persona, PersonaRole, PublicAudioWorkSubmission, User
 from routers.public_bundle import invalidate_public_bundle_cache
@@ -142,13 +143,16 @@ def main():
                 for name in names:
                     if (role, name, "official_page") in present:
                         continue
-                    db.add(AudioWorkCredit(
+                    record_source_credit(db, AudioWorkCredit(
                         audioWorkId=row.id, role=role, sourceRole=source_role,
                         creditedAs=name, provenance="official_page",
                         sourceUrl=work["url"], checkedAt=now,
                     ))
                     changes += 1
         print(f"{org.name}: {len(works)} works, {changes} changes")
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID, source_items=works)
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             invalidate_public_bundle_cache()

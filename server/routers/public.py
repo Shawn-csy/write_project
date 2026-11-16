@@ -480,6 +480,13 @@ def create_public_audio_work_submission(
         createdAt=now_ms,
     )
     db.add(row)
+    db.flush()
+    from services.work_participations import replace_catalog_participants
+    try:
+        replace_catalog_participants(db, row, [p.model_dump() for p in payload.participants])
+    except ValueError as error:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(error))
     db.commit()
     background_tasks.add_task(notify_approval_request, "audio_work", {
         "id": row.id, "title": row.title, "creatorName": row.creatorName,
@@ -798,9 +805,12 @@ def _build_public_identity_context(
                 models.ExternalAuthorPageSupplement.authorKey.in_(author_keys)
             ).all()
         }
+    from services.work_participations import participations_by_persona
+    participations = participations_by_persona(db, ids)
     return {
+        "workParticipations": participations,
         "roles": roles_by_persona,
-        "productionCredits": _production_credits_by_persona(db, ids),
+        "productionCredits": {pid: [c for c in items if c["creditRole"] in models.PRODUCTION_ROLES] for pid, items in participations.items()},
         "internalScripts": internal_scripts_by_persona,
         "demos": demos_by_persona,
         "externalAuthors": external_authors_by_persona,
@@ -813,56 +823,9 @@ _CREDIT_SOURCE_ROLES = {"post_production": "post_production", "cover_art": "cove
 
 
 def _production_credits_by_persona(db: Session, persona_ids: list[str]) -> dict[str, list[dict]]:
-    """Reviewed production credits plus catalog credits whose printed name maps to the identity."""
-    result: dict[str, list[dict]] = {value: [] for value in persona_ids}
-    if not persona_ids:
-        return result
-    seen: set[tuple[str, str, str]] = set()
-    approved = models.PublicAudioWorkSubmission.status == "approved"
-
-    def add(persona_id: str, item: dict) -> None:
-        key = (persona_id, item["creditRole"], item.get("audioWorkId") or item["url"])
-        if key in seen:
-            return
-        seen.add(key)
-        result.setdefault(persona_id, []).append(item)
-
-    rows = db.query(models.PersonaCredit, models.PublicAudioWorkSubmission).outerjoin(
-        models.PublicAudioWorkSubmission, models.PublicAudioWorkSubmission.id == models.PersonaCredit.audioWorkId,
-    ).filter(models.PersonaCredit.personaId.in_(persona_ids)).order_by(models.PersonaCredit.createdAt.desc()).all()
-    for credit, work in rows:
-        if credit.audioWorkId and (work is None or work.status != "approved"):
-            continue
-        add(credit.personaId, {
-            "id": work.id if work else credit.id, "audioWorkId": credit.audioWorkId,
-            "title": (work.title if work else credit.title) or "", "url": work.url if work else credit.url,
-            "coverUrl": (work.coverUrl if work else credit.coverUrl) or "", "creditRole": credit.role,
-            "creditedAs": credit.creditedAs or "", "workType": "audio" if work else (credit.workType or "other"),
-            "publishedAt": (work.publishedAt or work.createdAt) if work else credit.createdAt,
-        })
-
-    names = db.query(models.PersonaCreditName).filter(models.PersonaCreditName.personaId.in_(persona_ids)).all()
-    owner_by_name = {(row.role, row.creditedAs): row.personaId for row in names}
-    if owner_by_name:
-        catalog = db.query(models.AudioWorkCredit, models.PublicAudioWorkSubmission).join(
-            models.PublicAudioWorkSubmission, models.PublicAudioWorkSubmission.id == models.AudioWorkCredit.audioWorkId,
-        ).filter(
-            models.AudioWorkCredit.role.in_(tuple(_CREDIT_SOURCE_ROLES)), approved,
-            models.AudioWorkCredit.creditedAs.in_({row.creditedAs for row in names}),
-        ).all()
-        for credit, work in catalog:
-            role = _CREDIT_SOURCE_ROLES[credit.role]
-            persona_id = owner_by_name.get((role, credit.creditedAs))
-            if not persona_id:
-                continue
-            add(persona_id, {
-                "id": work.id, "audioWorkId": work.id, "title": work.title or "", "url": work.url,
-                "coverUrl": work.coverUrl or "", "creditRole": role, "creditedAs": credit.creditedAs,
-                "workType": "audio", "publishedAt": work.publishedAt or work.createdAt,
-            })
-    for items in result.values():
-        items.sort(key=lambda item: item.get("publishedAt") or 0, reverse=True)
-    return result
+    from services.work_participations import participations_by_persona
+    return {pid: [c for c in items if c["creditRole"] in models.PRODUCTION_ROLES]
+            for pid, items in participations_by_persona(db, persona_ids).items()}
 
 
 def _public_identity_projection(
@@ -909,6 +872,8 @@ def _public_identity_projection(
     credited_roles = {item["creditRole"] for item in production_credits}
     roles.extend(role for role in models.PRODUCTION_ROLES if role in visible_role_names and role in credited_roles)
     result.roles = roles
+    result.workParticipations = [item for item in context.get("workParticipations", {}).get(persona.id, [])
+                                 if item["creditRole"] in roles and not (item["creditRole"] == "voice_actor" and persona.voiceActorHidden)]
     result.productionCredits = [item for item in production_credits if item["creditRole"] in roles]
 
     sources = ["persona"]

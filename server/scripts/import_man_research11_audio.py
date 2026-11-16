@@ -131,6 +131,9 @@ def main():
             ))
             changed += 1
         print(f"{org.name}: {len(works)} works, {changed} changes")
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID, source_items=[dict(work, url=work_url(work)) for work in works])
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             invalidate_public_bundle_cache()

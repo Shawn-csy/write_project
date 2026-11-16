@@ -5,6 +5,7 @@ The script is idempotent and intentionally refuses non-Dev databases.
 """
 
 import argparse
+import json
 import os
 import time
 import uuid
@@ -97,6 +98,9 @@ def main() -> None:
             ))
             changed += 1
 
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID)
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             print(f"Applied {changed} changes")

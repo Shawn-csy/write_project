@@ -1,14 +1,16 @@
 """Import reviewed production credit research into the dev catalog.
 
-Run from /app: python -m scripts.import_audio_work_credits
+Run from /app: python -m scripts.import_audio_work_credits [--apply]
 """
 
+import argparse
 import json
 import os
 import re
 from datetime import datetime
 from pathlib import Path
 
+from services.work_participations import record_source_credit
 from database import SessionLocal, engine
 from models import AudioWorkCredit, Base, PublicAudioWorkSubmission
 
@@ -47,6 +49,9 @@ def credits_for(record: dict):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--apply", action="store_true")
+    args = parser.parse_args()
     database_url = os.getenv("DATABASE_URL", "")
     if "write_project_dev" not in database_url:
         raise SystemExit("Refusing to import outside the dev database")
@@ -60,24 +65,28 @@ def main():
             work_id = record["workId"]
             if work_id not in approved:
                 continue
-            db.query(AudioWorkCredit).filter(AudioWorkCredit.audioWorkId == work_id).delete(synchronize_session=False)
             seen = set()
             for role, source_role, name, provenance in credits_for(record):
                 key = (role, name, provenance)
                 if key in seen:
                     continue
                 seen.add(key)
-                db.add(AudioWorkCredit(
+                record_source_credit(db, AudioWorkCredit(
                     audioWorkId=work_id, role=role, sourceRole=source_role,
                     creditedAs=name, provenance=provenance,
                     sourceUrl=record["sourceUrl"] if provenance == "official_page" else "",
                     checkedAt=checked_at,
                 ))
                 count += 1
-        db.commit()
-        from services.identity_convergence import converge_and_commit
-        converge_and_commit(db)
-    print(f"Imported {count} credits for {len(approved)} approved works")
+        from services.work_participations import finalize_catalog_import
+        print(json.dumps(finalize_catalog_import(db, work_ids=list(approved)), ensure_ascii=False))
+        if args.apply:
+            db.commit()
+            print("Applied to Dev database")
+        else:
+            db.rollback()
+            print("Dry run only")
+    print(f"Reviewed {count} credits for {len(approved)} approved works")
 
 
 if __name__ == "__main__":

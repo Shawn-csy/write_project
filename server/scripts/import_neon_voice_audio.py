@@ -116,6 +116,9 @@ def main() -> None:
             ))
             changed += 1
 
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID, source_items=[dict(work, url=f"https://www.dlsite.com/maniax/work/=/product_id/{work['id']}.html") for work in WORKS])
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             print(f"Applied {changed} changes")

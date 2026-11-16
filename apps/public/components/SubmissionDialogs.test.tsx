@@ -23,12 +23,15 @@ describe("public submission forms", () => {
     await user.type(screen.getByLabelText("作品名稱"), "測試音聲");
     await user.type(screen.getByLabelText("作品或試聽連結"), "https://example.com/work");
     await user.type(screen.getByLabelText("創作者／團隊"), "測試團隊");
+    await user.click(screen.getByRole("button", { name: "新增參與職務" }));
+    await user.type(screen.getByLabelText("作品署名 1"), "台本署名");
     await user.click(screen.getByRole("checkbox"));
     await user.click(screen.getByRole("button", { name: "送出審核" }));
     await waitFor(() => expect(write).toHaveBeenCalledOnce());
     expect(write.mock.calls[0][0]).toBe("/api/public-audio-work-submissions");
     expect(JSON.parse(write.mock.calls[0][1].body)).toMatchObject({
       title: "測試音聲", creatorName: "測試團隊", confirmPublic: true,
+      participants: [{ role: "scriptwriter", creditedAs: "台本署名", sourceUrl: "" }],
     });
     expect(screen.getByRole("status")).toHaveTextContent("審核通過後會公開");
   });

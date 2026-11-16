@@ -104,7 +104,7 @@ PRODUCTION_ROLES = ("post_production", "cover_art", "recording_studio")
 
 
 class PersonaCredit(Base):
-    """A reviewed production credit (post-production, cover art, recording) owned by one identity.
+    """A reviewed work/identity/role link, written through services.work_participations.
 
     A credit either points at a work in the audio catalog (audioWorkId) or
     carries its own title/url for a work outside the catalog.

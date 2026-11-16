@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkParticipantEditor, type WorkParticipantInput } from "@write/public-ui/WorkParticipantEditor";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -9,6 +10,7 @@ import { liveApi } from "@/lib/liveApi";
 const inputClass = "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-link";
 
 export function AudioWorkSubmissionDialog({ organizations = [] }: { organizations?: PublicOrg[] }) {
+  const [participants, setParticipants] = useState<WorkParticipantInput[]>([]);
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -25,6 +27,7 @@ export function AudioWorkSubmissionDialog({ organizations = [] }: { organization
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          participants,
           title: String(form.get("title") || "").trim(),
           url: String(form.get("url") || "").trim(),
           coverUrl: String(form.get("coverUrl") || "").trim(),
@@ -41,6 +44,7 @@ export function AudioWorkSubmissionDialog({ organizations = [] }: { organization
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(typeof result?.detail === "string" ? result.detail : "投稿失敗，請稍後再試。");
       setSubmitted(true);
+      setParticipants([]);
       formElement.reset();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "投稿失敗，請稍後再試。");
@@ -107,6 +111,7 @@ export function AudioWorkSubmissionDialog({ organizations = [] }: { organization
               <label className="grid gap-1 text-sm sm:col-span-2">作品介紹（選填）
                 <textarea name="description" rows={3} maxLength={2000} className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-link" />
               </label>
+              <div className="sm:col-span-2"><WorkParticipantEditor value={participants} onChange={setParticipants} disabled={isSubmitting} /></div>
               <label className="grid gap-1 text-sm sm:col-span-2">聯絡 Email（選填）
                 <input name="contactEmail" type="email" maxLength={320} className={inputClass} />
               </label>

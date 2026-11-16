@@ -135,6 +135,9 @@ def main():
             created += 1
 
         print(f"Snapshot: {len(items)} published products; create {created}, update {updated}, voice actors {created_actor}")
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID, source_items=[dict(item, url=f"{SOURCE_URL}/item/{item['id']}") for item in items])
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             from routers.public_bundle import invalidate_public_bundle_cache

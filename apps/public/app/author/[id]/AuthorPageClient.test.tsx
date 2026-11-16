@@ -39,6 +39,21 @@ describe("AuthorPageClient as the one identity page", () => {
     window.sessionStorage.clear();
   });
 
+  it("renders all confirmed roles from one participation payload", () => {
+    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
+    const persona = {
+      id: "unified", displayName: "新名稱", roles: ["scriptwriter", "voice_actor", "recording_studio"],
+      workParticipations: ["scriptwriter", "voice_actor", "recording_studio"].map((creditRole) => ({
+        id: "same-work", audioWorkId: "same-work", creditRole, title: "同一作品", url: "https://example.com/work", coverUrl: "", creditedAs: "舊署名",
+      })),
+    } as PublicPersona;
+    render(<AuthorPageClient persona={persona} scripts={[]} />);
+    for (const name of ["參與音聲台本", "音聲作品", "錄音作品"]) {
+      expect(screen.getByRole("region", { name }).textContent).toContain("同一作品");
+    }
+    window.sessionStorage.clear();
+  });
+
   it("opens the sections each role brings and hides the rest", () => {
     window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
     const persona = {

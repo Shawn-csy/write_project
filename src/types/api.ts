@@ -540,6 +540,9 @@ export interface PublicDemoSubmissionListResponse {
 }
 
 export interface PublicAudioWorkSubmissionRecord {
+  participants?: import("@write/public-ui/WorkParticipantEditor").WorkParticipantInput[];
+  unresolvedParticipantCount?: number;
+  otherSourceCredits?: Array<{ sourceRole: string; creditedAs: string; sourceUrl: string }>;
   id: string;
   title: string;
   url: string;
