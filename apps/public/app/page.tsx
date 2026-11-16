@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { GalleryClient } from "./GalleryClient";
+import { HomepageVersionSwitch as GalleryClient } from "./HomepageVersionSwitch";
 import { LiveGalleryClient } from "./LiveGalleryClient";
 import { parseGalleryUrlState } from "@write/public-ui/server";
 import { loadHomepageBundle } from "@/lib/loadHomepageBundle";

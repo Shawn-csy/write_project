@@ -1,0 +1,179 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  parseGalleryUrlState,
+  serializeGalleryUrlState,
+  mergeGalleryUrlState,
+  type PublicHomepageUrlState,
+} from "@write/public-ui/legacy-homepage";
+import type { GalleryView, GalleryViewMode, GalleryLaneMode } from "@write/public-ui/legacy-homepage";
+
+export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState };
+
+export interface GalleryUrlStateActions {
+  setView: (view: GalleryView) => void;
+  setMode: (mode: GalleryViewMode) => void;
+  setLane: (lane: GalleryLaneMode) => void;
+  setSegment: (segment: string) => void;
+  setUsage: (usage: string) => void;
+  setDemoOnly: (enabled: boolean) => void;
+  /** Uses history.replaceState — search fires on every keystroke; must not pollute history. */
+  setQ: (q: string) => void;
+  toggleTag: (tag: string) => void;
+  toggleAuthorTag: (tag: string) => void;
+  toggleOrgTag: (tag: string) => void;
+  resetFilters: () => void;
+  resetAuthorTags: () => void;
+  resetOrgTags: () => void;
+}
+
+function stateFromLocation(pathname: string, search: string): PublicHomepageUrlState {
+  const state = parseGalleryUrlState(search);
+  return pathname === "/authors" ? { ...state, view: "authors" } : state;
+}
+
+function urlForState(state: PublicHomepageUrlState): string {
+  const params = serializeGalleryUrlState(state);
+  if (state.view === "authors") params.delete("view");
+  const qs = params.toString();
+  const pathname = state.view === "authors" ? "/authors" : "/";
+  return `${pathname}${qs ? `?${qs}` : ""}`;
+}
+
+export function useGalleryUrlState(initialState: PublicHomepageUrlState): {
+  state: PublicHomepageUrlState;
+  actions: GalleryUrlStateActions;
+} {
+  // The static Pages export has no request-time searchParams. Parse the real
+  // URL after hydration so filters still work on direct links. In the normal
+  // Next deployment this matches the server-parsed initial state.
+  const [state, setClientState] = useState(initialState);
+
+  // Always points to the latest effective state. It is updated optimistically
+  // after history writes so rapid consecutive clicks merge against the latest
+  // intended URL, not the previous render's searchParams snapshot.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
+  // Initialize from the address bar and canonicalize legacy URLs once. Filter
+  // actions below keep the URL in sync, so no state-driven rewrite is needed.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const initialUrlState = stateFromLocation(window.location.pathname, window.location.search);
+    stateRef.current = initialUrlState;
+    setClientState(initialUrlState);
+    const canonicalUrl = urlForState(initialUrlState);
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (currentUrl !== canonicalUrl) {
+      window.history.replaceState(null, "", canonicalUrl);
+    }
+  }, []);
+
+  // Back/forward changes the URL without going through nav(). Re-derive state
+  // from the address bar, otherwise the UI stays on the old view and nav()'s
+  // "URL already matches" guard turns the next click on that view into a no-op.
+  useEffect(() => {
+    const onPopState = () => {
+      const next = stateFromLocation(window.location.pathname, window.location.search);
+      stateRef.current = next;
+      setClientState(next);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  const nav = useCallback(
+    (patch: Partial<PublicHomepageUrlState>, method: "push" | "replace" = "push") => {
+      const current = stateRef.current;
+      const next = mergeGalleryUrlState(current, patch);
+      const url = urlForState(next);
+
+      // Homepage filters are client-owned URL state, not route navigation.
+      // Native History API keeps interactions synchronous, avoiding App Router
+      // transition stalls. React state is updated alongside so the component
+      // re-renders without depending on useSearchParams().
+      if (typeof window === "undefined") return;
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (currentUrl === url) return;
+      if (method === "replace") {
+        window.history.replaceState(null, "", url);
+      } else {
+        window.history.pushState(null, "", url);
+      }
+      stateRef.current = next;
+      setClientState(next);
+    },
+    []
+  );
+
+  const setView = useCallback((view: GalleryView) => nav({ view }), [nav]);
+  const setMode = useCallback((mode: GalleryViewMode) => nav({ mode }), [nav]);
+  const setLane = useCallback((lane: GalleryLaneMode) => nav({ lane }), [nav]);
+  const setSegment = useCallback((segment: string) => nav({ segment }), [nav]);
+  const setUsage = useCallback((usage: string) => nav({ usage: usage as "all" | "commercial" }), [nav]);
+  const setDemoOnly = useCallback((demoOnly: boolean) => nav({ demoOnly }), [nav]);
+  const setQ = useCallback((q: string) => nav({ q }, "replace"), [nav]);
+
+  const toggleTag = useCallback(
+    (tag: string) => {
+      const current = stateRef.current;
+      const tags = current.tags.includes(tag)
+        ? current.tags.filter((t) => t !== tag)
+        : [...current.tags, tag];
+      nav({ tags });
+    },
+    [nav]
+  );
+
+  const toggleAuthorTag = useCallback(
+    (tag: string) => {
+      const current = stateRef.current;
+      const authorTags = current.authorTags.includes(tag)
+        ? current.authorTags.filter((t) => t !== tag)
+        : [...current.authorTags, tag];
+      nav({ authorTags });
+    },
+    [nav]
+  );
+
+  const toggleOrgTag = useCallback(
+    (tag: string) => {
+      const current = stateRef.current;
+      const orgTags = current.orgTags.includes(tag)
+        ? current.orgTags.filter((t) => t !== tag)
+        : [...current.orgTags, tag];
+      nav({ orgTags });
+    },
+    [nav]
+  );
+
+  const resetFilters = useCallback(
+    () => nav({ tags: [], authorTags: [], orgTags: [], usage: "all", demoOnly: false, segment: "all", q: "" }),
+    [nav]
+  );
+
+  const resetAuthorTags = useCallback(() => nav({ authorTags: [] }), [nav]);
+  const resetOrgTags = useCallback(() => nav({ orgTags: [] }), [nav]);
+
+  const actions: GalleryUrlStateActions = useMemo(
+    () => ({
+      setView,
+      setMode,
+      setLane,
+      setSegment,
+      setUsage,
+      setDemoOnly,
+      setQ,
+      toggleTag,
+      toggleAuthorTag,
+      toggleOrgTag,
+      resetFilters,
+      resetAuthorTags,
+      resetOrgTags,
+    }),
+    [setView, setMode, setLane, setSegment, setUsage, setDemoOnly, setQ, toggleTag, toggleAuthorTag, toggleOrgTag, resetFilters, resetAuthorTags, resetOrgTags]
+  );
+
+  return { state, actions };
+}

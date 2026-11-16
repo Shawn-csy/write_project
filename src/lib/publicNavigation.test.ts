@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { _buildPublicHref, getPublicHref, openPublicPath } from "./publicNavigation";
 
 // _buildPublicHref is a pure fn — test without any env mocking.
@@ -34,11 +34,11 @@ describe("_buildPublicHref", () => {
   });
 });
 
-// getPublicHref: in test env VITE_PUBLIC_BASE_URL is not set → falls back to relative path.
+// getPublicHref: in test env VITE_PUBLIC_BASE_URL is not set → falls back to the paired public origin.
 describe("getPublicHref", () => {
-  it("returns relative path in test env (no VITE_PUBLIC_BASE_URL)", () => {
-    expect(getPublicHref("/read/abc")).toBe("/read/abc");
-    expect(getPublicHref("/author/u123")).toBe("/author/u123");
+  it("uses the production public domain when no override is configured", () => {
+    expect(getPublicHref("/read/abc")).toBe("https://open-scripts.shawnup.com/read/abc");
+    expect(getPublicHref("/author/u123")).toBe("https://open-scripts.shawnup.com/author/u123");
   });
 });
 
@@ -50,7 +50,7 @@ describe("openPublicPath", () => {
     originalLocation = window.location;
     Object.defineProperty(window, "location", {
       writable: true,
-      value: { href: "" },
+      value: { href: "", hostname: "studio-open-scripts.shawnup.com" },
     });
   });
 
@@ -63,16 +63,28 @@ describe("openPublicPath", () => {
 
   it("sets window.location.href to the public path", () => {
     openPublicPath("/author/u123");
-    expect(window.location.href).toBe("/author/u123");
+    expect(window.location.href).toBe("https://open-scripts.shawnup.com/author/u123");
   });
 
   it("sets window.location.href for root handoff", () => {
     openPublicPath("/");
-    expect(window.location.href).toBe("/");
+    expect(window.location.href).toBe("https://open-scripts.shawnup.com/");
+  });
+
+  it("pairs the development studio with the development public site", () => {
+    Object.defineProperty(window, "location", { configurable: true, writable: true, value: { href: "", hostname: "studio-dev-open-scripts.shawnup.com" } });
+    openPublicPath("/");
+    expect(window.location.href).toBe("https://dev-open-scripts.shawnup.com/");
+  });
+
+  it("preserves an explicit public-site override", () => {
+    vi.stubEnv("VITE_PUBLIC_BASE_URL", "http://localhost:3100/");
+    try { expect(getPublicHref("/read/example")).toBe("http://localhost:3100/read/example"); }
+    finally { vi.unstubAllEnvs(); }
   });
 
   it("sets window.location.href for read path", () => {
     openPublicPath("/read/script-abc");
-    expect(window.location.href).toBe("/read/script-abc");
+    expect(window.location.href).toBe("https://open-scripts.shawnup.com/read/script-abc");
   });
 });

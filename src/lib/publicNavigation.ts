@@ -1,18 +1,6 @@
-/**
- * publicNavigation.ts
- *
- * Single handoff point from Vite SPA → Next.js public app.
- *
- * In production, nginx routes public paths (/, /read/*, /author/*, etc.) to
- * the Next.js container on the same origin, so relative paths work fine.
- *
- * For split-domain deployments or local dev pointing at a separate Next.js
- * origin, set VITE_PUBLIC_BASE_URL (e.g. "https://public.example.com").
- * The helper then produces absolute URLs so every handoff lands on Next.
- *
- * All Vite → Next navigation MUST go through these functions.
- * Never use window.location.href = "/..." directly for public routes.
- */
+import { publicSiteOrigin } from "./publicSiteUrl";
+
+/** Cross-domain handoff from the studio to its matching public site. */
 
 /**
  * Pure core — exported for unit testing without env mocking.
@@ -30,11 +18,7 @@ export function _buildPublicHref(base: string, path: string): string {
  * both are normalized by _buildPublicHref.
  */
 export function getPublicHref(path: string): string {
-  const base =
-    (typeof import.meta !== "undefined" &&
-      (import.meta as { env?: { VITE_PUBLIC_BASE_URL?: string } }).env
-        ?.VITE_PUBLIC_BASE_URL) ||
-    "";
+  const base = import.meta.env.VITE_PUBLIC_BASE_URL || publicSiteOrigin();
   return _buildPublicHref(base, path);
 }
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { HOMEPAGE_BUNDLE_SECTIONS, parseHomepageBundle, type HomepageBundle, type HomepageBundleResponse } from "@/lib/homepageBundle";
-import { GalleryClient } from "./GalleryClient";
+import { HomepageVersionSwitch as GalleryClient } from "./HomepageVersionSwitch";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
 
 interface Props extends HomepageBundle {

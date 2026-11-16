@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./public-date": "./src/publicDate.ts",
     "./server": "./src/server.ts",
-    "./PublicShellTopBar": "./src/gallery/PublicShellTopBar.tsx"
+    "./PublicShellTopBar": "./src/gallery/PublicShellTopBar.tsx",
+    "./legacy-homepage": "./src/legacy-homepage/index.ts"
   },
   "peerDependencies": {
     "react": ">=18",

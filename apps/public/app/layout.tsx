@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "@/components/legacy-homepage/legacy.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { MediaFallbackBridge } from "@/components/MediaFallbackBridge";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE } from "@/lib/seo";
