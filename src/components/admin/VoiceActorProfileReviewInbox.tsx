@@ -13,24 +13,24 @@ type SectionKey = "profile" | "organizations" | "works" | "contributors";
 type PageVersion = "current" | "proposal";
 const fieldLabels: Record<FieldKey, string> = {
   displayName: "公開名稱", bio: "個人介紹", avatar: "頭像圖片", website: "個人網站",
-  links: "社群連結", organizations: "所屬團體", works: "參演作品", contributorName: "公開協力者名稱",
+  links: "社群連結", organizations: "所屬團體", works: "參與作品", contributorName: "公開協力者名稱",
 };
 const sectionConfig: Array<{ key: SectionKey; label: string; fields: FieldKey[] }> = [
   { key: "profile", label: "個人頁首與介紹", fields: ["displayName", "bio", "avatar", "website", "links"] },
   { key: "organizations", label: "所屬團體", fields: ["organizations"] },
-  { key: "works", label: "參演作品", fields: ["works"] },
+  { key: "works", label: "參與作品", fields: ["works"] },
   { key: "contributors", label: "資料協力者", fields: ["contributorName"] },
 ];
 const fieldKeys = Object.keys(fieldLabels) as FieldKey[];
 const PROFILE_FIELDS: FieldKey[] = ["displayName", "bio", "avatar", "website", "links"];
 /** Fields each kind of proposal may change; production proposals add credited works, never replace them. */
 const KIND_FIELDS: Record<NonNullable<VoiceActorProfileSubmission["profileKind"]>, FieldKey[]> = {
-  author: PROFILE_FIELDS,
+  author: [...PROFILE_FIELDS, "works"],
   voice_actor: fieldKeys,
   production: [...PROFILE_FIELDS, "works", "contributorName"],
 };
 const KIND_LABELS: Record<NonNullable<VoiceActorProfileSubmission["profileKind"]>, string> = { author: "作者", voice_actor: "聲演", production: "製作" };
-const CREDIT_ROLE_LABELS: Record<string, string> = { post_production: "後製", cover_art: "封面", recording_studio: "錄音室" };
+const CREDIT_ROLE_LABELS: Record<string, string> = { scriptwriter: "台本師", voice_actor: "聲演", post_production: "後製", cover_art: "封面", recording_studio: "錄音室" };
 
 function getChangedFields(item: VoiceActorProfileSubmission): FieldKey[] {
   const before = item.currentProfile || {};
@@ -72,7 +72,7 @@ function PagePreview({ item, version }: { item: VoiceActorProfileSubmission; ver
         {links.map((link, index) => <a key={`${link.label}-${index}`} className="inline-flex items-center gap-1 text-primary hover:underline" href={link.url} target="_blank" rel="noopener noreferrer">{link.label || "社群連結"}<ExternalLink className="h-3 w-3" /></a>)}
       </div>}
       {!isAuthor && organizations.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><div className="mb-2 flex items-center gap-2"><h3 className="font-semibold">所屬團體</h3><Badge variant="secondary" className="text-[10px]">{organizations.length}</Badge></div><div className="grid gap-2 sm:grid-cols-2">{organizations.map((org, index) => <div key={`${org.name}-${index}`} className="rounded-lg border border-border/70 bg-muted/20 p-3"><p className="text-sm font-medium">{org.name || "未命名團體"}</p>{org.url && <a className="mt-1 inline-flex items-center gap-1 break-all text-xs text-primary hover:underline" href={org.url} target="_blank" rel="noopener noreferrer">{org.url}<ExternalLink className="h-3 w-3 shrink-0" /></a>}</div>)}</div></section>}
-      {!isAuthor && works.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><div className="mb-2 flex items-center gap-2"><h3 className="font-semibold">{item.profileKind === "production" ? (version === "proposal" ? "新增參與作品" : "參與作品") : "參演作品"}</h3><Badge variant="secondary" className="text-[10px]">{works.length}</Badge></div><div className="grid gap-3 sm:grid-cols-2">{works.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/70 bg-muted/10">{work.coverUrl && <img src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} className="aspect-video w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />}<div className="p-3"><h4 className="text-sm font-semibold">{work.title || "未命名作品"}</h4>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.creditRole && <p className="mt-1 text-xs text-muted-foreground">負責：{CREDIT_ROLE_LABELS[String(work.creditRole)] || String(work.creditRole)}</p>}{work.description && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{work.description}</p>}{work.url && <a className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline" href={work.url} target="_blank" rel="noopener noreferrer">查看作品<ExternalLink className="h-3 w-3" /></a>}</div></article>)}</div></section>}
+      {works.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><div className="mb-2 flex items-center gap-2"><h3 className="font-semibold">{version === "proposal" ? "提議參與作品" : "參與作品"}</h3><Badge variant="secondary" className="text-[10px]">{works.length}</Badge></div><div className="grid gap-3 sm:grid-cols-2">{works.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/70 bg-muted/10">{work.coverUrl && <img src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} className="aspect-video w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />}<div className="p-3"><h4 className="text-sm font-semibold">{work.title || "未命名作品"}</h4>{(work.characterName || work.role) && <p className="mt-1 text-xs text-muted-foreground">角色：{String(work.characterName || work.role)}</p>}{work.creditRole && <p className="mt-1 text-xs text-muted-foreground">負責：{CREDIT_ROLE_LABELS[String(work.creditRole)] || String(work.creditRole)}</p>}{work.description && <p className="mt-1 whitespace-pre-wrap text-xs text-muted-foreground">{work.description}</p>}{work.url && <a className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline" href={work.url} target="_blank" rel="noopener noreferrer">查看作品<ExternalLink className="h-3 w-3" /></a>}</div></article>)}</div></section>}
       {!isAuthor && collaborators.length > 0 && <section className="mt-6 border-t border-border/70 pt-4"><h3 className="font-semibold">資料協力者</h3><div className="mt-2 flex flex-wrap gap-2">{collaborators.map((person, index) => <span key={`${person.name}-${index}`} className="rounded-full border border-border bg-muted/20 px-3 py-1 text-xs">{person.name}</span>)}</div></section>}
       {!profile.bio && !profile.website && !links.length && (isAuthor || (!organizations.length && !works.length && !collaborators.length)) && <p className="mt-5 rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">這個頁面目前還沒有補充其他資料。</p>}
     </div>

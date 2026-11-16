@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Building2, BriefcaseBusiness, Clapperboard, Link2, Plus, Trash2, UserRound } from "lucide-react";
-import { PublicImage } from "@/components/PublicImage";
+import { Building2, Clapperboard, Link2, Plus, Trash2, UserRound } from "lucide-react";
 import { liveApi } from "@/lib/liveApi";
-import type { ProductionRole, PublicPersona } from "@/lib/types";
+import type { ProductionRole, PublicIdentityRole, PublicPersona } from "@/lib/types";
 import { ROLE_LABELS, type ProfileFormKind } from "./identityRoles";
 
 /**
  * One edit form for every identity. The shared fields (name, avatar, bio,
  * website, links) are always present; each data kind adds its own block:
- * voice actors list groups and appearances, production people add credited works.
+ * all roles add credited works; voice actors can also list groups.
  * Every kind goes to the same moderated submission endpoint.
  */
 
@@ -38,12 +37,11 @@ function parseLinks(links: PublicPersona["links"]): Array<{ url?: string; label?
   return [];
 }
 
-type ProductionWorkDraft = { title: string; url: string; creditRole: ProductionRole; workType: string; coverUrl: string };
+type ParticipationWorkDraft = { title: string; url: string; creditRole: PublicIdentityRole; workType: string; coverUrl: string; characterName: string; description: string };
 
 function createForm(persona: PublicPersona, productionRoles: ProductionRole[]) {
   const links = parseLinks(persona.links);
   const organizations = persona.voiceActorOrganizations || [];
-  const works = persona.voiceActorWorks || [];
   return {
     displayName: persona.displayName || "",
     submitterName: "",
@@ -54,8 +52,7 @@ function createForm(persona: PublicPersona, productionRoles: ProductionRole[]) {
     website: persona.website || "",
     links: links.map((link) => ({ label: link.label || "", url: link.url || "" })).concat(links.length ? [] : [{ label: "", url: "" }]),
     organizations: organizations.map((item) => ({ name: item.name || "", url: item.url || "" })).concat(organizations.length ? [] : [{ name: "", url: "" }]),
-    works: works.map((item) => ({ title: item.title || "", role: item.role || "", url: item.url || "", coverUrl: item.coverUrl || "" })).concat(works.length ? [] : [{ title: "", role: "", url: "", coverUrl: "" }]),
-    productionWorks: [{ title: "", url: "", creditRole: productionRoles[0] ?? "post_production", workType: "audio", coverUrl: "" }] as ProductionWorkDraft[],
+    participationWorks: [{ title: "", url: "", creditRole: productionRoles[0] ?? "post_production", workType: "audio", coverUrl: "", characterName: "", description: "" }] as ParticipationWorkDraft[],
   };
 }
 
@@ -93,16 +90,15 @@ export function IdentityProfileForm({ persona, fallback, kinds, productionRoles,
     try {
       const links = form.links.filter((item) => item.label.trim() || item.url.trim()).map((item) => ({ label: item.label.trim(), url: item.url.trim() }));
       const organizations = kind === "voice_actor" ? form.organizations.filter((item) => item.name.trim() || item.url.trim()).map((item) => ({ name: item.name.trim(), url: item.url.trim() })) : [];
-      const works = kind === "voice_actor"
-        ? form.works.filter((item) => item.title.trim() || item.role.trim() || item.url.trim() || item.coverUrl.trim()).map((item) => ({ title: item.title.trim(), role: item.role.trim(), url: item.url.trim(), coverUrl: item.coverUrl.trim() }))
-        : kind === "production"
-          ? form.productionWorks.filter((item) => item.title.trim() || item.url.trim()).map((item) => ({ ...item, title: item.title.trim(), url: item.url.trim(), coverUrl: item.coverUrl.trim() }))
-          : [];
+      const works = form.participationWorks.filter((item) => item.title.trim() || item.url.trim()).map((item) => ({
+        ...item, creditRole: kind === "author" ? "scriptwriter" : kind === "voice_actor" ? "voice_actor" : item.creditRole,
+        title: item.title.trim(), url: item.url.trim(), coverUrl: item.coverUrl.trim(),
+      }));
       const response = await liveApi.write("/api/voice-actor-profile-submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          personaId: persona.id, profileKind: kind,
+          personaId: persona.id, profileKind: kind, workFormat: "participation-v1",
           displayName: form.displayName, submitterName: form.submitterName, contactEmail: form.contactEmail,
           contributorName: needsContributor ? form.contributorName : "",
           bio: form.bio, avatar: form.avatar, website: form.website, links, organizations, works,
@@ -163,29 +159,23 @@ export function IdentityProfileForm({ persona, fallback, kinds, productionRoles,
         <div className="grid gap-2 sm:grid-cols-2">{form.organizations.map((org, index) => <div key={`org-${index}`} className="rounded-lg border border-border bg-background p-2.5"><div className="flex gap-2"><input aria-label={`團體名稱 ${index + 1}`} value={org.name} onChange={(e) => setForm({ ...form, organizations: form.organizations.map((item, i) => i === index ? { ...item, name: e.target.value } : item) })} placeholder="團體名稱" className={`${inputClass} min-w-0 font-medium`} /><button type="button" aria-label="移除團體" onClick={() => setForm({ ...form, organizations: form.organizations.filter((_, i) => i !== index) })} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></div><input aria-label={`團體網址 ${index + 1}`} value={org.url} onChange={(e) => setForm({ ...form, organizations: form.organizations.map((item, i) => i === index ? { ...item, url: e.target.value } : item) })} placeholder="團體網站或社群（選填）" className={`${inputClass} mt-2 h-8 border-transparent bg-transparent px-1 text-xs`} /></div>)}</div>
       </section>}
 
-      {kind === "voice_actor" && <section className="border-t border-border pt-4">
-        <div className="mb-3 flex items-center justify-between gap-2"><div><h3 className="flex items-center gap-2 text-sm font-semibold"><BriefcaseBusiness className="h-4 w-4 text-link" />參演作品</h3><p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">作品會以清單卡片顯示在你的公開頁。</p></div><button type="button" onClick={() => setForm({ ...form, works: [...form.works, { title: "", role: "", url: "", coverUrl: "" }] })} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs hover:bg-muted"><Plus className="h-3.5 w-3.5" />新增作品</button></div>
-        <div className="grid gap-2 sm:grid-cols-2">{form.works.map((work, index) => <div key={`work-${index}`} className="overflow-hidden rounded-lg border border-border bg-background">
-          {work.coverUrl && <div className="relative aspect-video overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "作品"}封面預覽`} preset="script-cover" /></div>}
-          <div className="p-3"><div className="flex items-start gap-2"><div className="min-w-0 flex-1"><input aria-label={`作品名稱 ${index + 1}`} value={work.title} onChange={(e) => setForm({ ...form, works: form.works.map((item, i) => i === index ? { ...item, title: e.target.value } : item) })} placeholder="作品／台本名稱" className={`${inputClass} border-transparent bg-transparent px-1 font-semibold`} /><input aria-label={`參演角色 ${index + 1}`} value={work.role} onChange={(e) => setForm({ ...form, works: form.works.map((item, i) => i === index ? { ...item, role: e.target.value } : item) })} placeholder="參演角色或補充（選填）" className={`${inputClass} mt-1 h-8 border-transparent bg-transparent px-1 text-xs`} /></div><button type="button" aria-label="移除參演作品" onClick={() => setForm({ ...form, works: form.works.filter((_, i) => i !== index) })} className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></div><input aria-label={`作品網址 ${index + 1}`} value={work.url} onChange={(e) => setForm({ ...form, works: form.works.map((item, i) => i === index ? { ...item, url: e.target.value } : item) })} placeholder="作品連結（選填）" className={`${inputClass} mt-2 h-8 border-transparent bg-transparent px-1 text-xs`} /><label className="mt-2 block space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">封面圖片網址<input type="text" inputMode="url" aria-label={`封面圖片網址 ${index + 1}`} value={work.coverUrl} onChange={(e) => setForm({ ...form, works: form.works.map((item, i) => i === index ? { ...item, coverUrl: e.target.value } : item) })} placeholder="https://… 或 /media/…" className={`${inputClass} h-8 px-2 text-xs`} /></label></div>
-        </div>)}</div>
-      </section>}
-
-      {kind === "production" && <section className="border-t border-border pt-4">
-        <div className="mb-3 flex items-center justify-between gap-2"><div><h3 className="flex items-center gap-2 text-sm font-semibold"><Clapperboard className="h-4 w-4 text-link" />新增參與作品</h3><p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">核准後加入公開頁；已收錄的作品不必重填。</p></div><button type="button" onClick={() => setForm({ ...form, productionWorks: [...form.productionWorks, { title: "", url: "", creditRole: productionRoles[0], workType: "audio", coverUrl: "" }] })} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs hover:bg-muted"><Plus className="h-3.5 w-3.5" />新增作品</button></div>
-        <div className="grid gap-2 sm:grid-cols-2">{form.productionWorks.map((work, index) => {
-          const update = (patch: Partial<ProductionWorkDraft>) => setForm({ ...form, productionWorks: form.productionWorks.map((item, i) => i === index ? { ...item, ...patch } : item) });
-          return <div key={`production-${index}`} className="space-y-2 rounded-lg border border-border bg-background p-3">
-            <div className="flex items-start gap-2"><input aria-label={`參與作品名稱 ${index + 1}`} value={work.title} onChange={(e) => update({ title: e.target.value })} placeholder="作品名稱" className={`${inputClass} min-w-0 font-semibold`} /><button type="button" aria-label="移除參與作品" onClick={() => setForm({ ...form, productionWorks: form.productionWorks.filter((_, i) => i !== index) })} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></div>
+      <section className="border-t border-border pt-4">
+        <div className="mb-3 flex items-center justify-between gap-2"><div><h3 className="flex items-center gap-2 text-sm font-semibold"><Clapperboard className="h-4 w-4 text-link" />新增參與作品</h3><p className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">核准後加入公開頁；已收錄的作品不必重填。</p></div><button type="button" onClick={() => setForm({ ...form, participationWorks: [...form.participationWorks, { title: "", url: "", creditRole: productionRoles[0] ?? "post_production", workType: "audio", coverUrl: "", characterName: "", description: "" }] })} className="inline-flex h-8 items-center gap-1 rounded-md border border-border px-2.5 text-xs hover:bg-muted"><Plus className="h-3.5 w-3.5" />新增作品</button></div>
+        <div className="grid gap-2 sm:grid-cols-2">{form.participationWorks.map((work, index) => {
+          const update = (patch: Partial<ParticipationWorkDraft>) => setForm({ ...form, participationWorks: form.participationWorks.map((item, i) => i === index ? { ...item, ...patch } : item) });
+          return <div key={`participation-${index}`} className="space-y-2 rounded-lg border border-border bg-background p-3">
+            <div className="flex items-start gap-2"><input aria-label={`參與作品名稱 ${index + 1}`} value={work.title} onChange={(e) => update({ title: e.target.value })} placeholder="作品名稱" className={`${inputClass} min-w-0 font-semibold`} /><button type="button" aria-label="移除參與作品" onClick={() => setForm({ ...form, participationWorks: form.participationWorks.filter((_, i) => i !== index) })} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="h-3.5 w-3.5" /></button></div>
             <input aria-label={`參與作品網址 ${index + 1}`} value={work.url} onChange={(e) => update({ url: e.target.value })} placeholder="作品連結" className={`${inputClass} h-8 text-xs`} />
             <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">負責項目<select aria-label={`負責項目 ${index + 1}`} value={work.creditRole} onChange={(e) => update({ creditRole: e.target.value as ProductionRole })} className={`${inputClass} h-8 px-2 text-xs`}>{productionRoles.map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}</select></label>
+              <label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">負責項目<select aria-label={`負責項目 ${index + 1}`} value={kind === "author" ? "scriptwriter" : kind === "voice_actor" ? "voice_actor" : work.creditRole} onChange={(e) => update({ creditRole: e.target.value as PublicIdentityRole })} className={`${inputClass} h-8 px-2 text-xs`}>{(kind === "author" ? ["scriptwriter"] as const : kind === "voice_actor" ? ["voice_actor"] as const : productionRoles).map((role) => <option key={role} value={role}>{ROLE_LABELS[role]}</option>)}</select></label>
               <label className="space-y-1 [font-size:var(--public-font-caption)] text-muted-foreground">作品類型<select aria-label={`作品類型 ${index + 1}`} value={work.workType} onChange={(e) => update({ workType: e.target.value })} className={`${inputClass} h-8 px-2 text-xs`}>{WORK_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
             </div>
+            {kind === "voice_actor" && <input aria-label={`參演角色 ${index + 1}`} value={work.characterName} onChange={(e) => update({ characterName: e.target.value })} placeholder="參演角色（選填）" className={inputClass} />}
+            <textarea aria-label={`作品說明 ${index + 1}`} value={work.description} onChange={(e) => update({ description: e.target.value })} placeholder="作品說明（選填）" className={areaClass} />
             <input aria-label={`參與作品封面網址 ${index + 1}`} value={work.coverUrl} onChange={(e) => update({ coverUrl: e.target.value })} placeholder="封面圖片網址（選填）" className={`${inputClass} h-8 text-xs`} />
           </div>;
         })}</div>
-      </section>}
+      </section>
 
       <section className="rounded-lg border border-border p-3">
         <h3 className="mb-2 text-xs font-semibold">資料補充者與審核聯絡方式</h3>

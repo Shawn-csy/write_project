@@ -557,3 +557,31 @@ def test_admin_direct_additions_require_admin_and_attach_demo_to_script(client, 
     assert demo.json()["demoName"] == "新增試聽"
     db_session.expire_all()
     assert "https://example.com/admin-demo" in db_session.query(ExternalPublicScript).filter_by(id="admin-demo-source").one().demoLinks
+
+
+@pytest.mark.parametrize('kind,role,owned', [('author', 'scriptwriter', False), ('voice_actor', 'voice_actor', False), ('voice_actor', 'voice_actor', True)])
+def test_author_and_voice_participation_proposals_use_reviewed_common_writes(client, db_session, kind, role, owned):
+    import models
+    person = Persona(id='unified-profile', displayName='作者聲演', tags=['聲演'], ownerId='admin-owner' if owned else None)
+    db_session.add(person)
+    db_session.flush()
+    db_session.add(models.PersonaRole(personaId=person.id, role=role, isVisible=True))
+    db_session.commit()
+    payload = dict(personaId=person.id, profileKind=kind, workFormat='participation-v1', displayName=person.displayName,
+                   submitterName='補充者', contactEmail='a@example.com', contributorName='補充者',
+                   works=[dict(title='遊戲甲', url='https://example.com/game', creditRole=role, workType='game', characterName='主角', description='說明')])
+    invalid = {**payload, 'works': [{**payload['works'][0], 'creditRole': 'recording_studio'}]}
+    assert client.post('/api/voice-actor-profile-submissions', json=invalid).status_code == 400
+    created = client.post('/api/voice-actor-profile-submissions', json=payload)
+    assert created.status_code == 200, created.text
+    assert not client.get(f'/api/public-personas/{person.id}').json()['workParticipations']
+    path = f"/api/voice-actor-profile-submissions/{created.json()['submissionId']}/owner-status" if owned else f"/api/admin/voice-actor-profile-submissions/{created.json()['submissionId']}/status"
+    approved = client.patch(path,
+                            json=dict(status='approved', acceptedFields=['works']), headers={'X-User-ID': 'admin-owner'})
+    assert approved.status_code == 200, approved.text
+    result = client.get(f'/api/public-personas/{person.id}').json()['workParticipations']
+    assert len(result) == 1
+    assert result[0]['creditRole'] == role
+    assert result[0]['workType'] == 'game'
+    assert result[0]['characterName'] == '主角'
+    assert result[0]['description'] == '說明'

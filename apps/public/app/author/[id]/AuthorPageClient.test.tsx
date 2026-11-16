@@ -35,20 +35,21 @@ describe("AuthorPageClient as the one identity page", () => {
     } as PublicAudioWork]} />);
     expect(screen.getByRole("region", { name: "音聲委託參考價" }).textContent).toContain("每字 $2");
     expect(screen.getByRole("link", { name: /查看收費標準來源/ }).getAttribute("href")).toBe("https://ci-en.dlsite.com/example");
-    expect(screen.getByRole("region", { name: "參與音聲台本" }).textContent).toContain("音聲台本甲");
+    expect(screen.getByRole("region", { name: "參與台本作品" }).textContent).toContain("音聲台本甲");
     window.sessionStorage.clear();
   });
 
   it("renders all confirmed roles from one participation payload", () => {
     window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
     const persona = {
-      id: "unified", displayName: "新名稱", roles: ["scriptwriter", "voice_actor", "recording_studio"],
+      id: "unified", displayName: "新名稱", voiceActorWorks: [{ title: "舊清單不重複", url: "https://example.com/work" }], roles: ["scriptwriter", "voice_actor", "recording_studio"],
       workParticipations: ["scriptwriter", "voice_actor", "recording_studio"].map((creditRole) => ({
         id: "same-work", audioWorkId: "same-work", creditRole, title: "同一作品", url: "https://example.com/work", coverUrl: "", creditedAs: "舊署名",
       })),
     } as PublicPersona;
     render(<AuthorPageClient persona={persona} scripts={[]} />);
-    for (const name of ["參與音聲台本", "音聲作品", "錄音作品"]) {
+    expect(screen.queryByText("舊清單不重複")).toBeNull();
+    for (const name of ["參與台本作品", "參演作品", "錄音作品"]) {
       expect(screen.getByRole("region", { name }).textContent).toContain("同一作品");
     }
     window.sessionStorage.clear();
@@ -70,26 +71,29 @@ describe("AuthorPageClient as the one identity page", () => {
     window.sessionStorage.clear();
   });
 
-  it("proposes production works through the shared profile submission", async () => {
+  it.each([
+    ["production", "recording_studio"], ["author", "scriptwriter"], ["voice_actor", "voice_actor"],
+  ] as const)("proposes %s works through the shared profile submission", async (kind, role) => {
     const { liveApi } = await import("@/lib/liveApi");
     const read = vi.spyOn(liveApi, "readJson").mockRejectedValue(new Error("offline"));
     const write = vi.spyOn(liveApi, "write").mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
     try {
-      const persona = { id: "studio", displayName: "錄音室甲", roles: ["recording_studio"], productionCredits: [] } as PublicPersona;
+      const persona = { id: "studio", displayName: "錄音室甲", roles: [role], productionCredits: [] } as PublicPersona;
       render(<AuthorPageClient persona={persona} scripts={[]} />);
       fireEvent.click(screen.getByRole("button", { name: "更新資料" }));
       fireEvent.change(screen.getByLabelText("參與作品名稱 1"), { target: { value: "新遊戲" } });
       fireEvent.change(screen.getByLabelText("參與作品網址 1"), { target: { value: "https://example.com/game" } });
       fireEvent.change(screen.getByLabelText("作品類型 1"), { target: { value: "game" } });
-      fireEvent.change(screen.getByLabelText(/資料補充者名稱/), { target: { value: "協作者" } });
+      if (kind !== "author") fireEvent.change(screen.getByLabelText(/資料補充者名稱/), { target: { value: "協作者" } });
       fireEvent.change(screen.getByLabelText("聯絡姓名（不公開）"), { target: { value: "協作者" } });
       fireEvent.change(screen.getByLabelText("聯絡 Email（不公開）"), { target: { value: "a@example.com" } });
       fireEvent.click(screen.getByRole("button", { name: "送交審核" }));
       await waitFor(() => expect(write).toHaveBeenCalledOnce());
       expect(write.mock.calls[0][0]).toBe("/api/voice-actor-profile-submissions");
       const body = JSON.parse(String(write.mock.calls[0][1]?.body));
-      expect(body.profileKind).toBe("production");
-      expect(body.works).toEqual([{ title: "新遊戲", url: "https://example.com/game", creditRole: "recording_studio", workType: "game", coverUrl: "" }]);
+      expect(body.profileKind).toBe(kind);
+      expect(body.workFormat).toBe("participation-v1");
+      expect(body.works).toEqual([{ title: "新遊戲", url: "https://example.com/game", creditRole: role, workType: "game", coverUrl: "", characterName: "", description: "" }]);
       expect(await screen.findByRole("status")).toBeTruthy();
     } finally {
       read.mockRestore();

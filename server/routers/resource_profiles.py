@@ -62,9 +62,8 @@ def _publish_new_identity(db: Session, row: models.ProductionResourceSubmission,
     converger.add_contributors(persona, [{"name": row.submitterName, "contributedAt": now}])
     converger.ensure_role(persona.id, category, "resource_submission")
     if category == "voice_actor":
-        existing = [item for item in (persona.voiceActorWorks or []) if isinstance(item, dict)]
-        persona.voiceActorWorks = [*existing, *({"title": item.get("title") or "", "role": item.get("role") or "",
-                                                 "url": item["url"], "coverUrl": item.get("coverUrl") or ""} for item in works)][:50]
+        from services.work_participations import apply_profile_participations
+        apply_profile_participations(db, persona, [dict(item, creditRole='voice_actor', characterName=item.get('role') or '') for item in works])
         return persona.id
     converger.ensure_credit_name(persona.id, category, name)
     for work in works:

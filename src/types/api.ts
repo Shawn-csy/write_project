@@ -580,7 +580,7 @@ export interface VoiceActorProfileSubmission {
     website?: string;
     links?: Array<{ label?: string; url?: string }>;
     organizations?: Array<{ name?: string; url?: string }>;
-    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string; creditRole?: string; workType?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string; creditRole?: string; workType?: string; characterName?: string }>;
   };
   acceptedFields?: string[];
   profile: {
@@ -591,7 +591,7 @@ export interface VoiceActorProfileSubmission {
     website?: string;
     links?: Array<{ label?: string; url?: string }>;
     organizations?: Array<{ name?: string; url?: string }>;
-    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string; creditRole?: string; workType?: string }>;
+    works?: Array<{ title?: string; role?: string; url?: string; coverUrl?: string; description?: string; creditRole?: string; workType?: string; characterName?: string }>;
   };
   status: "pending" | "approved" | "rejected";
   reviewNote?: string;

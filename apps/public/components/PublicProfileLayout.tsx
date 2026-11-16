@@ -36,10 +36,11 @@ export function PublicProfileSection({ title, count, children }: { title: string
 }
 
 export function PublicProfileWorkCard({ title, url, coverUrl, subtitle, workType }: { title: string; url: string; coverUrl?: string | null; subtitle?: string; workType?: "audio" | "game" | "video" | "other" }) {
-  return <a href={url} target="_blank" rel="noopener noreferrer" className="group block" aria-label={`前往作品：${title}`}>
+  const Container = url ? "a" : "article";
+  return <Container {...(url ? { href: url, target: "_blank", rel: "noopener noreferrer", "aria-label": `前往作品：${title}` } : {})} className="group block">
     <div className="relative aspect-[4/3] overflow-hidden rounded-sm border border-border bg-muted group-hover:opacity-90">
       {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /> : workType === "game" ? <Gamepad2 className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden /> : workType === "video" ? <Clapperboard className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden /> : workType === "other" ? <FileText className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden /> : <Headphones className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden />}
     </div>
     <div className="pt-2"><h3 className="line-clamp-2 text-sm font-bold group-hover:text-link group-hover:underline">{title}</h3>{subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}</div>
-  </a>;
+  </Container>;
 }

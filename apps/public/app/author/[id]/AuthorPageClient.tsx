@@ -2,7 +2,7 @@
 
 import { partitionContacts } from "@/lib/publicContactPrivacy";
 import { useMemo, useState, type ReactNode } from "react";
-import type { ExternalPublicScript, ProductionRole, PublicAudioWork, PublicDemoSubmission, PublicIdentityRole, PublicPersona, PublicProductionCredit, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, ProductionRole, PublicAudioWork, PublicDemoSubmission, PublicIdentityRole, PublicPersona, PublicWorkParticipation, PublicScript } from "@/lib/types";
 import { buildAuthorEntityModel } from "@/lib/publicEntityPageModel";
 import { EntityScriptGrid } from "@/components/EntityScriptGrid";
 import { PublicImage } from "@/components/PublicImage";
@@ -42,7 +42,7 @@ interface SectionContext {
   performances: PublicDemoSubmission[];
   audioWorks: PublicAudioWork[];
   audioScriptWorks: PublicAudioWork[];
-  credits: PublicProductionCredit[];
+  credits: PublicWorkParticipation[];
   series: Array<{ name: string; count: number; coverUrl: string | null }>;
 }
 
@@ -59,7 +59,9 @@ interface IdentitySection {
 }
 
 const WORK_TYPE_LABELS = { audio: "音聲", game: "遊戲", video: "影片", other: "其他" } as const;
-const PRODUCTION_SECTION_TITLES: Record<ProductionRole, string> = {
+const PRODUCTION_SECTION_TITLES: Record<PublicIdentityRole, string> = {
+  scriptwriter: "參與台本作品",
+  voice_actor: "參演作品",
   post_production: "後製作品",
   cover_art: "封面作品",
   recording_studio: "錄音作品",
@@ -78,7 +80,7 @@ function parseLinks(links: PublicPersona["links"]): Array<{ url?: string; label?
   return [];
 }
 
-function productionSection(role: ProductionRole): IdentitySection {
+function productionSection(role: PublicIdentityRole): IdentitySection {
   const items = (ctx: SectionContext) => ctx.credits.filter((credit) => credit.creditRole === role);
   return {
     id: `production-${role}`,
@@ -88,7 +90,7 @@ function productionSection(role: ProductionRole): IdentitySection {
     count: (ctx) => items(ctx).length,
     render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {items(ctx).map((credit) => <PublicProfileWorkCard key={`${credit.id}-${credit.creditRole}`} title={credit.title} url={credit.url} coverUrl={credit.coverUrl} workType={credit.workType}
-        subtitle={`${WORK_TYPE_LABELS[credit.workType || "audio"]}${credit.creditedAs && credit.creditedAs !== ctx.persona.displayName ? `・署名 ${credit.creditedAs}` : ""}`} />)}
+        subtitle={[WORK_TYPE_LABELS[credit.workType || "audio"], credit.creditedAs && credit.creditedAs !== ctx.persona.displayName ? `署名 ${credit.creditedAs}` : "", credit.characterName ? `角色：${credit.characterName}` : "", credit.description].filter(Boolean).join("・")} />)}
     </div>,
   };
 }
@@ -119,22 +121,7 @@ const SECTIONS: IdentitySection[] = [
       })}
     </div>,
   },
-  {
-    id: "audioWorks", title: "音聲作品", roles: ["voice_actor"], ageGated: true,
-    count: (ctx) => ctx.audioWorks.length,
-    render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{ctx.audioWorks.map((work) => <PublicProfileWorkCard key={work.id} title={work.title} url={work.url} coverUrl={work.coverUrl} />)}</div>,
-  },
-  {
-    id: "audioScriptWorks", title: "參與音聲台本", roles: ["scriptwriter"], ageGated: true,
-    count: (ctx) => ctx.audioScriptWorks.length,
-    render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{ctx.audioScriptWorks.map((work) => <PublicProfileWorkCard key={work.id} title={work.title} url={work.url} coverUrl={work.coverUrl} />)}</div>,
-  },
-  {
-    id: "voiceActorWorks", title: "參演作品", roles: ["voice_actor"], ageGated: true,
-    count: (ctx) => (ctx.persona.voiceActorWorks || []).length,
-    render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{(ctx.persona.voiceActorWorks || []).map((work, index) => <article key={`${work.title}-${index}`} className="min-w-0">{work.coverUrl && <div className="relative aspect-video overflow-hidden rounded-sm border border-border bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} preset="script-cover" /></div>}<div className="pt-2"><h3 className="text-sm font-bold">{work.title || "未命名作品"}</h3>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-link hover:underline">查看作品<ExternalLink className="h-3 w-3" aria-hidden /></a>}</div></article>)}</div>,
-  },
-  ...(["post_production", "cover_art", "recording_studio"] as const).map(productionSection),
+  ...(["scriptwriter", "voice_actor", "post_production", "cover_art", "recording_studio"] as const).map(productionSection),
   {
     id: "series", title: "系列作品", roles: ["scriptwriter"],
     count: (ctx) => ctx.series.length,
@@ -191,15 +178,14 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     return Array.from(map.values());
   }, [scripts]);
 
-  const participationWorks = (role: "voice_actor" | "scriptwriter", fallback: PublicAudioWork[]) =>
-    persona.workParticipations === undefined ? fallback : persona.workParticipations
-      .filter((credit) => credit.creditRole === role)
-      .map((credit) => ({ id: credit.audioWorkId || credit.id, title: credit.title, url: credit.url, coverUrl: credit.coverUrl } as PublicAudioWork));
-  const ctx: SectionContext = { persona, scripts, externalScripts, performances,
-    audioWorks: participationWorks("voice_actor", audioWorks),
-    audioScriptWorks: participationWorks("scriptwriter", audioScriptWorks),
-    credits: persona.workParticipations?.filter((credit): credit is import("@/lib/types").PublicProductionCredit =>
-      ["post_production", "cover_art", "recording_studio"].includes(credit.creditRole)) ?? persona.productionCredits ?? [], series };
+  const legacyCredits: PublicWorkParticipation[] = [
+    ...(persona.productionCredits || []),
+    ...audioWorks.map((work) => ({ ...work, creditRole: "voice_actor" as const, coverUrl: work.coverUrl || "", creditedAs: "" })),
+    ...audioScriptWorks.map((work) => ({ ...work, creditRole: "scriptwriter" as const, coverUrl: work.coverUrl || "", creditedAs: "" })),
+    ...(persona.voiceActorWorks || []).map((work, index) => ({ id: `legacy-${index}`, title: work.title || "未命名作品", url: work.url || "", coverUrl: work.coverUrl || "", creditRole: "voice_actor" as const, creditedAs: "", characterName: work.role, description: work.description })),
+  ];
+  const ctx: SectionContext = { persona, scripts, externalScripts, performances, audioWorks, audioScriptWorks,
+    credits: persona.workParticipations ?? legacyCredits, series };
   const commissionOffers = Object.values(persona.roleProfiles || {}).flatMap((profile) => {
     const raw = profile?.commissionOffers;
     if (!Array.isArray(raw)) return [];

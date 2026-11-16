@@ -22,7 +22,7 @@
 
 `replace_catalog_participants` 先驗證再修改，與作品審核狀態在同一交易提交。保留仍存在署名的原始來源證據；移除職務時同步移除身份關聯。舊聲演欄位更新經同一服務轉換。人工隱藏的角色不會因新增參與而被重新開啟。
 
-製作人個人頁的作品補充審核也使用 `record_participation`；身份收斂與既有社團匯入不再另建身份參與寫入邏輯。
+所有職務個人頁的作品補充審核也使用 `record_participation`；身份收斂與既有社團匯入不再另建身份參與寫入邏輯。
 
 ## 匯入
 
@@ -60,3 +60,11 @@
 可重跑測試包含 `test_work_participations.py`、身份收斂／公開身份／作品審核契約，以及前端共用表單和個人頁測試。
 
 Skill 的版控副本在 `docs/workflows/open-scripts-audio-catalog/SKILL.md`；本機啟用副本在 `~/.codex/skills/open-scripts-audio-catalog/SKILL.md`。
+
+## 作者與聲演作品集（2026-11-17）
+
+五種職務共用個人頁「新增參與作品」表單、`workParticipations` 輸出與作品卡片。提案送 `workFormat: "participation-v1"`；作者僅可送 `scriptwriter`、聲演僅可送 `voice_actor`，製作身份僅可送已公開職務。核准 `works` 欄位後由 `apply_profile_participations` 新增／更新，不用空清單清除其他作品。管理員和已認領聲演本人審核都走此入口。
+
+舊聲演 `voiceActorWorks`／角色 profile 的 `works` 經相容層投影到同一份輸出；有網址者與目錄／明確關聯去重，無網址者保留獨立項目，不按標題猜同作。`characterName` 與 `description` 保留角色／說明；匯入快照的 participant 也可附帶這兩個欄位。新補充的資料以 role profile 的 `participationDetails[url]` 保存。待審或退回目錄不會透過舊作品集重新公開。舊版聲演提案沒有格式標記時仍維持原清單審核語義，避免把既有待審案誤當新增。
+
+本文稿與 Demo 不轉為商品參與紀錄；它們保有閱讀、授權及播放流程。本次不刪舊欄位、不批量改寫正式資料。

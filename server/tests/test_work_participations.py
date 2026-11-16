@@ -218,3 +218,49 @@ def test_newly_normalized_illustration_requires_explicit_work_identity(db_sessio
     assert catalog_participants(db_session, [work.id])[work.id][0]['personaId'] is None
     record_catalog_participant(db_session, work, dict(role='cover_art', personaId='p', creditedAs='同名', sourceUrl=work.url))
     assert len(participations_by_persona(db_session, ['p'])['p']) == 1
+
+
+def test_legacy_voice_portfolio_is_unified_without_losing_details_or_linkless_works(db_session):
+    work = setup(db_session)
+    p = db_session.get(models.Persona, 'p')
+    p.voiceActorWorks = [dict(title='舊標題', url=work.url, role='女主角', description='角色說明'),
+                         dict(title='無連結甲', role='旁白'), dict(title='無連結乙')]
+    record_participation(db_session, persona_id='p', role='voice_actor', url=work.url)
+    items = participations_by_persona(db_session, ['p'])['p']
+    assert len(items) == 3
+    matched = next(item for item in items if item['audioWorkId'] == 'w')
+    assert matched['title'] == work.title
+    assert matched['characterName'] == '女主角'
+    assert matched['description'] == '角色說明'
+    assert len([item for item in items if item['url'] == '']) == 2
+    work.status = 'pending'
+    db_session.flush()
+    assert len(participations_by_persona(db_session, ['p'])['p']) == 2
+
+
+def test_approved_profile_works_are_additive_and_preserve_role_details(db_session):
+    from services.work_participations import apply_profile_participations
+    setup(db_session)
+    p = db_session.get(models.Persona, 'p')
+    for role in ('scriptwriter', 'voice_actor', 'post_production', 'cover_art', 'recording_studio'):
+        works = [dict(creditRole=role, url='https://example.com/game', title='遊戲', workType='game',
+                      characterName='旁白', description='描述')]
+        apply_profile_participations(db_session, p, works)
+        apply_profile_participations(db_session, p, works)
+    items = participations_by_persona(db_session, ['p'])['p']
+    assert len(items) == 5
+    assert all(item['workType'] == 'game' and item['characterName'] == '旁白' for item in items)
+
+
+def test_imported_voice_character_and_description_share_portfolio_contract(db_session):
+    from scripts.import_work_participations import import_snapshot
+    work = setup(db_session)
+    for url in (work.url, 'https://example.com/outside'):
+        snapshot = {'works': [dict(url=url, title='作品', participants=[dict(
+            role='voice_actor', personaId='p', creditedAs='同名', sourceUrl='https://example.com/source',
+            characterName='旁白', description='聲演說明')])]}
+        import_snapshot(db_session, snapshot)
+        import_snapshot(db_session, snapshot)
+    items = participations_by_persona(db_session, ['p'])['p']
+    assert len(items) == 2
+    assert all(item['characterName'] == '旁白' and item['description'] == '聲演說明' for item in items)
