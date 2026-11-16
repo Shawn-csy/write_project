@@ -2,13 +2,19 @@
 
 正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
 
-最後更新：2026-11-13
+最後更新：2026-11-16
 
-GitHub Actions 已啟用兩個工作流程：`Public read and security contracts` 與 `Submission workflows`。兩者對 main push 和 pull request 使用相同的 paths，確保同一版本的部署閘門都會啟動。
+程式 CI 有兩個工作流程：`Public read and security contracts` 與 `Submission workflows`。兩者對 main push 和 pull request 使用相同的 paths，確保同一版本的部署閘門都會啟動。
 
 ## 變更範圍
 
-工作流程涵蓋 `src/**`、`packages/**`、`apps/public/**`、`server/**`、`public/**`、`deploy/**`、`nginx.conf`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、HTML、TypeScript、Vite/Vitest、Tailwind/PostCSS、Dockerfile 和 Docker Compose 設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。只修改 `docs/**` 或 README 不會啟動這兩個工作流程，也不會觸發自動部署。
+工作流程涵蓋 `src/**`、`packages/**`、`apps/public/**`、`server/**`、`public/**`、`deploy/**`、`nginx.conf`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、HTML、TypeScript、Vite/Vitest、Tailwind/PostCSS、Dockerfile 和 Docker Compose 設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。兩組 paths 最後以 `!**/*.md` 排除根目錄及任意子目錄的 Markdown，包括 README、CHANGELOG 與 scripts 內的文件；`docs/**` 的非 Markdown 檔案仍屬程式 CI 範圍。文件與程式混合修改仍會啟動兩組完整 CI。新增、刪除 Markdown 同樣適用，重新命名須留意來源與目的路徑；程式移入 docs 也不會變成文件例外。
+
+獨立的 `Documentation checks` 在 Markdown、檢查器、測試或 workflow 修改時執行，不安裝應用程式依賴。它檢查所有 tracked Markdown 的相對連結／本機圖片目標、reference link 與未關閉的 fenced code block，忽略 URL、頁內 anchor、inline code 與 fenced code 範例，不依賴網路。只改 Markdown 不會產生兩個程式 CI 的 completion，因此不觸發自動部署。目前 tracked Markdown 都是文件或 agent 指引，沒有 runtime Markdown 資料；未來新增此類資料必須在兩組 paths 排除後加入明確正向例外及契約測試。
+
+檢查器是輕量的 Markdown 子集，並非完整 CommonMark parser；不驗證 anchor 是否存在、Mermaid 語法或遠端 URL，不引入 Mermaid／瀏覽器依賴。修改後可執行 `python3 scripts/check-docs.py` 與 `python3 -m unittest discover -s scripts -p 'test_check_docs.py'`。
+
+目前 main 沒有 branch protection／ruleset。若未來要求必過 checks，須考慮 GitHub paths 略過的 workflow 不會回報成功；不可直接把兩個有 paths 篩選的程式 workflow 設成所有 PR 的必要檢查。
 
 ## 必要檢查
 
@@ -28,7 +34,9 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 
 ## 部署串接
 
-既有 `Deploy production` 監聽上述兩個固定名稱的 workflow completion；只有本 repository 的 main push 成功事件可自動進入部署。`scripts/release.sh` 會再確認同一個 main commit 的 CI 都已成功，尚有執行中的 CI 則回傳 3，等待後續 completion 事件。因此請保留兩個名稱與一致的觸發範圍。手動 `workflow_dispatch` 是既有的獨立入口，不受 docs-only 自動觸發規則影響。
+既有 `Deploy production` 監聽上述兩個固定名稱的 workflow completion；只有本 repository 的 main push 成功事件可自動進入部署。`scripts/release.sh` 會再確認同一個 main commit 的 CI 都已成功，尚有執行中的 CI 則回傳 3，等待後續 completion 事件。因此請保留兩個名稱與一致的觸發範圍。文件檢查的成功不能替代這兩個程式閘門。手動 `workflow_dispatch` 雖是獨立入口，仍須通過精確 SHA 的兩組程式 CI，不會把 skipped／未出現的 workflow 當成成功。
+
+文件提交後 main SHA 可以合理領先正式 deployed SHA；內容更新仍解析正式 live SHA 並 checkout 該版本，不追隨最新 main。若程式提交後立刻有文件提交，舊程式 SHA 的部署可能被「必須是最新 pushed main」的既有 guard 擋住，導致該程式尚未發布；本次不改動 guard 或新增部署 fallback。需要發布時，讓下一個正常程式／設定變更觸發兩組 CI，並在兩組精確 SHA 檢查成功後走正常部署；單獨重跑舊 SHA 的 CI 或手動部署文件 SHA 都不會繞過 guard。
 
 ## 本機檢查
 
