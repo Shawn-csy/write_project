@@ -13,6 +13,27 @@ spec.loader.exec_module(b)
 
 
 class BackupTests(unittest.TestCase):
+    def test_drill_queries_counts_and_extracts_media(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            media = root / 'media'
+            media.mkdir()
+            (media / 'fixture.png').write_bytes(b'image')
+            bundle = root / 'bundle'
+            bundle.mkdir()
+            (bundle / 'database.dump').write_bytes(b'fixture-dump')
+            b.archive_media(media, bundle / 'media.tar.gz')
+            manifest = {'table_counts': ['public.scripts:2']}
+            answers = [b'query', b'public.scripts:2\n', b'query', b'2\n']
+            with patch.object(b, 'verify', return_value=manifest), patch.object(b, 'run') as run, patch.object(b, 'output', side_effect=answers) as output, patch.object(b.subprocess, 'run') as ready, patch.object(b.shutil, 'copyfileobj', wraps=b.shutil.copyfileobj) as copy:
+                ready.return_value.returncode = 0
+                b.drill(bundle)
+            self.assertEqual(output.call_count, 4)
+            self.assertEqual(copy.call_count, 1)
+            self.assertTrue(copy.call_args.args[1].closed)
+            self.assertTrue(any('pg_amcheck' in c.args[0] for c in run.call_args_list))
+            self.assertTrue(any(c.args[0][:3] == ['docker', 'rm', '-f'] for c in run.call_args_list))
+
     def test_media_excludes_credentials_and_symlinks(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
