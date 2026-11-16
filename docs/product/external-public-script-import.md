@@ -56,3 +56,7 @@ flowchart LR
 本機 MCP 只可呼叫這組外部台本管理 API，使用 `X-MCP-Key` 驗證；它預設先回傳預覽，
 必須在使用者明確同意後才可用 `confirm=true` 寫入。設定方式見
 [`外部台本本機 MCP`](../architecture/local-external-script-mcp.md)。
+
+## 正式部署與自動化邊界
+
+公開 gallery 的瀏覽器資料可由 live API 更新；搜尋引擎、分享 metadata 與 sitemap 要等 Pages 靜態快照 refresh。正式排程約每 15 分鐘檢查，可能延後，沒有每件作品的即時部署保證。本站 Ci-en／Bedtime 爬蟲是另行執行的 CLI，沒有排程或自動發布，也不代表支援 X 爬蟲。部署與唯讀備援見 [正式環境架構](../architecture/production-architecture.md)。

@@ -1,5 +1,7 @@
 # 操作手冊（開發 / 測試 / 部署）
-最後更新：2026-11-16（本分支精簡設定；尚未部署）
+
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+最後更新：2026-11-16（PR #48、#49 已部署並驗證）
 
 ## 1. 環境需求
 - Node.js：`20.19+`
@@ -145,7 +147,7 @@ API／本機入口回滾與 Pages 回滾分開；schema 與切換後資料作業
 
 Production Compose 預設 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=0`。環境值可覆蓋，須核對實際設定；啟動 API 不替代 schema 作業。`scripts/migrate-prod-schema.sh --verify` 檢查目標完整性，`--plan` 列缺口，`--apply` 經備份、隔離排練與受限作業連線後修改。候選 readiness 仍須通過。
 
-歷史排練或某次 `--apply` 成功不能證明目前線上 schema 完整。此文件未執行 production 檢查；版本庫行為與限制見 [Database Runtime](database-runtime.md)。
+歷史排練或某次 `--apply` 成功不能證明目前線上 schema 完整。2026-11-16 正常發布已完成 schema 驗證；每次發布仍需重新檢查，版本庫行為與限制見 [Database Runtime](database-runtime.md)。
 
 ### 舊整組部署（只限停機維護）
 
@@ -157,9 +159,9 @@ Production Compose 預設 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=
 bash scripts/backup-db.sh
 ```
 
-新版產生 PostgreSQL custom dump + media 私有 bundle，保留 14 天；舊 `.sql.gz` 不轉換、不刪除。外接碟副本不代表異地備份。實際排程目前只有本機／外接碟設定，異地目的地尚未設定，也未上傳任何資料。
+新版產生 PostgreSQL custom dump + media 私有 bundle，保留 14 天；舊 `.sql.gz` 不轉換、不刪除。外接碟副本不代表異地備份。正式排程已完成本機與 Horcrux 副本；沒有異地備份目的地。
 
-安裝新版時必須同時複製 `backup-db.sh`、`backup-bundle.py` 到 `~/bin`，並明確設定 `MEDIA_STORAGE_ROOT`；只更新 wrapper 會失敗。此變更未安裝或修改既有排程。完整設定、驗證、還原演練與一致性限制見 [backup-restore.md](backup-restore.md)。
+安裝新版時必須同時複製 `backup-db.sh`、`backup-bundle.py` 到 `~/bin`，並明確設定 `MEDIA_STORAGE_ROOT`；只更新 wrapper 會失敗。2026-11-16 已更新 `~/bin/backup-db.sh` 與 `~/bin/backup-bundle.py`，`com.shawnup.write-project-backup` 每日台北時間 04:00 執行。完整設定、驗證、還原演練與一致性限制見 [backup-restore.md](backup-restore.md)。
 
 ### Cloudflare 快取清除
 
@@ -176,9 +178,9 @@ Token 只從環境變數讀取，不會出現在指令參數或任何輸出中�
 
 ### 公開站快照與 server-mode 快取
 
-Pages HTML、metadata、JSON-LD 與 sitemap 固定於建置時。瀏覽器 API 可更新可見內容，但不會替換爬蟲取得的靜態快照；新路徑可能先以 404 外殼載入。內容改動後的 SEO 快照刷新仍須 Pages 重新建置，見 [Pages 操作](public-pages-production.md)；內容觸發刷新與來源新鮮度驗收仍列在 [待辦路線圖](../pending/architecture-maintenance-roadmap.md)。
+Pages HTML、metadata、JSON-LD 與 sitemap 固定於建置時。瀏覽器 API 可更新可見內容，但不會替換爬蟲取得的靜態快照；新路徑可能先以 404 外殼載入。內容改動後的 SEO 快照刷新仍須 Pages 重新建置，見 [Pages 操作](public-pages-production.md)；內容刷新已由 GitHub Actions 每小時第 7、22、37、52 分鐘排程，亦可手動執行；排隊與建置可能延後，並非 webhook 即時更新。
 
-Next server mode 的 ISR、`/api/revalidate`、媒體 proxy／sharp 與快取標頭只適用於本機 Next adapters，不代表 Pages 執行 Next server。`REVALIDATE_SECRET` 不能刷新已部署的 Pages HTML。CDN purge 只清快取，也不產生新快照。
+Next server mode 的 ISR、`/api/revalidate` 與其快取標頭只適用於本機 Next adapters；媒體已交給 FastAPI，不代表 Pages 執行 Next server。`REVALIDATE_SECRET` 不能刷新已部署的 Pages HTML。CDN purge 只清快取，也不產生新快照。
 
 ## 7. 重要環境變數
 - `VITE_API_URL`：前端 API 入口（預設 `/api`）

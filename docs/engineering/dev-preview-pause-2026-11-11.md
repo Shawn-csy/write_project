@@ -1,5 +1,7 @@
 # Dev 預覽站停用紀錄（2026-11-11）
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。 本文保留各日期的歷史量測／處置；其中 Next 常駐服務、舊容器與當時「目前」字樣不可當作今日正式拓樸。現行公開站為 Pages 靜態匯出，API／媒體由 FastAPI 提供。
+
 Dev 預覽站已暫停，正式站 `open-scripts.shawnup.com` 不受影響。此次只停服務與公開入口，沒有刪除 Dev PostgreSQL、媒體卷、D1 或 R2 資料。
 
 - Cloudflare Pages 專案 `write-project-public-site-preview` 的 `main` 部署改為全路徑回應 503、`no-store` 與 `noindex`。停用部署 ID 為 `4728f7f8-4920-43d7-92e1-d96d09a438a4`；原部署 ID 為 `79c12220-fff0-4c8c-b6c6-8d08249e91ac`。自訂網域與專案 `pages.dev` 主網址皆回應 503。其餘 201 個歷史部署已刪除，舊版部署網址不再提供內容。

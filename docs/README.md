@@ -13,10 +13,11 @@
 
 ## 建議閱讀順序
 
-1. `engineering/operations.md`：Compose 檔案分工、啟動、測試、**部署**、備份、health endpoints
-2. `architecture/frontend-boundaries.md`：Next public、Vite editor、shared packages 的前端邊界
-3. `architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約
-4. `engineering/testing.md`：測試策略與指令
+1. [正式環境整體架構](architecture/production-architecture.md)：已部署服務圖、CI／CD、內容更新、監控與備份
+2. `engineering/operations.md`：Compose 檔案分工、啟動、測試、**部署**、備份、health endpoints
+3. `architecture/frontend-boundaries.md`：Next public、Vite editor、shared packages 的前端邊界
+4. `architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約
+5. `engineering/testing.md`：測試策略與指令
 
 > ⚠️ 現有 `scripts/safe-deploy.sh` 會停止 PostgreSQL 與所有服務，預設拒絕執行；僅在停機維護時設定 `ALLOW_SERVICE_DOWNTIME=1` 使用。日常網站發布使用 [持續部署與發布程序](engineering/continuous-deployment.md)，不停止 PostgreSQL；入口交接仍需依程序驗證。
 
@@ -41,6 +42,8 @@
 - [外部台本自動探索](engineering/external-script-crawler.md)：後端爬蟲、來源支援、去重、待審結果與排程操作
 
 ## 架構參考
+
+- [正式環境整體架構](architecture/production-architecture.md)：正式架構的主要入口；其他文件依此區分正式、開發與歷史狀態
 
 - `architecture/frontend-boundaries.md`：Next public、Vite editor、shared packages 的前端邊界
 - `architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約

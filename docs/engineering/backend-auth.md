@@ -1,4 +1,6 @@
 # Backend Auth Verification (Firebase ID Token)
+
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
 最後更新：2026-02-06
 
 This backend now verifies Firebase ID Tokens sent via `Authorization: Bearer <id_token>`.

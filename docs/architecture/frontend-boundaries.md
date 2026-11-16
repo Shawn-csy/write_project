@@ -6,7 +6,7 @@ Last updated: 2026-11-16 (simplification branch; not yet deployed)
 
 This document defines the long-term ownership boundary between the Next.js public frontend, the Vite editor frontend, and shared workspace packages.
 
-Production uses Pages static export with browser live reads to FastAPI. Next server mode is a local development tool, not a production service. The studio remains Vite. See [Pages operations](../engineering/public-pages-production.md) and the [canonical release procedure](../engineering/continuous-deployment.md).
+Production uses Pages static export with browser live reads to FastAPI. Next server mode is a local development tool, not a production service. The studio remains Vite. See [production architecture](./production-architecture.md), [Pages operations](../engineering/public-pages-production.md) and the [canonical release procedure](../engineering/continuous-deployment.md).
 
 The product has these ownership boundaries:
 
@@ -227,7 +227,7 @@ Never write `window.location.href = "/public-path"` directly at call sites.
 |---|---|
 | Legacy server-mode deployment (rollback compatibility only) | unset or `""` — helper returns relative paths, nginx routes correctly |
 | Local dev with separate Next.js port (e.g. `next dev` on :3001) | `http://localhost:3001` |
-| Split-domain deployment (public app on separate domain) | `https://public.example.com` |
+| Current production split-domain deployment | `https://open-scripts.shawnup.com` |
 
 `VITE_PUBLIC_BASE_URL` is read by Vite at build time. Changing it requires rebuilding the Vite bundle unless a separate runtime config layer is introduced.
 

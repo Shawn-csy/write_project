@@ -1,5 +1,7 @@
 # Public SEO Pre-Index Checklist
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+
 Run before requesting a Google recrawl or submitting to Search Console.
 
 ## 1. Favicon
@@ -31,7 +33,7 @@ curl -s https://open-scripts.shawnup.com/robots.txt
 Must contain:
 - `User-agent: *` block with `Allow: /` and `Allow: /read/`
 - Public reader pages not blocked: `/read/`, `/author/`, `/org/`, `/series/` must NOT appear under `Disallow`
-- `Disallow: /api/` is intentional — Googlebot does not need API endpoints; public data is served via SSR pages
+- `Disallow: /api/` is intentional — Googlebot does not need API endpoints; public data is present in build-time prerendered Pages HTML
 - `Sitemap: https://open-scripts.shawnup.com/sitemap.xml`
 
 ## 3. sitemap.xml
@@ -48,7 +50,7 @@ Must:
 - Contain at least one `/author/` URL
 - Contain at least one `/org/` or `/series/` URL if data exists
 
-## 4. Homepage SSR content
+## 4. Homepage prerendered HTML
 
 ```bash
 curl -sA "Googlebot" https://open-scripts.shawnup.com/ | grep -E '<title>|<meta name="description"|<link rel="canonical"|/read/'
@@ -60,13 +62,13 @@ Must:
 - `<link rel="canonical"` pointing to `https://open-scripts.shawnup.com/`
 - At least one `/read/[id]` link in the initial HTML (not CSR-only)
 
-Note: homepage `<h1>` is client-rendered (GalleryClient bails out of SSR due to `useSearchParams`). The initial HTML has `<h2>最新公開台本</h2>` from the SSR section. Do not flag missing `<h1>` in initial HTML as a pre-index blocker — `<title>`, `<meta description>`, canonical, and `/read/` links are the critical signals.
+Note: homepage `<h1>` is client-rendered (GalleryClient bails out of SSR due to `useSearchParams`). The initial HTML has `<h2>最新公開台本</h2>` from the prerendered section. Do not flag missing `<h1>` in initial HTML as a pre-index blocker — `<title>`, `<meta description>`, canonical, and `/read/` links are the critical signals.
 
 ```bash
 curl -sA "Googlebot" https://open-scripts.shawnup.com/ | grep -c '/read/'
 ```
 
-Expected: ≥ 8 (from the SSR "最新公開台本" section rendered below the client gallery).
+Expected: ≥ 8 (from the prerendered "最新公開台本" section rendered below the client gallery).
 
 ## 5. Read page
 
@@ -120,7 +122,7 @@ After deploy, verify Cloudflare is not serving a stale HTML with old `<title>` o
 curl -sI https://open-scripts.shawnup.com/ | grep -i 'cf-cache-status\|age:'
 ```
 
-If `CF-Cache-Status: HIT` with a high `Age:`, purge via Cloudflare dashboard → Caching → Purge Everything, then re-check.
+First verify `/content-version.json` matches the completed refresh receipt. A purge cannot regenerate stale Pages HTML: wait for or manually trigger **Refresh published content**, verify the deployment, and only purge if the correct new artifact is still hidden by edge caching.
 
 ## 9. Lighthouse SEO (manual)
 
@@ -137,7 +139,7 @@ Run in Chrome DevTools → Lighthouse → SEO:
 | favicon | `curl -sI .../favicon.ico` | 200 |
 | robots.txt | `curl -s .../robots.txt` | Googlebot allowed, sitemap listed |
 | sitemap.xml | `curl -sI .../sitemap.xml` | 200, contains /read/ URLs |
-| homepage SSR links | `curl -sA Googlebot .../` grep `/read/` | ≥ 8 hits |
+| homepage prerendered links | `curl -sA Googlebot .../` grep `/read/` | ≥ 8 hits |
 | read page title/canonical | `curl -sA Googlebot .../read/$ID` | title + canonical + JSON-LD |
 | OG image | `curl -sI $OG_IMG` | 200 |
 | Lighthouse SEO | DevTools | 100 |

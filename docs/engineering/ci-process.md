@@ -1,5 +1,7 @@
 # CI 流程
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+
 最後更新：2026-11-13
 
 GitHub Actions 已啟用兩個工作流程：`Public read and security contracts` 與 `Submission workflows`。兩者對 main push 和 pull request 使用相同的 paths，確保同一版本的部署閘門都會啟動。

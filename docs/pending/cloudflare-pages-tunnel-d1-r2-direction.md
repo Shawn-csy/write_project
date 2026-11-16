@@ -1,7 +1,18 @@
 # Cloudflare 公開站與本機工作室的部署方向
 
-狀態：正式站已於 2026-11-11 切到 Pages，現況與操作見 `engineering/public-pages-production.md`；以下為設計背景與 preview 紀錄。preview Pages 使用獨立 Dev API（Tunnel → 8891），Dev Postgres/媒體由正式資料複製；fallback Worker/D1、R2 和每 15 分鐘同步已啟用。preview 自訂網域已啟用；正式環境尚未切換，自動 Pages 重新部署（SEO）尚未設定
-最後更新：2026-10-27
+最後核對：2026-11-16。
+
+> **設計背景／preview 歷史紀錄，非現行操作手冊**：以下保留 2026-10-27 的 preview 架構、指令與演練證據；其中「正式環境尚未切換」「待實作」指當時狀態。正式站已於 2026-11-11 切至 Pages；PR #48、#49 後已啟用程式發布、內容 refresh、同步、監測與備份。現況請見 [正式環境架構](../architecture/production-architecture.md)，操作請見 [Pages 正式環境](../engineering/public-pages-production.md)。不要以本頁 preview 指令操作正式環境。
+
+## 目前狀態與原提案差異
+
+- 正式公開站由 Pages 提供 Next.js 靜態輸出，瀏覽器向 live API 讀取；沒有正式 Next server、ISR 或 `/api/revalidate`。
+- Pages 內容 refresh 採 GitHub cron 每小時 7、22、37、52 分檢查，綁定 deployed SHA、固定來源建置後再次擷取比對，成功才上傳並驗證。這取代下文的 deploy hook／5 分鐘事件合併提案；排程可延後，不保證發布立即完成。
+- D1／R2 唯讀備援已接通正式環境；launchd 每 900 秒同步，ops runtime 已與 checkout 分離。同步和 Pages refresh 各自執行，沒有強制「同步完成才開始建置」的事件鏈。
+- launchd 每 300 秒的本機監測已啟用；每日完整 DB／媒體備份與外接鏡像及隔離還原驗證已啟用。D1／R2 仍不能還原私人工作室；外接鏡像不是異地備份。
+- 以下新網址 `404.html`、SEO 與來源風險描述保留其設計脈絡；refresh 成功後才能取得新建置的靜態 HTML／metadata。網站級成功紀錄不是單件作品的發布證明。
+
+## 2026-10-27 設計與 preview 紀錄
 
 ## 目標
 
@@ -133,7 +144,7 @@ D1 存的是「公開 API 的回答」，不是重新設計一套關聯式 schem
 
 D1 是公開資料讀取副本，不是本機 PostgreSQL 的完整備份。D1 最多只能提供最後一次成功同步的公開內容；它不包含未發布草稿，也不能用來還原工作室。
 
-### 自動重新部署（待實作）
+### 自動重新部署（歷史提案，現由排程 refresh 取代）
 
 發布後呼叫 Pages 的 deploy hook 觸發建置，讓新作品取得完整 HTML 與 sitemap 項目。建議延遲約 5 分鐘合併連續發布。順序必須是：先同步 R2 與 D1，再觸發建置。建置結果只影響 SEO 與分享預覽，不影響訪客能否看到內容。
 
@@ -161,7 +172,7 @@ preview 已配置 Dev API、API 備援 Worker／D1 和媒體 R2。下表為預�
 | 建置後才發布或修改的作品 | D1 有同步該資料時，404 外殼可由備援 API 載入 |
 | 瀏覽次數、按讚、意見回饋 | 略過，不送到 D1 |
 
-## 目前的限制與待處理
+## 2026-10-27 的限制與待處理（歷史）
 
 1. **實體頁的 `<title>`、描述、分享卡片是建置時的。** 內容會即時更新，但搜尋引擎與分享預覽看到的 metadata 要等重新部署。建置後才出現的作者、標籤、系列網址首次載入為 404 狀態，且沒有 metadata。
 2. **少數媒體來源仍需整理。** Dev 媒體 volume 已複製正式媒體；同步日誌仍有缺失的本機路徑，部分外部封面代理路由也不在 FastAPI Dev API 上提供。可用媒體會同步到 R2，無法取得來源的項目在主站和備援都可能缺圖。
@@ -272,4 +283,4 @@ npx wrangler pages deploy out --project-name write-project-public-site-preview -
 
 2026-10-27 Dev API 直接連線與故障恢復檢查：Dev API health 200；Pages 預覽網域可直接取得 API 200 和 Dev `/media` 圖片；停掉 Dev API 時，請求改由 fallback Worker/D1 回 200 並保留首頁內容；重啟後清除冷卻狀態，請求恢復到 Dev API。R2 抽查媒體回 200。launchd 從 `127.0.0.1:8891` 執行，每 15 分鐘檢查，資料未變時略過寫入。
 
-目前 `codex/cloudflare-static-pages` 上的 Cloudflare 設定屬預覽試作；此文件記錄目標方向，不代表正式環境已切換。
+當時 `codex/cloudflare-static-pages` 上的 Cloudflare 設定屬預覽試作；此文件記錄目標方向，不代表正式環境已切換。
