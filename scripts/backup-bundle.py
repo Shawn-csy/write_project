@@ -199,8 +199,8 @@ def drill(bundle):
                 for member in archive:
                     target = Path(tmp) / member.name
                     target.parent.mkdir(parents=True, exist_ok=True)
-                    with archive.extractfile(member) as source, open(target, 'xb') as output:
-                        shutil.copyfileobj(source, output)
+                    with archive.extractfile(member) as source, open(target, 'xb') as destination:
+                        shutil.copyfileobj(source, destination)
             print(json.dumps({'status': 'RESTORE_DRILL_COMPLETE', 'public_tables': len(counts.splitlines()), 'records': sum(map(int, counts.splitlines())), 'media_files': sum(p.is_file() for p in Path(tmp).rglob('*'))}))
         finally:
             try:
