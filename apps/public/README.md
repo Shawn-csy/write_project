@@ -35,4 +35,4 @@ npm run build:pages -w apps/public
 
 ## 文件維護
 
-只修改此 README 或其他 Markdown 時，PR 與 main push 由 `Documentation checks` 驗證，不會觸發程式部署；既有內容刷新排程仍使用已部署版本。提交前在 repository 根目錄執行 `python3 scripts/check-docs.py`，檢查本機連結、圖片目標及程式碼區塊是否閉合。CI 與部署條件見[持續部署](../../docs/engineering/continuous-deployment.md)。
+只修改此 README 或其他 Markdown 時，PR 與 main push 由 `Documentation checks` 驗證，不會觸發程式部署；若程式部署尚在進行，較新的純 Markdown 提交不會取代該次 CI 核准的程式 SHA；入口切換前仍會重新確認其後沒有程式或設定變更。既有內容刷新排程仍使用已部署版本。提交前在 repository 根目錄執行 `python3 scripts/check-docs.py`，檢查本機連結、圖片目標及程式碼區塊是否閉合。CI 與部署條件見[持續部署](../../docs/engineering/continuous-deployment.md)。
