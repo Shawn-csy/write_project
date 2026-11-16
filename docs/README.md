@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-11-13
+最後更新：2026-11-16
 
 ## 目錄分工
 
@@ -34,6 +34,7 @@
 - `engineering/public-seo-preindex-checklist.md`：公開頁上線前的 SEO 檢查清單
 - `engineering/approval-notifications.md`：待核可項目（各種投稿、認領）的 Email 通知與 SMTP 設定
 - `engineering/public-pages-production.md`：正式公開站（Cloudflare Pages）的資源、重新部署、D1／R2 同步與備援驗證
+- [外部台本自動探索](engineering/external-script-crawler.md)：後端爬蟲、來源支援、去重、待審結果與排程操作
 
 ## 架構參考
 
