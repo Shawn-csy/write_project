@@ -32,3 +32,7 @@ npm run build:pages -w apps/public
 程式發布與內容刷新是兩條流程：正常發布在 CI 通過後由 Mac self-hosted runner 發布 API／Studio 並驗證 Pages；內容刷新排程在每小時 `7,22,37,52` 分，以已部署 SHA 重建快照，可能延遲或因資料變動延後建置，不是 webhook 或即時逐項發布。
 
 共享元件與產品模型邊界見[Frontend boundaries](../../docs/architecture/frontend-boundaries.md)、[Public homepage architecture](../../docs/architecture/public-homepage-architecture.md)及[Media presentation](../../docs/architecture/public-media-presentation-architecture.md)。
+
+## 文件維護
+
+只修改此 README 或其他 Markdown 時，PR 與 main push 由 `Documentation checks` 驗證，不會觸發程式部署；既有內容刷新排程仍使用已部署版本。提交前在 repository 根目錄執行 `python3 scripts/check-docs.py`，檢查本機連結、圖片目標及程式碼區塊是否閉合。CI 與部署條件見[持續部署](../../docs/engineering/continuous-deployment.md)。
