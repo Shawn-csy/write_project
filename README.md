@@ -151,9 +151,12 @@ npm run test             # Vitest multi-project suite
 npm run build            # Vite studio build
 npm run build:public     # Next public build
 npm run test:e2e         # Playwright E2E
+python3 scripts/check-docs.py  # Markdown 本機連結與程式碼區塊閉合檢查
 ```
 
 後端測試請在 `server/` 內使用 Pytest。
+
+只修改 Markdown（包含子目錄的 README）時，PR 與 main push 會執行 `Documentation checks`，不會啟動兩組程式 CI 或正式部署。文件與程式／設定混合修改仍依程式路徑執行對應檢查。文件提交可能讓 main 領先正式版本；內容刷新繼續使用已部署 SHA，詳見[持續部署的 CI gate](./docs/engineering/continuous-deployment.md)。
 
 ## 部署
 
