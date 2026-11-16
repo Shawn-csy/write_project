@@ -1,0 +1,38 @@
+name: Refresh published content
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: [self-hosted, macOS, write-project-prod]
+    timeout-minutes: 45
+    env:
+      WP_RELEASE_ROOT: /Users/shanti/Desktop/write_project/releases
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Resolve complete live release
+        id: live
+        run: |
+          sha=$(python3 scripts/content-refresh.py resolve-source)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.live.outputs.sha }}
+          fetch-depth: 0
+      - name: Require bootstrapped live code
+        run: test -f scripts/content-refresh.py || { echo 'Deploy a normal complete release containing content-refresh.py before enabling refresh'; exit 1; }
+      - run: npm ci
+      - run: python3 scripts/content-refresh.py run

@@ -1,53 +1,29 @@
-# 目前資料庫架構說明（Current）
-最後更新：2026-03-20
+# 資料庫架構（版本庫現況）
+最後更新：2026-11-13
 
-## 1) 目前正式環境資料庫拓樸
-- DB 引擎：PostgreSQL 16（Docker service: `write_project-postgres`）
-- 服務埠：
-  - Frontend: `1090`
-  - Backend: `1091`
-  - PostgreSQL: `1092`（host）對應容器內 `5432`
-- Backend 連線：`DATABASE_URL` 預設指向 compose 內部主機 `write_project-postgres:5432`
+本文描述 checked-in defaults，並非線上容器、資料或 schema 的即時驗證。
 
-## 2) 資料持久化位置
-- PostgreSQL data dir（容器內）：`/var/lib/postgresql/data`
-- PostgreSQL data dir（主機 bind mount）：
-  - 正式（`docker-compose.prod.yml`）：`server/data/postgres`
-  - 開發（`docker-compose.yml`）：`server/data/postgres-dev`，對外埠 `15432`
+## 主資料與備援
 
-> 重點：資料現在是放在專案內 `server/data/postgres`，不是 SQLite 檔案。
+- FastAPI／SQLAlchemy 以 PostgreSQL 16 為主資料庫；production Compose 的 service 為 `write_project-postgres`，容器內埠 `5432`，**沒有 host port publish**。
+- `DATABASE_URL` 為 production 必填值，不提供預設連線字串。Backend 同樣不 publish host port；Nginx 僅綁 IPv4／IPv6 loopback `1090`。
+- 公開入口是 Pages 靜態檔，瀏覽器讀 Tunnel 主 API；D1／R2 保存公開資料／媒體的唯讀備援，不是 PostgreSQL 寫入替代品。見 [Pages 操作](public-pages-production.md)。
 
-> ⚠️ 兩份 compose **不可共用資料目錄**。2026-08-17 之前兩者都指向
-> `server/data/postgres`，於是在跑著正式站的機器上執行 dev 的 `docker compose down`
-> 就等同對正式資料庫強制關機 —— WAL 遺失造成 `scripts` 表索引與 heap 不同步
-> （15 筆列從索引消失、主鍵重複），4 篇公開台本損毀，最後以 dump/restore 邏輯重建修復。
+## 持久化與隔離
 
-## 3) DB 啟動與初始化流程
-- 由 `docker-compose.prod.yml` 啟動 Postgres（含 healthcheck）。
-- Backend `depends_on` Postgres healthy 後再啟動。
-- Backend 啟動時：
-  1. 建立 ORM 缺表（PostgreSQL 用 `schema_bootstrap.create_missing_tables(...)` 逐表提交，SQLite 用 `models.Base.metadata.create_all(...)`）
-  2. `migration.run_migrations()`
-- `migration.py` 對非 SQLite 會略過 legacy SQLite migration（避免 `PRAGMA`/`sqlite_master` 在 Postgres 爆掉）。
+- 容器資料目錄：`/var/lib/postgresql/data`。
+- production bind mount：`server/data/postgres`；dev：`server/data/postgres-dev`，dev host port 為 `15432`。
+- 不得共用 dev／prod 資料目錄。歷史 SQLite 來源與除錯資料不代表正式主資料庫。
 
-## 4) SQLite -> Postgres 遷移流程（現況）
-- 腳本：`server/migrate_sqlite_to_postgres.py`
-- 負責：
-  - 依表相依順序匯入
-  - JSON/Boolean/數值正規化
-  - 匯入完成逐表 row count 比對
-- `scripts/deploy.sh` 在 `migrate_pg=1` 時會：
-  1. 先確保 Postgres 服務已啟動且 healthy
-  2. 沒給 `target_db` 時自動推導本機連線（預設 1092）
-  3. 執行 SQLite -> Postgres 遷移
-  4. 完成後正常重啟整包服務
+## 啟動與 schema
 
-## 5) 目前資料模型來源
-- ORM 模型：`server/models.py`
-- DB 連線層：`server/database.py`
-- 遷移邏輯：`server/migration.py` + `server/migrate_sqlite_to_postgres.py`
+程式本身的 `DB_AUTO_CREATE_TABLES`、`DB_RUN_LEGACY_MIGRATIONS` 預設為 `1`；production Compose 將兩者預設覆蓋為 `0`，明確的環境值仍可覆蓋。啟用時，PostgreSQL 缺表建立由 `schema_bootstrap.create_missing_tables()` 逐表提交；`migration.run_migrations()` 會執行 PostgreSQL migration，並非跳過非 SQLite 資料庫。
 
-## 6) 營運注意事項
-- 現有部署腳本會停止 PostgreSQL 與所有服務；只可在停機維護時以 `ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh` 執行。日常不中斷發布路徑尚待建立。
-- SQLite 資料遷移僅供一次性維護，參數 `migrate_pg=1 truncate=1` 會覆蓋目標資料，需另行核對來源與目標。
-- 若要保留 SQLite 歷史檔，建議放到 `backup/`（手動管理）。
+Schema 作業與 API 啟動分離。以 `scripts/migrate-prod-schema.sh --verify` 檢查目標 schema 完整性，不以本文或歷史紀錄推定線上已就緒；`--plan` 列缺口，`--apply` 經隔離排練及備份後才修改。程序與限制見 [runtime notes](database-runtime.md) 和 [發布程序](continuous-deployment.md)。
+
+## 模型與維護入口
+
+- ORM：`server/models.py`；連線：`server/database.py`。
+- 目前遷移：`server/migration.py`；SQLite 一次性轉移：`server/migrate_sqlite_to_postgres.py`（`--truncate` 會覆蓋目標資料）。
+- 網站發布由 `scripts/release.sh`／`scripts/site-release.py` 管理，不停止 PostgreSQL。舊整組 `safe-deploy.sh` 僅限已安排的停機維護，不能作為日常發布路徑。
+- 版本化 migration 與 restore 驗收仍是 [待辦路線圖](../pending/architecture-maintenance-roadmap.md)，不代表已完成。

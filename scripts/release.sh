@@ -8,6 +8,8 @@
 #   scripts/release.sh pages            build and upload the Cloudflare Pages front end
 #   scripts/release.sh verify           smoke-check the public domains
 #   scripts/release.sh all <tag> [--apply-schema]   every step above, in order
+#   scripts/release.sh resume <tag>   resume post-cutover convergence/Pages/verification
+#   scripts/release.sh status <tag>   read the durable orchestration journal
 #   scripts/release.sh auto             unattended: tag auto-<sha>, apply schema, retire and prune old releases
 #   scripts/release.sh prune [--dry-run]   delete releases older than the live one and its rollback target
 #
@@ -27,8 +29,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 PUBLIC_ORIGIN=https://open-scripts.shawnup.com
 API_ORIGIN=https://api-open-scripts.shawnup.com
-WORKFLOWS=("Public read and security contracts" "Submission workflows")
-
 log() { printf '\n[release] %s\n' "$*"; }
 die() { printf '[release] ERROR: %s\n' "$*" >&2; exit 1; }
 
@@ -36,27 +36,8 @@ require_tag() {
   [[ "${1:-}" =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || die "tag must be lowercase letters, digits or hyphens (max 40)"
 }
 
-# The commit being released must be main as pushed (a detached checkout of it is
-# fine), and every CI workflow that ran for it must have finished green.
-# Exit status 3 means "not yet": CI for this commit is still running.
 require_releasable_main() {
-  [ -z "$(git status --porcelain --untracked-files=no)" ] || die "working tree has uncommitted changes"
-  git fetch -q origin main
-  local head
-  head="$(git rev-parse HEAD)"
-  [ "$head" = "$(git rev-parse origin/main)" ] || die "HEAD ${head:0:7} is not origin/main"
-  local runs
-  runs="$(gh run list --branch main --commit "$head" --limit 50 \
-    --json workflowName,status,conclusion,event -q '.[] | select(.event == "push") | "\(.status)|\(.conclusion)|\(.workflowName)"')"
-  [ -n "$runs" ] || die "no CI ran for ${head:0:7}"
-  if grep -qv '^completed|' <<<"$runs"; then
-    printf '[release] CI for %s is still running; nothing to do yet\n' "${head:0:7}"
-    exit 3
-  fi
-  if grep -qv '^completed|success|' <<<"$runs"; then
-    die "CI for ${head:0:7} is not green: $(grep -v '^completed|success|' <<<"$runs" | tr '\n' ' ')"
-  fi
-  log "main ${head:0:7} is pushed and every CI workflow passed"
+  python3 scripts/release-workflow.py guard
 }
 
 cmd_build() {
@@ -102,17 +83,26 @@ cmd_prepare() {
 cmd_activate() {
   local tag="$1"; require_tag "$tag"
   python3 scripts/site-release.py activate --tag "$tag"
+  cmd_converge "$tag"
+}
+
+cmd_cutover() {
+  local tag="$1"; require_tag "$tag"
+  python3 scripts/site-release.py activate --tag "$tag"
+}
+
+cmd_converge() {
+  local tag="$1"; require_tag "$tag"
   # Data jobs that must not run while the previous release still serves traffic.
   log "identity convergence on the live API"
   docker exec "wp-site-${tag}-api" python -m services.identity_convergence
 }
 
-cmd_pages() {
-  [ "$(curl -s -o /dev/null -w '%{http_code}' "$API_ORIGIN/healthz")" = 200 ] || die "$API_ORIGIN/healthz is not 200"
+cmd_pages_build() {
   log "building the production Pages front end"
   (
     cd apps/public
-    BACKEND_API_URL="$API_ORIGIN" \
+    BACKEND_API_URL="${BACKEND_API_URL:-$API_ORIGIN}" \
     NEXT_PUBLIC_DEPLOY_ENV=production \
     NEXT_PUBLIC_API_ORIGIN="$API_ORIGIN" \
     NEXT_PUBLIC_FALLBACK_API_ORIGIN=https://fallback-open-scripts.shawnup.com \
@@ -121,47 +111,36 @@ cmd_pages() {
     NEXT_PUBLIC_STUDIO_ORIGIN=https://studio-open-scripts.shawnup.com \
     NEXT_PUBLIC_BASE_URL="$PUBLIC_ORIGIN" \
     npm run build:pages
-    if grep -rlq "dev-open-scripts" out; then die "Pages output still references the Dev domain"; fi
-    grep -q 'data-deploy-environment="production"' out/index.html || die "Pages output is not a production build"
-    [ -f out/404.html ] || die "Pages output has no 404.html"
-    log "uploading to Cloudflare Pages"
-    npx wrangler pages deploy out --project-name write-project-public-site --branch main
+    if grep -rlq "dev-open-scripts" "${PUBLIC_PAGES_OUTPUT_DIR:-out}"; then die "Pages output still references the Dev domain"; fi
+    grep -q 'data-deploy-environment="production"' "${PUBLIC_PAGES_OUTPUT_DIR:-out}/index.html" || die "Pages output is not a production build"
+    [ -f "${PUBLIC_PAGES_OUTPUT_DIR:-out}/404.html" ] || die "Pages output has no 404.html"
   )
+}
+
+cmd_pages_upload() {
+  [ -d "$1" ] || die "Pages output directory missing"
+  (cd apps/public; npx wrangler pages deploy "$1" --project-name write-project-public-site --branch main)
+}
+
+cmd_pages() {
+  # All callers share the same stage/output/upload lock, including manual Pages.
+  python3 scripts/content-pages-lock.py
 }
 
 cmd_verify() {
   local failed=0
   for path in / /authors /audio-works /demos /resources /about /sitemap.xml; do
     local status
-    status="$(curl -s -o /dev/null -w '%{http_code}' "$PUBLIC_ORIGIN$path")"
+    status="$(curl --connect-timeout 5 --max-time 20 -s -o /dev/null -w '%{http_code}' "$PUBLIC_ORIGIN$path")"
     printf '  %-14s %s\n' "$path" "$status"
     [ "$status" = 200 ] || failed=1
   done
   local ready
-  ready="$(curl -s -o /dev/null -w '%{http_code}' "$API_ORIGIN/api/health/ready")"
+  ready="$(curl --connect-timeout 5 --max-time 20 -s -o /dev/null -w '%{http_code}' "$API_ORIGIN/api/health/ready")"
   printf '  %-14s %s\n' "api ready" "$ready"
   [ "$ready" = 200 ] || failed=1
   [ "$failed" = 0 ] || die "public smoke check failed"
   log "public smoke check passed"
-}
-
-# Unattended release of origin/main, for the deploy workflow. Safe to call
-# repeatedly: a commit that is already live or already attempted is skipped.
-cmd_auto() {
-  local head tag
-  head="$(git rev-parse HEAD)"
-  tag="auto-${head:0:7}"
-  local releases="${WP_RELEASE_ROOT:-$ROOT/releases}"
-  if python3 scripts/site-release.py status | grep -q "wp-site-${tag}-edge"; then
-    log "$tag is already live"; return 0
-  fi
-  if [ -e "$releases/$tag" ] || [ -e "dist/releases/$tag" ]; then
-    die "$tag was already attempted; inspect it, then run 'stop-prepared --tag $tag' or deploy a new commit"
-  fi
-  cmd_all "$tag" --apply-schema
-  log "stopping releases older than the rollback target"
-  python3 scripts/site-release.py retire-ancestors || log "retire-ancestors failed; old releases are still running"
-  cmd_prune
 }
 
 # Delete releases older than the live one and its rollback target. A failed
@@ -171,26 +150,27 @@ cmd_prune() {
   python3 scripts/site-release.py prune "$@" || log "prune failed; old releases are still on disk"
 }
 
-cmd_all() {
-  local tag="$1" apply_schema="${2:-}"
-  cmd_build "$tag"
+cmd_schema_check() {
   if ! bash scripts/migrate-prod-schema.sh --verify; then
-    [ "$apply_schema" = --apply-schema ] || die "this release needs a schema migration; rerun with --apply-schema or run 'schema --apply' first"
+    [ "${1:-}" = --apply-schema ] || die "schema migration required; inspect schema and rerun with --apply-schema"
     cmd_schema --apply
   fi
-  cmd_prepare "$tag"
-  cmd_activate "$tag"
-  cmd_pages
-  cmd_verify
+}
+
+cmd_retire() {
+  python3 scripts/site-release.py retire-ancestors || log "retire-ancestors failed; old releases are still running"
 }
 
 action="${1:-}"; shift || true
 case "$action" in
-  build|prepare|activate) [ $# -eq 1 ] || die "usage: $0 $action <tag>"; "cmd_$action" "$1" ;;
+  build|prepare|activate|cutover|converge) [ $# -eq 1 ] || die "usage: $0 $action <tag>"; "cmd_$action" "$1" ;;
   schema) cmd_schema "${1:-}" ;;
+  pages-build) cmd_pages_build ;;
+  pages-upload) [ $# -eq 1 ] || die "pages-upload requires output directory"; cmd_pages_upload "$1" ;;
   pages|verify) cmd_$action ;;
   prune) cmd_prune "$@" ;;
-  all) [ $# -ge 1 ] || die "usage: $0 all <tag> [--apply-schema]"; cmd_all "$@" ;;
-  auto) cmd_auto ;;
+  schema-check) cmd_schema_check "${1:-}" ;;
+  retire) cmd_retire ;;
+  all|auto|resume|status) exec python3 scripts/release-workflow.py "$action" "$@" ;;
   *) awk 'NR > 1 && /^set -euo/ {exit} NR > 1' "$0"; exit 2 ;;
 esac

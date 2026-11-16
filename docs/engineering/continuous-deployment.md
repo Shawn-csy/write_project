@@ -1,6 +1,6 @@
 # 自動部署（CD）
 
-最後更新：2026-11-11
+最後更新：2026-11-13
 
 ## 流程
 
@@ -11,7 +11,8 @@ scripts/release.sh auto
   build     建 API／公開站映像與工作室靜態檔（tag：auto-<commit 前 7 碼>）
   schema    有缺口就自動套用：先在正式資料副本排練讀寫、完整備份，再遷移
   prepare   候選版在現行網站旁啟動，跑 14 條路徑、IPv4／IPv6、讀寫限流、RSC 快取邊界檢查
-  activate  交接 1090，接著在新 API 執行身份收斂
+  activate  交接 1090（先寫入 activation-intent）
+  converge  在新 API 執行身份收斂，成功後才進入 Pages
   pages     建置並上傳 Cloudflare Pages
   verify    正式網域煙霧測試
   retire-ancestors  停用比直接回滾版本更舊的 API／公開站
@@ -38,7 +39,32 @@ bash scripts/release.sh prune
 
 任一步失敗就停在那裡：`prepare` 之前失敗不影響正式站；`activate` 驗證失敗會自動接回原入口。失敗時 GitHub 會寄出 workflow 失敗通知，這台 Mac 也會跳出系統通知。
 
-兩組 CI 有不同的路徑篩選，某個 commit 可能只跑其中一組。規則是「這個 commit 跑過的 workflow 全部綠燈」；還有 workflow 在跑時，部署 job 會直接結束（`release.sh` 回傳 3），等最後一組完成時再觸發。只改文件、沒有觸發任何 CI 的 commit 不會部署。同一個 commit 不會重複部署；失敗過的 tag 不會自動重試，需要人工檢查後清掉（`site-release.py stop-prepared --tag auto-<sha>`）或推新的 commit。
+兩組 CI 使用相同的路徑篩選；對精確完整 commit SHA，兩組具名 workflow 都必須完成並成功。只讀取 main push 的最新 run（GitHub run list 回傳該 run 最新 rerun 的狀態），排除 Deploy production 本身、其他 workflow 與 PR。任一組尚未出現或仍執行中回傳 3，失敗則停止。只改文件、沒有 CI completion 的 commit 不會自動部署。
+
+## 中斷後續跑
+
+`all`、`auto`、`resume` 由 `scripts/release-workflow.py` 持有整段流程的非阻塞 `flock`，macOS/Linux 都支援。鎖檔位於 `$WP_RELEASE_ROOT/.release-workflow/.lock`，與 site-release 的鎖獨立，檔案存在不代表被鎖住；不用刪鎖檔。鎖 FD 不傳給子程序。每次執行（含已完成的 no-op）都重新檢查乾淨工作樹、pushed main 和 CI。
+
+控制 journal 是 `$WP_RELEASE_ROOT/.release-workflow/<tag>.json`，不在可公開讀取的靜態目錄內。內容包括完整 commit SHA、tag、phase、入口 ID、時間戳與失敗的 phase/exit code，不保存命令輸出或秘密。寫入採暫存檔、fsync、原子 replace。phase 依序為 `preparing` → `activation-intent` → `activated` → `converged` → `pages` → `verified` → `complete`；只有命令成功才推進。API 已上線仍不代表整體完成。
+
+```bash
+bash scripts/release.sh status auto-<sha前7碼>
+bash scripts/release.sh resume auto-<sha前7碼>
+```
+
+- 收斂失敗：重跑收斂，再部署 Pages、驗證。
+- Pages 失敗：保留 API，重跑 Pages 與驗證。
+- 驗證失敗：只重跑驗證，不重跑 Pages 或資料收斂。
+- activation 成功後、journal 寫入前中斷：既有 durable intent 加上精確 live edge/API/public/static 會被重新核對，再記錄實際 ingress ID，接續收斂，不重新 activate 或 build。
+- matching complete：再次檢查 guard 與入口後直接成功，不重複發布。
+
+切流子程序結束後（續跑則在第一次入口檢查前），編排器另持有既有 `.site-release/.lock` 直到 complete，阻擋低階 rollback/activate 與收斂、Pages、驗證同時發生；取得鎖後重新讀入口。清理前先釋放這把鎖，再由 retire/prune 自行鎖定。每個切流後步驟前後，以及標記 complete、清理之前，都重新核對 live ingress 的完整 ID、edge、API/public upstream 和 static 掛載。已回滾、被其他發布取代、commit 不符或沒有 journal 的舊發布一律停止；請先看 `site-release.py status` 與 journal，回到精確的 pushed main commit，或用新的 commit/tag 發布，不能刪 journal 強行續跑。
+
+此機制只自動恢復切流後的工作。build/schema/prepare 失敗，或 intent 已寫入但候選版沒有真正上線時，會保留記錄並拒絕猜測是否能重用部分產物。人工檢查後，確定尚未承接流量才能使用 `site-release.py stop-prepared --tag <tag>`，再使用新的 tag；不要自動重跑 migration/build。低階 `activate` 仍包含收斂，`cutover`/`converge` 供編排器分開呼叫；低階指令不會把 journal 標記完成。
+
+Pages 和 verify 的 HTTP 請求都有 5 秒連線、20 秒總超時；guard/status 外部查詢有 90 秒界限。SIGINT/SIGTERM 會停止並等待當前子程序群組後釋放鎖。SIGKILL／斷電無法攔截，可能留下外部 Docker/Cloudflare 工作；遇此情況先確認原程序及外部操作已停止，再依 journal 與入口檢查恢復。Pages 上傳成功但 checkpoint 尚未寫入的極短中斷窗口可能重傳 Pages；收斂服務本身必須維持可重複執行的設計。
+
+只有驗證成功並寫入 complete 後，auto 才執行 retire/prune。清理失敗維持既有警告行為，不回滾已驗證的發布；已完成版本重跑是 no-op，必要時可人工執行 prune。
 
 手動觸發：GitHub → Actions → `Deploy production` → Run workflow（部署當下的 main）。
 
@@ -78,3 +104,9 @@ runner 從自己的 checkout 建置，但兩樣東西必須用正式位置：
 ## 回滾
 
 與手動發布相同：`python3 scripts/site-release.py rollback --tag auto-<sha>` 接回上一版入口；Cloudflare Pages 從部署記錄回滾。schema 遷移與身份收斂寫入的資料不會回滾，需要時從 `~/write_project_backups/` 的備份還原。
+
+### 內容更新與程式發布的分工
+
+`.github/workflows/content-refresh.yml` 提供每約 15 分鐘及手動的內容更新入口，與程式發布共用 `production-deploy` concurrency 和可信任 runner。首次使用前須正常發布一個包含新工具且紀錄為 `complete` 的版本；本次尚未部署。GitHub 排程可能延後，還要計入建置時間。
+
+main checkout 只負責唯讀解析正式版本，真正建置使用該完整 SHA，避免帶入尚未發布的程式。內容流程持有發布、入口及 Pages 鎖，只有 Pages 產物與狀態紀錄會更新；不執行 API 切流、schema、身份收斂或清理。D1／R2 同步獨立運作。一般 `release.sh pages` 也使用共用 Pages 鎖、固定快照及新的輸出目錄，因此公開內容清空後仍可正常發布後續程式版本。狀態、重試、緊急下架與人工回滾注意事項見 [Pages 操作](public-pages-production.md#published-content-refresh)。

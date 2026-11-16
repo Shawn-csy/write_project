@@ -19,7 +19,7 @@ Tunnel 是與其他網站共用的 `91d6eb76-bd34-4655-94b3-a30b62f7eb89`（遠�
 
 ## 什麼時候要重新部署 Pages
 
-後台改內容、發布新作品**不需要**重新部署：瀏覽器載入後會向 API 重抓，新作品由 `404.html` 外殼載入（見設計文件）。
+後台改內容後，瀏覽器會向 API 重抓；搜尋引擎、分享 metadata 與新路徑的 HTTP 200 仍需要重新建置 Pages。本分支已加入[內容自動更新流程](#published-content-refresh)，首次正常發布包含該流程的程式並完成啟用後，會定期偵測變更並更新。這次實作尚未部署。
 
 要重新部署的情況：
 
@@ -135,6 +135,45 @@ sessionStorage.removeItem('public-api:primary-down-until');
 ## 已知限制
 
 - 新發布的作品／作者／標籤首次載入是 404 狀態外殼，沒有 metadata，直到下次重新部署。
-- 自動重新部署（SEO）尚未設定，需手動執行上述步驟。
-- 備援資料最多落後一次同步（約 15 分鐘），瀏覽次數、按讚、意見回饋在備援期間略過。
+- 內容自動更新程式與排程已實作；尚未部署驗證。啟用前仍使用人工重新部署，啟用後也需等待排程與建置完成。
+- 正常情況備援同步間隔約 15 分鐘；同步失敗會落後更久。瀏覽次數、按讚、意見回饋在備援期間略過。
 - `pages.dev` 網址沒有 `noindex`，canonical 指向正式網域；該網址上的跨網域 API 會被後端 CORS 擋下，不能用來驗證即時資料。
+
+### Published-content refresh
+
+內容更新流程位於 `.github/workflows/content-refresh.yml`，設定每小時第 7、22、37、52 分鐘執行，也可在 Actions 手動執行 **Refresh published content**。GitHub 可能延後排程，另需加上排隊、建置和上傳時間；這不是立即發布的時效保證。緊急下架可手動觸發，不必等待下一次排程。
+
+**啟用前提**：先合併並正常發布一個包含 `scripts/content-refresh.py` 的完整版本，留下 `complete` 發布紀錄。排程設定合併到預設分支後才會由 GitHub 啟用；未具備完整版本紀錄時會停止並顯示初始化說明。本次只完成程式與本機驗收，未部署、未安裝本機排程。
+
+流程先從 main checkout 唯讀解析目前入口與發布紀錄中的完整 commit SHA，再 checkout 該 SHA 執行。較新的 main 即使已有其他尚未發布的程式或文件，也不會混入內容發布。缺少舊版本紀錄、commit 不符或工作目錄不乾淨時會停止。
+
+在對應正式 commit 的乾淨 checkout 中，可使用：
+
+```sh
+# WP_RELEASE_ROOT 必須與正式發布使用同一個持久目錄
+python3 scripts/content-refresh.py resolve-source
+python3 scripts/content-refresh.py status
+python3 scripts/content-refresh.py run
+```
+
+內容流程只讀取公開 API，更新 Pages；不啟動 API 映像、不遷移資料庫、不執行身份收斂或舊版本清理。D1／R2 仍由既有同步排程獨立更新，失敗不會直接阻擋 Pages 的內容更新。
+
+#### 資料與建置
+
+- 擷取完整公開台本正文、列表、身份、主題與 bundle，檢查必要欄位、ID 集合及共同內容欄位，避免把缺漏或明顯不同版本的資料當成完整快照。
+- Next 建置只讀固定的 loopback 快照；要求未擷取的 API 會使發布失敗，不會回退到線上 API。瀏覽器的 API、媒體與 canonical 仍使用正式網址。
+- 內容指紋排除按讚、瀏覽數及瀏覽數衍生的熱門標籤；正文、作者、授權、主題、分類、目錄及有意義的排列變更會觸發建置。
+- 上傳前再讀一次內容。指紋不同就丟棄這次產物，留待下次排程；不把建置途中出現的新版本誤記為已發布。這仍是多次公開讀取，不是資料庫交易快照。
+- 每次使用全新輸出目錄，檢查作品 HTML、metadata、sitemap 與目錄一致。當某類動態路由確定沒有資料，只移除建置暫存副本中的 `page.tsx`，保留 404 外殼需要的共用元件；最後一篇下架及公開目錄完全清空也能匯出。
+
+#### 狀態、重試與互斥
+
+`$WP_RELEASE_ROOT/.content-refresh/state.json` 位於靜態檔根目錄之外，保存待更新指紋、正式 commit、階段、時間、公開版本標記與失敗步驟，不保存正文或秘密。
+
+- 首次執行建立基準；已完成且內容未變時，仍會核對公開的 `/content-version.json`，一致才略過重建。
+- 建置或上傳失敗保留待處理狀態，下次以相同內容重試。
+- 上傳成功而驗證失敗，若公開版本標記仍一致，只重試驗證；確定標記已被其他部署替換或移除時重新建置。網路錯誤不當成標記不存在。
+- 驗證包含公開版本標記、HTML 環境標記、抽樣作品標題與 canonical、以及 sitemap 作品 ID 集合；通過後才記錄完成。上傳成功但紀錄尚未落盤的中斷窗口可能造成安全的重傳。
+- 依序取得 release-workflow、site-release、Pages 鎖。程式發布與內容更新共用 Actions concurrency；一般／人工 `release.sh pages` 也使用 Pages 鎖及固定快照建置。低階 `pages-build`／`pages-upload` 是內部子步驟，人工操作請走 `pages` 或完整發布入口。
+
+若要讓 Pages 人工回滾持續保留，先暫停 **Refresh published content** workflow；否則下次執行會發現標記不同並恢復目前公開內容。暫停／恢復是營運操作，本次未執行。

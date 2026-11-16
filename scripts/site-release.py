@@ -583,7 +583,7 @@ def main():
     signal.signal(signal.SIGINT, interrupted)
     signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("status", "current-api", "prepare", "activate", "rollback", "stop-prepared", "retire-ancestors", "prune"))
+    parser.add_argument("action", choices=("status", "current-ingress", "current-api", "prepare", "activate", "rollback", "stop-prepared", "retire-ancestors", "prune"))
     parser.add_argument("--tag", default=os.environ.get("RELEASE_TAG"))
     parser.add_argument("--dry-run", action="store_true", help="show what retire-ancestors or prune would do without doing it")
     args = parser.parse_args()
@@ -594,6 +594,13 @@ def main():
         print(f"Live ingress: {item['Name'].lstrip('/')} ({item['Id'][:12]})")
         print(f"Static: {mount(item, '/usr/share/nginx/html')}")
         print(f"Config: {mount(item, '/etc/nginx/conf.d')}")
+        return
+    if args.action == "current-ingress":
+        item = ingress()
+        api, public = upstreams(mount(item, "/etc/nginx/conf.d").joinpath("default.conf").read_text())
+        print(json.dumps({"edge": item["Name"].lstrip("/"), "id": item["Id"],
+                          "api": api, "public": public,
+                          "static": str(mount(item, "/usr/share/nginx/html").resolve())}))
         return
     if args.action == "current-api":
         # The API container behind the live ingress, for jobs that must reuse its image and settings.

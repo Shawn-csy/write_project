@@ -1,5 +1,5 @@
 # 文件索引
-最後更新：2026-11-10（v0.7.4）
+最後更新：2026-11-16
 
 ## 目錄分工
 
@@ -18,9 +18,11 @@
 3. `architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約
 4. `engineering/testing.md`：測試策略與指令
 
-> ⚠️ 現有 `scripts/safe-deploy.sh` 會停止 PostgreSQL 與所有服務，預設拒絕執行；僅在停機維護時設定 `ALLOW_SERVICE_DOWNTIME=1` 使用。不中斷發布流程尚待建立，詳見 `engineering/operations.md` 第 6 節。
+> ⚠️ 現有 `scripts/safe-deploy.sh` 會停止 PostgreSQL 與所有服務，預設拒絕執行；僅在停機維護時設定 `ALLOW_SERVICE_DOWNTIME=1` 使用。日常網站發布使用 [持續部署與發布程序](engineering/continuous-deployment.md)，不停止 PostgreSQL；入口交接仍需依程序驗證。
 
 ## 工程操作
+
+- [持續部署與發布程序](engineering/continuous-deployment.md)：網站發布的 canonical procedure
 
 - `engineering/operations.md`：操作手冊（Compose 分工、部署、備份、CDN 快取、health endpoints、故障排查）
 - `engineering/ci-process.md`：CI 流程（測試、型別檢查、相依稽核門檻）
@@ -32,6 +34,7 @@
 - `engineering/public-seo-preindex-checklist.md`：公開頁上線前的 SEO 檢查清單
 - `engineering/approval-notifications.md`：待核可項目（各種投稿、認領）的 Email 通知與 SMTP 設定
 - `engineering/public-pages-production.md`：正式公開站（Cloudflare Pages）的資源、重新部署、D1／R2 同步與備援驗證
+- [外部台本自動探索](engineering/external-script-crawler.md)：後端爬蟲、來源支援、去重、待審結果與排程操作
 
 ## 架構參考
 
@@ -60,6 +63,8 @@
 - `product/external-public-script-import.md`：外部公開台本匯入與發布流程
 
 ## 進行中
+
+- [架構維護路線圖](pending/architecture-maintenance-roadmap.md)：CI／release、快照新鮮度、功能邊界與版本化遷移的分階段驗收
 
 - `pending/studio-uiux-redesign-strategy.md`：工作室 UI／UX 問題盤點、目標架構、分階段修改策略與 Dev 驗收條件
 - `pending/cloudflare-pages-tunnel-d1-r2-direction.md`：公開站 Pages 靜態快照加瀏覽器即時資料的混合架構、本機 Tunnel 主讀，以及 D1／R2 雲端唯讀備援方向
