@@ -19,6 +19,8 @@ class BackupTests(unittest.TestCase):
             media = root / 'media'
             media.mkdir()
             (media / 'valid.png').write_bytes(b'image')
+            # Existing production media includes a legacy SVG; preserve it as opaque bytes.
+            (media / 'legacy.svg').write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
             (media / 'link.png').symlink_to(root / 'private')
             with self.assertRaisesRegex(ValueError, 'Symlink'):
                 b.archive_media(media, root / 'media.tar.gz')
@@ -29,7 +31,7 @@ class BackupTests(unittest.TestCase):
             (media / '.credentials.png').unlink()
             b.archive_media(media, root / 'media.tar.gz')
             with tarfile.open(root / 'media.tar.gz') as archive:
-                self.assertEqual(archive.getnames(), ['valid.png'])
+                self.assertEqual(archive.getnames(), ['legacy.svg', 'valid.png'])
 
     def test_truncation_and_unsafe_archives(self):
         with tempfile.TemporaryDirectory() as tmp:

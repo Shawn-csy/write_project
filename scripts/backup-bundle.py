@@ -45,7 +45,7 @@ def archive_media(source, target):
                 raise ValueError('Non-regular file in media source')
             if any(x.startswith('.') or x.lower() in ('secrets', 'credentials') for x in p.relative_to(source).parts):
                 raise ValueError('Hidden or credential-named media path; review before backup')
-            if p.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.mp3', '.wav', '.ogg', '.m4a', '.mp4', '.pdf'):
+            if p.suffix.lower() not in ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.avif', '.svg', '.mp3', '.wav', '.ogg', '.m4a', '.mp4', '.pdf'):
                 raise ValueError('Unexpected non-media file; review source directory before backup')
             archive.add(p, arcname=p.relative_to(source).as_posix(), recursive=False)
 
