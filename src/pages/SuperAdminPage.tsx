@@ -1,3 +1,4 @@
+import { PublicationStatus } from "../components/admin/PublicationStatus";
 import React, { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -261,6 +262,7 @@ export default function SuperAdminPage(): React.JSX.Element {
           </button>
           <h1 className="text-lg font-bold tracking-tight">超管後台</h1>
         </div>
+        <PublicationStatus />
         <div className="flex gap-1 overflow-x-auto px-4 pb-3 pt-2 lg:block lg:space-y-0.5 lg:overflow-visible lg:px-3 lg:pb-0">
           {navGroups.map((group) => (
             <div key={group.name} className="contents lg:block lg:pb-2">

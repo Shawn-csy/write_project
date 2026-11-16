@@ -36,6 +36,16 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 HTTP = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect)
 
 
+def publication_mount_args():
+    """Expose only publication evidence, never the release control journals."""
+    directory = RELEASE_ROOT / ".content-refresh"
+    if directory.is_symlink():
+        raise RuntimeError("publication state directory must not be a symlink")
+    directory.mkdir(parents=True, exist_ok=True)
+    return ("-e", "WP_PUBLICATION_STATE_DIR=/run/wp-publication",
+            "-v", f"{directory}:/run/wp-publication:ro")
+
+
 def command(*args, check=True):
     result = subprocess.run(args, text=True, capture_output=True)
     if check and result.returncode:
@@ -322,6 +332,7 @@ def prepare(tag):
                    "-e", "DB_AUTO_CREATE_TABLES=0", "-e", "DB_RUN_LEGACY_MIGRATIONS=0",
                    "-e", f"TRUSTED_PROXY_HOSTNAME={target['edge']}",
                    "-v", f"{data_mount}:/data", "-v", f"{secrets_mount}:/secrets:ro",
+                   *publication_mount_args(),
                    "-v", f"{artifact}:/app/dist:ro", f"write_project-backend:{tag}")
             started.append(target["api"])
         finally:

@@ -14,6 +14,22 @@ spec.loader.exec_module(site)
 
 
 class SiteReleaseTests(unittest.TestCase):
+    def test_publication_mount_is_narrow_readonly_and_preserves_evidence(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(site, "RELEASE_ROOT", Path(directory)):
+            args = site.publication_mount_args()
+            evidence = Path(directory) / ".content-refresh" / "state.json"
+            evidence.write_text('{"phase":"complete"}')
+            self.assertEqual(site.publication_mount_args(), args)
+            self.assertEqual(evidence.read_text(), '{"phase":"complete"}')
+            self.assertEqual(args[-1], f"{evidence.parent}:/run/wp-publication:ro")
+            self.assertIn("WP_PUBLICATION_STATE_DIR=/run/wp-publication", args)
+
+    def test_publication_mount_rejects_symlink_to_other_release_state(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(site, "RELEASE_ROOT", Path(directory)):
+            (Path(directory) / ".content-refresh").symlink_to(Path(directory))
+            with self.assertRaisesRegex(RuntimeError, "symlink"):
+                site.publication_mount_args()
+
     def test_config_replaces_only_the_two_upstreams(self):
         original = 'set $backend "old-api";\nset $public "old-public";\nreturn 200 "ok";\n'
         result = site.config_for(original, "new-api", "new-public")

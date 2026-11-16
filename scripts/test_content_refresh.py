@@ -192,6 +192,27 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual((self.commands.built, self.commands.uploads, self.commands.verified), (1,1,2))
         self.assertEqual(json.loads(job.path.read_text())['phase'], 'complete')
 
+    def test_status_timestamps_and_capture_failure(self):
+        job = refresh.Refresh(self.root, self.commands, snapshot)
+        job.run()
+        first = json.loads(job.path.read_text())
+        self.assertFalse(first['running'])
+        self.assertIsNotNone(first['completed_at'])
+        with patch.object(refresh.release, 'now', return_value='2099-01-01T00:00:00Z'):
+            job.run()
+        checked = json.loads(job.path.read_text())
+        self.assertEqual(checked['completed_at'], first['completed_at'])
+        self.assertEqual(checked['checked_at'], '2099-01-01T00:00:00Z')
+        def fail_capture():
+            self.assertTrue(json.loads(job.path.read_text())['running'])
+            raise snap.ContentError('capture failed')
+        job.collector = fail_capture
+        with self.assertRaises(snap.ContentError): job.run()
+        failed = json.loads(job.path.read_text())
+        self.assertFalse(failed['running'])
+        self.assertEqual(failed['failure']['stage'], 'capture')
+        self.assertEqual(failed['completed_at'], first['completed_at'])
+
     def test_superseded_receipt_rebuilds_and_reverted_pending_does_not_noop(self):
         data = snapshot()
         job = refresh.Refresh(self.root, self.commands, lambda: copy.deepcopy(data))

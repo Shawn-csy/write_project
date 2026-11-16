@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, constants, existsSync, fstatSync, mkdirSync, openSync, readSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +80,44 @@ async function fetchResponse(origin, path) {
   throw new Error(`GET ${path} failed after 3 attempts.`);
 }
 
+// Durable, bounded operational receipt. Never persist exception text, URLs, or credentials.
+const statusPath = join(resolve(process.env.WP_RELEASE_ROOT || join(repositoryRoot, "releases")), ".public-sync", production ? "production.json" : "preview.json");
+function readPreviousStatus() {
+  let descriptor;
+  try {
+    descriptor = openSync(statusPath, constants.O_RDONLY | constants.O_NONBLOCK | (constants.O_NOFOLLOW || 0));
+    const stat = fstatSync(descriptor);
+    if (!stat.isFile() || stat.size > 65536) return {};
+    const buffer = Buffer.alloc(65537);
+    const length = readSync(descriptor, buffer, 0, buffer.length, 0);
+    if (length > 65536) return {};
+    const value = JSON.parse(buffer.subarray(0, length).toString("utf8"));
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    const previous = {};
+    if (typeof value.last_success_at === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value.last_success_at) && Number.isFinite(Date.parse(value.last_success_at))) {
+      previous.last_success_at = new Date(value.last_success_at).toISOString();
+    }
+    if (Number.isSafeInteger(value.skipped_objects) && value.skipped_objects >= 0) previous.skipped_objects = value.skipped_objects;
+    return previous;
+  } catch { return {}; }
+  finally { if (descriptor !== undefined) closeSync(descriptor); }
+}
+function writeStatus(status, details = {}) {
+  const previous = readPreviousStatus();
+  const checkedAt = new Date().toISOString();
+  const receipt = {
+    schema_version: 1, status, checked_at: checkedAt,
+    last_success_at: status === "success" ? checkedAt : previous.last_success_at || null,
+    ...details,
+    ...((details.outcome === "unchanged" || status === "failed") ? { skipped_objects: previous.skipped_objects ?? null } : {}),
+  };
+  mkdirSync(dirname(statusPath), { recursive: true });
+  const temporary = `${statusPath}.${process.pid}.tmp`;
+  writeFileSync(temporary, JSON.stringify(receipt) + "\n", { mode: 0o600 });
+  renameSync(temporary, statusPath);
+}
+async function main() {
+const retrySkippedMedia = readPreviousStatus().skipped_objects > 0;
 const snapshots = new Map();
 async function fetchSnapshot(path, expected = "json") {
   if (snapshots.has(path)) return snapshots.get(path);
@@ -257,14 +295,15 @@ if (scheduled) {
     }
   }
 
-  if (!snapshotsChanged) {
+  if (!snapshotsChanged && !retrySkippedMedia) {
     console.log("Scheduled public sync: API snapshots are unchanged; skipping D1 and R2.");
-    process.exit(0);
+    writeStatus("success", { outcome: "unchanged", media_objects_checked: 0, skipped_objects: 0 });
+    return;
   }
 
-  if (!publicContentChanged) {
+  if (!publicContentChanged && !retrySkippedMedia) {
     syncAssets = [];
-  } else if (previousSnapshots.size > 0) {
+  } else if (previousSnapshots.size > 0 && !retrySkippedMedia) {
     const previousMedia = new Map();
     for (const snapshot of previousSnapshots.values()) {
       if (snapshot.json !== null) collectMedia(snapshot.json, previousMedia);
@@ -420,6 +459,7 @@ try {
     "--config", fallbackConfig,
   ]);
 
+  writeStatus("success", { outcome: "published", media_objects_checked: syncAssets.length, skipped_objects: skippedObjects });
   console.log(JSON.stringify({
     generation,
     syncedAt,
@@ -436,3 +476,11 @@ try {
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
 }
+
+}
+main().catch((error) => {
+  try { writeStatus("failed", { error_code: "sync_failed" }); }
+  catch { console.error("Could not write sync status receipt."); }
+  console.error(error);
+  process.exitCode = 1;
+});

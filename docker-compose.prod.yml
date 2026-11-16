@@ -32,6 +32,7 @@ services:
     environment:
       - DATABASE_URL=${DATABASE_URL:?DATABASE_URL must be set in production}
       - DB_PATH=/data/scripts.db
+      - WP_PUBLICATION_STATE_DIR=/run/wp-publication
       # Production schema changes run as a separate, reviewed release step.
       - DB_AUTO_CREATE_TABLES=${DB_AUTO_CREATE_TABLES:-0}
       - DB_RUN_LEGACY_MIGRATIONS=${DB_RUN_LEGACY_MIGRATIONS:-0}
@@ -61,6 +62,7 @@ services:
     volumes:
       - ./server/data:/data
       - ./server/secrets:/secrets:ro
+      - ${WP_RELEASE_ROOT:-./releases}/.content-refresh:/run/wp-publication:ro
       - ./dist:/app/dist:ro
     # 實測 ~86M；PDF / docx / xlsx 匯出會短時間衝高
     deploy:

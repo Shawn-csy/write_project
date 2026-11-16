@@ -89,6 +89,8 @@ jobs:
       - run: npm ci
       - name: Check studio and shared package types
         run: npm run typecheck
+      - name: Check durable sync status receipts
+        run: node --test scripts/test_sync_status.mjs
       - name: Check studio and shared package contracts
         run: npx vitest run --project main
       - name: Build studio
