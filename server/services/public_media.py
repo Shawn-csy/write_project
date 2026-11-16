@@ -289,7 +289,10 @@ def remote_bytes(raw, width):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise MediaError(502, 'Media unavailable')
-            request = Request(current, headers={'Accept': 'image/*'})
+            request = Request(current, headers={
+                'Accept': 'image/*',
+                'User-Agent': 'OpenScriptsMedia/1.0 (+https://open-scripts.shawnup.com)',
+            })
             request._media_deadline = deadline
             response = opener.open(request, timeout=remaining)
         except HTTPError as exc:

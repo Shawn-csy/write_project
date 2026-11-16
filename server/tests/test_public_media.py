@@ -109,6 +109,26 @@ class RemoteResponse(io.BytesIO):
         super().__init__(body)
         self.status, self.headers = status, headers or {'content-type': 'image/png'}
 
+def test_remote_identifies_service_on_each_redirect_without_credentials(monkeypatch):
+    calls = []
+    class Opener:
+        def open(self, request, timeout):
+            calls.append(request)
+            if len(calls) == 1:
+                return RemoteResponse(302, {'location': 'https://cdn.example/cover.png'})
+            return RemoteResponse()
+    monkeypatch.setattr(media, 'build_opener', lambda *a: Opener())
+    assert media.remote_bytes('https://images.example/cover.png', None) == (b'abc', 'image/png')
+    assert [request.full_url for request in calls] == [
+        'https://images.example/cover.png', 'https://cdn.example/cover.png',
+    ]
+    for request in calls:
+        assert dict(request.header_items()) == {
+            'Accept': 'image/*',
+            'User-agent': 'OpenScriptsMedia/1.0 (+https://open-scripts.shawnup.com)',
+        }
+    assert calls[0]._media_deadline == calls[1]._media_deadline
+
 def test_redirect_revalidates_and_bounds(monkeypatch):
     calls = []
     class Opener:
