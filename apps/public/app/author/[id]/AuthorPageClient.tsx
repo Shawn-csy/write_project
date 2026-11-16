@@ -191,7 +191,15 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     return Array.from(map.values());
   }, [scripts]);
 
-  const ctx: SectionContext = { persona, scripts, externalScripts, performances, audioWorks, audioScriptWorks, credits: persona.productionCredits || [], series };
+  const participationWorks = (role: "voice_actor" | "scriptwriter", fallback: PublicAudioWork[]) =>
+    persona.workParticipations === undefined ? fallback : persona.workParticipations
+      .filter((credit) => credit.creditRole === role)
+      .map((credit) => ({ id: credit.audioWorkId || credit.id, title: credit.title, url: credit.url, coverUrl: credit.coverUrl } as PublicAudioWork));
+  const ctx: SectionContext = { persona, scripts, externalScripts, performances,
+    audioWorks: participationWorks("voice_actor", audioWorks),
+    audioScriptWorks: participationWorks("scriptwriter", audioScriptWorks),
+    credits: persona.workParticipations?.filter((credit): credit is import("@/lib/types").PublicProductionCredit =>
+      ["post_production", "cover_art", "recording_studio"].includes(credit.creditRole)) ?? persona.productionCredits ?? [], series };
   const commissionOffers = Object.values(persona.roleProfiles || {}).flatMap((profile) => {
     const raw = profile?.commissionOffers;
     if (!Array.isArray(raw)) return [];

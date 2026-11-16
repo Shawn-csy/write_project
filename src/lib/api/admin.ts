@@ -111,9 +111,11 @@ export const getPublicAudioWorkSubmissionsAdmin = async ({
   status = "pending",
   limit = 100,
   offset = 0,
-}: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<PublicAudioWorkSubmissionListResponse> => {
+  unresolvedOnly = false,
+}: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected"; unresolvedOnly?: boolean } = {}): Promise<PublicAudioWorkSubmissionListResponse> => {
   const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
   if (q) params.set("q", q);
+  if (unresolvedOnly) params.set("unresolvedOnly", "true");
   return fetchApi(`/admin/public-audio-work-submissions?${params.toString()}`) as Promise<PublicAudioWorkSubmissionListResponse>;
 };
 
@@ -123,9 +125,10 @@ export const updatePublicAudioWorkSubmissionAdmin = async (
   organizationId?: string | null,
   voiceActorIds?: string[],
   accessType?: "paid" | "free",
+  participants?: import("@write/public-ui/WorkParticipantEditor").WorkParticipantInput[],
 ): Promise<PublicAudioWorkSubmissionRecord> => fetchApi(`/admin/public-audio-work-submissions/${encodeURIComponent(id)}/status`, {
   method: "PATCH",
-  body: JSON.stringify({ status, ...(organizationId !== undefined ? { organizationId } : {}), ...(voiceActorIds !== undefined ? { voiceActorIds } : {}), ...(accessType !== undefined ? { accessType } : {}) }),
+  body: JSON.stringify({ status, ...(participants !== undefined ? { participants } : {}), ...(organizationId !== undefined ? { organizationId } : {}), ...(voiceActorIds !== undefined ? { voiceActorIds } : {}), ...(accessType !== undefined ? { accessType } : {}) }),
 }) as Promise<PublicAudioWorkSubmissionRecord>;
 
 export interface VoiceActorClaimRecord {

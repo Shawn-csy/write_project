@@ -187,11 +187,10 @@ class _Converger:
         url = str(url or "").strip()
         if not url or (persona_id, role, url) in self.credits:
             return
-        self.db.add(models.PersonaCredit(
-            id=str(uuid.uuid4()), personaId=persona_id, role=role, audioWorkId=audio_work_id,
-            title=title or "", url=url, coverUrl=cover_url or "", workType=work_type or "audio",
-            creditedAs=credited_as or "", source=source, createdAt=self.now,
-        ))
+        from services.work_participations import record_participation
+        record_participation(self.db, persona_id=persona_id, role=role, audio_work_id=audio_work_id,
+                             title=title or "", url=url, cover_url=cover_url or "",
+                             work_type=work_type or "audio", credited_as=credited_as or "", source=source)
         self.credits.add((persona_id, role, url))
         self.report.credits += 1
 
@@ -266,7 +265,7 @@ class _Converger:
         # 2. Names printed in catalog credit lists. Canonical spellings go first so aliases find them.
         names: set[tuple[str, str]] = set()
         for credit in db.query(models.AudioWorkCredit).filter(models.AudioWorkCredit.role.in_(tuple(_SOURCE_ROLE_TO_ROLE))).all():
-            if credit.audioWorkId in audio_works and str(credit.creditedAs or "").strip():
+            if credit.provenance not in {"submission", "reviewed_participation", "source_import"} and credit.audioWorkId in audio_works and str(credit.creditedAs or "").strip():
                 names.add((_SOURCE_ROLE_TO_ROLE[credit.role], credit.creditedAs))
         for role, credited_as in sorted(names, key=lambda item: ((item in CREDIT_NAME_ALIASES), item)):
             if (role, credited_as) in self.credit_names:

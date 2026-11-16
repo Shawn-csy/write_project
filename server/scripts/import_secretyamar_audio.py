@@ -112,6 +112,9 @@ def main() -> None:
             created += 1
 
         print(f"Organization: {org.name}; works to create: {created}")
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID, source_items=works)
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             invalidate_public_bundle_cache()

@@ -222,6 +222,10 @@ export interface PublicProductionCredit {
   workType?: "audio" | "game" | "video" | "other";
 }
 
+export interface PublicWorkParticipation extends Omit<PublicProductionCredit, "creditRole"> {
+  creditRole: PublicIdentityRole;
+}
+
 export interface PublicPersona {
   id: string;
   ownerId?: string;
@@ -237,6 +241,7 @@ export interface PublicPersona {
   roleProfiles?: Partial<Record<PublicIdentityRole, Record<string, unknown>>>;
   /** Post-production, cover art and recording credits, newest first. */
   productionCredits?: PublicProductionCredit[];
+  workParticipations?: PublicWorkParticipation[];
   /** Everyone whose reviewed edits shaped this profile, oldest first. */
   profileContributors?: Array<{ name?: string; contributedAt?: number }>;
   voiceActorCollaborationEnabled?: boolean;

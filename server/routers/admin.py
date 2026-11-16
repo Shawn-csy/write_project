@@ -384,8 +384,11 @@ def delete_public_demo_submission(
     return {"success": True, "id": submission_id}
 
 
-def _serialize_audio_work_submission(row: models.PublicAudioWorkSubmission) -> dict:
+def _serialize_audio_work_submission(row: models.PublicAudioWorkSubmission, participants=None, other_credits=None) -> dict:
     return {
+        "participants": participants or [],
+        "unresolvedParticipantCount": sum(not p.get("personaId") for p in participants or []),
+        "otherSourceCredits": other_credits or [],
         "id": row.id,
         "title": row.title,
         "url": row.url,
@@ -408,6 +411,7 @@ def _serialize_audio_work_submission(row: models.PublicAudioWorkSubmission) -> d
 def list_public_audio_work_submissions(
     status: Optional[str] = "pending",
     q: Optional[str] = None,
+    unresolvedOnly: bool = False,
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -430,9 +434,19 @@ def list_public_audio_work_submissions(
             | models.PublicAudioWorkSubmission.creatorName.ilike(like_q)
             | models.PublicAudioWorkSubmission.contactEmail.ilike(like_q)
         )
+    if unresolvedOnly:
+        from services.work_participations import catalog_participants
+        candidate_ids = [row[0] for row in query.with_entities(models.PublicAudioWorkSubmission.id).all()]
+        roster = catalog_participants(db, candidate_ids)
+        unresolved_ids = [wid for wid, people in roster.items() if any(not p.get("personaId") for p in people)]
+        query = query.filter(models.PublicAudioWorkSubmission.id.in_(unresolved_ids))
     total = query.count()
     rows = query.order_by(models.PublicAudioWorkSubmission.createdAt.desc()).offset(max(offset, 0)).limit(max(1, min(limit, 200))).all()
-    return schemas.PublicAudioWorkSubmissionListResponse(total=total, items=[_serialize_audio_work_submission(row) for row in rows])
+    from services.work_participations import catalog_participants
+    from services.work_participations import other_source_credits
+    other_credits = other_source_credits(db, [row.id for row in rows])
+    participants = catalog_participants(db, [row.id for row in rows])
+    return schemas.PublicAudioWorkSubmissionListResponse(total=total, items=[_serialize_audio_work_submission(row, participants[row.id], other_credits[row.id]) for row in rows])
 
 
 @router.patch("/public-audio-work-submissions/{submission_id}/status", response_model=schemas.PublicAudioWorkSubmissionRecord)
@@ -449,6 +463,8 @@ def update_public_audio_work_submission_status(
     if not row:
         raise HTTPException(status_code=404, detail="Audio work submission not found")
 
+    from services.work_participations import catalog_participants
+    previous_participants = catalog_participants(db, [row.id])[row.id]
     if "organizationId" in payload.model_fields_set:
         if payload.organizationId and not db.query(models.Organization.id).filter(models.Organization.id == payload.organizationId).first():
             raise HTTPException(status_code=400, detail="找不到所屬組織")
@@ -462,9 +478,23 @@ def update_public_audio_work_submission_status(
         row.accessType = payload.accessType
     if payload.status == "approved" and not row.organizationId:
         raise HTTPException(status_code=400, detail="請先指定所屬組織")
+    from services.work_participations import replace_catalog_participants, catalog_participants
+    if payload.participants is None and "voiceActorIds" in payload.model_fields_set:
+        roster = [p for p in catalog_participants(db, [row.id])[row.id] if p["role"] != "voice_actor"]
+        roster.extend({"role": "voice_actor", "personaId": actor.id, "creditedAs": actor.displayName,
+                       "sourceUrl": row.url} for actor in db.query(models.Persona).filter(models.Persona.id.in_(row.voiceActorIds)))
+        replace_catalog_participants(db, row, roster, reviewed=True)
+    if payload.participants is not None:
+        try:
+            replace_catalog_participants(db, row, [p.model_dump() for p in payload.participants], reviewed=True)
+        except ValueError as error:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(error))
     row.status = payload.status
     row.reviewedAt = int(time.time() * 1000) if payload.status != "pending" else None
     row.reviewedBy = ownerId if payload.status != "pending" else None
+    from services.work_participations import finalize_catalog_import
+    finalize_catalog_import(db, work_ids=[row.id])
     db.commit()
     db.refresh(row)
     if row.status == "approved":
@@ -473,8 +503,12 @@ def update_public_audio_work_submission_status(
         converge_and_commit(db)
     from routers import public_bundle
     public_bundle.invalidate_public_bundle_cache()
-    _queue_demo_revalidation(background_tasks, "/audio-works", "/sitemap.xml")
-    return _serialize_audio_work_submission(row)
+    participants = catalog_participants(db, [row.id])[row.id]
+    affected = {p["personaId"] for p in [*previous_participants, *participants] if p.get("personaId")}
+    _queue_demo_revalidation(background_tasks, "/audio-works", "/authors", "/resources", "/sitemap.xml",
+                            *(f"/author/{pid}" for pid in sorted(affected)))
+    from services.work_participations import other_source_credits
+    return _serialize_audio_work_submission(row, participants, other_source_credits(db, [row.id])[row.id])
 
 
 def _admin_demo_links(value: Any) -> list[dict]:
@@ -2151,8 +2185,9 @@ def _apply_production_profile(db: Session, persona: models.Persona, profile: dic
             audio = (db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
                      if work.get("workType", "audio") == "audio" else None)
             converger.ensure_role(persona.id, work["creditRole"], "profile_submission")
-            converger.add_credit(
-                persona.id, work["creditRole"], url=audio.url if audio else work["url"],
+            from services.work_participations import record_participation
+            record_participation(
+                db, persona_id=persona.id, role=work["creditRole"], url=audio.url if audio else work["url"],
                 title=audio.title if audio else str(work.get("title") or ""),
                 cover_url=(audio.coverUrl if audio else work.get("coverUrl")) or "",
                 work_type="audio" if audio else str(work.get("workType") or "other"),

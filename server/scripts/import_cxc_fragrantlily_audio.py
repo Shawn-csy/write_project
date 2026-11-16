@@ -153,6 +153,9 @@ def main() -> None:
                 raise SystemExit(f"Unexpected status for excluded work: {work['id']}")
 
         print(f"Organization: {org.name}; works to create: {created}; works to withdraw: {withdrawn}")
+        from services.work_participations import finalize_catalog_import
+        participation_report = finalize_catalog_import(db, organization_id=ORG_ID, source_items=works)
+        print("Participation audit:", json.dumps(participation_report, ensure_ascii=False))
         if args.apply:
             db.commit()
             invalidate_public_bundle_cache()

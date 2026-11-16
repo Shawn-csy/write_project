@@ -1,12 +1,13 @@
+import { WorkParticipantEditor, type WorkParticipantInput } from "@write/public-ui/WorkParticipantEditor";
 import React, { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { getAllOrganizationsAdmin, getPublicAudioWorkSubmissionsAdmin, getVoiceActorsAdmin, updatePublicAudioWorkSubmissionAdmin } from "../../lib/api/admin";
+import { getAllOrganizationsAdmin, getPublicAudioWorkSubmissionsAdmin, getAllPersonasAdmin, updatePublicAudioWorkSubmissionAdmin } from "../../lib/api/admin";
 import { createOrganization } from "../../lib/api/organizations";
 import { notifyAdminQueueUpdated } from "../../lib/adminNotifications";
-import type { AdminVoiceActor, OrgData, PublicAudioWorkSubmissionRecord } from "../../types/api";
+import type { OrgData, PublicAudioWorkSubmissionRecord } from "../../types/api";
 
 type StatusFilter = "all" | PublicAudioWorkSubmissionRecord["status"];
 
@@ -17,26 +18,27 @@ function formatDate(value: number): string {
 export function PublicAudioWorkSubmissionInbox(): React.JSX.Element {
   const [items, setItems] = useState<PublicAudioWorkSubmissionRecord[]>([]);
   const [organizations, setOrganizations] = useState<OrgData[]>([]);
-  const [voiceActors, setVoiceActors] = useState<AdminVoiceActor[]>([]);
+  const [identities, setIdentities] = useState<Array<{ id: string; displayName?: string }>>([]);
   const [selectedOrganizations, setSelectedOrganizations] = useState<Record<string, string>>({});
-  const [selectedActors, setSelectedActors] = useState<Record<string, string[]>>({});
+  const [participants, setParticipants] = useState<Record<string, WorkParticipantInput[]>>({});
   const [selectedAccessTypes, setSelectedAccessTypes] = useState<Record<string, "paid" | "free">>({});
   const [creatingFor, setCreatingFor] = useState<string | null>(null);
   const [newOrgName, setNewOrgName] = useState("");
   const [newOrgWebsite, setNewOrgWebsite] = useState("");
   const [newOrgBanner, setNewOrgBanner] = useState("");
   const [total, setTotal] = useState(0);
+  const [unresolvedOnly, setUnresolvedOnly] = useState(false);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<StatusFilter>("pending");
   const [isLoading, setIsLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
-  const load = useCallback(async (search: string, nextStatus: StatusFilter) => {
+  const load = useCallback(async (search: string, nextStatus: StatusFilter, onlyUnresolved = false) => {
     setIsLoading(true);
     setError("");
     try {
-      const result = await getPublicAudioWorkSubmissionsAdmin({ q: search, status: nextStatus, limit: 100, offset: 0 });
+      const result = await getPublicAudioWorkSubmissionsAdmin({ q: search, status: nextStatus, unresolvedOnly: onlyUnresolved, limit: 100, offset: 0 });
       setItems(result.items || []);
       setTotal(result.total || 0);
     } catch (cause) {
@@ -52,7 +54,15 @@ export function PublicAudioWorkSubmissionInbox(): React.JSX.Element {
   useEffect(() => {
     void load("", "pending");
     void getAllOrganizationsAdmin({ limit: 500 }).then(setOrganizations).catch(() => {});
-    void getVoiceActorsAdmin().then(setVoiceActors).catch(() => {});
+    void (async () => {
+      const all: Array<{ id: string; displayName?: string }> = [];
+      for (let offset = 0; ; offset += 500) {
+        const page = await getAllPersonasAdmin({ limit: 500, offset });
+        all.push(...page);
+        if (page.length < 500) break;
+      }
+      setIdentities(all);
+    })().catch(() => setError("讀取身份清單失敗，請重新整理後再連結身份。"));
   }, [load]);
 
   const updateStatus = async (id: string, nextStatus: PublicAudioWorkSubmissionRecord["status"]) => {
@@ -61,8 +71,9 @@ export function PublicAudioWorkSubmissionInbox(): React.JSX.Element {
     try {
       const item = items.find((entry) => entry.id === id);
       const organizationId = selectedOrganizations[id] ?? item?.organizationId ?? "";
-      const voiceActorIds = selectedActors[id] ?? item?.voiceActorIds ?? [];
-      const updated = await updatePublicAudioWorkSubmissionAdmin(id, nextStatus, organizationId || null, voiceActorIds, selectedAccessTypes[id] ?? item?.accessType ?? "paid");
+      const roster = participants[id] ?? item?.participants ?? [];
+      const updated = await updatePublicAudioWorkSubmissionAdmin(id, nextStatus, organizationId || null, undefined, selectedAccessTypes[id] ?? item?.accessType ?? "paid", roster);
+      setParticipants((current) => ({ ...current, [id]: updated.participants || [] }));
       notifyAdminQueueUpdated();
       setItems((current) => current.map((item) => item.id === id ? updated : item));
       if (status === "pending" && nextStatus !== "pending") {
@@ -99,13 +110,15 @@ export function PublicAudioWorkSubmissionInbox(): React.JSX.Element {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Input className="h-8 text-sm" placeholder="搜尋作品、創作者或 Email" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void load(query, status); }} />
-        <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={status} onChange={(event) => { const value = event.target.value as StatusFilter; setStatus(value); void load(query, value); }} aria-label="投稿狀態">
+        <Input className="h-8 text-sm" placeholder="搜尋作品、創作者或 Email" value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void load(query, status, unresolvedOnly); }} />
+        <select className="h-8 rounded-md border border-input bg-background px-2 text-xs" value={status} onChange={(event) => { const value = event.target.value as StatusFilter; setStatus(value); void load(query, value, unresolvedOnly); }} aria-label="投稿狀態">
           <option value="pending">待審核</option><option value="approved">已核准</option><option value="rejected">已退回</option><option value="all">全部</option>
         </select>
-        <Button variant="outline" size="sm" onClick={() => void load(query, status)} disabled={isLoading}>{isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}重新整理</Button>
+        <Button variant="outline" size="sm" onClick={() => void load(query, status, unresolvedOnly)} disabled={isLoading}>{isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}重新整理</Button>
         <span className="shrink-0 text-xs text-muted-foreground">共 {total} 筆</span>
       </div>
+
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={unresolvedOnly} onChange={(event) => { setUnresolvedOnly(event.target.checked); void load(query, status, event.target.checked); }} />只顯示尚未連結身份的作品</label>
 
       {error && <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>}
       {!isLoading && !error && items.length === 0 && <div className="py-5 text-center text-sm text-muted-foreground">目前沒有符合的音聲作品投稿。</div>}
@@ -129,7 +142,12 @@ export function PublicAudioWorkSubmissionInbox(): React.JSX.Element {
             {item.coverUrl && <a href={item.coverUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 text-xs text-primary hover:underline"><img src={item.coverUrl} alt="作品封面預覽" className="h-12 w-20 rounded border border-border/70 object-cover" loading="lazy" referrerPolicy="no-referrer" />檢視封面</a>}
             {item.description && <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed">{item.description}</p>}
             <label className="mt-3 inline-flex items-center gap-2 text-xs">作品類型<select className="h-8 rounded-md border border-input bg-background px-2" value={selectedAccessTypes[item.id] ?? item.accessType ?? "paid"} onChange={(event) => setSelectedAccessTypes((current) => ({ ...current, [item.id]: event.target.value as "paid" | "free" }))}><option value="paid">付費作品</option><option value="free">免費作品</option></select>{item.status === "approved" && selectedAccessTypes[item.id] && selectedAccessTypes[item.id] !== item.accessType && <Button size="sm" variant="outline" className="h-8" disabled={updatingId === item.id} onClick={() => void updateStatus(item.id, "approved")}>儲存類型</Button>}</label>
-            <details className="mt-3 rounded-md border border-border/70 p-2 text-xs"><summary className="cursor-pointer font-medium">聲演身份（{(selectedActors[item.id] ?? item.voiceActorIds ?? []).length}）</summary><div className="mt-2 flex flex-wrap gap-2">{voiceActors.map((actor) => <label key={actor.id} className="inline-flex items-center gap-1 rounded border border-border/70 px-2 py-1"><input type="checkbox" checked={(selectedActors[item.id] ?? item.voiceActorIds ?? []).includes(actor.id)} onChange={(event) => setSelectedActors((current) => { const ids = current[item.id] ?? item.voiceActorIds ?? []; return { ...current, [item.id]: event.target.checked ? [...ids, actor.id] : ids.filter((id) => id !== actor.id) }; })} />{actor.displayName}</label>)}</div>{item.status === "approved" && selectedActors[item.id] && <Button size="sm" variant="outline" className="mt-2 h-8" disabled={updatingId === item.id} onClick={() => void updateStatus(item.id, "approved")}>儲存聲演</Button>}</details>
+            <details className="mt-3 rounded-md border border-border/70 p-2 text-xs">
+              <summary className="cursor-pointer font-medium">參與作品職務（{(participants[item.id] ?? item.participants ?? []).length}） · {(participants[item.id] ?? item.participants ?? []).filter((p) => !p.personaId).length} 筆待連結</summary>
+              {(item.otherSourceCredits || []).length > 0 && <p className="mt-2 text-muted-foreground">來源另外列有職務：{item.otherSourceCredits?.map((c) => `${c.sourceRole}：${c.creditedAs}`).join("；")}</p>}
+              <div className="mt-3"><WorkParticipantEditor value={participants[item.id] ?? item.participants ?? []} identities={identities} disabled={updatingId === item.id} onChange={(value) => setParticipants((current) => ({ ...current, [item.id]: value }))} /></div>
+              {item.status === "approved" && <Button size="sm" variant="outline" className="mt-2 h-8" disabled={updatingId === item.id} onClick={() => void updateStatus(item.id, "approved")}>儲存參與職務</Button>}
+            </details>
             <label className="mt-3 flex flex-wrap items-center gap-2 text-xs">所屬組織
               <select className="h-9 min-w-40 rounded-md border border-input bg-background px-2" value={selectedOrganizations[item.id] ?? item.organizationId ?? ""} onChange={(event) => setSelectedOrganizations((current) => ({ ...current, [item.id]: event.target.value }))}>
                 <option value="">尚未指定</option>

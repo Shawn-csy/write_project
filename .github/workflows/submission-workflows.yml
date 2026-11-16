@@ -65,7 +65,7 @@ jobs:
           cache-dependency-path: server/requirements.txt
       - run: python -m pip install -r server/requirements.txt
       - name: Check submission and review workflows
-        run: python -m pytest -q tests/test_submission_workflow_contract.py tests/test_public_feedback.py tests/test_external_public_scripts_api.py
+        run: python -m pytest -q tests/test_work_participations.py tests/test_identity_convergence.py tests/test_submission_workflow_contract.py tests/test_public_feedback.py tests/test_external_public_scripts_api.py
         working-directory: server
         env:
           PYTHONPATH: .
@@ -80,4 +80,4 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Check public submission forms
-        run: npx vitest run apps/public/components/SubmissionDialogs.test.tsx apps/public/components/PublicFeedbackDialog.test.tsx
+        run: npx vitest run src/components/admin/PublicAudioWorkSubmissionInbox.test.tsx packages/public-ui/src/WorkParticipantEditor.test.tsx apps/public/lib/audioScriptWorks.test.ts apps/public/app/author/\[id\]/AuthorPageClient.test.tsx apps/public/components/SubmissionDialogs.test.tsx apps/public/components/PublicFeedbackDialog.test.tsx

@@ -125,6 +125,7 @@ class PersonaPublic(Persona):
     organizations: List[Organization] = []
     roles: List[Literal["scriptwriter", "voice_actor", "post_production", "cover_art", "recording_studio"]] = []
     productionCredits: List[Dict[str, Any]] = []
+    workParticipations: List[Dict[str, Any]] = []
     profileContributors: List[Dict[str, Any]] = []
     profileSources: List[str] = []
     roleProfiles: Dict[str, Any] = {}
@@ -1305,7 +1306,29 @@ class PublicDemoSubmissionResponse(BaseModel):
     createdAt: int
 
 
+class WorkParticipantInput(BaseModel):
+    role: Literal["scriptwriter", "voice_actor", "post_production", "cover_art", "recording_studio"]
+    personaId: Optional[str] = Field(default=None, max_length=120)
+    creditedAs: str = Field(min_length=1, max_length=200)
+    sourceUrl: str = ""
+    sourceRole: str = Field(default="", max_length=200)
+
+    @field_validator("creditedAs", mode="before")
+    @classmethod
+    def clean_name(cls, value):
+        return str(value or "").strip()
+
+    @field_validator("sourceUrl")
+    @classmethod
+    def source_url(cls, value):
+        import re
+        if value and (len(value) > 2000 or not re.fullmatch(r"https://[^\s]+", value)):
+            raise ValueError("請提供有效的 HTTPS 來源連結")
+        return value
+
+
 class PublicAudioWorkSubmissionCreate(BaseModel):
+    participants: List[WorkParticipantInput] = Field(default_factory=list, max_length=100)
     title: str
     url: str
     coverUrl: str = ""
@@ -1342,6 +1365,9 @@ class PublicAudioWorkSubmissionResponse(BaseModel):
 
 
 class PublicAudioWorkSubmissionRecord(BaseModel):
+    participants: List[WorkParticipantInput] = []
+    unresolvedParticipantCount: int = 0
+    otherSourceCredits: List[Dict[str, str]] = []
     id: str
     title: str
     url: str
@@ -1365,6 +1391,7 @@ class PublicAudioWorkSubmissionListResponse(BaseModel):
 
 
 class PublicAudioWorkSubmissionStatusUpdate(BaseModel):
+    participants: Optional[List[WorkParticipantInput]] = Field(default=None, max_length=100)
     status: Literal["approved", "rejected", "pending"]
     organizationId: Optional[str] = None
     voiceActorIds: Optional[List[str]] = None
