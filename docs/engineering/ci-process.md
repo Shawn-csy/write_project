@@ -36,7 +36,7 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 
 既有 `Deploy production` 監聽上述兩個固定名稱的 workflow completion；只有本 repository 的 main push 成功事件可自動進入部署。`scripts/release.sh` 會再確認同一個 main commit 的 CI 都已成功，尚有執行中的 CI 則回傳 3，等待後續 completion 事件。因此請保留兩個名稱與一致的觸發範圍。文件檢查的成功不能替代這兩個程式閘門。手動 `workflow_dispatch` 雖是獨立入口，仍須通過精確 SHA 的兩組程式 CI，不會把 skipped／未出現的 workflow 當成成功。
 
-文件提交後 main SHA 可以合理領先正式 deployed SHA；內容更新仍解析正式 live SHA 並 checkout 該版本，不追隨最新 main。若程式提交後立刻有文件提交，舊程式 SHA 的部署可能被「必須是最新 pushed main」的既有 guard 擋住，導致該程式尚未發布；本次不改動 guard 或新增部署 fallback。需要發布時，讓下一個正常程式／設定變更觸發兩組 CI，並在兩組精確 SHA 檢查成功後走正常部署；單獨重跑舊 SHA 的 CI 或手動部署文件 SHA 都不會繞過 guard。
+文件提交後 main SHA 可以合理領先正式 deployed SHA；內容更新仍解析正式 live SHA 並 checkout 該版本。自動程式部署固定使用成功觸發事件的完整 SHA，兩組程式 CI 必須屬於此 SHA。候選到目前 main 的 first-parent 每一步都只改一般非執行 `.md` 檔時可發布；中間出現程式改動（即使後來還原）、非 Markdown 或特殊檔案則拒絕。cutover 前重新檢查；手動與 resume 同樣不借用其他 SHA 的 CI。詳見 [持續部署](continuous-deployment.md)。
 
 ## 本機檢查
 

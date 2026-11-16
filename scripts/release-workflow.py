@@ -42,13 +42,40 @@ class Commands:
     def output(self, args):
         return subprocess.run(args, cwd=ROOT, check=True, capture_output=True, text=True, timeout=90).stdout.strip()
 
+    def markdown_successors(self, sha, tip):
+        # First-parent lineage is main's actual sequence, including merge results.
+        # Checking each transition prevents a code change + revert from disappearing.
+        lineage = self.output(['git', 'rev-list', '--first-parent', tip]).splitlines()
+        if sha not in lineage:
+            raise ReleaseError('HEAD is not on origin/main first-parent lineage')
+        successors = list(reversed(lineage[:lineage.index(sha)]))
+        parent = sha
+        for commit in successors:
+            raw = subprocess.run(
+                ['git', 'diff-tree', '--no-commit-id', '--raw', '-r', '-z',
+                 '--no-renames', parent, commit], cwd=ROOT, check=True,
+                capture_output=True, timeout=90).stdout
+            fields = raw.split(b'\0')
+            if fields.pop() != b'' or len(fields) % 2:
+                raise ReleaseError('Invalid main history diff')
+            for header, path in zip(fields[::2], fields[1::2]):
+                parts = header.split()
+                if (len(parts) != 5 or not parts[0].startswith(b':')
+                        or parts[4] not in (b'A', b'D', b'M')
+                        or parts[0][1:] not in (b'000000', b'100644')
+                        or parts[1] not in (b'000000', b'100644')
+                        or not path.endswith(b'.md')):
+                    raise ReleaseError('Non-Markdown or special-file change after HEAD on origin/main')
+            parent = commit
+
     def guard(self):
         if self.output(['git', 'status', '--porcelain', '--untracked-files=all']):
             raise ReleaseError('Working tree has uncommitted changes')
-        self.output(['git', 'fetch', '-q', 'origin', 'main'])
+        self.output(['git', 'fetch', '-q', 'origin', '+refs/heads/main:refs/remotes/origin/main'])
         sha = self.output(['git', 'rev-parse', 'HEAD'])
-        if sha != self.output(['git', 'rev-parse', 'origin/main']):
-            raise ReleaseError('HEAD is not origin/main; check out the pushed main commit')
+        if not re.fullmatch(r'[0-9a-f]{40}', sha):
+            raise ReleaseError('Expected full Git commit SHA')
+        self.markdown_successors(sha, self.output(['git', 'rev-parse', 'origin/main']))
         runs = json.loads(self.output(['gh', 'run', 'list', '--branch', 'main', '--commit', sha, '--limit', '100', '--json', 'workflowName,status,conclusion,event,headSha,headBranch,databaseId,attempt']))
         ci_gate(runs, sha)
         return sha
@@ -179,6 +206,10 @@ class Workflow:
                 try:
                     for phase in ('build', 'schema-check', 'prepare'):
                         self.commands.step(phase, tag, apply_schema)
+                    # Main may have moved while building; never cut over stale code.
+                    phase = 'pre-cutover-guard'
+                    if self.commands.guard() != sha:
+                        raise ReleaseError('HEAD changed during release')
                     journal.update(phase='activation-intent', updated_at=now())
                     atomic_json(path, journal)  # Persist ownership before traffic moves.
                     self.commands.step('cutover', tag)

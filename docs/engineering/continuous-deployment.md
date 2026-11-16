@@ -43,7 +43,11 @@ bash scripts/release.sh prune
 
 任一步失敗就停在那裡：`prepare` 之前失敗不影響正式站；`activate` 驗證失敗會自動接回原入口。失敗時 GitHub 會寄出 workflow 失敗通知，這台 Mac 也會跳出系統通知。
 
-兩組 CI 使用相同的路徑篩選；對精確完整 commit SHA，兩組具名 workflow 都必須完成並成功。只讀取 main push 的最新 run（GitHub run list 回傳該 run 最新 rerun 的狀態），排除 Deploy production 本身、其他 workflow 與 PR。任一組尚未出現或仍執行中回傳 3，失敗則停止。只改 Markdown 文件由獨立的 `Documentation checks` 檢查，沒有兩組程式 CI completion 的 commit 不會自動部署。此時 main 可以領先正式 deployed SHA；內容刷新仍固定使用 live SHA。手動部署仍須滿足精確 SHA 的兩組成功 CI，不會接受 skipped／未出現的檢查。若程式提交後、部署前又合入文件提交，既有 latest-main guard 可能擋住前一個程式版本的發布；目前保留此保守行為，等待下一個正常程式／設定變更通過 CI 後發布。
+兩組 CI 使用相同的路徑篩選；對精確完整 commit SHA，兩組具名 workflow 都必須完成並成功。只讀取 main push 的最新 run（GitHub run list 回傳該 run 最新 rerun 的狀態），排除 Deploy production 本身、其他 workflow 與 PR。任一組尚未出現或仍執行中回傳 3，失敗則停止。只改 Markdown 文件由獨立的 `Documentation checks` 檢查，沒有兩組程式 CI completion 的 commit 不會自動部署。此時 main 可以領先正式 deployed SHA；內容刷新仍固定使用 live SHA。手動部署仍須滿足精確 SHA 的兩組成功 CI，不會接受 skipped／未出現的檢查。
+
+自動部署固定 checkout 成功觸發事件的 `workflow_run.head_sha`，建置、journal、tag 均使用該精確 SHA，不會在建置中追隨 main。候選必須位於目前 main 的 first-parent 歷史；從候選到 main 的每一步 first-parent tree 變更都只能是 `.md` 一般非執行檔（可位於根目錄、apps、packages 或其他路徑）。合併提交按 main 第一父節點的實際變更判斷；任一程式／設定／workflow／非 Markdown 變更、程式改動後又還原、程式改名成 Markdown、特殊檔案或離開 main 主線均拒絕。build 原有重驗仍保留，prepare 後、cutover 前再驗一次，阻擋建置期間抵達的新程式；切換之後不再因 main 前進中斷收斂。檢查與實際切換仍有短暫時間窗，並非遠端 main 的原子鎖。
+
+手動 workflow_dispatch 使用事件本身的 `github.sha`，本機手動／resume 使用目前 checkout；都要通過相同精確 SHA CI 與主線檢查，沒有任意選擇舊綠燈或 latest-green fallback。resume／complete no-op 仍驗乾淨 checkout 與候選 CI，允許 Markdown 後繼；若主線已出現新程式則拒絕，須先檢視現行入口與 journal。
 
 ## 中斷後續跑
 

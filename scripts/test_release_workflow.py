@@ -102,9 +102,32 @@ class WorkflowTests(unittest.TestCase):
         self.commands.calls.clear()
         self.run_release()
         self.assertEqual(self.commands.calls, [])
-        self.assertEqual(self.commands.guards, 2)
+        self.assertEqual(self.commands.guards, 3)
         self.assertEqual(self.journal()['commit'], SHA)
         self.assertIn('complete', self.journal()['timestamps'])
+
+    def test_new_code_before_cutover_blocks_activation(self):
+        def change(phase):
+            if phase == 'prepare':
+                def reject():
+                    raise release.ReleaseError('new code on main')
+                self.commands.guard = reject
+        self.commands.after = change
+        with self.assertRaisesRegex(release.ReleaseError, 'new code'):
+            self.run_release()
+        self.assertNotIn('cutover', self.commands.calls)
+        self.assertEqual(self.journal()['phase'], 'preparing')
+        self.assertEqual(self.journal()['failure']['phase'], 'pre-cutover-guard')
+
+    def test_no_new_main_guard_after_cutover(self):
+        def change(phase):
+            if phase == 'cutover':
+                def reject():
+                    raise release.ReleaseError('main moved')
+                self.commands.guard = reject
+        self.commands.after = change
+        self.run_release()
+        self.assertEqual(self.journal()['phase'], 'complete')
 
     def test_wrong_sha_rejected(self):
         self.run_release()
@@ -258,7 +281,7 @@ class CommandBoundaryTests(unittest.TestCase):
     def test_commands_construct_actual_bounded_guard_and_ingress_requests(self):
         commands = release.Commands()
         responses = ['', '', SHA, SHA, json.dumps(CIGateTests().green())]
-        with patch.object(commands, 'output', side_effect=responses) as output:
+        with patch.object(commands, 'markdown_successors'), patch.object(commands, 'output', side_effect=responses) as output:
             self.assertEqual(commands.guard(), SHA)
             self.assertIn('--commit', output.call_args.args[0])
             self.assertIn(SHA, output.call_args.args[0])
@@ -274,7 +297,7 @@ class CommandBoundaryTests(unittest.TestCase):
             with self.assertRaisesRegex(release.ReleaseError, 'uncommitted'):
                 commands.guard()
             self.assertIn('--untracked-files=all', output.call_args.args[0])
-        with patch.object(commands, 'output', side_effect=['', '', SHA, 'b' * 40]):
+        with patch.object(commands, 'markdown_successors', side_effect=release.ReleaseError('origin/main')), patch.object(commands, 'output', side_effect=['', '', SHA, 'b' * 40]):
             with self.assertRaisesRegex(release.ReleaseError, 'origin/main'):
                 commands.guard()
 

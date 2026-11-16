@@ -140,6 +140,11 @@ class CIContracts(unittest.TestCase):
             self.assertEqual(source.splitlines()[0], f"name: {name}")
             self.assertIn(f'"{name}"', deploy)
             self.assertIn(repr(name), release)
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", deploy)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'", deploy)
+        self.assertIn("ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}", deploy)
+        self.assertNotIn('ref: main', deploy)
+        self.assertNotIn('${{ github.event.workflow_run.head_sha }}', deploy)
         self.assertIn("github.event.workflow_run.event == 'push'", deploy)
         self.assertIn("github.event.workflow_run.head_repository.full_name == github.repository", deploy)
 
