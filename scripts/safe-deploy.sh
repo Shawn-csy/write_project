@@ -115,6 +115,6 @@ cat <<'EOF'
    cp scripts/com.shawnup.write-project-backup.plist ~/Library/LaunchAgents/
    launchctl load ~/Library/LaunchAgents/com.shawnup.write-project-backup.plist
 
-回滾：bash scripts/rollback.sh
+回滾：python3 scripts/site-release.py rollback --tag <live-tag>
 ────────────────────────────────────────────────────────
 EOF

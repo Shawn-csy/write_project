@@ -119,7 +119,7 @@ class Workflow:
 
     def matches(self, live, tag):
         return (live.get('edge') == f'wp-site-{tag}-edge' and live.get('api') == f'wp-site-{tag}-api'
-                and live.get('public') == f'wp-site-{tag}-public' and live.get('static') == str(self.root / tag))
+                and live.get('public') in (None, f'wp-site-{tag}-public') and live.get('static') == str(self.root / tag))
 
     def require_live(self, journal):
         live = self.commands.live()

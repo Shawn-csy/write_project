@@ -34,35 +34,35 @@ def main() -> None:
     source = str(ip_address(f"198.51.100.{random.randint(1, 254)}"))
     other = str(ip_address(f"203.0.113.{random.randint(1, 254)}"))
 
-    if status(base, "/", source) != 200 or status(base, "/api/public-bundle?sections=scripts", source) != 200:
+    if status(base, "/api/public-personas", source) != 200 or status(base, "/api/public-bundle?sections=scripts", source) != 200:
         raise SystemExit("ordinary dynamic read failed")
     if status(base, "/", source, "HEAD") != 200:
         raise SystemExit("ordinary HEAD read failed")
 
-    # Every homepage query value is distinct, while the API path is stable.
+    # Every personas query value is distinct, while the API path is stable.
     # Both paths must draw from the same source budget.
     paths = [path for index in range(40) for path in (
-        f"/?probe={index}", "/api/public-bundle?sections=scripts",
+        f"/api/public-personas?probe={index}", "/api/public-bundle?sections=scripts",
     )]
     with ThreadPoolExecutor(max_workers=16) as pool:
         results = list(pool.map(lambda path: (path, status(base, path, source)), paths))
     codes = Counter(code for _, code in results)
-    homepage_codes = Counter(code for path, code in results if path.startswith("/?"))
-    api_codes = Counter(code for path, code in results if path.startswith("/api/"))
-    if codes[200] == 0 or homepage_codes[429] == 0 or api_codes[429] == 0 or any(code not in (200, 429) for code in codes):
-        raise SystemExit(f"dynamic read burst was not safely limited: homepage={dict(homepage_codes)}, api={dict(api_codes)}")
+    personas_codes = Counter(code for path, code in results if path.startswith("/api/public-personas?"))
+    api_codes = Counter(code for path, code in results if path.startswith("/api/public-bundle?"))
+    if codes[200] == 0 or personas_codes[429] == 0 or api_codes[429] == 0 or any(code not in (200, 429) for code in codes):
+        raise SystemExit(f"dynamic read burst was not safely limited: personas={dict(personas_codes)}, api={dict(api_codes)}")
 
     if status(base, "/api/public-bundle?sections=scripts", other) != 200:
         raise SystemExit("one source exhausted another source's read budget")
-    static_codes = Counter(status(base, "/favicon.ico", source) for _ in range(30))
+    static_codes = Counter(status(base, "/random_text.json", source) for _ in range(30))
     health_codes = Counter(status(base, "/healthz", source) for _ in range(30))
     if static_codes != {200: 30} or health_codes != {200: 30}:
         raise SystemExit(f"static or health reads affected: static={dict(static_codes)}, health={dict(health_codes)}")
 
     time.sleep(3)
-    if status(base, "/", source) != 200:
+    if status(base, "/api/public-personas", source) != 200:
         raise SystemExit("dynamic read budget did not recover")
-    print(f"PASS: homepage {dict(homepage_codes)}, API {dict(api_codes)}, other source/static/health unaffected, budget recovered")
+    print(f"PASS: personas {dict(personas_codes)}, API {dict(api_codes)}, other source/static/health unaffected, budget recovered")
 
 
 if __name__ == "__main__":

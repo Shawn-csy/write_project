@@ -20,7 +20,7 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 - studio 與共用套件測試：`npx vitest run --project main`。
 - studio 正式建置：`npm run build`。
 - public 測試與獨立型別檢查：`npx vitest run apps/public`、`npx tsc --noEmit -p apps/public/tsconfig.json`。
-- public standalone 與靜態 Pages 雙建置：`python3 scripts/check-public-builds.py`，使用本機唯讀 API fixture，不依賴 production API。
+- 正式 Pages 靜態建置：`python3 scripts/check-public-builds.py`，使用本機唯讀 API fixture，不依賴 production API。
 
 `Submission workflows` 另外執行投稿、審核與回饋的後端契約及 public 表單測試。以上步驟失敗會使工作流程失敗。
 
@@ -34,4 +34,4 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 
 端對端測試仍可另外執行 `npx playwright test`；目前不是這兩個工作流程的必要閘門。
 
-內容更新沿用 Python 標準函式庫測試探索，驗證公開資料擷取、內容指紋、固定快照服務、鎖、正式版本解析與失敗重試。`check-public-builds.py` 除 standalone 建置外，也實際匯出「新增／修改／下架」和「公開目錄完全清空」兩份 Pages 產物；匯出前關閉原始 fixture API，只讓建置讀快照。內容排程只有 schedule／manual 事件，與程式發布互斥，第二次 checkout 綁定解析出的正式 SHA，不接受 PR 事件或修改 API／資料庫。
+內容更新沿用 Python 標準函式庫測試探索，驗證公開資料擷取、內容指紋、固定快照服務、鎖、正式版本解析與失敗重試。`check-public-builds.py` 實際匯出「新增／修改／下架」和「公開目錄完全清空」兩份 Pages 產物；匯出前關閉原始 fixture API，只讓建置讀快照。內容排程只有 schedule／manual 事件，與程式發布互斥，第二次 checkout 綁定解析出的正式 SHA，不接受 PR 事件或修改 API／資料庫。

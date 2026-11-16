@@ -20,10 +20,10 @@ if (preview === production) {
 const fallbackConfig = join(appRoot, production ? "worker/wrangler.fallback.prod.jsonc" : "worker/wrangler.fallback.jsonc");
 
 const trimOrigin = (value) => (value || "").replace(/\/+$/, "");
-const apiOrigin = trimOrigin(process.env.PUBLIC_SYNC_API_ORIGIN || "https://open-scripts.shawnup.com");
+const apiOrigin = trimOrigin(process.env.PUBLIC_SYNC_API_ORIGIN || (production ? "https://api-open-scripts.shawnup.com" : ""));
 const mediaOrigin = trimOrigin(process.env.PUBLIC_SYNC_MEDIA_ORIGIN || apiOrigin);
-// External covers come from /api/public-media/external/<id>, a Next.js route.
-// The API-only host does not serve it, so production points this at the ingress that does.
+// FastAPI serves external covers as well as the catalog. The separate override
+// remains compatible with existing sync installations during a rolling upgrade.
 const externalCoverOrigin = trimOrigin(process.env.PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN || apiOrigin);
 const r2PublicOrigin = trimOrigin(process.env.PUBLIC_SYNC_R2_PUBLIC_ORIGIN || "");
 const database = process.env.PUBLIC_SYNC_D1_DATABASE || (production ? "write-project-public" : "write-project-public-preview");

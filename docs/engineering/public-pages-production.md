@@ -3,6 +3,8 @@
 狀態：2026-11-11 起，`open-scripts.shawnup.com` 由 Cloudflare Pages 提供靜態前端；資料與圖片優先讀本機服務（Tunnel），失聯時改讀 D1／R2 唯讀備援。
 設計背景見 `pending/cloudflare-pages-tunnel-d1-r2-direction.md`；本文只記錄正式環境的現況與操作。
 
+本精簡分支尚未部署：新版把公開媒體與 JSON 路由統一交給 FastAPI，正式環境不再啟動 Next server。舊版仍可透過發布紀錄回滾；[精簡與驗收說明](production-runtime-simplification.md)。
+
 ## 資源與網域
 
 | 用途 | 名稱 | 網域／位置 |
@@ -83,12 +85,12 @@ launchd 工作每 15 分鐘執行 `scripts/sync-public-cloudflare.mjs --producti
 ```bash
 PUBLIC_SYNC_API_ORIGIN=https://api-open-scripts.shawnup.com \
 PUBLIC_SYNC_MEDIA_ORIGIN=https://api-open-scripts.shawnup.com \
-PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN=http://127.0.0.1:1090 \
+PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN=https://api-open-scripts.shawnup.com \
 PUBLIC_SYNC_R2_PUBLIC_ORIGIN=https://media-open-scripts.shawnup.com \
 node scripts/sync-public-cloudflare.mjs --production
 ```
 
-- 外部封面（`/api/public-media/external/<id>`）是 Next.js 路由，API 專用網域不提供，所以另用 `PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN=http://127.0.0.1:1090`（本機入口）；手動同步時也要加上這個變數，否則 31 張外部封面會被略過。
+- 外部封面（`/api/public-media/external/<id>`）由 FastAPI 提供，可與資料使用相同 API 網域。既有排程若仍指定本機 `127.0.0.1:1090`，也會經 Nginx 轉交 FastAPI；不依賴 Next server。
 - 同步讀的是 `api-open-scripts`，不是本機 `127.0.0.1:1090`：後者的主站 server block 對 `/api/public-*` 有動態讀取限流，完整同步會收到 429。
 - 封面檔名來自作品標題，可能含空格、逗號、括號；同步對「整個欄位就是媒體網址」的值整串處理，不能只靠空白斷詞。
 - 修改備援 Worker（`apps/public/worker/`）後重新部署：`npm run deploy:api-fallback -w apps/public`。D1 的 schema 定義在 `worker/schema.sql`，新資料庫要先套用再同步。
@@ -105,12 +107,12 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.shawnup.write-projec
 
 `deploy/nginx/default.conf` 有兩個 server block：
 
-- 預設 block（`server_name _`）：供工作室與舊入口，部分公開讀取（`/api/public-bundle`、`public-personas`、`public-organizations`、`public-terms-config`、`public-media`）經 Next.js，**不帶 CORS 標頭**。
+- 預設 block（`server_name _`）：供工作室與舊入口，公開 API／媒體直接交給 FastAPI，工作室由 Nginx 提供靜態檔；舊公開頁路徑轉址 Pages。
 - `api-open-scripts.shawnup.com` block：`/api/` 與 `/media/` 一律交給 FastAPI，由它負責 CORS 允許清單（含 `https://open-scripts.shawnup.com`）。其餘路徑回 404。
 
 - `/media/*.webp` 另有規則把 `Content-Type` 改成 `image/webp`：FastAPI 的靜態檔以 `application/octet-stream` 加 `nosniff` 回應 `.webp`，同網域沒事，但跨網域 `<img>` 會被瀏覽器（ORB）擋下。後端已在 `v0-7-4-r8` 補上 `.webp` 的 MIME 對照（`services/media_types.py`），這條 nginx 規則現在只是第二道保險，可以保留。若改動了 `/media/` 的標頭，要到 Cloudflare 對 `api-open-scripts.shawnup.com` 做「依主機名稱」清除快取（最長 4 小時的舊標頭會留在邊緣）。
 
-修改 nginx 設定要走 `scripts/site-release.py` 的新 release（`prepare`、檢查、`activate`），詳見 `operations.md`。`site-release.py` 會把兩個 server block 的上游一併改寫；`$api_backend` 與 `$backend` 各只能出現一次。
+修改 nginx 設定要走 `scripts/site-release.py` 的新 release（`prepare`、檢查、`activate`），詳見 `operations.md`。`site-release.py` 會把兩個 server block 的上游一併改寫；新版只有 API 上游，舊版紀錄仍支援 API／Next 雙上游供回滾。
 
 ## 驗證備援切換
 

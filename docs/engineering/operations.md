@@ -1,5 +1,5 @@
 # 操作手冊（開發 / 測試 / 部署）
-最後更新：2026-11-13（版本庫設定；未重新查驗線上）
+最後更新：2026-11-16（本分支精簡設定；尚未部署）
 
 ## 1. 環境需求
 - Node.js：`20.19+`
@@ -96,7 +96,7 @@ docker compose -f docker-compose.prod.yml up --build -d
 - `write_project-frontend`：Nginx，只綁 `127.0.0.1:1090` 與 `[::1]:1090`。
 - `write_project-backend`：FastAPI，internal network，不 publish host port。
 - `write_project-postgres`：PostgreSQL，internal network，不 publish host port。
-- `write_project-public`：Next server adapters，internal port `3000`；保留 BFF、外部封面與 server-mode 頁面。
+- 公開 JSON 與 `/api/public-media`：統一由 FastAPI 提供；新版正式部署不再啟動 `write_project-public`。舊版回滾紀錄可保留 Next server。
 - `write_project-frontend-build`：Vite 工作室建置。
 
 正式公開入口採 Pages 靜態檔，瀏覽器跨網域讀 Tunnel 主 API，失聯時讀 D1／R2 唯讀備援；工作室經 Tunnel 進本機 Nginx。Compose 基線不證明線上 release 容器的設定，實際 port bindings 與 readiness 須依發布程序驗證。

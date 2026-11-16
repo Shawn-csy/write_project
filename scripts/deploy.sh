@@ -374,7 +374,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
 if [ "$CURRENT_HASH" != "unknown" ]; then
   echo "$CURRENT_HASH" > "$DEPLOY_HASH_FILE"
   echo "[deploy] saved deploy hash: ${CURRENT_HASH:0:8}"
-  echo "[deploy] rollback available: bash scripts/rollback.sh"
+  echo "[deploy] rollback available: python3 scripts/site-release.py rollback --tag <live-tag>"
 fi
 
 echo "[deploy] done"
