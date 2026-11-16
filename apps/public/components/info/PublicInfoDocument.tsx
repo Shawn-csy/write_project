@@ -50,7 +50,7 @@ interface PublicInfoBelowFoldProps {
  */
 export function PublicInfoBelowFold({ children }: PublicInfoBelowFoldProps) {
   return (
-    <div className="space-y-6 pt-2 border-t border-border/40">
+    <div className="space-y-6 pt-2 border-t border-border">
       {children}
     </div>
   );

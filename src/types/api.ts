@@ -220,7 +220,19 @@ export interface PublicTermsConfig {
   [key: string]: unknown;
 }
 
+export interface AdApplication {
+  placement: "homepage" | "demos" | "audio-works";
+  title: string;
+  link: string;
+  imageUrl: string;
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
 export interface HomepageBannerItem {
+  placement?: AdApplication["placement"] | null;
+  startDate?: string | null;
+  endDate?: string | null;
   id: string;
   eyebrow?: string;
   title?: string;
@@ -454,6 +466,7 @@ export interface PublicFeedbackRecord {
 }
 
 export interface PublicFeedbackCreate {
+  adApplication?: AdApplication;
   kind: "bug" | "listing" | "ad_application" | "demo_submission";
   contactName?: string;
   contactEmail?: string;

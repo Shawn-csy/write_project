@@ -93,11 +93,11 @@ export function GalleryFilterPanel({
 
   const hiddenCount = shouldCollapse ? displayTags.length - visibleTags.length : 0;
 
-  const sectionLabel = "mb-2.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.18em] uppercase text-muted-foreground";
-  const divider = "border-t border-border/40 pt-4 mt-1";
-  const activeChip = "bg-primary text-primary-foreground shadow-sm border border-primary";
-  const idleChip = "border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5";
-  const chipBase = "h-6 rounded-md px-2.5 [font-size:var(--public-font-caption)] font-medium transition-all duration-150";
+  const sectionLabel = "mb-2 [font-size:var(--public-font-meta)] font-bold text-foreground";
+  const divider = "border-t border-border pt-3.5";
+  const activeChip = "bg-primary text-primary-foreground font-bold border border-primary";
+  const idleChip = "border border-border bg-card text-foreground/80 hover:bg-muted hover:text-link";
+  const chipBase = "h-7 rounded-sm px-2 [font-size:var(--public-font-caption)] transition-colors duration-100";
 
   const inner = (
     <div className="space-y-4">
@@ -106,13 +106,13 @@ export function GalleryFilterPanel({
         <div>
           <p className={sectionLabel}>搜尋</p>
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="搜尋台本..."
-              className="w-full rounded-lg border border-border/60 bg-background pl-8.5 pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
+              className="w-full rounded-sm border border-border bg-card pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground focus:outline-none focus:border-link focus:ring-1 focus:ring-link"
               style={{ paddingLeft: "2.125rem" }}
             />
             {searchTerm && (
@@ -120,7 +120,7 @@ export function GalleryFilterPanel({
                 type="button"
                 onClick={() => onSearchChange("")}
                 aria-label="清除搜尋"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted/60 transition-all"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all"
               >
                 <X className="h-3 w-3" />
               </button>
@@ -217,13 +217,13 @@ export function GalleryFilterPanel({
         <div className={divider}>
           <p className={sectionLabel}>分類與標籤</p>
           <div className="relative mb-2.5">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground/50" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
               value={tagSearch}
               onChange={(e) => onTagSearchChange(e.target.value)}
               placeholder="篩選標籤..."
-              className="w-full rounded-lg border border-border/50 bg-background/70 py-[0.35rem] [font-size:var(--public-font-caption)] placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all duration-150"
+              className="w-full rounded-sm border border-border bg-card py-[0.35rem] [font-size:var(--public-font-caption)] placeholder:text-muted-foreground focus:outline-none focus:border-link focus:ring-1 focus:ring-link"
               style={{ paddingLeft: "2rem", paddingRight: "0.75rem" }}
             />
           </div>
@@ -246,7 +246,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(true)}
-              className="mt-2 [font-size:var(--public-font-caption)] text-primary hover:text-primary/80 transition-colors"
+              className="mt-2 [font-size:var(--public-font-caption)] text-link hover:underline"
             >
               展開更多（{hiddenCount}）
             </button>
@@ -255,7 +255,7 @@ export function GalleryFilterPanel({
             <button
               type="button"
               onClick={() => setTagsExpanded(false)}
-              className="mt-2 [font-size:var(--public-font-caption)] text-muted-foreground hover:text-foreground transition-colors"
+              className="mt-2 [font-size:var(--public-font-caption)] text-link hover:underline"
             >
               收合標籤
             </button>
@@ -264,11 +264,11 @@ export function GalleryFilterPanel({
       )}
 
       {hasFilters && (
-        <div className="border-t border-border/40 pt-3">
+        <div className="border-t border-border pt-3">
           <button
             type="button"
             onClick={onResetFilters}
-            className="w-full rounded-lg border border-border/50 py-1.5 [font-size:var(--public-font-caption)] text-muted-foreground hover:text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all duration-150"
+            className="w-full rounded-sm border border-border bg-card py-1.5 [font-size:var(--public-font-caption)] text-foreground/80 hover:bg-muted hover:text-foreground"
           >
             清除全部篩選
           </button>
@@ -279,15 +279,7 @@ export function GalleryFilterPanel({
 
   if (variant === "sidebar") {
     return (
-      <div
-        className="rounded-xl p-4"
-        style={{
-          border: "1px solid hsl(var(--border) / 0.45)",
-          background: "hsl(var(--card) / 0.7)",
-          backdropFilter: "blur(8px)",
-          boxShadow: "0 1px 3px hsl(var(--foreground) / 0.04), 0 1px 2px hsl(var(--foreground) / 0.03)",
-        }}
-      >
+      <div className="pr-1 [&>div>div:first-child]:border-t-0 [&>div>div:first-child]:pt-0">
         {inner}
       </div>
     );

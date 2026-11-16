@@ -67,7 +67,7 @@ function renderSummaryWithLinks(summary: string): ReactNode[] {
           href={cleanUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-primary underline underline-offset-2 hover:text-primary/80"
+          className="text-link hover:underline"
         >
           {cleanUrl}
         </a>,
@@ -114,24 +114,16 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
     <main className="min-h-screen bg-background">
       {/* Show atmospheric artwork only when this series has a cover. */}
       {hasCover && (
-        <div className="relative h-48 overflow-hidden bg-muted">
-          <PublicImage
-            src={seriesMeta!.coverUrl!}
-            alt=""
-            preset="hero-banner"
-            className="scale-110 blur-xl opacity-60"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-        </div>
+        <div className="h-2 bg-band" aria-hidden />
       )}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
         {/* Header card overlaps artwork when present. */}
-        <div className={`relative mb-6 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${hasCover ? "-mt-16" : "mt-6 sm:mt-8"}`}>
+        <div className={`mb-6 border-b border-border pb-6 pt-6`}>
           <div className="flex flex-col sm:flex-row items-start gap-6">
             {/* Cover thumbnail */}
             {hasCover && (
-              <div className="relative w-24 h-32 sm:w-28 sm:h-40 shrink-0 rounded-lg overflow-hidden border border-border/50 shadow-md">
+              <div className="relative w-24 h-32 sm:w-28 sm:h-40 shrink-0 rounded-sm overflow-hidden border border-border">
                 <PublicImage
                   src={seriesMeta!.coverUrl!}
                   alt={seriesName}
@@ -142,7 +134,7 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
             )}
 
             <div className="flex-1 space-y-3 pt-1">
-              <h1 className="text-3xl sm:text-4xl font-bold font-serif leading-tight">{seriesName}</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold leading-tight">{seriesName}</h1>
 
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span>{chapters.length} 部作品</span>
@@ -152,7 +144,7 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
                   <span>作者</span>
                   {authors.map((author) => (
-                    <Link key={author.href} href={author.href} className="text-primary hover:underline">
+                    <Link key={author.href} href={author.href} className="text-link hover:underline">
                       {author.name}
                     </Link>
                   ))}
@@ -178,11 +170,11 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
                     </Link>
                   ))}
                   {latestChapter && latestChapter.item.id !== firstChapter?.item.id && (latestChapter.kind === "external" ? (
-                    <a href={latestChapter.item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline">
+                    <a href={latestChapter.item.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted transition-colors no-underline">
                       最新章節
                     </a>
                   ) : (
-                    <Link href={`/read/${latestChapter.item.id}`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted/50 transition-colors no-underline">
+                    <Link href={`/read/${latestChapter.item.id}`} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-muted transition-colors no-underline">
                       最新章節
                     </Link>
                   ))}
@@ -194,15 +186,15 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
 
         {/* Chapter list card */}
         {chapters.length === 0 ? (
-          <div className="rounded-xl border border-border/60 bg-muted/20 py-16 text-center text-muted-foreground">
+          <div className="border-y border-border py-16 text-center text-muted-foreground">
             <p>這個系列目前沒有公開作品。</p>
             <Link href="/" className="text-sm underline mt-2 inline-block">返回首頁</Link>
           </div>
         ) : (
-          <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            <div className="flex items-center justify-between border-b border-border/60 pb-3 mb-4">
-              <h2 className="text-xl font-bold">章節列表</h2>
-              <span className="text-xs text-muted-foreground bg-background px-2 py-0.5 rounded-full border border-border/60">
+          <section>
+            <div className="section-bar mb-4 flex items-baseline gap-2">
+              <h2 className="text-[17px] font-bold">章節列表</h2>
+              <span className="text-xs text-muted-foreground ">
                 {chapters.length} 部
               </span>
             </div>
@@ -226,29 +218,29 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-1">
+                        <span className="text-sm font-medium text-foreground group-hover:text-link transition-colors line-clamp-1">
                           {chapter.item.title}
                         </span>
                         {isLatest && (
-                          <span className="shrink-0 [font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 leading-none">
+                          <span className="shrink-0 [font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-sm bg-muted text-foreground leading-none">
                             最新
                           </span>
                         )}
                       </div>
                       {label && <p className="[font-size:var(--public-font-caption)] text-muted-foreground mt-0.5">{label}</p>}
                     </div>
-                    {dateLabel && <span className="shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground/60 hidden sm:block">{dateLabel}</span>}
-                    <span className="shrink-0 text-muted-foreground/30 group-hover:text-primary/60 transition-colors text-sm" aria-hidden>→</span>
+                    {dateLabel && <span className="shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground hidden sm:block">{dateLabel}</span>}
+                    <span className="shrink-0 text-muted-foreground/30 group-hover:text-link transition-colors text-sm" aria-hidden>→</span>
                   </>
                 );
 
                 return (
                   isExternal ? (
-                    <a key={chapter.item.id} href={external!.sourceUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline">
+                    <a key={chapter.item.id} href={external!.sourceUrl} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border transition-all no-underline">
                       {row}
                     </a>
                   ) : (
-                    <Link key={chapter.item.id} href={`/read/${script!.id}`} className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border/60 transition-all no-underline">
+                    <Link key={chapter.item.id} href={`/read/${script!.id}`} className="group flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-background/80 border border-transparent hover:border-border transition-all no-underline">
                       {row}
                     </Link>
                   )
@@ -258,7 +250,7 @@ export function SeriesPageClient({ seriesName, scripts, externalItems = [], seri
           </section>
         )}
 
-        <div className="mt-8 pt-6 border-t border-border/60">
+        <div className="mt-8 pt-6 border-t border-border">
           <Link href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             ← 返回台本列表
           </Link>

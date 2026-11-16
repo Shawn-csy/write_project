@@ -19,7 +19,7 @@ const SITE_TEXT_SCALE_OPTIONS: { value: SiteTextScale; label: string }[] = [
   { value: "large",       label: "大字" },
 ];
 
-const sectionHeadingClass = "mb-2 [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.16em] text-muted-foreground/55";
+const sectionHeadingClass = "mb-2 [font-size:var(--public-font-caption)] font-semibold text-muted-foreground/55";
 
 /** Shareable inner content — used by popover (desktop) and nav overlay (mobile). */
 export function AppearanceMenuContent() {
@@ -65,7 +65,7 @@ export function PublicAppearanceMenu() {
           type="button"
           aria-label="外觀設定"
           title="外觀設定"
-          className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-all duration-150"
+          className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
         >
           <SlidersHorizontal className="h-4 w-4" aria-hidden />
         </button>
@@ -75,7 +75,7 @@ export function PublicAppearanceMenu() {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-[101] w-72 rounded-xl p-4"
+          className="z-[101] w-72 rounded-md p-4"
           style={{
             border: "1px solid hsl(var(--border) / 0.6)",
             background: "hsl(var(--card))",

@@ -19,7 +19,7 @@ function StudioLink() {
       ref={ref}
       href={studioUrl()}
       aria-label="進入工作室"
-      className="inline-flex items-center rounded-md px-2 py-1.5 text-[0.8125rem] text-muted-foreground transition-colors duration-150 hover:bg-muted/60 hover:text-foreground"
+      className="inline-flex items-center rounded-md px-2 py-1.5 text-[0.8125rem] text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
       {...handlers}
     >
       工作室

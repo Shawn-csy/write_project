@@ -16,12 +16,12 @@ export function PublicInfoSection({
   children,
   card = false,
 }: PublicInfoSectionProps) {
-  const cardClass = card ? "rounded-xl border border-border/60 bg-muted/10 p-6" : "space-y-3";
+  const cardClass = card ? "border-t border-border pt-4" : "space-y-3";
 
   return (
     <section className={cardClass}>
       <h2 className="text-xl font-semibold mb-1 flex items-center gap-2">
-        {icon && <span className="text-primary">{icon}</span>}
+        {icon && <span className="text-link">{icon}</span>}
         {title}
       </h2>
       {description && (

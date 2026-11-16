@@ -19,7 +19,9 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: "cover_art", label: "封面" },
   { key: "recording_studio", label: "錄音室" },
 ];
-const DIRECTORY_TAG_CLASS = "[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-muted/40 text-muted-foreground";
+const DIRECTORY_TAG_CLASS = "[font-size:var(--public-font-caption)] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground";
+const DIRECTORY_LINK_CLASS = "tap-grow inline-flex items-center gap-0.5 [font-size:var(--public-font-caption)] text-link hover:underline";
+const DIRECTORY_AVATAR_CLASS = "relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-12 sm:w-12";
 
 function actorProfileLinks(persona: PublicPersona): Array<{ label: string; url: string }> {
   let links = persona.links;
@@ -45,8 +47,8 @@ function ActorTags({ tags, onSelect }: { tags: string[]; onSelect: (tag: string)
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? tags : tags.slice(0, 3);
   return <div className={`flex gap-1.5 ${expanded ? "flex-wrap" : "overflow-hidden"}`}>
-    {visible.map((tag) => <button key={tag} type="button" onClick={() => onSelect(tag)} className={`${DIRECTORY_TAG_CLASS} shrink-0 transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-foreground`}>{tag}</button>)}
-    {tags.length > 3 && <button type="button" onClick={() => setExpanded(!expanded)} className={`${DIRECTORY_TAG_CLASS} shrink-0 transition-colors hover:border-primary/40 hover:text-primary`}>{expanded ? "收合" : `更多（${tags.length - 3}）`}</button>}
+    {visible.map((tag) => <button key={tag} type="button" onClick={() => onSelect(tag)} className={`${DIRECTORY_TAG_CLASS} tap-grow shrink-0 hover:text-link hover:underline`}>{tag}</button>)}
+    {tags.length > 3 && <button type="button" onClick={() => setExpanded(!expanded)} className="tap-grow shrink-0 [font-size:var(--public-font-caption)] text-link hover:underline">{expanded ? "收合" : `更多（${tags.length - 3}）`}</button>}
   </div>;
 }
 
@@ -85,20 +87,20 @@ function ResourceWorks({ works }: {
 }) {
   const laneRef = useRef<HTMLDivElement>(null);
   if (works.length === 0) return null;
-  return <section className="min-w-0 border-t border-border/50 px-2.5 pb-2 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2" aria-label="參與作品">
-    <div className="mb-2 flex items-center justify-between gap-2">
-      <h3 className="[font-size:var(--public-font-caption)] font-medium text-muted-foreground">參與作品</h3>
+  return <section className="mt-2 min-w-0 sm:pl-[3.75rem]" aria-label="參與作品">
+    <div className="mb-1.5 flex items-center justify-between gap-2">
+      <h3 className="[font-size:var(--public-font-caption)] font-bold text-foreground">參與作品</h3>
       {works.length > 3 && <div className="flex gap-1">
-        <button type="button" onClick={() => laneRef.current?.scrollBy({ left: -216, behavior: "smooth" })} aria-label="往左瀏覽作品" className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
-        <button type="button" onClick={() => laneRef.current?.scrollBy({ left: 216, behavior: "smooth" })} aria-label="往右瀏覽作品" className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground"><ChevronRight className="h-4 w-4" aria-hidden /></button>
+        <button type="button" onClick={() => laneRef.current?.scrollBy({ left: -216, behavior: "smooth" })} aria-label="往左瀏覽作品" className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
+        <button type="button" onClick={() => laneRef.current?.scrollBy({ left: 216, behavior: "smooth" })} aria-label="往右瀏覽作品" className="flex h-7 w-7 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted hover:text-foreground"><ChevronRight className="h-4 w-4" aria-hidden /></button>
       </div>}
     </div>
     <div ref={laneRef} className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1" aria-label="橫向瀏覽參與作品">
       {works.map((work, index) => <a key={`${work.id}-${work.creditRole}`} href={work.url} target="_blank" rel="noopener noreferrer" className="group block w-20 shrink-0 snap-start sm:w-24" aria-label={`前往作品：${work.title}`}>
-        <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border/70 bg-muted">
-          {work.coverUrl ? <PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" sizes="96px" eager={index < 3} /> : work.workType === "game" ? <Gamepad2 className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden /> : work.workType === "video" ? <Clapperboard className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden /> : work.workType === "other" ? <FileText className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden /> : <Headphones className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground/60" aria-hidden />}
+        <div className="relative aspect-[4/3] overflow-hidden rounded-sm border border-border bg-muted">
+          {work.coverUrl ? <PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" sizes="96px" eager={index < 3} /> : work.workType === "game" ? <Gamepad2 className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" aria-hidden /> : work.workType === "video" ? <Clapperboard className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" aria-hidden /> : work.workType === "other" ? <FileText className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" aria-hidden /> : <Headphones className="absolute inset-0 m-auto h-6 w-6 text-muted-foreground" aria-hidden />}
         </div>
-        <span className="mt-1 line-clamp-2 [font-size:var(--public-font-caption)] leading-snug text-muted-foreground group-hover:text-primary">{work.title}</span>
+        <span className="mt-1 line-clamp-2 [font-size:var(--public-font-caption)] leading-snug text-foreground group-hover:text-link group-hover:underline">{work.title}</span>
       </a>)}
     </div>
   </section>;
@@ -154,54 +156,64 @@ export function ResourcesClient({ initialPersonas, initialResources, refreshOnMo
   return <div className="flex min-h-screen flex-col bg-background">
     <PublicTopBar activeTab="resources" />
     <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-7 pt-4 sm:px-6 sm:pt-7 lg:px-8">
-      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:mb-5 sm:flex sm:items-end sm:justify-between">
-        <div className="flex items-baseline gap-2 sm:gap-3">
-          <h1 className="font-serif text-2xl font-bold sm:text-3xl">資源</h1>
+      <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 sm:mb-4 sm:flex sm:items-center sm:justify-between">
+        <div className="flex items-baseline gap-2">
+          <h1 className="text-xl font-bold sm:text-2xl">資源</h1>
           <span className="text-xs text-muted-foreground sm:text-sm">{visibleCount} 筆</span>
         </div>
         <div className="col-start-2 row-start-1 sm:order-2"><ResourceSubmissionDialog defaultCategory={category} /></div>
-        <label className="relative col-span-2 block w-full sm:order-1 sm:ml-auto sm:w-80">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" aria-hidden />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-9 w-full rounded-lg border border-border/60 bg-background/70 pl-9 pr-3 [font-size:var(--public-font-meta)] outline-none transition-colors focus:border-primary/50 focus:ring-2 focus:ring-primary/15 sm:h-10" placeholder="搜尋資源" aria-label="搜尋資源" />
+        <label className="relative col-span-2 block w-full sm:order-1 sm:ml-auto sm:w-72">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-9 w-full rounded-md border border-border bg-card pl-8 pr-3 [font-size:var(--public-font-meta)] outline-none focus:border-link" placeholder="搜尋資源" aria-label="搜尋資源" />
         </label>
       </div>
       {ageGateReady && !ageConfirmed && <ResourceAgeGate onConfirm={confirmAge} />}
-      <nav aria-label="資源類別" className="sticky top-[82px] z-30 -mx-4 mb-3 flex gap-1 overflow-x-auto border-b border-border/50 bg-background/95 px-4 py-1.5 backdrop-blur-md sm:top-14 sm:mx-0 sm:mb-5 sm:gap-1.5 sm:px-0">
-        {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className={`h-8 shrink-0 rounded-md border px-2.5 [font-size:var(--public-font-caption)] font-medium transition-colors ${category === item.key ? "border-primary bg-primary text-primary-foreground shadow-sm" : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"}`}>{item.label}</button>)}
+      <nav aria-label="資源類別" className="sticky top-[86px] z-30 -mx-4 flex gap-1 overflow-x-auto border-b-2 border-primary bg-background px-4 pt-1.5 sm:top-[57px] sm:mx-0 sm:px-0">
+        {CATEGORIES.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className="tab-item">{item.label}</button>)}
       </nav>
-      {visibleCount === 0 ? <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-14 text-center text-sm text-muted-foreground">{needle ? "找不到符合的資源。" : "這個類別正在收錄中。"}</div> :
-        <div className="grid gap-2 min-[480px]:grid-cols-2 sm:gap-2.5 lg:grid-cols-3">
-          {category === "voice_actor" ? actors.map((persona) => <article key={persona.id} className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)]">
-            <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="flex min-w-0 items-center gap-2.5 p-2.5 sm:gap-3 sm:p-3">
-              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full sm:h-12 sm:w-12"><PublicAvatarImage src={persona.avatar} name={persona.displayName} sizes="48px" fallbackClassName={publicAvatarColor(persona.displayName)} /></div>
-              <div className="min-w-0 flex-1"><p className="truncate font-medium [font-size:var(--public-font-body)]">{persona.displayName}</p>{persona.bio && <p className="mt-0.5 line-clamp-1 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground sm:line-clamp-2">{persona.bio}</p>}</div>
-            </a>
-            {(Boolean(persona.tags?.length) || actorProfileLinks(persona).length > 0) && <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 pb-2 sm:px-3 sm:pb-3">
-            {Boolean(persona.tags?.length) && <ActorTags tags={persona.tags!} onSelect={setQuery} />}
-            {actorProfileLinks(persona).length > 0 && <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {actorProfileLinks(persona).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-7 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5 sm:min-h-8 sm:px-2.5" aria-label={`${persona.displayName}的${link.label}`}>{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
-            </div>}
-            </div>}
-          </article>) : listings.map((item) => <article key={item.id} className="min-w-0 overflow-hidden rounded-xl border border-border/50 bg-card transition-all duration-200 hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)]">
-            <a href={`/author/${encodeURIComponent(item.personaId || item.id)}`} aria-label={`${item.name}的個人頁`} className="flex min-w-0 items-center gap-2.5 p-2.5 hover:text-primary sm:gap-3 sm:p-3">
-              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full sm:h-12 sm:w-12"><PublicAvatarImage src={item.avatarUrl} name={item.name} sizes="48px" fallbackClassName={publicAvatarColor(item.name)} /></div>
+      {visibleCount === 0 ? <p className="border-b border-border px-2 py-12 text-center text-sm text-muted-foreground">{needle ? "找不到符合的資源。" : "這個類別正在收錄中。"}</p> :
+        <ul className={category === "voice_actor" ? "grid lg:grid-cols-2 lg:gap-x-8" : ""}>
+          {category === "voice_actor" ? actors.map((persona) => {
+            const links = actorProfileLinks(persona);
+            const href = persona.externalHref || `/author/${encodeURIComponent(persona.id)}`;
+            return <li key={persona.id} className="flex min-w-0 gap-3 border-b border-border py-3">
+              <a href={href} tabIndex={-1} aria-hidden className={DIRECTORY_AVATAR_CLASS}><PublicAvatarImage src={persona.avatar} name={persona.displayName} sizes="48px" fallbackClassName={publicAvatarColor(persona.displayName)} /></a>
               <div className="min-w-0 flex-1">
-                <h2 className="truncate font-medium [font-size:var(--public-font-body)]">{item.name}</h2>
-                <p className="mt-0.5 [font-size:var(--public-font-caption)] text-muted-foreground">{item.works.some((work) => work.creditRole === category) ? `${item.works.filter((work) => work.creditRole === category).length} 部參與作品` : "提供委託資訊"}</p>
-                {ageConfirmed && item.bio && <p className="mt-0.5 line-clamp-1 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground sm:line-clamp-2">{item.bio}</p>}
+                <a href={href} className="font-bold [font-size:var(--public-font-body)] hover:text-link hover:underline">{persona.displayName}</a>
+                {persona.bio && <p className="mt-0.5 line-clamp-2 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground">{persona.bio}</p>}
+                {(Boolean(persona.tags?.length) || links.length > 0) && <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {Boolean(persona.tags?.length) && <ActorTags tags={persona.tags!} onSelect={setQuery} />}
+                  {links.map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className={DIRECTORY_LINK_CLASS} aria-label={`${persona.displayName}的${link.label}`}>{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
+                </div>}
               </div>
-            </a>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2.5 pb-2 sm:px-3">
-              {item.categories.map((role) => <span key={role} className={DIRECTORY_TAG_CLASS}>{CATEGORIES.find((entry) => entry.key === role)?.label}</span>)}
-              {item.otherRoles?.includes("voice_actor") && <span className={DIRECTORY_TAG_CLASS}>聲演</span>}
-              {item.otherRoles?.includes("scriptwriter") && <span className={DIRECTORY_TAG_CLASS}>台本師</span>}
-              {resourceLinks(item).length > 0 && <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                {resourceLinks(item).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 rounded-md border border-border/50 bg-background/70 px-2.5 [font-size:var(--public-font-caption)] font-medium text-primary transition-colors hover:border-primary/40 hover:bg-primary/5">{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
-              </div>}
-            </div>
-            {ageConfirmed && <ResourceWorks works={(item.works || []).filter((work) => work.creditRole === category)} />}
-          </article>)}
-        </div>}
+            </li>;
+          }) : listings.map((item) => {
+            const links = resourceLinks(item);
+            const href = `/author/${encodeURIComponent(item.personaId || item.id)}`;
+            const credited = item.works.filter((work) => work.creditRole === category);
+            return <li key={item.id} className="min-w-0 border-b border-border py-3">
+              <div className="flex min-w-0 gap-3">
+                <a href={href} tabIndex={-1} aria-hidden className={DIRECTORY_AVATAR_CLASS}><PublicAvatarImage src={item.avatarUrl} name={item.name} sizes="48px" fallbackClassName={publicAvatarColor(item.name)} /></a>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                    <h2 className="font-bold [font-size:var(--public-font-body)]"><a href={href} aria-label={`${item.name}的個人頁`} className="hover:text-link hover:underline">{item.name}</a></h2>
+                    <span className="[font-size:var(--public-font-caption)] text-muted-foreground">{credited.length ? `${credited.length} 部參與作品` : "提供委託資訊"}</span>
+                  </div>
+                  {ageConfirmed && item.bio && <p className="mt-0.5 line-clamp-2 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground">{item.bio}</p>}
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.categories.map((role) => <span key={role} className={DIRECTORY_TAG_CLASS}>{CATEGORIES.find((entry) => entry.key === role)?.label}</span>)}
+                      {item.otherRoles?.includes("voice_actor") && <span className={DIRECTORY_TAG_CLASS}>聲演</span>}
+                      {item.otherRoles?.includes("scriptwriter") && <span className={DIRECTORY_TAG_CLASS}>台本師</span>}
+                    </div>
+                    {links.map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className={DIRECTORY_LINK_CLASS}>{link.label}<ArrowUpRight className="h-3 w-3" aria-hidden /></a>)}
+                  </div>
+                </div>
+              </div>
+              {ageConfirmed && <ResourceWorks works={credited} />}
+            </li>;
+          })}
+        </ul>}
     </main>
     <PublicFooter />
   </div>;

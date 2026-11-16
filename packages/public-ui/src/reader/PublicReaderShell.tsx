@@ -50,21 +50,6 @@ export function PublicReaderShell({
   const contentMaxWidth = CONTENT_WIDTH_CLASS[contentWidth];
   return (
     <div className={`relative w-full h-[100dvh] overflow-hidden flex flex-col bg-background ${className}`}>
-      {/* ── Background blur layer ── */}
-      <div className="absolute inset-0 z-0 opacity-30 dark:opacity-20 pointer-events-none" aria-hidden>
-        {coverUrl ? (
-          <img
-            src={coverUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-b from-background to-muted" />
-        )}
-        <div className="absolute inset-0 backdrop-blur-[60px] bg-background/50" />
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-background to-transparent" />
-      </div>
-
       {/* ── Sticky toolbar ── */}
       {toolbar && (
         <div className="relative z-30 shrink-0">

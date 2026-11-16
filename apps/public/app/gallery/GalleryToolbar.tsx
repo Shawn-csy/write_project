@@ -34,12 +34,12 @@ interface GalleryToolbarProps {
 }
 
 const ICON_BUTTON =
-  "relative inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background/70 text-muted-foreground transition-colors duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+  "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground";
 const TEXT_BUTTON =
-  "relative inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg border border-border/60 bg-background/70 px-3 [font-size:var(--public-font-meta)] font-medium text-muted-foreground transition-colors duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+  "relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-[0.8125rem] text-foreground/80 hover:bg-muted hover:text-foreground";
 
-const ICON_BUTTON_SM = ICON_BUTTON.replace("h-10 w-10", "h-9 w-9").replace("rounded-lg", "rounded-full");
-const ICON_BUTTON_MOBILE = ICON_BUTTON.replace("h-10 w-10", "h-9 w-9");
+const ICON_BUTTON_SM = ICON_BUTTON;
+const ICON_BUTTON_MOBILE = ICON_BUTTON;
 const TEXT_BUTTON_SM = TEXT_BUTTON;
 
 function CategorySelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
@@ -48,7 +48,7 @@ function CategorySelect({ value, onChange }: { value: string; onChange: (value: 
       value={value}
       onChange={(event) => onChange(event.target.value)}
       aria-label="作品分類"
-      className="h-9 w-28 min-w-0 rounded-lg border border-border/60 bg-background px-2 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none"
+      className="h-9 w-28 min-w-0 rounded-sm border border-border bg-card px-2 text-[0.875rem] text-foreground focus:border-link focus:outline-none"
     >
       {SEGMENT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
     </select>
@@ -61,7 +61,7 @@ function SortSelect({ value, onChange }: { value: GallerySortValue | null; onCha
       value={value ?? "overview"}
       onChange={(event) => onChange(event.target.value === "overview" ? null : event.target.value as GallerySortValue)}
       aria-label="排序"
-      className="h-9 w-20 shrink-0 rounded-lg border border-border/60 bg-background px-2 [font-size:var(--public-font-meta)] font-medium text-foreground focus:border-primary/50 focus:outline-none"
+      className="h-9 w-20 shrink-0 rounded-sm border border-border bg-card px-2 text-[0.875rem] text-foreground focus:border-foreground focus:outline-none"
     >
       <option value="overview">{GALLERY_OVERVIEW_LABEL}</option>
       {GALLERY_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -159,8 +159,8 @@ export function GalleryToolbar({
         ref={barRef}
         data-compact={compact ? "true" : "false"}
         data-testid="gallery-toolbar"
-        className={`sticky top-[82px] z-30 -mx-4 mb-4 bg-background/95 px-4 backdrop-blur-md transition-shadow duration-200 sm:-mx-5 sm:top-14 sm:px-5 lg:mx-0 lg:px-0 ${
-          compact ? "border-b border-border/60 shadow-[0_10px_18px_-16px_rgba(0,0,0,0.5)]" : ""
+        className={`sticky top-[86px] z-30 -mx-4 mb-5 bg-background px-4 sm:-mx-5 sm:top-[57px] sm:px-5 lg:mx-0 lg:px-0 ${
+ compact ? "border-b border-border shadow-[0_2px_4px_rgba(0,0,0,0.06)]" : ""
         }`}
       >
         {compact ? (
@@ -185,23 +185,23 @@ export function GalleryToolbar({
                 aria-label="更多操作"
                 aria-expanded={actionsOpen}
                 aria-controls="gallery-toolbar-actions"
-                className={`${ICON_BUTTON_SM} md:h-10 md:w-10 md:rounded-lg`}
+                className={ICON_BUTTON_SM}
               >
                 <MoreHorizontal className="h-4 w-4" aria-hidden />
                 <CountBadge count={filterCount} floating />
               </button>
               {actionsOpen && (
-                <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="absolute right-0 top-full z-50 mt-2 w-44 rounded-xl border border-border/70 bg-background p-1.5 shadow-xl">
-                  <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-border bg-card p-1 shadow-lg">
+                  <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted">
                     <Search className="h-4 w-4" aria-hidden />搜尋與篩選
                   </button>
-                  <button type="button" onClick={() => { onDemoOnlyChange(!demoOnly); setActionsOpen(false); }} aria-pressed={demoOnly} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60 md:hidden">
+                  <button type="button" onClick={() => { onDemoOnlyChange(!demoOnly); setActionsOpen(false); }} aria-pressed={demoOnly} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted md:hidden">
                     <span aria-hidden className="w-4 text-center">{demoOnly ? "✓" : ""}</span>有 Demo
                   </button>
-                  <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                  <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted">
                     <List className="h-4 w-4" aria-hidden />台本一覽表
                   </button>
-                  <button type="button" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted/60">
+                  <button type="button" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted">
                     <FilePlus2 className="h-4 w-4" aria-hidden />投稿台本
                   </button>
                 </div>
@@ -210,7 +210,7 @@ export function GalleryToolbar({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b border-border/40 pb-1.5 md:gap-x-3 md:gap-y-1 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b-2 border-primary md:gap-x-3 md:gap-y-1 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
               <GallerySearchField
                 value={searchTerm}
                 onChange={onSearchChange}
@@ -225,7 +225,7 @@ export function GalleryToolbar({
                 )}
                 <div className="flex min-w-0 flex-1 items-center gap-1.5">
                   <div className="shrink-0 md:hidden"><CategorySelect value={segment} onChange={onSegmentChange} /></div>
-                  <button type="button" onClick={() => onDemoOnlyChange(!demoOnly)} aria-pressed={demoOnly} className={`h-9 shrink-0 rounded-lg border px-2 [font-size:var(--public-font-meta)] font-medium md:hidden ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-border/60 text-muted-foreground"}`}>
+                  <button type="button" onClick={() => onDemoOnlyChange(!demoOnly)} aria-pressed={demoOnly} className={`h-9 shrink-0 rounded-sm border px-2 text-[0.875rem] md:hidden ${demoOnly ? "border-primary bg-primary font-semibold text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
                     有 Demo
                   </button>
                   <div className="hidden min-w-0 flex-1 md:block">
@@ -241,7 +241,7 @@ export function GalleryToolbar({
                 <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={`${ICON_BUTTON_MOBILE} hidden min-[360px]:inline-flex md:hidden`}>
                   <List className="h-4 w-4" aria-hidden />
                 </button>
-                <div className="[&_button]:h-9 lg:[&_button]:w-10 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline">
+                <div className="lg:[&_button]:w-9 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline">
                   <PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} />
                 </div>
               </div>
@@ -255,7 +255,7 @@ export function GalleryToolbar({
                 />
                 <div className="flex shrink-0 items-center gap-3">
                   <GallerySortControl value={sort} onChange={onSortChange} showOverview />
-                  <span className="whitespace-nowrap [font-size:var(--public-font-meta)] text-muted-foreground" aria-live="polite">共 {resultCount.toLocaleString()} 部</span>
+                  <span className="whitespace-nowrap text-[0.8125rem] tabular-nums text-muted-foreground" aria-live="polite">共 {resultCount.toLocaleString()} 部</span>
                 </div>
                 <div className="ml-auto flex shrink-0 items-center gap-2">
                   <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={TEXT_BUTTON_SM}>

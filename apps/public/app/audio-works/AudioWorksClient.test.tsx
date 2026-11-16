@@ -12,14 +12,15 @@ const initialWorks = [{ id: "work-1", title: "作品甲", url: "https://example.
 const initialOrganizations = [{ id: "org-1", name: "社團甲" }] as PublicOrg[];
 
 describe("AudioWorksClient data loading", () => {
-  beforeEach(() => readPublicBundle.mockReset());
+  beforeEach(() => readPublicBundle.mockReset().mockResolvedValue({ data: { audioWorkBanner: [] }, source: "primary" }));
   afterEach(() => vi.unstubAllGlobals());
 
   it("uses server data without downloading the same bundle again", () => {
     render(<AudioWorksClient initialWorks={initialWorks} initialOrganizations={initialOrganizations} />);
     fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
     expect(screen.getByRole("button", { name: /社團甲/ })).toBeTruthy();
-    expect(readPublicBundle).not.toHaveBeenCalled();
+    expect(readPublicBundle).toHaveBeenCalledWith(["audioWorkBanner"]);
+    expect(readPublicBundle).not.toHaveBeenCalledWith(["audioWorks", "organizations"]);
   });
 
   it("refreshes a static export when opened in the browser", async () => {

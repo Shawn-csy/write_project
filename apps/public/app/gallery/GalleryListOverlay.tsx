@@ -80,7 +80,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
     <div className="fixed inset-0 z-50 flex flex-col" role="dialog" aria-modal="true" aria-label="台本一覽表">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 backdrop-blur-[2px] editorial-scrim"
+        className="absolute inset-0 sheet-scrim"
         onClick={onClose}
         aria-hidden
       />
@@ -96,7 +96,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
         }}
       >
         {/* Header */}
-        <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 py-4 editorial-border-b">
+        <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 py-4 border-b border-border">
           <div className="min-w-[8rem] flex-1">
             <p className="text-[0.9375rem] font-semibold text-foreground">台本一覽表</p>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -104,20 +104,20 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
             </p>
           </div>
           <div className="relative order-3 w-full sm:order-none sm:w-64 md:w-80">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/65" aria-hidden />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <input
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
               placeholder="快速搜尋台本或作者..."
               aria-label="快速搜尋台本或作者"
-              className="h-9 w-full rounded-lg border border-border/60 bg-background/70 pl-9 pr-9 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+              className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-9 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
             />
             {searchTerm && (
               <button
                 type="button"
                 onClick={() => setSearchTerm("")}
-                className="absolute right-1 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground/60 hover:bg-muted/60 hover:text-foreground"
+                className="absolute right-1 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-label="清除快速搜尋"
               >
                 <X className="h-3.5 w-3.5" aria-hidden />
@@ -127,7 +127,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="關閉一覽表"
           >
             <X className="h-4 w-4" />
@@ -138,12 +138,12 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
         <div className="overflow-y-auto flex-1">
           <table className="w-full table-fixed text-sm border-collapse">
             <thead>
-              <tr className="editorial-border-b">
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm w-10 py-2.5 pl-5 pr-2 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60">#</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 w-[37%] md:w-[34%]">台本名稱</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden sm:table-cell w-[20%]">作者</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 hidden md:table-cell w-[30%]">標籤</th>
-                <th className="sticky top-0 bg-background/95 backdrop-blur-sm py-2.5 px-3 pr-5 text-right [font-size:var(--public-font-caption)] font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 whitespace-nowrap">日期</th>
+              <tr className="border-b border-border">
+                <th className="sticky top-0 bg-background w-10 py-2.5 pl-5 pr-2 text-left [font-size:var(--public-font-caption)] font-semibold text-muted-foreground">#</th>
+                <th className="sticky top-0 bg-background py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold text-muted-foreground w-[37%] md:w-[34%]">台本名稱</th>
+                <th className="sticky top-0 bg-background py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold text-muted-foreground hidden sm:table-cell w-[20%]">作者</th>
+                <th className="sticky top-0 bg-background py-2.5 px-3 text-left [font-size:var(--public-font-caption)] font-semibold text-muted-foreground hidden md:table-cell w-[30%]">標籤</th>
+                <th className="sticky top-0 bg-background py-2.5 px-3 pr-5 text-right [font-size:var(--public-font-caption)] font-semibold text-muted-foreground whitespace-nowrap">日期</th>
               </tr>
             </thead>
             <tbody>
@@ -179,7 +179,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                         href={external ? external.sourceUrl : `/read/${local?.id || ""}`}
                         target={isExternal ? "_blank" : undefined}
                         rel={isExternal ? "nofollow noopener noreferrer" : undefined}
-                        className="font-medium text-foreground hover:text-primary transition-colors no-underline line-clamp-1 block"
+                        className="font-medium text-foreground hover:text-link transition-colors no-underline line-clamp-1 block"
                       >
                         <span className="inline-flex max-w-full items-center gap-1">
                           <span className="line-clamp-2 break-words">{title}</span>
@@ -187,21 +187,21 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                         </span>
                       </a>
                       {!isExternal && local?.seriesName && (
-                        <span className="[font-size:var(--public-font-caption)] text-muted-foreground/60 line-clamp-1">
+                        <span className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-1">
                           {local.seriesName}
                         </span>
                       )}
                       {external?.seriesName && (
-                        <a href={`/series/${encodeURIComponent(external.seriesName)}`} className="[font-size:var(--public-font-caption)] text-muted-foreground/60 line-clamp-1 hover:text-primary hover:underline">
+                        <a href={`/series/${encodeURIComponent(external.seriesName)}`} className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-1 hover:text-link hover:underline">
                           {external.seriesName}
                         </a>
                       )}
-                      {external?.sourceDomain && <span className="[font-size:var(--public-font-caption)] text-muted-foreground/60 line-clamp-1">{external.sourceDomain}</span>}
+                      {external?.sourceDomain && <span className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-1">{external.sourceDomain}</span>}
                       {/* Tags shown inline on mobile (md: hidden via tag column) */}
                       {contentTags.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-1 md:hidden">
                           {contentTags.map((tag) => (
-                            <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-md border border-border/40 bg-muted/40 [font-size:var(--public-font-caption)] text-muted-foreground">
+                            <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-md border border-border bg-muted [font-size:var(--public-font-caption)] text-muted-foreground">
                               {tag}
                             </span>
                           ))}
@@ -210,7 +210,7 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                     </td>
                     <td className="py-2.5 px-3 text-muted-foreground hidden sm:table-cell whitespace-nowrap align-top pt-3">
                       {authorHref ? (
-                        <a href={authorHref} className="text-muted-foreground hover:text-primary hover:underline transition-colors">
+                        <a href={authorHref} className="text-muted-foreground hover:text-link hover:underline transition-colors">
                           {author}
                         </a>
                       ) : author}
@@ -218,13 +218,13 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
                     <td className="py-2.5 px-3 hidden md:table-cell align-top pt-3">
                       <div className="flex flex-wrap gap-1">
                         {contentTags.map((tag) => (
-                          <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-md border border-border/40 bg-muted/40 [font-size:var(--public-font-caption)] text-muted-foreground">
+                          <span key={tag} className="inline-flex items-center h-5 px-1.5 rounded-md border border-border bg-muted [font-size:var(--public-font-caption)] text-muted-foreground">
                             {tag}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 pr-5 text-right [font-size:var(--public-font-caption)] text-muted-foreground/70 tabular-nums whitespace-nowrap align-top pt-3">
+                    <td className="py-2.5 px-3 pr-5 text-right [font-size:var(--public-font-caption)] text-muted-foreground tabular-nums whitespace-nowrap align-top pt-3">
                       {formatDate(ts)}
                     </td>
                   </tr>

@@ -27,11 +27,11 @@ function HeaderVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
       className="w-full max-w-4xl mx-auto px-6 pt-3 pb-1"
       aria-label="系列章節導覽（頁首）"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/40 bg-muted/15 px-3 py-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-l-4 border-primary bg-muted px-3 py-2 text-xs">
         <div className="flex items-center gap-2">
           <a
             href={seriesHref}
-            className="font-medium text-primary hover:underline no-underline"
+            className="font-medium text-link hover:underline no-underline"
           >
             {seriesName}
           </a>
@@ -39,7 +39,7 @@ function HeaderVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
             <span className="text-muted-foreground">{positionLabel}</span>
           )}
           {hasNewChapter && (
-            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 [font-size:var(--public-font-caption)] font-semibold leading-none shrink-0">
+            <span className="px-1.5 py-0.5 rounded-md bg-warning-muted text-warning border border-warning [font-size:var(--public-font-caption)] font-semibold leading-none shrink-0">
               有新章節
             </span>
           )}
@@ -48,26 +48,26 @@ function HeaderVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
           {prev ? (
             <a
               href={`/read/${prev.id}`}
-              className="px-2 py-1 rounded border border-border/50 bg-background hover:bg-muted/40 transition-colors no-underline text-foreground"
+              className="px-2 py-1 rounded border border-border bg-background hover:bg-muted transition-colors no-underline text-foreground"
               title={prev.title}
             >
               ← 上一部
             </a>
           ) : (
-            <span className="px-2 py-1 rounded border border-border/20 text-muted-foreground/40 cursor-not-allowed">
+            <span className="px-2 py-1 rounded border border-border text-muted-foreground/40 cursor-not-allowed">
               ← 上一部
             </span>
           )}
           {next ? (
             <a
               href={`/read/${next.id}`}
-              className="px-2 py-1 rounded border border-border/50 bg-background hover:bg-muted/40 transition-colors no-underline text-foreground"
+              className="px-2 py-1 rounded border border-border bg-background hover:bg-muted transition-colors no-underline text-foreground"
               title={next.title}
             >
               下一部 →
             </a>
           ) : (
-            <span className="px-2 py-1 rounded border border-border/20 text-muted-foreground/40 cursor-not-allowed">
+            <span className="px-2 py-1 rounded border border-border text-muted-foreground/40 cursor-not-allowed">
               下一部 →
             </span>
           )}
@@ -100,19 +100,19 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
       className="w-full max-w-4xl mx-auto px-6 pt-4 pb-2"
       aria-label="系列章節導覽（頁尾）"
     >
-      <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3 space-y-2">
+      <div className="border-l-4 border-primary bg-muted px-4 py-3 space-y-2">
         {/* Series name + position */}
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <a
               href={seriesHref}
-              className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline no-underline"
+              className="flex items-center gap-1.5 text-xs text-link hover:underline no-underline"
             >
               <span aria-hidden>←</span>
               <span>{seriesName}</span>
             </a>
             {hasNewChapter && (
-              <span className="[font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 leading-none shrink-0">
+              <span className="[font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-md bg-warning-muted text-warning border border-warning leading-none shrink-0">
                 有新章節
               </span>
             )}
@@ -125,7 +125,7 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
         {/* Latest hint */}
         {latestChapter && (
           <div className="flex items-center gap-2">
-            <span className="[font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 leading-none shrink-0">
+            <span className="[font-size:var(--public-font-caption)] font-semibold px-1.5 py-0.5 rounded-sm bg-card text-foreground border border-border leading-none shrink-0">
               最新
             </span>
             <a
@@ -137,7 +137,7 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
           </div>
         )}
         {isLatest && (
-          <p className="[font-size:var(--public-font-caption)] text-primary/70">
+          <p className="[font-size:var(--public-font-caption)] text-muted-foreground">
             ✓ 你正在閱讀最新章節
           </p>
         )}
@@ -147,14 +147,14 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
           {prev ? (
             <a
               href={`/read/${prev.id}`}
-              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/40 transition-colors no-underline text-foreground"
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors no-underline text-foreground"
             >
               <span aria-hidden>←</span>
               <span className="max-w-[120px] truncate hidden sm:inline">{prev.title}</span>
               <span className="sm:hidden">上一部</span>
             </a>
           ) : (
-            <span className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border/30 text-muted-foreground/40 cursor-not-allowed">
+            <span className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground/40 cursor-not-allowed">
               <span aria-hidden>←</span>
               <span>上一部</span>
             </span>
@@ -165,14 +165,14 @@ function FooterVariant({ nav, hasNewChapter = false }: Omit<Props, "variant">) {
           {next ? (
             <a
               href={`/read/${next.id}`}
-              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border/60 bg-background hover:bg-muted/40 transition-colors no-underline text-foreground"
+              className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border bg-background hover:bg-muted transition-colors no-underline text-foreground"
             >
               <span className="max-w-[120px] truncate hidden sm:inline">{next.title}</span>
               <span className="sm:hidden">下一部</span>
               <span aria-hidden>→</span>
             </a>
           ) : (
-            <span className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border/30 text-muted-foreground/40 cursor-not-allowed">
+            <span className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg border border-border text-muted-foreground/40 cursor-not-allowed">
               <span>下一部</span>
               <span aria-hidden>→</span>
             </span>

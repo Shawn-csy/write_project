@@ -165,8 +165,8 @@ export function PublicScriptInfoOverlay({
         <div className="text-xs font-semibold text-muted-foreground">角色設定</div>
         <div className="mt-1 grid gap-2">
           {characterTemplateItems.map((entry, idx) => (
-            <div key={`char-${idx}`} className="rounded-md border border-primary/25 bg-background/75 px-3 py-2.5 shadow-sm">
-              <div className="mb-1 inline-flex items-center rounded-[5px] border border-primary/30 bg-primary/10 px-2 py-1 text-xs font-semibold tracking-wide text-primary">
+            <div key={`char-${idx}`} className="rounded-md border border-border bg-background px-3 py-2.5">
+              <div className="mb-1 inline-flex items-center rounded-sm bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground">
                 角色 {idx + 1}
               </div>
               <div className="text-base font-bold leading-tight text-foreground md:text-lg">{entry.name}</div>
@@ -197,7 +197,7 @@ export function PublicScriptInfoOverlay({
           <div className="text-xs font-semibold text-muted-foreground">章節</div>
           <div className="mt-1 grid gap-2">
             {chapterMulti.map((entry: { chapter: string; environment: string; situation: string }, idx: number) => (
-              <div key={`chapter-${idx}`} className="rounded-md border border-border/70 bg-background/70 px-3 py-2.5 shadow-sm text-left">
+              <div key={`chapter-${idx}`} className="rounded-md border border-border bg-background px-3 py-2.5 text-left">
                 <div className="text-sm font-semibold text-foreground">{entry.chapter}</div>
                 <div className="mt-1 text-xs font-medium text-muted-foreground">環境</div>
                 <div className="text-sm leading-6 text-foreground/90 whitespace-pre-wrap">{entry.environment || "—"}</div>
@@ -249,13 +249,13 @@ export function PublicScriptInfoOverlay({
       <div className="text-xs font-semibold text-muted-foreground">試聽範例</div>
       <div className="mt-1 space-y-2">
         {demoLinks.map((item, idx) => (
-          <div key={item.id || `preface-demo-link-${idx + 1}`} className="rounded-md border border-border/60 bg-background/75 px-3 py-2">
+          <div key={item.id || `preface-demo-link-${idx + 1}`} className="rounded-md border border-border bg-background px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <a
                 href={item.url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex h-6 items-center rounded-[5px] border border-primary/30 bg-primary/10 px-2.5 text-xs font-medium text-primary transition-all duration-150 hover:bg-primary/15"
+                className="inline-flex h-6 items-center rounded-sm border border-border bg-muted px-2.5 text-xs font-medium text-link hover:bg-muted"
               >
                 {item.name || `試聽連結 ${idx + 1}`}
               </a>
@@ -274,9 +274,9 @@ export function PublicScriptInfoOverlay({
 
   const usageBadges = React.useMemo(() => {
     const toneClass = {
-      positive: "border-emerald-500/55 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+      positive: "border-success bg-success-muted text-success",
       negative: "border-rose-500/55 bg-rose-500/15 text-rose-700 dark:text-rose-300",
-      caution: "border-amber-500/55 bg-amber-500/15 text-amber-700 dark:text-amber-300",
+      caution: "border-warning bg-warning-muted text-warning",
     };
     const normalize = (value: unknown) => String(value || "").trim().toLowerCase();
     const commercial = normalize(commercialUse);
@@ -325,7 +325,7 @@ export function PublicScriptInfoOverlay({
 
   return (
     <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center space-y-6 px-6 py-12 text-center md:py-20">
-      <div className={`w-full max-w-2xl overflow-hidden rounded-2xl shadow-xl backdrop-blur-sm ${hasCover || hasDesignedCover ? "bg-transparent" : "bg-background/40"}`} style={{ border: "1px solid hsl(var(--border) / 0.3)" }}>
+      <div className={`w-full max-w-2xl overflow-hidden rounded-md border border-border ${hasCover || hasDesignedCover ? "bg-transparent" : "bg-background"}`} style={{ border: "1px solid hsl(var(--border) / 0.3)" }}>
         {hasCover ? (
           <img
             src={cropCover.src}
@@ -336,7 +336,7 @@ export function PublicScriptInfoOverlay({
             onError={() => setCoverLoadFailed(true)}
           />
         ) : hasDesignedCover && coverDesign ? (
-          <div className="flex w-full justify-center bg-background/70 px-4 py-5">
+          <div className="flex w-full justify-center bg-background px-4 py-5">
             <div className="aspect-[2/3] w-full max-w-[320px] overflow-hidden rounded-lg">
               <CoverRenderer design={coverDesign} title={title || ""} responsive responsiveFit="contain" className="h-full w-full" />
             </div>
@@ -344,19 +344,14 @@ export function PublicScriptInfoOverlay({
         ) : (
           <div
             className="relative flex min-h-[240px] w-full items-center justify-center px-6 py-10 text-center md:min-h-[300px]"
-            style={{ background: "linear-gradient(135deg, hsl(var(--surface-3)) 0%, hsl(var(--surface-2)) 100%)" }}
+            style={{ background: "hsl(var(--muted))" }}
           >
-            <div
-              className="relative rounded-xl px-6 py-4 backdrop-blur-sm"
-              style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.6)" }}
-            >
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">尚無封面</div>
-            </div>
+            <div className="text-sm text-muted-foreground">尚無封面</div>
           </div>
         )}
       </div>
 
-      <h1 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-bold leading-tight text-foreground drop-shadow-sm">
+      <h1 className="text-2xl sm:text-3xl font-bold leading-tight text-foreground">
         {title}
       </h1>
 
@@ -371,7 +366,7 @@ export function PublicScriptInfoOverlay({
       )}
 
       {synopsis && (
-        <div className="max-w-2xl font-serif text-lg leading-relaxed text-foreground/80 md:text-xl italic">
+        <div className="max-w-2xl text-lg leading-relaxed text-foreground/80 md:text-xl italic">
           {synopsis}
         </div>
       )}
@@ -385,7 +380,7 @@ export function PublicScriptInfoOverlay({
                 avatarUrl: organization.logoUrl,
               }}
               link={organization.id ? `/org/${organization.id}` : undefined}
-              className="rounded-lg pl-1 pr-3 py-1 shadow-sm hover:bg-muted/60 transition-colors"
+              className="rounded-lg pl-1 pr-3 py-1 hover:bg-muted transition-colors"
               style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.7)", backdropFilter: "blur(8px)" }}
             />
           )}
@@ -394,8 +389,8 @@ export function PublicScriptInfoOverlay({
               author={author}
               clickable={isAuthorClickable}
               link={isAuthorClickable && author.id ? `/author/${author.id}` : undefined}
-              className={`rounded-lg pl-1 pr-3 py-1 shadow-sm transition-colors ${
-                isAuthorClickable ? "hover:bg-muted/60" : ""
+              className={`rounded-lg pl-1 pr-3 py-1 transition-colors ${
+ isAuthorClickable ? "hover:bg-muted" : ""
               }`}
               style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.7)", backdropFilter: "blur(8px)" }}
             />
@@ -406,12 +401,12 @@ export function PublicScriptInfoOverlay({
       {(typeof views === "number" || typeof durationMinutes === "number" || typeof dialogueChars === "number") && (
         <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
           {typeof durationMinutes === "number" && durationMinutes > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+            <span className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium">
               ⏱ {durationMinutes < 1 ? "< 1 分鐘" : `約 ${Math.round(durationMinutes)} 分鐘`}
             </span>
           )}
           {typeof dialogueChars === "number" && dialogueChars > 0 && (
-            <span className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/50 px-3 py-1 text-xs font-medium backdrop-blur-sm">
+            <span className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-medium">
               📝 {dialogueChars.toLocaleString()} 字
             </span>
           )}
@@ -425,17 +420,17 @@ export function PublicScriptInfoOverlay({
       )}
 
       {hasMetaSummary && (
-        <section className="w-full max-w-2xl rounded-xl border border-border/60 bg-background/55 px-4 py-3 text-left backdrop-blur-sm">
+        <section className="w-full max-w-2xl rounded-xl border border-border bg-background px-4 py-3 text-left">
           {(String(targetAudience || "").trim() || String(contentRating || "").trim()) && (
             <div className="grid gap-2 sm:grid-cols-2">
               {String(targetAudience || "").trim() && (
-                <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
+                <div className="rounded-md border border-border bg-background px-3 py-2">
                   <div className="text-xs text-muted-foreground">觀眾取向</div>
                   <div className="text-sm font-medium text-foreground">{String(targetAudience || "").trim()}</div>
                 </div>
               )}
               {String(contentRating || "").trim() && (
-                <div className="rounded-md border border-border/60 bg-background/70 px-3 py-2">
+                <div className="rounded-md border border-border bg-background px-3 py-2">
                   <div className="text-xs text-muted-foreground">內容分級</div>
                   <div className="text-sm font-medium text-foreground">{String(contentRating || "").trim()}</div>
                 </div>
@@ -443,7 +438,7 @@ export function PublicScriptInfoOverlay({
             </div>
           )}
           {String(license || "").trim() && (
-            <div className="mt-2 rounded-md border border-border/60 bg-background/70 px-3 py-2">
+            <div className="mt-2 rounded-md border border-border bg-background px-3 py-2">
               <div className="text-xs text-muted-foreground">授權名稱</div>
               <div className="text-sm font-medium text-foreground whitespace-pre-wrap">{String(license || "").trim()}</div>
             </div>
@@ -454,11 +449,11 @@ export function PublicScriptInfoOverlay({
               <div className="mt-1 flex flex-wrap gap-1.5">
                 {normalizedTags.map((tag) =>
                   tagHref ? (
-                    <a key={tag} href={tagHref(tag)} className="inline-flex h-6 items-center rounded-[5px] border border-border/50 bg-transparent px-2.5 text-xs font-medium text-muted-foreground transition-all duration-150 hover:border-primary/40 hover:bg-primary/5 hover:text-foreground">
+                    <a key={tag} href={tagHref(tag)} className="inline-flex h-6 items-center rounded-sm border border-border bg-transparent px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
                       {tag}
                     </a>
                   ) : (
-                    <span key={tag} className="inline-flex h-6 items-center rounded-[5px] border border-border/40 bg-muted/40 px-2.5 text-xs font-medium text-muted-foreground">{tag}</span>
+                    <span key={tag} className="inline-flex h-6 items-center rounded-sm border border-border bg-muted px-2.5 text-xs font-medium text-muted-foreground">{tag}</span>
                   )
                 )}
               </div>
@@ -478,7 +473,7 @@ export function PublicScriptInfoOverlay({
       )}
 
       {(hasPrefaceItems || hasDemoLinks || hasSpecialTerms) && (
-        <section className="w-full max-w-2xl rounded-xl border border-border/60 bg-background/55 px-4 py-3 text-left backdrop-blur-sm">
+        <section className="w-full max-w-2xl rounded-xl border border-border bg-background px-4 py-3 text-left">
           {hasSpecialTerms && (
             <>
               <div className="text-xs font-semibold text-muted-foreground">附加條款</div>
@@ -516,7 +511,7 @@ export function PublicScriptInfoOverlay({
           {(expandedTopItems.length + expandedBottomItems.length + (demoLinksBlock ? 1 : 0)) > compactItems.length && (
             <button
               type="button"
-              className="mt-2 block w-full py-2 text-xs font-medium text-primary hover:underline"
+              className="mt-2 block w-full py-2 text-xs font-medium text-link hover:underline"
               onClick={() => setPrefaceExpanded((prev) => !prev)}
             >
               {prefaceExpanded ? "收起前置資訊" : "展開完整前置資訊"}

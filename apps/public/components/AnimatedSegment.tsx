@@ -39,7 +39,7 @@ export function AnimatedSegment<T extends string>({
       <div
         ref={pillRef}
         aria-hidden
-        className="absolute top-0.5 bottom-0.5 left-0 rounded-md bg-background shadow-sm pointer-events-none"
+        className="absolute top-0.5 bottom-0.5 left-0 rounded-md bg-background pointer-events-none"
         style={{ opacity: 0, width: 0, transformOrigin: "center" }}
       />
       {options.map((opt) => {

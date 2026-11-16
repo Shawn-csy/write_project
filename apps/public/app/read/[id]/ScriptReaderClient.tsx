@@ -158,7 +158,7 @@ export function ScriptReaderClient({
         </>
       }
       footer={
-        <footer className="mt-12 pt-6 border-t border-border/40">
+        <footer className="mt-12 pt-6 border-t border-border">
           {seriesNav && (
             <SeriesChapterNavigation
               nav={seriesNav}
@@ -170,7 +170,7 @@ export function ScriptReaderClient({
             <div className="mb-4">
               <a
                 href={`/series/${encodeURIComponent(initialScript.series.name)}`}
-                className="text-sm text-primary hover:underline"
+                className="text-sm text-link hover:underline"
               >
                 ← 查看系列：{initialScript.series.name}
               </a>
@@ -193,7 +193,7 @@ export function ScriptReaderClient({
           fontSize={fontSize}
           lineHeight={lineHeight}
           readingFontFamily={readingFontFamily}
-          className="border-t border-border/40 pt-6"
+          className="border-t border-border pt-6"
         />
       </section>
     </PublicReaderShell>

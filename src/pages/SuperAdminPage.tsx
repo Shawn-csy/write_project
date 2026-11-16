@@ -104,7 +104,7 @@ export default function SuperAdminPage(): React.JSX.Element {
   const catalogTabs = ["scripts", "orgs", "personas", "users"];
   const reviewTab = reviewTabs.includes(requestedSection) ? requestedSection : "applications";
   const activityReviewTab = activityReviewTabs.includes(requestedSection) ? requestedSection : "activity-submissions";
-  const marketingTab = requestedSection === "activities" ? "activities" : searchParams.get("marketing") === "demos" ? "demos" : "homepage";
+  const marketingTab = requestedSection === "activities" ? "activities" : searchParams.get("marketing") === "demos" ? "demos" : searchParams.get("marketing") === "audio-ads" ? "audio-ads" : "homepage";
   const requestedCatalogTab = searchParams.get("catalog") || "";
   const settingsTab = requestedSection === "directory" || requestedSection === "catalog" ? "directory" : "settings";
   const catalogTab = catalogTabs.includes(requestedCatalogTab)
@@ -168,7 +168,7 @@ export default function SuperAdminPage(): React.JSX.Element {
   const goToMarketingTab = (tab: string) => {
     const next = new URLSearchParams();
     next.set("section", tab === "activities" ? "activities" : "marketing");
-    if (tab === "demos") next.set("marketing", "demos");
+    if (tab === "demos" || tab === "audio-ads") next.set("marketing", tab);
     navigate({ pathname: location.pathname, search: `?${next.toString()}` });
   };
 
@@ -227,6 +227,7 @@ export default function SuperAdminPage(): React.JSX.Element {
         { key: "demo-management", label: "Demo 管理", active: activeArea === "demos", go: () => goToSection("demos") },
         { key: "homepage", label: "首頁 Banner", active: activeArea === "marketing" && marketingTab === "homepage", go: () => goToMarketingTab("homepage") },
         { key: "demo-banners", label: "Demo 頁 Banner", active: activeArea === "marketing" && marketingTab === "demos", go: () => goToMarketingTab("demos") },
+        { key: "audio-ads", label: "音聲作品 Banner", active: activeArea === "marketing" && marketingTab === "audio-ads", go: () => goToMarketingTab("audio-ads") },
         { key: "activities", label: "活動頁面", active: activeArea === "marketing" && marketingTab === "activities", go: () => goToMarketingTab("activities") },
         { key: "external-scripts", label: "外部台本", active: activeArea === "external" && resourceTab === "scripts", go: () => goToResourceTab("scripts") },
         { key: "external-author-pages", label: "外部作者頁", active: activeArea === "external" && resourceTab === "author-pages", go: () => goToResourceTab("author-pages") },
@@ -619,6 +620,7 @@ export default function SuperAdminPage(): React.JSX.Element {
             <TabsList className="hidden">
               <TabsTrigger value="homepage" className={workbenchTabClass}>首頁 Banner</TabsTrigger>
               <TabsTrigger value="demos" className={workbenchTabClass}>Demo 頁 Banner</TabsTrigger>
+              <TabsTrigger value="audio-ads" className={workbenchTabClass}>音聲作品 Banner</TabsTrigger>
               <TabsTrigger value="activities" className={workbenchTabClass}>活動頁面</TabsTrigger>
             </TabsList>
             <TabsContent value="homepage" className="mt-0">
@@ -631,6 +633,7 @@ export default function SuperAdminPage(): React.JSX.Element {
                 <HomepageBannerSection scope="demos" />
               </CollapsibleSection>
             </TabsContent>
+            <TabsContent value="audio-ads"><HomepageBannerSection scope="audio-works" /></TabsContent>
             <TabsContent value="activities"><ActivityPagesAdminSection /></TabsContent>
           </Tabs>
         </TabsContent>

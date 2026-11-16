@@ -33,7 +33,7 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
           key={tag}
           type="button"
           onClick={() => onTagClick(tag)}
-          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-muted/40 text-muted-foreground hover:border-primary/30 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+          className="tap-grow max-w-[9rem] shrink-0 truncate whitespace-nowrap [font-size:var(--public-font-caption)] px-2 py-0.5 rounded-sm bg-muted text-muted-foreground hover:text-link hover:underline"
         >
           {tag}
         </button>
@@ -42,7 +42,7 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-transparent text-primary hover:border-primary/40 hover:bg-primary/5 transition-all duration-150"
+          className="tap-grow shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)] text-link hover:underline"
           aria-label={`展開更多標籤，尚有 ${tags.length - limit} 個`}
         >
           更多（{tags.length - limit}）
@@ -52,7 +52,7 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="[font-size:var(--public-font-caption)] px-2 py-0.5 rounded-md border border-border/40 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground transition-all duration-150"
+          className="tap-grow shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)] text-link hover:underline"
         >
           收合
         </button>
@@ -95,10 +95,10 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
             key={tag}
             type="button"
             onClick={() => onToggleTag(tag)}
-            className={`h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border transition-all duration-150 ${
-              active
-                ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                : "border-border/50 bg-transparent text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+            className={`h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border ${
+ active
+ ? "border-primary bg-primary text-primary-foreground"
+                : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
             }`}
           >
             {tag}
@@ -109,7 +109,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border border-primary/35 bg-primary/5 text-primary hover:border-primary/60 hover:bg-primary/10 transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border border-border bg-card text-link hover:bg-muted"
         >
           更多標籤（{hiddenCount}）
         </button>
@@ -118,7 +118,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={() => setExpanded(false)}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
         >
           收合標籤
         </button>
@@ -127,7 +127,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
         <button
           type="button"
           onClick={onResetFilters}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border/50 bg-transparent text-muted-foreground hover:text-foreground hover:border-border transition-all duration-150"
+          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
         >
           清除篩選
         </button>
@@ -141,13 +141,13 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick: (tag: string) => void }) {
   const href = author.externalHref || `/author/${author.id}`;
   return (
-    <div className="flex flex-col rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
-      <a href={href} className="flex items-center gap-3 p-3">
-        <div className="relative w-12 h-12 rounded-full overflow-hidden shrink-0">
+    <div className="flex min-w-0 flex-col border-b border-border">
+      <a href={href} className="group flex items-start gap-3 py-3">
+        <div className="relative w-12 h-12 rounded-md border border-border overflow-hidden shrink-0">
           <PublicAvatarImage src={author.avatar} name={author.displayName} sizes="48px" fallbackClassName={publicAvatarColor(author.displayName)} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium [font-size:var(--public-font-body)] truncate">{author.displayName}</p>
+          <p className="font-bold [font-size:var(--public-font-body)] truncate group-hover:text-link group-hover:underline">{author.displayName}</p>
           {author.bio && (
             <p className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-2 mt-0.5">{author.bio}</p>
           )}
@@ -165,7 +165,7 @@ function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick:
           onTagClick={onTagClick}
           limit={3}
           singleRow
-          className="max-w-full px-3 pb-2"
+          className="max-w-full pb-3 pl-[3.75rem]"
         />
       )}
     </div>
@@ -178,14 +178,14 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
   const memberCount = org.members?.length;
   const href = org.externalHref || `/org/${org.id}`;
   return (
-    <div className="rounded-xl border border-border/50 bg-card overflow-hidden hover:-translate-y-[3px] hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200">
+    <div className="min-w-0 border-b border-border">
       {/* Main org link — no nested anchors inside */}
-      <a href={href} className="flex items-center gap-3 p-4">
-        <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0">
+      <a href={href} className="group flex items-start gap-3 py-3">
+        <div className="relative w-12 h-12 rounded-md border border-border overflow-hidden shrink-0">
           <PublicAvatarImage src={org.logoUrl} name={org.name} preset="logo" sizes="48px" fallbackClassName={publicAvatarColor(org.name)} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-medium [font-size:var(--public-font-body)] truncate">{org.name}</p>
+          <p className="font-bold [font-size:var(--public-font-body)] truncate group-hover:text-link group-hover:underline">{org.name}</p>
           {org.description && (
             <p className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-2 mt-0.5">{org.description}</p>
           )}
@@ -196,12 +196,12 @@ function OrgCard({ org, onTagClick }: { org: PublicOrg; onTagClick: (tag: string
       </a>
       {/* Website link — sibling, not nested inside the org anchor */}
       {org.website && (
-        <div className="px-4 pb-2">
+        <div className="pb-2 pl-[3.75rem]">
           <a
             href={org.website}
             target="_blank"
             rel="noreferrer"
-            className="[font-size:var(--public-font-caption)] text-primary hover:underline truncate flex items-center gap-1"
+            className="[font-size:var(--public-font-caption)] text-link hover:underline truncate flex items-center gap-1"
           >
             <LinkIcon />
             {org.website}

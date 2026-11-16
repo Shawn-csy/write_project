@@ -49,7 +49,7 @@ export function GalleryFilterSummary({ chips, onRemove, onClear }: GalleryFilter
             type="button"
             onClick={() => onRemove(chip)}
             aria-label={`移除篩選 ${label}`}
-            className="inline-flex h-6 items-center gap-1 rounded-md border border-primary/35 bg-primary/10 px-2 [font-size:var(--public-font-caption)] font-medium text-primary hover:border-primary/60 hover:bg-primary/15 transition-colors"
+            className="inline-flex h-6 items-center gap-1 rounded-sm border border-border bg-muted px-2 [font-size:var(--public-font-caption)] text-foreground hover:bg-card"
           >
             <span>{label}</span>
             <X className="h-3 w-3" aria-hidden />
@@ -59,7 +59,7 @@ export function GalleryFilterSummary({ chips, onRemove, onClear }: GalleryFilter
       <button
         type="button"
         onClick={onClear}
-        className="ml-0.5 h-6 px-1.5 [font-size:var(--public-font-caption)] text-muted-foreground hover:text-foreground transition-colors"
+        className="ml-0.5 h-6 px-1.5 [font-size:var(--public-font-caption)] text-link hover:underline"
       >
         清除全部
       </button>

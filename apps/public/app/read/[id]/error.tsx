@@ -10,7 +10,7 @@ export default function ReaderError({
 }) {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
-      <p className="text-4xl font-serif font-bold text-foreground">載入失敗</p>
+      <p className="text-3xl font-bold text-foreground">載入失敗</p>
       <p className="mt-3 text-muted-foreground text-sm">台本載入時發生錯誤，請稍後再試。</p>
       <div className="mt-6 flex gap-3">
         <button
@@ -21,7 +21,7 @@ export default function ReaderError({
         </button>
         <Link
           href="/"
-          className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50 transition-colors"
+          className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted transition-colors"
         >
           回到首頁
         </Link>

@@ -15,6 +15,7 @@ import { combinePublicIdentities } from "@/lib/publicIdentity";
 import { PublicProfileAvatar, PublicProfileCard, PublicProfileContainer, PublicProfileLink, PublicProfileRole, PublicProfileSection, PublicProfileWorkCard } from "@/components/PublicProfileLayout";
 import { IdentityProfileForm } from "@/components/identity/IdentityProfileForm";
 import { ROLE_LABELS, editableProfileKinds, productionRolesOf, resolveIdentityRoles } from "@/components/identity/identityRoles";
+import { cleanScriptSummary } from "@/lib/scriptSummary";
 
 /**
  * The one public page for a person: writer, voice actor, post-production,
@@ -99,19 +100,19 @@ const SECTIONS: IdentitySection[] = [
     render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {ctx.performances.map((demo) => {
         const artwork = demoArtwork(demo.demoUrl, demo.coverUrl || "");
-        return <article key={demo.id} className="overflow-hidden rounded-lg border border-border/60 bg-background">
-          <div className="relative aspect-video overflow-hidden bg-muted/50">
+        return <article key={demo.id} className="min-w-0">
+          <div className="relative aspect-video overflow-hidden rounded-sm border border-border bg-muted">
             {artwork ? <PublicImage src={artwork} alt={`${demo.scriptTitle}演出圖片`} preset="script-cover" /> : <BriefcaseBusiness className="absolute inset-0 m-auto h-7 w-7 text-muted-foreground/50" aria-hidden />}
           </div>
-          <div className="p-3">
-            <p className="line-clamp-2 text-sm font-semibold">{demo.scriptTitle}</p>
-            {demo.scriptAuthorName && <p className="mt-1 text-xs text-muted-foreground">台本師：{demo.scriptAuthorHref ? <a href={demo.scriptAuthorHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{demo.scriptAuthorName}</a> : demo.scriptAuthorName}</p>}
+          <div className="pt-2">
+            <p className="line-clamp-2 text-sm font-bold">{demo.scriptTitle}</p>
+            {demo.scriptAuthorName && <p className="mt-1 text-xs text-muted-foreground">台本師：{demo.scriptAuthorHref ? <a href={demo.scriptAuthorHref} className="text-link hover:underline">{demo.scriptAuthorName}</a> : demo.scriptAuthorName}</p>}
             {demo.demoName && demo.demoName !== "YouTube 試聽" && <h3 className="mt-1 text-xs text-muted-foreground">{demo.demoName}</h3>}
-            {(demo.scriptSummary || demo.description) && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{demo.scriptSummary || demo.description}</p>}
-            {demo.organizationName && demo.organizationHref && <a href={demo.organizationHref} className="mt-2 inline-block text-xs text-primary hover:underline">{demo.organizationName}</a>}
+            {(cleanScriptSummary(demo.scriptSummary) || demo.description) && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{cleanScriptSummary(demo.scriptSummary) || demo.description}</p>}
+            {demo.organizationName && demo.organizationHref && <a href={demo.organizationHref} className="mt-2 inline-block text-xs text-link hover:underline">{demo.organizationName}</a>}
             <div className="mt-3 flex flex-wrap gap-2">
-              <a href={demo.scriptUrl} target={demo.scriptType === "external" ? "_blank" : undefined} rel={demo.scriptType === "external" ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs hover:bg-muted/60">看台本</a>
-              <a href={demo.demoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20">播放 Demo<ExternalLink className="h-3 w-3" aria-hidden /></a>
+              <a href={demo.scriptUrl} target={demo.scriptType === "external" ? "_blank" : undefined} rel={demo.scriptType === "external" ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs hover:bg-muted">看台本</a>
+              <a href={demo.demoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">播放 Demo<ExternalLink className="h-3 w-3" aria-hidden /></a>
             </div>
           </div>
         </article>;
@@ -131,16 +132,16 @@ const SECTIONS: IdentitySection[] = [
   {
     id: "voiceActorWorks", title: "參演作品", roles: ["voice_actor"], ageGated: true,
     count: (ctx) => (ctx.persona.voiceActorWorks || []).length,
-    render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{(ctx.persona.voiceActorWorks || []).map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border/60 bg-background">{work.coverUrl && <div className="relative aspect-video overflow-hidden bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} preset="script-cover" /></div>}<div className="p-3"><h3 className="text-sm font-semibold">{work.title || "未命名作品"}</h3>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline">查看作品<ExternalLink className="h-3 w-3" aria-hidden /></a>}</div></article>)}</div>,
+    render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{(ctx.persona.voiceActorWorks || []).map((work, index) => <article key={`${work.title}-${index}`} className="min-w-0">{work.coverUrl && <div className="relative aspect-video overflow-hidden rounded-sm border border-border bg-muted"><PublicImage src={work.coverUrl} alt={`${work.title || "參演作品"}封面`} preset="script-cover" /></div>}<div className="pt-2"><h3 className="text-sm font-bold">{work.title || "未命名作品"}</h3>{work.role && <p className="mt-1 text-xs text-muted-foreground">角色：{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-link hover:underline">查看作品<ExternalLink className="h-3 w-3" aria-hidden /></a>}</div></article>)}</div>,
   },
   ...(["post_production", "cover_art", "recording_studio"] as const).map(productionSection),
   {
     id: "series", title: "系列作品", roles: ["scriptwriter"],
     count: (ctx) => ctx.series.length,
     render: (ctx) => <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {ctx.series.map((series) => <a key={series.name} href={`/series/${encodeURIComponent(series.name)}`} className="flex items-center gap-3 rounded-lg border border-border/60 bg-background p-3 transition-colors hover:border-primary/50">
-        {series.coverUrl && <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded border border-border/50"><PublicImage src={series.coverUrl} alt={series.name} preset="thumbnail" /></div>}
-        <div className="min-w-0"><p className="line-clamp-1 text-sm font-semibold">{series.name}</p><p className="text-xs text-muted-foreground">{series.count} 部</p></div>
+      {ctx.series.map((series) => <a key={series.name} href={`/series/${encodeURIComponent(series.name)}`} className="group flex items-center gap-3 border-b border-border py-2">
+        {series.coverUrl && <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-sm border border-border"><PublicImage src={series.coverUrl} alt={series.name} preset="thumbnail" /></div>}
+        <div className="min-w-0"><p className="line-clamp-1 text-sm font-bold group-hover:text-link group-hover:underline">{series.name}</p><p className="text-xs text-muted-foreground">{series.count} 部</p></div>
       </a>)}
     </div>,
   },
@@ -150,12 +151,12 @@ const SECTIONS: IdentitySection[] = [
     render: (ctx) => <>
       {ctx.scripts.length > 0 && <EntityScriptGrid scripts={ctx.scripts} />}
       {ctx.externalScripts.length > 0 && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ctx.externalScripts.map((script) => <article key={script.id} className="overflow-hidden rounded-lg border border-border/60 bg-background">
-          {script.coverUrl && <div className="relative aspect-[16/10] overflow-hidden bg-muted"><PublicImage src={script.coverUrl} alt={`${script.title}封面`} preset="script-cover" /></div>}
-          <div className="p-3">
-            <h3 className="line-clamp-2 text-sm font-semibold">{script.title || script.remoteTitle || "未命名台本"}</h3>
-            {script.summary && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{script.summary}</p>}
-            <a href={script.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs hover:bg-muted/60">閱讀台本<ExternalLink className="h-3 w-3" aria-hidden /></a>
+        {ctx.externalScripts.map((script) => <article key={script.id} className="min-w-0">
+          {script.coverUrl && <div className="relative aspect-[16/10] overflow-hidden rounded-sm border border-border bg-muted"><PublicImage src={script.coverUrl} alt={`${script.title}封面`} preset="script-cover" /></div>}
+          <div className="pt-2">
+            <h3 className="line-clamp-2 text-sm font-bold">{script.title || script.remoteTitle || "未命名台本"}</h3>
+            {cleanScriptSummary(script.summary) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{cleanScriptSummary(script.summary)}</p>}
+            <a href={script.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-link hover:underline">閱讀台本<ExternalLink className="h-3 w-3" aria-hidden /></a>
           </div>
         </article>)}
       </div>}
@@ -228,9 +229,8 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     <>
     <main className="min-h-screen bg-background">
       {persona.bannerUrl && (
-        <div className="relative h-48 overflow-hidden bg-muted">
+        <div className="relative h-36 overflow-hidden border-b border-border bg-muted sm:h-44">
           <PublicImage src={persona.bannerUrl} alt="" preset="author-banner" crop={persona.bannerCrop} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
         </div>
       )}
 
@@ -240,12 +240,12 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             {!editing && <PublicProfileAvatar src={identity.avatar} name={identity.displayName} crop={persona.avatarCrop} />}
 
-            <div className="flex-1 space-y-3 pt-2">
+            <div className="min-w-0 flex-1 space-y-3">
               {!editing && <>
-                <h1 className="font-serif text-3xl font-bold">{identity.displayName}</h1>
+                <h1 className="text-2xl font-bold">{identity.displayName}</h1>
 
                 {roles.length > 0 && (
-                  <div className="flex flex-wrap gap-2" aria-label="創作者身份">
+                  <div className="flex flex-wrap gap-1.5" aria-label="創作者身份">
                     {roles.map((role) => (
                       <PublicProfileRole key={role} href={productionRoles.includes(role as ProductionRole) ? `/resources?category=${role}` : undefined}>{ROLE_LABELS[role]}</PublicProfileRole>
                     ))}
@@ -253,30 +253,30 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                 )}
 
                 {(persona.voiceActorOrganizations || []).length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-x-3 gap-y-1">
                     {persona.voiceActorOrganizations!.map((org, index) => org.url ? (
-                      <a key={`${org.name}-${index}`} href={org.url} target="_blank" rel="noopener noreferrer" className="rounded-full border border-border px-2.5 py-1 text-xs text-primary hover:bg-muted/50">團體 · {org.name || "未命名"}<ExternalLink className="ml-1 inline h-3 w-3" aria-hidden /></a>
-                    ) : <span key={`${org.name}-${index}`} className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground">團體 · {org.name || "未命名"}</span>)}
+                      <a key={`${org.name}-${index}`} href={org.url} target="_blank" rel="noopener noreferrer" className="text-sm text-link hover:underline">團體：{org.name || "未命名"}<ExternalLink className="ml-1 inline h-3 w-3" aria-hidden /></a>
+                    ) : <span key={`${org.name}-${index}`} className="text-sm text-muted-foreground">團體：{org.name || "未命名"}</span>)}
                   </div>
                 )}
 
-                {identity.bio && <LinkifiedText text={identity.bio} className="max-w-3xl whitespace-pre-wrap text-sm leading-7 text-muted-foreground" />}
+                {identity.bio && <LinkifiedText text={identity.bio} className="max-w-3xl whitespace-pre-wrap text-sm leading-7 text-foreground" />}
 
                 {profileTags.length > 0 && (
                   <div className="space-y-1">
-                    <p className="text-xs text-muted-foreground">個人標籤</p>
-                    <div className="flex flex-wrap gap-2">
-                      {profileTags.map((tag, i) => <span key={i} className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">{tag}</span>)}
+                    <p className="text-xs font-bold text-foreground">個人標籤</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {profileTags.map((tag, i) => <span key={i} className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{tag}</span>)}
                     </div>
                   </div>
                 )}
 
-                <div className="flex flex-wrap gap-2 pt-1 text-sm text-muted-foreground" aria-label="聯絡與官方連結">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1 text-sm text-muted-foreground" aria-label="聯絡與官方連結">
                   {contactItems.map((item, i) => (
                     /^https?:\/\//i.test(item.value) ? <PublicProfileLink key={`${item.label}-${i}`} label={item.label} url={item.value} /> : <span key={`${item.label}-${i}`} className="break-all">{item.label}：{item.value}</span>
                   ))}
                   {privateContactItems.length > 0 && !showPrivateContacts && (
-                    <button type="button" onClick={() => setShowPrivateContacts(true)} className="inline-flex h-8 items-center rounded-md border border-border/60 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground">顯示聯絡方式</button>
+                    <button type="button" onClick={() => setShowPrivateContacts(true)} className="inline-flex h-8 items-center rounded-md border border-border bg-card px-2.5 text-xs text-foreground hover:bg-muted">顯示聯絡方式</button>
                   )}
                   {showPrivateContacts && privateContactItems.map((item, i) => (
                     <span key={`private-${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
@@ -289,8 +289,8 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
 
               {profileKinds.length > 0 && (
                 <div className="pt-1">
-                  {!editing && !notice && <button type="button" onClick={() => setEditing(true)} className="rounded-md border border-primary/40 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/10">更新資料</button>}
-                  {notice && <p role="status" className="text-sm text-emerald-400">{notice}</p>}
+                  {!editing && !notice && <button type="button" onClick={() => setEditing(true)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted">更新資料</button>}
+                  {notice && <p role="status" className="text-sm text-success">{notice}</p>}
                   {editing && (
                     <IdentityProfileForm
                       persona={persona}
@@ -310,13 +310,13 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
         {commissionOffers.length > 0 && (
           <PublicProfileSection title="音聲委託參考價" count={commissionOffers.length}>
             <p className="mb-3 text-xs leading-relaxed text-muted-foreground">{commissionOffers[0].scope} 來源於 {commissionOffers[0].sourceUpdatedOn} 更新的公開資料，實際報價與可接案狀態請向創作者確認。</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {commissionOffers.map((offer, index) => <article key={`${offer.service}-${index}`} className="rounded-lg border border-border/60 bg-background p-3">
-                <h3 className="text-sm font-semibold">{offer.service}</h3>
-                <p className="mt-1 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">{offer.details}</p>
-              </article>)}
-            </div>
-            <a href={commissionOffers[0].sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline">查看收費標準來源<ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
+            <dl className="border-t border-border">
+              {commissionOffers.map((offer, index) => <div key={`${offer.service}-${index}`} className="grid gap-1 border-b border-border py-2.5 sm:grid-cols-[8rem_minmax(0,1fr)] sm:gap-4">
+                <dt className="text-sm font-bold">{offer.service}</dt>
+                <dd className="whitespace-pre-line text-sm leading-relaxed text-foreground">{offer.details}</dd>
+              </div>)}
+            </dl>
+            <a href={commissionOffers[0].sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-link hover:underline">查看收費標準來源<ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
           </PublicProfileSection>
         )}
 
@@ -329,7 +329,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
         ))}
 
         {contributors.length > 0 && (
-          <div className="mt-4 flex justify-end border-t border-border/50 pt-3">
+          <div className="mt-4 flex justify-end border-t border-border pt-3">
             <button type="button" onClick={() => setHistoryOpen(true)} className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">修改紀錄</button>
           </div>
         )}
@@ -338,15 +338,15 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     <PublicFooter />
     {historyOpen && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="profile-history-title">
-        <button type="button" aria-label="關閉修改紀錄" className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={() => setHistoryOpen(false)} />
-        <section className="relative z-10 max-h-[min(80vh,36rem)] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-background p-4 shadow-2xl sm:p-5">
-          <header className="mb-4 flex items-center justify-between gap-3 border-b border-border/70 pb-3">
+        <button type="button" aria-label="關閉修改紀錄" className="absolute inset-0 bg-black/60" onClick={() => setHistoryOpen(false)} />
+        <section className="relative z-10 max-h-[min(80vh,36rem)] w-full max-w-lg overflow-y-auto rounded-md border border-border bg-background p-4 shadow-lg sm:p-5">
+          <header className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-3">
             <h2 id="profile-history-title" className="text-lg font-semibold">修改紀錄</h2>
             <button type="button" aria-label="關閉修改紀錄" onClick={() => setHistoryOpen(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" aria-hidden /></button>
           </header>
-          <ol className="space-y-2">
+          <ol>
             {contributors.map((contributor, index) => (
-              <li key={`${contributor.name}-${contributor.contributedAt || index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2.5">
+              <li key={`${contributor.name}-${contributor.contributedAt || index}`} className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-1 py-2.5">
                 <span className="text-sm font-medium">{contributor.name || "訪客協作者"}</span>
                 <time className="text-xs text-muted-foreground" dateTime={contributor.contributedAt ? new Date(contributor.contributedAt).toISOString() : undefined}>
                   核准時間：{contributor.contributedAt ? new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(contributor.contributedAt)) : "日期未記錄"}

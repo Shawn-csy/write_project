@@ -8,7 +8,7 @@ export default function GlobalError({
 }) {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen px-4 text-center">
-      <p className="text-4xl font-serif font-bold text-foreground">出了一點問題</p>
+      <p className="text-4xl font-bold text-foreground">出了一點問題</p>
       <p className="mt-3 text-muted-foreground text-sm">頁面載入時發生錯誤，請稍後再試。</p>
       <button
         onClick={reset}

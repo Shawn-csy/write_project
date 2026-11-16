@@ -34,6 +34,7 @@ BUNDLE = {
     "topTags": [],
     "banner": {"items": []},
     "demoBanner": {"items": []},
+    "audioWorkBanner": {"items": []},
     "externalPublicScripts": [EXTERNAL_SCRIPT],
     "demoSubmissions": [],
     "audioWorks": [],

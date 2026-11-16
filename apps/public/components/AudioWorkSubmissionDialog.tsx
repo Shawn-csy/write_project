@@ -6,7 +6,7 @@ import { useState, type FormEvent } from "react";
 import type { PublicOrg } from "@/lib/types";
 import { liveApi } from "@/lib/liveApi";
 
-const inputClass = "h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+const inputClass = "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-link";
 
 export function AudioWorkSubmissionDialog({ organizations = [] }: { organizations?: PublicOrg[] }) {
   const [open, setOpen] = useState(false);
@@ -60,13 +60,13 @@ export function AudioWorkSubmissionDialog({ organizations = [] }: { organization
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger asChild>
-        <button type="button" className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
+        <button type="button" className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md bg-cta px-4 text-sm font-bold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40">
           <Plus className="h-4 w-4" aria-hidden />投稿作品
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border/70 bg-background p-5 shadow-2xl sm:p-6">
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-background p-5 shadow-lg sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <Dialog.Title className="text-lg font-semibold">投稿音聲作品</Dialog.Title>
@@ -77,7 +77,7 @@ export function AudioWorkSubmissionDialog({ organizations = [] }: { organization
             </Dialog.Close>
           </div>
           {submitted ? (
-            <div role="status" className="mt-5 rounded-lg border border-emerald-700/30 bg-emerald-500/10 p-4 text-sm">投稿已送出，審核通過後會公開。</div>
+            <div role="status" className="mt-5 rounded-lg border border-success bg-success-muted p-4 text-sm">投稿已送出，審核通過後會公開。</div>
           ) : (
             <form onSubmit={submit} className="mt-5 grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm sm:col-span-2">作品名稱
@@ -105,7 +105,7 @@ export function AudioWorkSubmissionDialog({ organizations = [] }: { organization
                 <input name="creatorUrl" type="url" pattern="https://.*" maxLength={2000} placeholder="https://…" className={inputClass} />
               </label>
               <label className="grid gap-1 text-sm sm:col-span-2">作品介紹（選填）
-                <textarea name="description" rows={3} maxLength={2000} className="rounded-lg border border-border/70 bg-background px-3 py-2 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15" />
+                <textarea name="description" rows={3} maxLength={2000} className="rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-link" />
               </label>
               <label className="grid gap-1 text-sm sm:col-span-2">聯絡 Email（選填）
                 <input name="contactEmail" type="email" maxLength={320} className={inputClass} />

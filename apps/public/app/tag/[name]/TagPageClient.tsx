@@ -19,8 +19,8 @@ export function TagPageClient({ tagName, scripts, externalScripts }: Props) {
     <main className="min-h-screen bg-background">
       <div className="w-full px-3 sm:px-5 lg:px-8 py-10 pb-20">
         {/* Tag header */}
-        <div className="mb-6 rounded-xl border border-border/60 bg-muted/20 p-6">
-          <h1 className="font-serif text-3xl font-bold">#{tagName}</h1>
+        <div className="mb-6 border-b border-border pb-4">
+          <h1 className="text-2xl font-bold">#{tagName}</h1>
           <p className="text-sm text-muted-foreground mt-1">{totalCount} 部</p>
         </div>
 
@@ -28,8 +28,8 @@ export function TagPageClient({ tagName, scripts, externalScripts }: Props) {
 
         {externalScripts.length > 0 && (
           <section className={scripts.length > 0 ? "mt-8" : ""}>
-            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-              <h2 className="text-lg font-semibold">{scripts.length > 0 ? "更多台本" : "台本"}</h2>
+            <div className="section-bar mb-4 flex items-baseline gap-2">
+              <h2 className="text-[17px] font-bold">{scripts.length > 0 ? "更多台本" : "台本"}</h2>
               <span className="text-xs text-muted-foreground">{externalScripts.length} 部</span>
             </div>
             <GalleryHoverPreviewProvider>

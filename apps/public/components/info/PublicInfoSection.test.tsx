@@ -40,7 +40,7 @@ describe("PublicInfoSection", () => {
   it("card mode adds card classes", () => {
     const { container } = render(<PublicInfoSection title="T" card><p>c</p></PublicInfoSection>);
     const section = container.querySelector("section")!;
-    expect(section.className).toMatch(/rounded-xl/);
+    expect(section.className).toMatch(/border-t/);
     expect(section.className).toMatch(/border/);
   });
 
@@ -48,7 +48,7 @@ describe("PublicInfoSection", () => {
     const { container } = render(<PublicInfoSection title="T"><p>c</p></PublicInfoSection>);
     const section = container.querySelector("section")!;
     expect(section.className).toMatch(/space-y-3/);
-    expect(section.className).not.toMatch(/rounded-xl/);
+    expect(section.className).not.toMatch(/border-t/);
   });
 
   it("renders children", () => {

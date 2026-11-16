@@ -1,11 +1,12 @@
+import { readAdApplication } from "../../lib/admin/adApplication";
 import React, { useCallback, useEffect, useState } from "react";
 import { Loader2, Mail, RefreshCw, Trash2, Upload } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { createExternalPublicScriptAdmin, deletePublicFeedbackAdmin, getActivityPagesAdmin, getPublicFeedbackAdmin, updateActivityPageAdmin, updatePublicFeedbackStatusAdmin } from "../../lib/api/admin";
+import { publishFeedbackAdAdmin, createExternalPublicScriptAdmin, deletePublicFeedbackAdmin, getActivityPagesAdmin, getPublicFeedbackAdmin, updateActivityPageAdmin, updatePublicFeedbackStatusAdmin } from "../../lib/api/admin";
 import { notifyAdminQueueUpdated } from "../../lib/adminNotifications";
-import type { PublicFeedbackRecord } from "../../types/api";
+import type { AdApplication, PublicFeedbackRecord } from "../../types/api";
 
 function formatFeedbackDate(value: number): string {
   return new Date(value).toLocaleString("zh-TW", {
@@ -31,14 +32,25 @@ function safeExternalUrl(value: string): string | null {
 
 function getAdBannerUrl(item: PublicFeedbackRecord): string | null {
   if (item.kind !== "ad_application") return null;
-  const rawUrl = item.content.match(/^Banner 圖片：(.+)$/m)?.[1]?.trim();
+  const rawUrl = readAdApplication(item)?.imageUrl;
   if (!rawUrl) return null;
+  if (rawUrl.startsWith("/media/") && !/[\\\s]/.test(rawUrl)) return rawUrl;
   try {
     const url = new URL(rawUrl);
     return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
   } catch {
     return null;
   }
+}
+
+function feedbackContent(item: PublicFeedbackRecord): string {
+  if (item.kind === "ad_application") {
+    try {
+      const value = JSON.parse(item.content);
+      if (value.adApplication && typeof value.notes === "string") return value.notes;
+    } catch { /* Legacy content is already readable. */ }
+  }
+  return item.content;
 }
 
 function parseTargetedReport(content: string) {
@@ -201,6 +213,7 @@ export function PublicFeedbackInbox() {
       <div className="space-y-2">
         {items.map((item) => {
           const bannerUrl = getAdBannerUrl(item);
+          const ad = readAdApplication(item);
           const targetedReport = item.kind === "bug" ? parseTargetedReport(item.content) : null;
           return (
             <article key={item.id} className="rounded-lg border border-border/70 bg-background/60 p-3 text-sm">
@@ -280,6 +293,12 @@ export function PublicFeedbackInbox() {
                 </div>
               </div>
             )}
+            {ad && <AdPublicationForm application={ad} closed={item.status === "closed"} onPublish={async (application) => {
+              await publishFeedbackAdAdmin(item.id, application);
+              setItems((rows) => rows.map((row) => row.id === item.id ? { ...row, status: "closed" } : row));
+              notifyAdminQueueUpdated();
+              setNotice("已核准刊登至指定版位。日期依台灣時間，結束日包含當日。");
+            }} />}
             {targetedReport ? (
               <div className="mt-3 space-y-2 rounded-md border border-primary/25 bg-primary/5 p-3 text-xs">
                 <div className="flex flex-wrap items-center gap-2">
@@ -290,7 +309,7 @@ export function PublicFeedbackInbox() {
                 {targetedReport.targets.map((target, index) => <div key={`${target.title}-${index}`} className="space-y-1 rounded border border-border/50 bg-background/50 p-2"><p className="font-medium text-foreground">位置 {index + 1}：{target.title}</p>{target.excerpt && <p className="whitespace-pre-wrap break-words text-muted-foreground">畫面文字：{target.excerpt}</p>}{target.selector && <details><summary className="cursor-pointer text-muted-foreground">查看頁面區塊路徑</summary><code className="mt-1 block break-all rounded bg-background/70 p-2 text-[11px]">{target.selector}</code></details>}</div>)}
                 {targetedReport.description && <p className="whitespace-pre-wrap break-words border-t border-border/60 pt-2 leading-relaxed text-foreground">{targetedReport.description}</p>}
               </div>
-            ) : item.kind !== "listing" && <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed text-foreground">{item.content}</p>}
+            ) : item.kind !== "listing" && <p className="mt-2 whitespace-pre-wrap break-words leading-relaxed text-foreground">{feedbackContent(item)}</p>}
             {bannerUrl && (
               <a href={bannerUrl} target="_blank" rel="noreferrer" className="mt-3 inline-flex max-w-full flex-col gap-1 text-xs text-primary hover:underline">
                 <img src={bannerUrl} alt="申請的廣告 Banner" className="max-h-40 max-w-full rounded-md border object-contain" />
@@ -303,4 +322,27 @@ export function PublicFeedbackInbox() {
       </div>
     </div>
   );
+}
+
+function AdPublicationForm({ application, closed, onPublish }: { application: AdApplication; closed: boolean; onPublish: (application: AdApplication) => Promise<void> }) {
+  const [ad, setAd] = useState(application);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [published, setPublished] = useState(false);
+  return <form className="mt-3 space-y-2 rounded border p-3" onSubmit={async (event) => {
+    event.preventDefault(); setBusy(true); setError("");
+    try { await onPublish(ad); setPublished(true); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "刊登失敗"); }
+    finally { setBusy(false); }
+  }}>
+    <p className="text-xs text-muted-foreground">核准刊登會公開以下廣告資料。已檢視／結案狀態本身不會刊登。</p>
+    <label className="block text-xs">刊登版位<select aria-label="刊登版位" value={ad.placement} onChange={(e) => setAd({ ...ad, placement: e.target.value as AdApplication["placement"] })} className="ml-2 rounded border bg-background p-1"><option value="homepage">首頁</option><option value="demos">Demo 頁</option><option value="audio-works">音聲作品頁</option></select></label>
+    <Input aria-label="廣告標題" required maxLength={160} value={ad.title || ""} onChange={(e) => setAd({ ...ad, title: e.target.value })} />
+    <Input aria-label="廣告導流網址" required type="url" value={ad.link || ""} onChange={(e) => setAd({ ...ad, link: e.target.value })} />
+    <Input aria-label="廣告圖片網址" required value={ad.imageUrl || ""} onChange={(e) => setAd({ ...ad, imageUrl: e.target.value })} />
+    <div className="flex flex-wrap gap-2"><label className="text-xs">開始日期<Input type="date" value={ad.startDate || ""} onChange={(e) => setAd({ ...ad, startDate: e.target.value || null })} /></label><label className="text-xs">結束日期（含當日）<Input type="date" min={ad.startDate || undefined} value={ad.endDate || ""} onChange={(e) => setAd({ ...ad, endDate: e.target.value || null })} /></label></div>
+    <Button type="submit" size="sm" disabled={busy || published}>{published ? "已刊登" : busy ? "刊登中…" : "核准並刊登廣告"}</Button>
+    {closed && !published && <p className="text-xs text-muted-foreground">此申請已結案；若曾刊登，系統會拒絕重複刊登。</p>}
+    {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+  </form>;
 }

@@ -1,5 +1,5 @@
 import json
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing import Annotated, List, Literal, Optional, Any, Dict, Union
 
 # Tag Schemas
@@ -917,6 +917,28 @@ class PublicTermsAcceptanceListResponse(BaseModel):
     items: List[PublicTermsAcceptanceRecord] = []
 
 
+class AdApplication(BaseModel):
+    placement: Literal["homepage", "demos", "audio-works"]
+    title: str = Field(min_length=1, max_length=160)
+    link: str = Field(max_length=2000)
+    imageUrl: str = Field(max_length=2000)
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_ad(self):
+        from utils import validate_banner_schedule, validate_banner_url
+        self.title = self.title.strip()
+        if not self.title:
+            raise ValueError("活動名稱不可空白")
+        self.link = self.link.strip()
+        self.imageUrl = self.imageUrl.strip()
+        validate_banner_url(self.link, required=True)
+        validate_banner_url(self.imageUrl, required=True, allow_media=True)
+        validate_banner_schedule(self.startDate, self.endDate)
+        return self
+
+
 class PublicFeedbackCreate(BaseModel):
     kind: Literal["bug", "listing", "ad_application"] = "bug"
     contactName: Optional[str] = ""
@@ -935,6 +957,7 @@ class PublicFeedbackCreate(BaseModel):
     pageUrl: Optional[str] = ""
     activityPageId: Optional[str] = None
     activityScriptId: Optional[str] = None
+    adApplication: Optional[AdApplication] = None
     confirmPublicListing: bool = False
     website: Optional[str] = ""  # Honeypot; real visitors should leave this empty.
 
@@ -1383,6 +1406,18 @@ class AdminUserRecord(BaseModel):
 
 
 class HomepageBannerItem(BaseModel):
+    placement: Optional[Literal["homepage", "demos", "audio-works"]] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_schedule(self):
+        from utils import validate_banner_schedule, validate_banner_url
+        validate_banner_schedule(self.startDate, self.endDate)
+        validate_banner_url(self.link)
+        validate_banner_url(self.imageUrl)
+        return self
+
     id: str = ""
     eyebrow: Optional[str] = None
     title: str = ""

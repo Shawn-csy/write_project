@@ -37,7 +37,7 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
     if (!btn || !container) return;
     const containerRect = container.getBoundingClientRect();
     const btnRect = btn.getBoundingClientRect();
-    setIndicator({ left: btnRect.left - containerRect.left + 8, width: btnRect.width - 16 });
+    setIndicator({ left: btnRect.left - containerRect.left + 12, width: btnRect.width - 24 });
     setReady(true);
   };
 
@@ -60,7 +60,7 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
 
   return (
     <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="作品分類">
-      <div ref={containerRef} className="relative flex min-w-max items-center gap-1.5 md:items-end md:gap-0.5">
+      <div ref={containerRef} className="relative flex min-w-max items-end gap-1">
         {SEGMENT_OPTIONS.map((opt) => {
           const active = segment === opt.value;
           return (
@@ -70,11 +70,7 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
               aria-pressed={active}
               ref={(el) => { buttonRefs.current[opt.value] = el; }}
               onClick={() => onSegmentChange(opt.value)}
-              className={`h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 [font-size:var(--public-font-meta)] transition-colors duration-150 md:h-10 md:rounded-none md:rounded-t-md md:border-transparent ${
-                active
-                  ? "border-foreground bg-foreground font-semibold text-background md:bg-muted/50 md:text-foreground"
-                  : "border-border/60 text-muted-foreground hover:text-foreground"
-              }`}
+              className={`tab-item ${active ? "font-semibold" : ""}`}
             >
               {opt.label}
             </button>
@@ -82,32 +78,19 @@ export function GallerySegmentBar({ segment, onSegmentChange, demoOnly = false, 
         })}
         {onDemoOnlyChange && (
           <>
-            <span aria-hidden className="mx-1 h-4 w-px shrink-0 bg-border md:mb-3" />
+            <span aria-hidden className="mx-1 mb-2.5 h-4 w-px shrink-0 bg-border" />
             <button
               type="button"
               aria-pressed={demoOnly}
               onClick={() => onDemoOnlyChange(!demoOnly)}
-              className={`h-9 shrink-0 whitespace-nowrap rounded-full border px-3.5 [font-size:var(--public-font-meta)] font-medium transition-colors duration-150 md:mb-1 md:h-8 md:rounded-md md:px-3 ${
-                demoOnly
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-2 text-[0.875rem] ${
+ demoOnly ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
+              <span aria-hidden className={`flex h-3.5 w-3.5 items-center justify-center border text-[10px] leading-none ${demoOnly ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/70"}`}>{demoOnly ? "✓" : ""}</span>
               有 Demo
             </button>
           </>
-        )}
-        {/* Sliding indicator — tabs layout only */}
-        {ready && indicator && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute bottom-0 hidden rounded-t-[2px] editorial-indicator md:block"
-            style={{
-              left: indicator.left,
-              width: indicator.width,
-              transition: "left 0.22s cubic-bezier(0.4,0,0.2,1), width 0.22s cubic-bezier(0.4,0,0.2,1)",
-            }}
-          />
         )}
       </div>
     </div>

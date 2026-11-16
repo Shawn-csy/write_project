@@ -1,541 +1,196 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { MediaPicker } from "../ui/MediaPicker";
-import { ImageCropDialog } from "../ui/ImageCropDialog";
-import { getImageUploadGuide, MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "../../lib/mediaLibrary";
+import { MEDIA_FILE_ACCEPT, optimizeImageForUpload } from "../../lib/mediaLibrary";
 import { uploadMediaObject } from "../../lib/api/media";
-import { getDemoBannerAdmin, getHomepageBannerAdmin, updateDemoBannerAdmin, updateHomepageBannerAdmin } from "../../lib/api/admin";
-import { canApplyPersistentCropRef } from "../../lib/mediaCropRef";
 import {
-  buildHomepageHeroPlacementModel,
-  buildHomepageHeroPreviewFrames,
-  resolveHeroPreviewImageStyle,
-  validateHomepageHeroPlacement,
-} from "../../lib/admin/homepageHeroModel";
-import type { MediaSelection } from "../ui/MediaPicker";
-import type { HomepageBannerItem } from "../../types/api";
-import type { HeroPreviewViewport } from "../../lib/admin/homepageHeroModel";
+  getAudioWorkBannerAdmin, getDemoBannerAdmin, getHomepageBannerAdmin,
+  updateAudioWorkBannerAdmin, updateDemoBannerAdmin, updateHomepageBannerAdmin,
+} from "../../lib/api/admin";
+import type { HomepageBanner, HomepageBannerItem } from "../../types/api";
 
-type CropFieldKey = "imageCrop" | "imageMobileCrop" | "imageDesktopCrop" | "imageUltraWideCrop";
+type Scope = "homepage" | "demos" | "audio-works";
+const labels: Record<Scope, string> = { homepage: "首頁", demos: "Demo 頁", "audio-works": "音聲作品頁" };
+const getters = { homepage: getHomepageBannerAdmin, demos: getDemoBannerAdmin, "audio-works": getAudioWorkBannerAdmin };
+const setters = { homepage: updateHomepageBannerAdmin, demos: updateDemoBannerAdmin, "audio-works": updateAudioWorkBannerAdmin };
+const fields = [
+  ["title", "標題"], ["link", "連結"], ["imageUrl", "圖片網址"], ["imageAlt", "圖片替代文字"],
+] as const;
 
-interface CropSource {
-  file?: File;
-  url?: string;
-  name: string;
-  initialCropRef?: { cx?: number; cy?: number; zoom?: number } | null;
-}
-
-interface ErrorWithMessage {
-  message?: string;
-}
-
-interface HomepageBannerResponse {
-  eyebrow?: string;
-  title?: string;
-  content?: string;
-  link?: string;
-  imageUrl?: string;
-  items?: HomepageBannerItem[];
-}
-
-const BRAND_BANNER_ID = "brand-intro";
-const DEFAULT_BRAND_BANNER: HomepageBannerItem = {
-  id: BRAND_BANNER_ID,
-  eyebrow: "公開台本平台",
-  title: "配音、閱讀、創作公開台本",
-  content: "僅收錄公開台本，如果有喜歡的歡迎委託台本師\n如果需要上架或下架作品請直接與我們聯繫。",
-  link: "",
-  imageUrl: "",
-};
-
-const VIEWPORT_CROP_FIELDS: Array<{
-  viewport: HeroPreviewViewport;
-  cropKey: CropFieldKey;
-  label: string;
-}> = [
-  { viewport: "mobile", cropKey: "imageMobileCrop", label: "手機焦點" },
-  { viewport: "desktop", cropKey: "imageDesktopCrop", label: "桌面焦點" },
-  { viewport: "ultra-wide", cropKey: "imageUltraWideCrop", label: "超寬焦點" },
-];
-
-function itemToHomepageBannerItem(item: HomepageBannerItem, idx: number): HomepageBannerItem {
-  const imageUrl = String(item?.imageUrl || "");
-  const storedBackgroundMode = item?.imageBackgroundMode;
-  return {
-    id: String(item?.id || `slide-${idx + 1}`),
-    eyebrow: String(item?.eyebrow || ""),
-    title: String(item?.title || ""),
-    content: String(item?.content || ""),
-    link: String(item?.link || ""),
-    imageUrl,
-    imageAlt: String(item?.imageAlt || ""),
-    imageCrop: item?.imageCrop ?? null,
-    imageMobileCrop: item?.imageMobileCrop ?? null,
-    imageDesktopCrop: item?.imageDesktopCrop ?? null,
-    imageUltraWideCrop: item?.imageUltraWideCrop ?? null,
-    // Rows saved before the placement fields were forwarded can have an image
-    // but no mode. Preserve those rows with the safer full-image presentation;
-    // the next save persists the repaired value and the user can still switch
-    // to cover explicitly.
-    imageBackgroundMode: storedBackgroundMode ?? (imageUrl ? "blur-fill" : undefined),
-  };
-}
-
-function ensureBrandBannerFirst(items: HomepageBannerItem[]): HomepageBannerItem[] {
-  const brand = items.find((item) => item.id === BRAND_BANNER_ID);
-  const otherItems = items.filter((item) => item.id !== BRAND_BANNER_ID);
-  return [
-    itemToHomepageBannerItem(brand ?? DEFAULT_BRAND_BANNER, 0),
-    ...otherItems.map((item, idx) => itemToHomepageBannerItem(item, idx + 1)),
-  ];
-}
-
-export function HomepageBannerSection({ scope = "homepage" }: { scope?: "homepage" | "demos" }) {
+export function HomepageBannerSection({ scope = "homepage" }: { scope?: Scope }) {
   const [items, setItems] = useState<HomepageBannerItem[]>([]);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
-  const [status, setStatus] = useState<string>("");
+  const [loadedScope, setLoadedScope] = useState<Scope | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
   const [pickerIndex, setPickerIndex] = useState<number | null>(null);
-  const [cropOpen, setCropOpen] = useState<boolean>(false);
-  const [cropSource, setCropSource] = useState<CropSource | null>(null);
-  const [cropIndex, setCropIndex] = useState<number | null>(null);
-  const [cropField, setCropField] = useState<CropFieldKey>("imageCrop");
-  const [previewViewports, setPreviewViewports] = useState<Record<number, HeroPreviewViewport>>({});
-  const guide = useMemo(() => getImageUploadGuide("banner"), []);
+  const loaded = loadedScope === scope;
 
-  const loadBanner = async (): Promise<void> => {
-    try {
-      const payload = scope === "demos"
-        ? await getDemoBannerAdmin() as HomepageBannerResponse
-        : await getHomepageBannerAdmin() as HomepageBannerResponse;
-      const rows = Array.isArray(payload?.items) ? payload.items : [];
-      if (scope === "demos") {
-        setItems(rows.map(itemToHomepageBannerItem));
-      } else if (rows.length > 0) {
-        setItems(ensureBrandBannerFirst(rows as HomepageBannerItem[]));
-      } else {
-        const fallback: HomepageBannerItem = {
-          id: "slide-1",
-          eyebrow: String(payload?.eyebrow || ""),
-          title: String(payload?.title || ""),
-          content: String(payload?.content || ""),
-          link: String(payload?.link || ""),
-          imageUrl: String(payload?.imageUrl || ""),
-          imageBackgroundMode: payload?.imageUrl ? "blur-fill" : undefined,
-        };
-        setItems(ensureBrandBannerFirst((fallback.title || fallback.content || fallback.link || fallback.imageUrl) ? [fallback] : []));
-      }
-      setStatus("");
-    } catch (err: unknown) {
-      console.error("Failed to load homepage banner", err);
-      setStatus(`載入${scope === "demos" ? "Demo 頁" : "首頁"} Banner 設定失敗，請確認後端已部署最新版本。`);
-    }
+  useEffect(() => {
+    let active = true;
+    setStatus("");
+    setError("");
+    setItems([]);
+    setLoadedScope(null);
+    setPickerIndex(null);
+    void getters[scope]().then((payload: HomepageBanner) => {
+      if (!active) return;
+      const rows = payload.items || [];
+      setItems(rows.length ? rows : payload.title || payload.imageUrl || payload.content
+        ? [{ ...payload, id: "slide-1" }]
+        : []);
+      setLoadedScope(scope);
+    }).catch(() => {
+      if (active) setError("載入 Banner 失敗。");
+    });
+    return () => { active = false; };
+  }, [scope]);
+
+  const update = (index: number, patch: Partial<HomepageBannerItem>) => {
+    setItems((rows) => rows.map((row, i) => i === index ? { ...row, ...patch } : row));
   };
 
-  useEffect(() => { loadBanner(); }, [scope]);
-
-  const handleSave = async (): Promise<void> => {
-    setIsSaving(true);
+  const save = async () => {
+    if (!loaded) return;
+    setBusy(true);
     setError("");
     setStatus("");
     try {
-      // Filter empty/blank slides first — only non-empty slides are validated and sent.
-      const sanitized = items
-        .map((item, idx) => ({
-          ...item,
-          id: String(item?.id || `slide-${idx + 1}`),
-          eyebrow: String(item?.eyebrow || "").trim(),
-          title: String(item?.title || "").trim(),
-          content: String(item?.content || "").trim(),
-          link: String(item?.link || "").trim(),
-          imageUrl: String(item?.imageUrl || "").trim(),
-          imageAlt: String(item?.imageAlt || "").trim(),
-        }))
-        .filter((item) => item.title || item.content || item.link || item.imageUrl);
-      // Block if any publishable slide has placement errors (missing imageUrl or backgroundMode).
-      const blockingSlides = sanitized.filter((item) => {
-        if (item.id === BRAND_BANNER_ID) return false;
-        const model = buildHomepageHeroPlacementModel(item);
-        return validateHomepageHeroPlacement(model).some((i) => i.severity === "error");
-      });
-      if (blockingSlides.length > 0) {
-        setError(`部分 Banner 有必填項目尚未完成，請選擇顯示模式並填入圖片網址後再儲存。`);
-        setIsSaving(false);
-        return;
+      // Keep legacy placement/crop data intact while removing empty drafts.
+      const rows = items.filter((item) => item.title || item.content || item.imageUrl || item.link);
+      for (const item of rows) {
+        if (item.startDate && item.endDate && item.endDate < item.startDate) {
+          throw new Error("結束日期不能早於開始日期。");
+        }
+        if (item.link && !/^(https?:\/\/|\/(?!\/))/.test(item.link)) {
+          throw new Error("連結請使用 HTTP(S) 網址或站內路徑。");
+        }
       }
-      const reloaded = scope === "demos"
-        ? await updateDemoBannerAdmin({ items: sanitized }) as HomepageBannerResponse
-        : await updateHomepageBannerAdmin({ items: sanitized }) as HomepageBannerResponse;
-      const reloadedItems = Array.isArray(reloaded?.items) ? reloaded.items as HomepageBannerItem[] : [];
-      if (scope === "demos") {
-        setItems(reloadedItems);
-        setStatus("Demo 頁 Banner 已儲存。");
-        return;
-      }
-      const confirmation = await getHomepageBannerAdmin() as HomepageBannerResponse;
-      const confirmedItems = Array.isArray(confirmation?.items) ? confirmation.items as HomepageBannerItem[] : [];
-      if (sanitized.length > 1 && confirmedItems.length <= 1) {
-        setItems(confirmedItems.length ? confirmedItems : sanitized);
-        setError("目前後端仍為舊版（未支援 items 多張儲存）。請重新部署最新後端後再試。");
-        return;
-      }
-      setItems(confirmedItems.length > 0 ? confirmedItems : sanitized);
-        setStatus("首頁 Banner 已儲存。");
-    } catch (err: unknown) {
-      const typedError = err as ErrorWithMessage;
-      setError(typedError.message || `儲存${scope === "demos" ? "Demo 頁" : "首頁"} Banner 失敗`);
+      const saved = await setters[scope]({ items: rows });
+      setItems(saved.items || []);
+      setStatus(`${labels[scope]} Banner 已儲存。`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "儲存失敗。");
     } finally {
-      setIsSaving(false);
+      setBusy(false);
     }
   };
 
-  const addItem = (): void => {
-    setItems((prev) => [
-      ...prev,
-      { id: `slide-${Date.now()}`, title: "", content: "", link: "", imageUrl: "" },
-    ]);
-  };
-
-  const updateItem = (index: number, patch: Partial<HomepageBannerItem>): void => {
-    setItems((prev) => prev.map((item, idx) => idx === index ? { ...item, ...patch } : item));
-  };
-
-  const removeItem = (index: number): void => {
-    setItems((prev) => prev.filter((_, idx) => idx !== index));
-  };
-
-  const applyUpload = async (index: number, file: File): Promise<void> => {
+  const upload = async (index: number, file?: File) => {
+    if (!file) return;
+    setBusy(true);
     setError("");
-    setStatus("");
     try {
       const optimized = await optimizeImageForUpload(file, "banner");
-      if (!optimized?.ok || !optimized?.file) throw new Error(optimized?.error || "圖片處理失敗");
-      const uploaded = await uploadMediaObject(optimized.file, "banner");
-      const url = String((uploaded as { url?: string } | null)?.url || "").trim();
-      if (!url) throw new Error("上傳成功但沒有取得圖片網址");
-      updateItem(index, { imageUrl: url, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null });
-    } catch (err: unknown) {
-      const typedError = err as ErrorWithMessage;
-      setError(typedError.message || "Banner 圖片上傳失敗");
+      if (!optimized.ok || !optimized.file) throw new Error(optimized.error || "圖片處理失敗");
+      const result = await uploadMediaObject(optimized.file, "banner");
+      if (!result.url) throw new Error("上傳後未取得圖片網址");
+      update(index, { imageUrl: result.url });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "圖片上傳失敗");
+    } finally {
+      setBusy(false);
     }
-  };
-
-  const handleFileUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
-    setCropIndex(index);
-    setCropField("imageCrop");
-    setCropSource({ file, name: file.name });
-    setCropOpen(true);
-  };
-
-  const openCrop = (index: number, field: CropFieldKey): void => {
-    const item = items[index];
-    if (!item?.imageUrl) return;
-    setCropIndex(index);
-    setCropField(field);
-    setCropSource({
-      url: item.imageUrl,
-      name: `banner-${index + 1}`,
-      initialCropRef: item[field] ?? null,
-    });
-    setCropOpen(true);
   };
 
   return (
-    <>
-      <div className="space-y-3">
-        <div className="flex justify-between items-center">
-          <div className="text-xs text-muted-foreground">目前 {items.length} 張</div>
-          <Button type="button" variant="outline" size="sm" onClick={addItem}>
-            新增一張 Banner
-          </Button>
-        </div>
-        {items.length === 0 && (
-          <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-            {scope === "demos" ? "尚未設定 Banner。新增並儲存後，Demo 頁會顯示輪播。" : "尚未設定 Banner。可新增後儲存，公開首頁即會顯示輪播。"}
-          </div>
-        )}
-        {items.map((item, idx) => {
-          const isBrandIntro = scope === "homepage" && item.id === BRAND_BANNER_ID;
-          const model = buildHomepageHeroPlacementModel(item);
-          const issues = isBrandIntro ? [] : validateHomepageHeroPlacement(model);
-          const hasError = issues.some((i) => i.severity === "error");
-          const warnings = issues.filter((i) => i.severity === "warning");
-          return (
-            <div key={item.id || idx} className="rounded-md border p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-muted-foreground">
-                  {isBrandIntro ? "首頁第一頁｜品牌介紹" : `第 ${idx + 1} 張 Banner`}
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        {labels[scope]}廣告：完整圖片以 3:1 顯示（建議 1500 × 500），手機可左右滑動。
+        舊裁切設定保留，公開橫幅不套用裁切。
+      </p>
+      <p className="text-xs text-muted-foreground">
+        日期依台灣時間（Asia/Taipei），結束日期包含當日；留白即不限日期。
+      </p>
+      <Button variant="outline" size="sm" disabled={busy || !loaded}
+        onClick={() => setItems((rows) => [...rows, { id: `slide-${Date.now()}`, placement: scope }])}>
+        新增一張 Banner
+      </Button>
+      {!loaded && !error && <p role="status" className="text-xs">載入中…</p>}
+      {loaded && items.length === 0 && (
+        <p className="text-xs text-muted-foreground">尚未設定廣告，公開頁不顯示橫幅。</p>
+      )}
+      {loaded && items.map((item, index) => {
+        const brand = scope === "homepage" && item.id === "brand-intro";
+        return (
+          <fieldset key={item.id} disabled={busy} className="space-y-2 rounded-md border p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs">{brand ? "首頁品牌介紹（原資料保留）" : `第 ${index + 1} 張 Banner`}</span>
+              <Button variant="ghost" size="sm"
+                onClick={() => setItems((rows) => rows.filter((_, i) => i !== index))}>
+                刪除
+              </Button>
+            </div>
+            {brand && (
+              <Input aria-label="品牌眉標" value={item.eyebrow || ""}
+                onChange={(e) => update(index, { eyebrow: e.target.value })} />
+            )}
+            {fields.filter(([key]) => !brand || !key.startsWith("image")).map(([key, label]) => (
+              <Input key={key} aria-label={label} placeholder={label} value={item[key] || ""}
+                onChange={(e) => update(index, { [key]: e.target.value })} />
+            ))}
+            <Textarea aria-label="內容" placeholder="文字公告內容（無圖片時顯示）" value={item.content || ""}
+              onChange={(e) => update(index, { content: e.target.value })} />
+            {!brand && <>
+              <div className="flex flex-wrap gap-2">
+                {(["startDate", "endDate"] as const).map((key) => (
+                  <label key={key} className="text-xs">
+                    {key === "startDate" ? "開始日期" : "結束日期"}
+                    <Input type="date" value={item[key] || ""}
+                      onChange={(e) => update(index, { [key]: e.target.value || null })} />
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer rounded border px-3 py-1 text-xs">
+                  上傳完整圖片
+                  <input type="file" accept={MEDIA_FILE_ACCEPT} className="hidden" onChange={(e) => {
+                    void upload(index, e.target.files?.[0]);
+                    e.target.value = "";
+                  }} />
+                </label>
+                <Button variant="secondary" size="sm" onClick={() => setPickerIndex(index)}>
+                  從媒體庫選擇
+                </Button>
+              </div>
+            </>}
+            {brand ? (
+              <div data-testid="brand-preview" className="relative aspect-[3/1] w-full overflow-hidden rounded-md border bg-primary text-primary-foreground">
+                <div className="absolute inset-0 flex flex-col justify-center px-3 py-2 sm:px-5 sm:py-3">
+                  <p className="text-[10px] leading-3 opacity-75 sm:text-xs sm:leading-4">{item.eyebrow}</p>
+                  <strong className="mt-0.5 text-sm leading-tight sm:mt-1 sm:text-xl">{item.title}</strong>
+                  <p className="mt-1 whitespace-pre-line text-[10px] leading-[1.35] opacity-85 sm:mt-2 sm:text-xs sm:leading-normal">{item.content}</p>
                 </div>
-                {!isBrandIntro && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => removeItem(idx)}
-                  >
-                    刪除
-                  </Button>
+              </div>
+            ) : (
+              <div data-testid="banner-preview" className="relative aspect-[3/1] w-full overflow-hidden rounded-md border bg-card">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.imageAlt || item.title || "Banner 預覽"}
+                    className="absolute inset-0 h-full w-full object-contain" />
+                ) : (
+                  <div className="absolute inset-0 flex flex-col justify-center bg-primary px-5 text-primary-foreground">
+                    <strong className="line-clamp-2 text-lg sm:text-xl">{item.title}</strong>
+                    <p className="mt-1 line-clamp-2 text-xs opacity-85 sm:text-sm">{item.content}</p>
+                  </div>
                 )}
               </div>
-
-              {/* Identity fields */}
-              {isBrandIntro && (
-                <Input
-                  placeholder="眉標（如：公開台本平台）"
-                  value={item.eyebrow ?? ""}
-                  onChange={(e) => updateItem(idx, { eyebrow: e.target.value })}
-                />
-              )}
-              <Input
-                placeholder={isBrandIntro ? "主標題（如：配音、閱讀、創作公開台本）" : "標題"}
-                value={item.title ?? ""}
-                onChange={(e) => updateItem(idx, { title: e.target.value })}
-              />
-              <Textarea
-                placeholder="內容"
-                value={item.content ?? ""}
-                onChange={(e) => updateItem(idx, { content: e.target.value })}
-                rows={3}
-              />
-              <Input
-                placeholder="連結（https://...）"
-                value={item.link ?? ""}
-                onChange={(e) => updateItem(idx, { link: e.target.value })}
-              />
-
-              {isBrandIntro && (
-                <p className="text-[11px] text-muted-foreground">
-                  這一筆會套用首頁第一頁的固定版型；內容可用換行分成主要說明與補充說明。
-                </p>
-              )}
-
-              {!isBrandIntro && (
-                <>
-                  {/* Image URL */}
-                  <Input
-                    placeholder="圖片網址（可手動貼上）"
-                    value={item.imageUrl ?? ""}
-                    onChange={(e) => updateItem(idx, { imageUrl: e.target.value, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null })}
-                  />
-
-                  {/* Alt text */}
-                  <Input
-                    placeholder="圖片替代文字（無障礙，非裝飾圖必填）"
-                    value={item.imageAlt ?? ""}
-                    onChange={(e) => updateItem(idx, { imageAlt: e.target.value })}
-                  />
-
-                  {/* Background mode */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">顯示模式</span>
-                    {(["cover", "blur-fill"] as const).map((mode) => (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => updateItem(idx, { imageBackgroundMode: mode })}
-                        className={`rounded-md border px-3 py-1 text-xs transition-colors ${
-                          item.imageBackgroundMode === mode
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-input bg-background text-foreground hover:bg-muted"
-                        }`}
-                      >
-                        {mode === "cover" ? "裁切填滿" : "模糊補邊"}
-                      </button>
-                    ))}
-                    {!item.imageBackgroundMode && (
-                      <span className="text-[11px] text-destructive">（必選）</span>
-                    )}
-                  </div>
-
-                  {/* Image actions */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="inline-flex cursor-pointer items-center rounded-md border border-input bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                      上傳圖片
-                      <input
-                        type="file"
-                        accept={MEDIA_FILE_ACCEPT}
-                        className="hidden"
-                        onChange={(e) => handleFileUpload(idx, e)}
-                      />
-                    </label>
-                    <Button type="button" variant="secondary" size="sm" onClick={() => setPickerIndex(idx)}>
-                      從媒體庫選擇
-                    </Button>
-                  </div>
-
-                  {/* Per-viewport crop buttons */}
-                  {canApplyPersistentCropRef(item.imageUrl ?? "") && (
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openCrop(idx, "imageCrop")}
-                        >
-                          通用焦點
-                        </Button>
-                        {VIEWPORT_CROP_FIELDS.map(({ cropKey, label }) => (
-                          <Button
-                            key={cropKey}
-                            type="button"
-                            variant={item[cropKey] ? "secondary" : "outline"}
-                            size="sm"
-                            onClick={() => openCrop(idx, cropKey)}
-                          >
-                            {label}{item[cropKey] ? " ✓" : ""}
-                          </Button>
-                        ))}
-                      </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        同一張圖片共用；各裝置按鈕只記錄焦點位置，不會重複上傳圖片。
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="space-y-0.5 text-[11px] text-muted-foreground">
-                    <p>{guide.supported}</p>
-                    <p>{guide.recommended}</p>
-                  </div>
-
-                  {/* Readiness panel */}
-                  {issues.length > 0 && (
-                    <div className={`rounded-md border p-2 space-y-1 text-[11px] ${hasError ? "border-destructive/50 bg-destructive/5" : "border-yellow-400/40 bg-yellow-50/10"}`}>
-                      {issues.map((issue) => (
-                        <p key={issue.code} className={issue.severity === "error" ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"}>
-                          {issue.severity === "error" ? "✗" : "!"} {issue.message}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Viewport preview panel */}
-                  {item.imageUrl && (() => {
-                const frames = buildHomepageHeroPreviewFrames(model);
-                const activeVp: HeroPreviewViewport = previewViewports[idx] ?? "desktop";
-                const frame = frames.find((f) => f.viewport === activeVp)!;
-                const VP_LABELS: Record<HeroPreviewViewport, string> = {
-                  mobile: "手機 390×220",
-                  desktop: "桌面 1440×450",
-                  "ultra-wide": "超寬 2560×800",
-                };
-                // Scale preview frame to fit ~320px width while keeping aspect ratio.
-                const previewW = 320;
-                const previewH = Math.round((frame.height / frame.width) * previewW);
-                const isBlurFill = item.imageBackgroundMode === "blur-fill";
-
-                // blur-fill bg layer crop: mirrors HeroImage.tsx line 102.
-                // Overscan=1.4 matches public overscanScale={1.4} on PublicImage bg layer.
-                // blur(24px) = blur-xl; opacity 0.6 = opacity-60.
-                const bgCrop = model.ultraWideCrop ?? model.desktopCrop ?? model.crop;
-
-                return (
-                  <div className="space-y-1.5">
-                    <div className="flex gap-1">
-                      {(["mobile", "desktop", "ultra-wide"] as HeroPreviewViewport[]).map((vp) => (
-                        <button
-                          key={vp}
-                          type="button"
-                          onClick={() => setPreviewViewports((prev) => ({ ...prev, [idx]: vp }))}
-                          className={`rounded px-2 py-0.5 text-[11px] transition-colors ${
-                            activeVp === vp
-                              ? "bg-primary text-primary-foreground"
-                              : "border border-input bg-background hover:bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {vp === "mobile" ? "手機" : vp === "desktop" ? "桌面" : "超寬"}
-                        </button>
-                      ))}
-                      <span className="ml-auto text-[10px] text-muted-foreground self-center">{VP_LABELS[activeVp]}</span>
-                    </div>
-                    <div
-                      className="relative overflow-hidden rounded-md border bg-black"
-                      style={{ width: previewW, height: previewH }}
-                    >
-                      {isBlurFill && (
-                        <img
-                          src={item.imageUrl}
-                          alt=""
-                          aria-hidden
-                          className="absolute inset-0 h-full w-full object-cover"
-                          style={{ filter: "blur(24px)", opacity: 0.6, ...resolveHeroPreviewImageStyle(bgCrop, 1.4) }}
-                        />
-                      )}
-                      <img
-                        src={item.imageUrl}
-                        alt={item.imageAlt || item.title || `banner-${idx + 1}`}
-                        className="absolute inset-0 h-full w-full"
-                        style={{
-                          objectFit: isBlurFill ? "contain" : "cover",
-                          ...resolveHeroPreviewImageStyle(frame.effectiveCrop),
-                        }}
-                        loading="lazy"
-                      />
-                    </div>
-                  </div>
-                );
-                  })()}
-                </>
-              )}
-            </div>
-          );
-        })}
-        {error && <div className="text-xs text-destructive">{error}</div>}
-        {status && <div className="text-xs text-muted-foreground">{status}</div>}
-        <div className="flex justify-end">
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "儲存中..." : "儲存首頁 Banner"}
-          </Button>
-        </div>
-      </div>
-
-      <MediaPicker
-        open={pickerIndex !== null}
+            )}
+          </fieldset>
+        );
+      })}
+      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
+      {status && <p role="status" className="text-xs text-muted-foreground">{status}</p>}
+      <Button disabled={busy || !loaded} onClick={() => void save()}>
+        {busy ? "處理中…" : "儲存 Banner"}
+      </Button>
+      <MediaPicker open={pickerIndex !== null}
         onOpenChange={(open) => { if (!open) setPickerIndex(null); }}
-        cropPurpose="banner"
-        onSelect={(url) => {
-          if (pickerIndex !== null) {
-            // Clear all crops when image changes — crop refs are image-specific.
-            // imageBackgroundMode is intentionally retained: it is placement intent, not image-specific.
-            updateItem(pickerIndex, { imageUrl: url, imageCrop: null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null });
-            setPickerIndex(null);
-          }
-        }}
-        onSelectMedia={(selection: MediaSelection) => {
-          if (pickerIndex !== null) {
-            // Same as onSelect: clear viewport crops, retain mode.
-            updateItem(pickerIndex, { imageUrl: selection.url, imageCrop: selection.crop ?? null, imageMobileCrop: null, imageDesktopCrop: null, imageUltraWideCrop: null });
-            setPickerIndex(null);
-          }
-        }}
-      />
-      <ImageCropDialog
-        open={cropOpen}
-        onOpenChange={setCropOpen}
-        source={cropSource}
-        purpose="banner"
-        onConfirm={async (croppedFile) => {
-          if (cropIndex === null) return;
-          await applyUpload(cropIndex, croppedFile);
-          setCropIndex(null);
-        }}
-        onApplyCropRef={cropSource?.url && cropIndex !== null
-          ? (crop) => {
-              updateItem(cropIndex!, { [cropField]: crop });
-              setCropOpen(false);
-              setCropIndex(null);
-            }
-          : undefined
-        }
-        applyCropRefLabel="套用裁切框"
-        initialCropRef={cropSource?.url ? (cropSource.initialCropRef ?? null) : null}
-      />
-    </>
+        onSelect={(url: string) => {
+          if (pickerIndex !== null) update(pickerIndex, { imageUrl: url });
+          setPickerIndex(null);
+        }} />
+    </div>
   );
 }

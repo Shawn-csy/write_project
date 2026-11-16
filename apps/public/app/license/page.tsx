@@ -61,13 +61,13 @@ export default function LicensePage() {
         <PublicInfoBelowFold>
           <PublicInfoSection title="授權類型">
             <div className="space-y-4">
-              <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
+              <div className="border-t border-border pt-4">
                 <h3 className="font-semibold text-sm mb-1">保留所有權利（All Rights Reserved）</h3>
                 <p className="text-sm text-muted-foreground">
                   若作品標示保留所有權利，使用前請取得權利人許可。
                 </p>
               </div>
-              <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
+              <div className="border-t border-border pt-4">
                 <h3 className="font-semibold text-sm mb-1">創作共用（Creative Commons）</h3>
                 <p className="text-sm text-muted-foreground mb-2">
                   作者可選擇不同 CC 授權組合，允許特定範圍的使用：
@@ -81,7 +81,7 @@ export default function LicensePage() {
                   <li><strong>CC BY-NC-ND</strong> — 非商業、禁止改作</li>
                 </ul>
               </div>
-              <div className="rounded-xl border border-border/60 bg-muted/10 p-4">
+              <div className="border-t border-border pt-4">
                 <h3 className="font-semibold text-sm mb-1">自訂授權</h3>
                 <p className="text-sm text-muted-foreground">
                   作者可填寫自訂授權條款，詳情請直接聯繫作者。

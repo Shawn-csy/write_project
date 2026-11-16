@@ -2,8 +2,8 @@
  * Homepage hero slide model.
  *
  * Brand slide is always first. Backend banner slides follow.
- * This keeps the GalleryClient hero pipeline unified through a single
- * PublicHeroMarquee instead of branching between StaticHero and carousel.
+ * Initial data and browser refreshes use this same projection before rendering
+ * the shared sliding banner strip.
  */
 import type { HeroSlide, HeroSlideBackground } from "@write/public-ui";
 

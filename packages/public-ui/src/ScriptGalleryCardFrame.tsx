@@ -133,13 +133,13 @@ function AuthorBadge({
     <span className={`w-3.5 h-3.5 inline-block ${organization ? "rounded-[4px] bg-muted" : ""}`} aria-hidden />
   );
 
-  const nameEl = <span className="font-medium">{displayName || "未知作者"}</span>;
+  const nameEl = <span>{displayName || "未知作者"}</span>;
 
-  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground transition-colors";
+  const baseClass = "flex items-center gap-1.5 [font-size:var(--public-font-meta)] text-muted-foreground";
 
   if (authorHref) {
     return (
-      <a href={authorHref} className={`${baseClass} cursor-pointer hover:text-foreground hover:bg-muted no-underline`}>
+      <a href={authorHref} className={`${baseClass} tap-grow cursor-pointer !text-link no-underline hover:underline`}>
         {avatarEl}
         {nameEl}
       </a>
@@ -149,7 +149,7 @@ function AuthorBadge({
     return (
       <button
         type="button"
-        className={`${baseClass} border-none bg-transparent p-0 cursor-pointer hover:text-foreground hover:bg-muted`}
+        className={`${baseClass} tap-grow border-none bg-transparent p-0 cursor-pointer !text-link hover:underline`}
         onClick={(e) => { e.stopPropagation(); onAuthorClick(); }}
       >
         {avatarEl}
@@ -183,18 +183,18 @@ function Tags({
   if (primaryTags.length === 0) return null;
 
   const renderTag = (tag: string, key: string, hidden?: boolean) => {
-    const cls = `${hidden ? "hidden sm:inline-flex" : ""} shrink-0 max-w-[96px] px-1.5 py-0 h-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground rounded-[4px] truncate` + " " + "border border-border/40 bg-muted/40";
+    const cls = `${hidden ? "hidden sm:inline-flex" : ""} shrink-0 max-w-[96px] px-1.5 h-5 leading-5 [font-size:var(--public-font-caption)] font-normal text-muted-foreground rounded-[2px] truncate` + " " + "bg-muted";
     if (tagHref) {
-      return <a key={key} href={tagHref(tag)} className={`${cls} hover:bg-secondary no-underline`} title={tag}>{tag}</a>;
+      return <a key={key} href={tagHref(tag)} className={`${cls} tap-grow hover:text-link hover:underline no-underline`} title={tag}>{tag}</a>;
     }
     if (onTagClick) {
       return (
-        <button key={key} type="button" className={`${cls} bg-transparent hover:bg-secondary cursor-pointer`} onClick={(e) => { e.stopPropagation(); onTagClick(tag); }} title={tag}>
+        <button key={key} type="button" className={`${cls} tap-grow hover:text-link hover:underline cursor-pointer`} onClick={(e) => { e.stopPropagation(); onTagClick(tag); }} title={tag}>
           {tag}
         </button>
       );
     }
-    return <span key={key} className={`${cls} bg-transparent`} title={tag}>{tag}</span>;
+    return <span key={key} className={cls} title={tag}>{tag}</span>;
   };
 
   if (compact) {
@@ -238,7 +238,7 @@ function CoverElement({
         src: coverUrl,
         crop: coverCrop ?? null,
         alt: title ?? "",
-        className: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+        className: "h-full w-full object-cover",
       });
     }
     const cropCover = getMediaCropStyle(String(coverUrl), coverCrop ?? null);
@@ -247,7 +247,7 @@ function CoverElement({
         src={cropCover.src}
         style={cropCover.style as React.CSSProperties}
         alt={title}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+        className="h-full w-full object-cover"
         loading="lazy"
         sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 180px"
       />
@@ -277,7 +277,7 @@ function SeriesBadge({
   if (!seriesName) return null;
 
   const content = (
-    <span className="inline-flex max-w-[calc(100%-8px)] items-center rounded bg-black/60 px-1.5 py-0.5 text-[9px] font-medium leading-none text-white/90 backdrop-blur-sm truncate">
+    <span className="inline-flex max-w-[calc(100%-8px)] items-center rounded-[2px] bg-black/80 px-1.5 py-1 text-[10px] font-medium leading-none text-white truncate">
       {seriesName}{seriesOrderText}
     </span>
   );
@@ -313,12 +313,12 @@ function SeriesBadge({
 
 function AgeGateOverlay({ variant }: { variant: "standard" | "compact" | "dense" | "list" }) {
   const badgeClass = variant === "compact" || variant === "dense"
-    ? "absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide"
-    : "absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide";
+    ? "absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-seal px-1 py-0.5 text-[9px] font-bold leading-none text-white pointer-events-none"
+    : "absolute top-1 left-1 z-10 rounded-[2px] bg-seal px-1.5 py-1 text-[11px] font-bold leading-none text-white pointer-events-none";
   const label = variant === "compact" || variant === "dense" ? "R18" : "R-18";
   return (
     <>
-      <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
+      <div className="absolute inset-0 bg-danger-muted pointer-events-none" aria-hidden />
       <span className={badgeClass}>{label}</span>
     </>
   );
@@ -326,7 +326,8 @@ function AgeGateOverlay({ variant }: { variant: "standard" | "compact" | "dense"
 
 // ─── Main Frame ──────────────────────────────────────────────────────────────
 
-const ARTICLE_CLASS = "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-[3px] hover:border-border hover:bg-card hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200 cursor-default";
+const ARTICLE_CLASS = "group relative cursor-default";
+const COVER_FRAME = "border border-border group-hover:opacity-90";
 
 function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
   const {
@@ -404,7 +405,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
       href={demoHref}
       aria-label={`查看「${title || "台本"}」的 Demo`}
       onClick={(event) => event.stopPropagation()}
-      className={`absolute z-20 inline-flex items-center justify-center rounded-md border border-white/20 bg-slate-950/85 font-semibold text-white no-underline shadow-md backdrop-blur-sm transition-colors hover:bg-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${variant === "dense" ? "bottom-1 right-1 min-h-6 px-1.5 text-[10px]" : variant === "list" ? "right-2 top-2 min-h-7 px-1.5 text-[10px]" : "right-2 top-2 min-h-9 px-3 text-xs"}`}
+      className={`absolute z-20 inline-flex items-center justify-center rounded-[2px] bg-black/85 font-semibold text-white no-underline transition-colors hover:bg-primary hover:text-primary-foreground ${variant === "dense" ? "bottom-1 right-1 min-h-6 px-1.5 text-[10px]" : variant === "list" ? "right-1 top-1 min-h-7 px-1.5 text-[10px]" : "right-1.5 top-1.5 min-h-8 px-2.5 text-xs"}`}
     >
       {variant === "list" || variant === "dense" ? "Demo" : "觀看 Demo"}
     </a>
@@ -434,14 +435,14 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     const denseAuthorHref = author?.displayName ? authorHref : organizationHref;
     return (
       <article className={`group relative min-w-0 ${!href ? "cursor-pointer" : ""}`} onClick={onArticleClick} data-gallery-card="dense" {...articleProps}>
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md border border-border/50 bg-muted shadow-sm">
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[3px] border border-border bg-muted group-hover:opacity-90">
           {coverLinkEl}
           {showAgeGate && <AgeGateOverlay variant="dense" />}
           {demoBadgeEl}
           {seriesBadgeEl}
         </div>
         <div className="min-w-0 pt-1.5">
-          <h2 className="line-clamp-2 min-h-[2.5em] [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-primary">
+          <h2 className="line-clamp-2 min-h-[2.5em] [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-link">
             {href ? <a href={href} {...scriptAnchorProps} className="text-inherit no-underline" onClick={() => onViewTrack?.()}>{title}</a> : title}
           </h2>
           {denseAuthorName && (
@@ -460,14 +461,14 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
   if (variant === "compact") {
     return (
       <article
-        className={`group relative rounded-xl bg-transparent transition-all duration-200 ${!href ? "cursor-pointer" : ""}`}
+        className={`group relative border-b border-border ${!href ? "cursor-pointer" : ""}`}
         onClick={onArticleClick}
         {...articleProps}
       >
-        <div className="mx-1 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-2 border-l-transparent transition-all duration-150 group-hover:border-l-primary/70 group-hover:bg-muted/50">
+        <div className="flex items-stretch gap-3 py-2.5 pr-2 group-hover:bg-muted">
           {/* Cover */}
-          <div className="w-[40px] shrink-0 ml-3">
-            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm transition-transform duration-300 group-hover:scale-105">
+          <div className="w-[40px] shrink-0 ml-1">
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[3px] border border-border bg-muted">
               {href ? (
                 <a href={href} {...scriptAnchorProps} tabIndex={-1} aria-hidden className="block w-full h-full" onClick={() => onViewTrack?.()}>
                   {coverEl}
@@ -480,7 +481,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
           {/* Meta */}
           <div className="min-w-0 flex-1 space-y-1">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
+              <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 group-hover:text-link">
                 {href ? (
                   <a
                     href={href}
@@ -493,7 +494,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
                 ) : title}
               </div>
               <div className="relative z-10 shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground">
-                {hasDemo && demoHref && <a href={demoHref} aria-label={`查看「${title || "台本"}」的 Demo`} onClick={(event) => event.stopPropagation()} className="mr-2 inline-flex rounded bg-primary/15 px-1.5 py-0.5 font-medium text-primary no-underline hover:bg-primary/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">Demo</a>}
+                {hasDemo && demoHref && <a href={demoHref} aria-label={`查看「${title || "台本"}」的 Demo`} onClick={(event) => event.stopPropagation()} className="mr-2 inline-flex rounded-[2px] border border-primary px-1.5 py-0.5 font-medium text-link no-underline hover:bg-primary hover:text-primary-foreground">Demo</a>}
                 <span className="inline-flex items-center gap-1">
                   <Eye className="h-3 w-3" aria-hidden />
                   <span>{views.toLocaleString()}</span>
@@ -513,7 +514,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
                   compact
                 />
               )}
-              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-1 group-hover:text-primary" aria-hidden />
+              <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground" aria-hidden />
             </div>
             {cardSummary && (
               <p className="relative z-10 [font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">
@@ -537,20 +538,15 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
   if (variant === "list") {
     return (
       <article
-        className={`${ARTICLE_CLASS} flex items-stretch gap-4 bg-card/45 p-3 sm:gap-5 sm:p-4 ${!href ? "cursor-pointer" : ""}`}
+        className={`${ARTICLE_CLASS} flex items-stretch gap-4 border-b border-border py-4 sm:gap-5 ${!href ? "cursor-pointer" : ""}`}
         onClick={onArticleClick}
         {...articleProps}
       >
         <div
-          className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-md bg-muted sm:w-28"
-          style={{
-            boxShadow: "0 1px 4px hsl(var(--foreground)/0.12), 0 0 0 1px hsl(var(--border)/0.6)",
-            ...coverContainerProps?.style,
-          }}
+          className={`relative aspect-[2/3] w-24 shrink-0 self-start overflow-hidden rounded-[3px] bg-muted sm:w-28 ${COVER_FRAME}`}
           {...(coverContainerProps ? { onPointerMove: coverContainerProps.onPointerMove, onPointerLeave: coverContainerProps.onPointerLeave } : {})}
         >
           {coverLinkEl}
-          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
           {showAgeGate && <AgeGateOverlay variant="list" />}
           {demoBadgeEl}
           {seriesBadgeEl}
@@ -558,13 +554,13 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
 
         <div className="min-w-0 flex-1 py-0.5 sm:py-1">
           <div className="flex items-start justify-between gap-3">
-            <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
+            <h2 className="[font-size:var(--public-font-card-title)] font-bold leading-snug line-clamp-2">
               {href ? (
-                  <a href={href} {...scriptAnchorProps} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onViewTrack?.()}>
+                  <a href={href} {...scriptAnchorProps} className="text-foreground no-underline hover:text-link hover:underline" onClick={() => onViewTrack?.()}>
                   {title}
                 </a>
               ) : (
-                <span className="text-foreground group-hover:text-primary transition-colors">{title}</span>
+                <span className="text-foreground group-hover:text-link">{title}</span>
               )}
             </h2>
             <div className="shrink-0 [font-size:var(--public-font-caption)] text-muted-foreground">
@@ -595,8 +591,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
           />
 
           <div
-            className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 [font-size:var(--public-font-caption)] text-muted-foreground"
-            style={{ borderTop: "1px solid hsl(var(--border) / 0.45)", paddingTop: "0.55rem" }}
+            className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 [font-size:var(--public-font-caption)] tabular-nums text-muted-foreground"
           >
             {dateLabel && <time dateTime={dateTime}>{dateLabel}</time>}
             {estDurationMinutes != null && estDurationMinutes > 0 && (
@@ -617,17 +612,10 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     >
       {/* Cover */}
       <div
-        className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-muted transition-all duration-300"
-        style={{
-          transformStyle: "preserve-3d",
-          willChange: "transform",
-          boxShadow: "0 1px 4px hsl(var(--foreground)/0.12), 0 0 0 1px hsl(var(--border)/0.6)",
-          ...coverContainerProps?.style,
-        }}
+        className={`relative aspect-[2/3] w-full overflow-hidden rounded-[3px] bg-muted ${COVER_FRAME}`}
         {...(coverContainerProps ? { onPointerMove: coverContainerProps.onPointerMove, onPointerLeave: coverContainerProps.onPointerLeave } : {})}
       >
         {coverLinkEl}
-        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
         {showAgeGate && <AgeGateOverlay variant="standard" />}
         {demoBadgeEl}
         {seriesBadgeEl}
@@ -635,13 +623,13 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
 
       {/* Meta */}
       <div className="pt-2.5 space-y-1">
-        <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
+        <h2 className="[font-size:var(--public-font-card-title)] font-bold leading-snug line-clamp-2">
           {href ? (
-              <a href={href} {...scriptAnchorProps} className="text-foreground group-hover:text-primary transition-colors no-underline" onClick={() => onViewTrack?.()}>
+              <a href={href} {...scriptAnchorProps} className="text-foreground no-underline hover:text-link hover:underline" onClick={() => onViewTrack?.()}>
               {title}
             </a>
           ) : (
-            <span className="text-foreground group-hover:text-primary transition-colors">{title}</span>
+            <span className="text-foreground group-hover:text-link">{title}</span>
           )}
         </h2>
 
@@ -664,22 +652,15 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
           onTagClick={onTagClick}
         />
 
-        <div
-          className="flex items-center justify-between pt-2 mt-2"
-          style={{ borderTop: "1px solid hsl(var(--border) / 0.45)" }}
-        >
-          <div className="flex items-center gap-3 [font-size:var(--public-font-meta)] text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Eye className="w-3 h-3" aria-hidden />
-              <span>{views.toLocaleString()}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 [font-size:var(--public-font-caption)] text-muted-foreground">
-            {dateLabel && <time dateTime={dateTime}>{dateLabel}</time>}
-            {estDurationMinutes != null && estDurationMinutes > 0 && (
-              <span>{estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}</span>
-            )}
-          </div>
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 pt-1.5 [font-size:var(--public-font-caption)] tabular-nums text-muted-foreground">
+          <span className="inline-flex items-center gap-1">
+            <Eye className="w-3 h-3" aria-hidden />
+            <span>{views.toLocaleString()}</span>
+          </span>
+          {estDurationMinutes != null && estDurationMinutes > 0 && (
+            <span>{estDurationMinutes < 1 ? "< 1 分" : `${estDurationMinutes} 分`}</span>
+          )}
+          {dateLabel && <time dateTime={dateTime}>{dateLabel}</time>}
         </div>
       </div>
     </article>

@@ -19,7 +19,7 @@ interface FeedbackTarget {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-border/70 bg-background/70 px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+  "w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground/55 focus:border-link";
 
 function getInitialPageUrl(): string {
   if (typeof window === "undefined") return "";
@@ -415,8 +415,8 @@ export function PublicFeedbackDialog({
   return (
     <>
     {isPickingTarget && (
-      <div data-feedback-picker-ignore className="fixed inset-x-3 top-3 z-[120] mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl border border-primary/50 bg-card/95 px-4 py-3 text-sm text-foreground shadow-xl backdrop-blur sm:top-5">
-        <div className="flex min-w-0 items-center gap-2"><MousePointer2 className="h-4 w-4 shrink-0 text-primary" aria-hidden /><span>點選頁面上有問題的區塊；按 Esc 可取消。</span></div>
+      <div data-feedback-picker-ignore className="fixed inset-x-3 top-3 z-[120] mx-auto flex max-w-xl items-center justify-between gap-3 rounded-md border border-primary bg-card px-4 py-3 text-sm text-foreground shadow-lg sm:top-5">
+        <div className="flex min-w-0 items-center gap-2"><MousePointer2 className="h-4 w-4 shrink-0 text-link" aria-hidden /><span>點選頁面上有問題的區塊；按 Esc 可取消。</span></div>
         <button type="button" onClick={stopPicking} className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs hover:bg-muted">取消</button>
       </div>
     )}
@@ -425,9 +425,9 @@ export function PublicFeedbackDialog({
       {!hideTrigger && <Dialog.Trigger asChild><PublicFeedbackTrigger mode={mode} compactAtMobile={compactAtMobile} showLabel={showLabel} /></Dialog.Trigger>}
 
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[100] bg-foreground/35 backdrop-blur-[2px]" />
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/60" />
         <Dialog.Content
-          className={`fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] ${kind === "listing" ? "max-w-5xl" : "max-w-lg"} max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border/70 bg-card p-5 shadow-2xl outline-none sm:p-6`}
+          className={`fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] ${kind === "listing" ? "max-w-5xl" : "max-w-lg"} max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-card p-5 shadow-lg outline-none sm:p-6`}
         >
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -437,7 +437,7 @@ export function PublicFeedbackDialog({
               <button
                 type="button"
                 aria-label="關閉回報表單"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <X className="h-4 w-4" aria-hidden />
               </button>
@@ -449,25 +449,25 @@ export function PublicFeedbackDialog({
               <button
                 type="button"
                 onClick={() => { setKind("bug"); setStep(0); setError(""); }}
-                className="rounded-xl border border-border/70 bg-background p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-xl border border-border bg-background p-4 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <MousePointer2 className="h-5 w-5 text-primary" aria-hidden />
+                <MousePointer2 className="h-5 w-5 text-link" aria-hidden />
                 <p className="mt-3 text-sm font-semibold text-foreground">回報問題</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">網站壞掉、內容有誤、想請我們修改某個位置。</p>
               </button>
               <button
                 type="button"
                 onClick={() => { setKind("listing"); setStep(0); setError(""); }}
-                className="rounded-xl border border-border/70 bg-background p-4 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="rounded-xl border border-border bg-background p-4 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <MessageSquarePlus className="h-5 w-5 text-primary" aria-hidden />
+                <MessageSquarePlus className="h-5 w-5 text-link" aria-hidden />
                 <p className="mt-3 text-sm font-semibold text-foreground">投稿台本</p>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">把你的台本加入公開專區，分三步完成。</p>
               </button>
             </div>
           ) : submitted ? (
-            <div className="mt-6 rounded-xl border border-primary/25 bg-primary/5 p-5 text-center">
-              <CheckCircle2 className="mx-auto h-8 w-8 text-primary" aria-hidden />
+            <div className="mt-6 border-l-4 border-primary bg-muted p-5 text-center">
+              <CheckCircle2 className="mx-auto h-8 w-8 text-link" aria-hidden />
               <p className="mt-3 font-medium text-foreground">{kind === "listing" ? "已收到你的台本投稿" : "已收到你的 Bug 回報"}</p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{kind === "listing" ? "審核通過後會匯入公開台本草稿，再由管理員確認發佈。" : "謝謝回報，我們會再確認內容。"}</p>
               <Dialog.Close asChild>
@@ -487,7 +487,7 @@ export function PublicFeedbackDialog({
                 {mode === "choice" && <button
                   type="button"
                   onClick={() => { setKind(mode === "choice" ? null : mode); setStep(0); setError(""); }}
-                  className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                  className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
                 >
                   ← 換個用途
                 </button>}
@@ -498,7 +498,7 @@ export function PublicFeedbackDialog({
                         <button
                           type="button"
                           onClick={() => goToStep(index)}
-                          className={`inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 font-medium ${index === step ? "bg-primary text-primary-foreground" : index < step ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
+                          className={`inline-flex h-7 items-center gap-1.5 rounded-sm px-2.5 font-medium ${index === step ? "bg-primary text-primary-foreground" : index < step ? "bg-muted text-foreground" : "bg-muted text-muted-foreground"}`}
                         >
                           <span>{index + 1}</span><span>{label}</span>
                         </button>
@@ -536,7 +536,7 @@ export function PublicFeedbackDialog({
               </div>
 
               {kind === "listing" ? (
-                <div className="space-y-4 rounded-xl border border-border/60 bg-muted/20 p-3 sm:p-4">
+                <div className="space-y-4 rounded-xl border border-border bg-muted p-3 sm:p-4">
                   <div className={step === 0 ? "space-y-4" : "hidden"}>
                   <div>
                     <label htmlFor="public-feedback-title" className="mb-1.5 block text-sm font-medium text-foreground">台本名稱</label>
@@ -600,16 +600,16 @@ export function PublicFeedbackDialog({
                 </div>
               ) : (
                 <div>
-                  <div className="mb-3 rounded-xl border border-border/70 bg-muted/20 p-3">
+                  <div className="mb-3 rounded-xl border border-border bg-muted p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="text-sm font-medium text-foreground">回報位置 <span className="font-normal text-muted-foreground">（選填）</span></p>
                       </div>
-                      <button type="button" onClick={startTargetPicking} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-primary/40 px-3 text-xs font-medium text-primary hover:bg-primary/10"><MousePointer2 className="h-3.5 w-3.5" aria-hidden />{selectedTargets.length ? "再選一個位置" : "點選頁面位置"}</button>
+                      <button type="button" onClick={startTargetPicking} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-muted"><MousePointer2 className="h-3.5 w-3.5" aria-hidden />{selectedTargets.length ? "再選一個位置" : "點選頁面位置"}</button>
                     </div>
-                    {selectedTargets.length > 0 && <div className="mt-3 space-y-2">{selectedTargets.map((target, index) => <div key={`${target.pageUrl}:${target.selector}`} className="rounded-lg border border-border/60 bg-background/70 p-2.5 text-xs"><div className="flex items-start justify-between gap-2"><p className="font-medium text-foreground">位置 {index + 1}：{target.title}</p><button type="button" onClick={() => setSelectedTargets((current) => current.filter((_, targetIndex) => targetIndex !== index))} className="shrink-0 rounded px-2 py-0.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={`移除位置 ${index + 1}`}>移除</button></div><p className="mt-1 line-clamp-2 text-muted-foreground">{target.excerpt || "沒有可擷取的文字內容"}</p></div>)}</div>}
+                    {selectedTargets.length > 0 && <div className="mt-3 space-y-2">{selectedTargets.map((target, index) => <div key={`${target.pageUrl}:${target.selector}`} className="rounded-lg border border-border bg-background p-2.5 text-xs"><div className="flex items-start justify-between gap-2"><p className="font-medium text-foreground">位置 {index + 1}：{target.title}</p><button type="button" onClick={() => setSelectedTargets((current) => current.filter((_, targetIndex) => targetIndex !== index))} className="shrink-0 rounded px-2 py-0.5 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={`移除位置 ${index + 1}`}>移除</button></div><p className="mt-1 line-clamp-2 text-muted-foreground">{target.excerpt || "沒有可擷取的文字內容"}</p></div>)}</div>}
                   </div>
-                  <div className="mb-3 space-y-2 rounded-xl border border-border/70 bg-muted/20 p-3">
+                  <div className="mb-3 space-y-2 rounded-xl border border-border bg-muted p-3">
                     <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="text-sm font-medium text-foreground">希望怎麼處理</p></div><select aria-label="希望怎麼處理" value={requestedAction} onChange={(event) => setRequestedAction(event.target.value)} className="h-9 rounded-lg border border-border bg-background px-3 text-sm text-foreground"><option>修改</option><option>刪除</option><option>確認／補充</option><option>其他</option></select></div>
                     <textarea aria-label="處理方式補充說明" value={requestedResolution} onChange={(event) => setRequestedResolution(event.target.value)} className={`${inputClass} min-h-20 resize-y`} placeholder="補充希望如何修改或處理，例如：請移除這段，或將文字更正為……" maxLength={4000} />
                   </div>
@@ -630,13 +630,13 @@ export function PublicFeedbackDialog({
                 {kind === "listing" && (
                   <aside className="lg:sticky lg:top-0 lg:self-start">
                     <p className="mb-2 text-sm font-semibold">公開台本預覽</p>
-                    <article className="overflow-hidden rounded-xl border border-border/70 bg-background shadow-sm">
+                    <article className="overflow-hidden rounded-xl border border-border bg-background">
                       {coverUrl.trim() && /^https:\/\/\S+$/i.test(coverUrl.trim())
                         ? <img src={coverUrl.trim()} alt="台本封面預覽" referrerPolicy="no-referrer" className="aspect-[16/10] w-full bg-muted object-cover" loading="lazy" />
                         : <div className="aspect-[16/10] bg-muted" aria-hidden="true" />}
                       <div className="space-y-2 p-3">
                         <div className="flex flex-wrap gap-1">
-                          {categoriesText.split(/[,，、]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5).map((tag) => <span key={tag} className="rounded-full bg-primary/10 px-2 py-0.5 [font-size:var(--public-font-caption)] text-primary">{tag}</span>)}
+                          {categoriesText.split(/[,，、]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 5).map((tag) => <span key={tag} className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-foreground">{tag}</span>)}
                         </div>
                         <h3 className="line-clamp-2 text-base font-semibold">{scriptTitle.trim() || "台本名稱"}</h3>
                         <p className="text-xs text-muted-foreground">作者：{authorName.trim() || "作者名稱"}</p>
@@ -665,7 +665,7 @@ export function PublicFeedbackDialog({
                   <button
                     type="button"
                     onClick={() => goToStep(step - 1)}
-                    className="rounded-lg border border-border/70 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     上一步
                   </button>
@@ -673,7 +673,7 @@ export function PublicFeedbackDialog({
                 <Dialog.Close asChild>
                   <button
                     type="button"
-                    className="rounded-lg border border-border/70 px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     取消
                   </button>

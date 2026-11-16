@@ -33,14 +33,14 @@ function ModeButton({
       type="button"
       onClick={() => onChange(mode.value)}
       aria-pressed={active}
-      className={`rounded-md [font-size:var(--public-font-meta)] font-medium transition-all duration-150 ${
-        compact
-          ? "h-8 px-2.5"
-          : "min-h-[44px] px-3.5"
+      className={`border-l border-border text-[0.8125rem] transition-colors duration-100 first:border-l-0 ${
+ compact
+ ? "h-full px-3"
+          : "min-h-[44px] px-4"
       } ${
         active
-          ? "bg-background text-foreground shadow-sm"
-          : "text-muted-foreground hover:text-foreground"
+          ? "bg-primary font-bold text-primary-foreground"
+          : "text-muted-foreground hover:bg-muted hover:text-foreground"
       }`}
       {...handlers}
     >
@@ -52,14 +52,10 @@ function ModeButton({
 export function GalleryViewModeToggle({ value, onChange, compact = false }: GalleryViewModeToggleProps) {
   return (
     <div
-      className={`flex gap-0.5 rounded-lg ${compact ? "h-10 items-center p-0.5" : "p-0.5"}`}
+      className={`flex items-stretch overflow-hidden rounded-md border border-border bg-card ${compact ? "h-9" : ""}`}
       role="group"
       aria-label="顯示模式"
       data-testid="gallery-view-mode-toggle"
-      style={{
-        background: "hsl(var(--muted) / 0.4)",
-        border: "1px solid hsl(var(--border) / 0.5)",
-      }}
     >
       {MODES.map((mode) => (
         <ModeButton

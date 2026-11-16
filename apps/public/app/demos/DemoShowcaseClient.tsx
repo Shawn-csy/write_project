@@ -7,8 +7,8 @@ import { BookOpen, ChevronLeft, ExternalLink, LayoutGrid, List, Play, Plus, Refr
 import { PublicFooter } from "@/components/PublicFooter";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicTopBar } from "@/components/PublicTopBar";
-import { HeroImage } from "@/components/HeroImage";
-import { PublicHeroMarquee, parseBannerSlides, type HeroImageRenderer, type HeroSlide } from "@write/public-ui";
+import { LiveBannerStrip } from "@/components/LiveBannerStrip";
+import { parseBannerSlides, type HeroSlide } from "@write/public-ui";
 import { liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { externalEntityHref } from "@/lib/externalEntity";
@@ -16,6 +16,7 @@ import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVo
 import { demoArtwork, youtubeThumbnail } from "@/lib/demoArtwork";
 import { demoScriptOrganization } from "@/lib/demoScriptContext";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
+import { cleanScriptSummary } from "@/lib/scriptSummary";
 
 interface DemoLink {
   id: string;
@@ -88,7 +89,7 @@ interface Props {
 
 function DemoAuthorName({ group }: { group: DemoScriptGroup }) {
   return group.authorHref
-    ? <a href={group.authorHref} className="inline-flex min-h-7 items-center text-primary underline underline-offset-2 hover:text-primary/80">{group.authorName}</a>
+    ? <a href={group.authorHref} className="inline-flex min-h-7 items-center text-link hover:underline">{group.authorName}</a>
     : <span>{group.authorName}</span>;
 }
 
@@ -190,7 +191,7 @@ function buildScriptGroups(
         : externalEntityHref("author", script.authorName, script.authorUrl)) : undefined,
       organizationName: organization?.name,
       organizationHref: organization?.href,
-      summary: script.summary || script.remoteSummary || "",
+      summary: cleanScriptSummary(script.summary || script.remoteSummary),
       coverUrl: script.coverUrlOverride || script.coverUrl || script.remoteCoverUrl || "",
       sourceUrl: script.sourceUrl,
       sortAt: timestamp(script.mountedAt || script.createdAt || script.sourceCreatedAt),
@@ -270,10 +271,6 @@ function demoLegacyCastNames(demo: DemoLink): string[] {
 function demoCastNames(demo: DemoLink): string[] {
   return [...demo.manualVoiceActors.map((actor) => actor.name.trim()), ...demoLegacyCastNames(demo)].filter(Boolean);
 }
-
-const demoHeroImageRenderer: HeroImageRenderer = (image, slide, index) => (
-  <HeroImage image={{ ...image, backgroundMode: "blur-fill" }} priority={index === 0} slideTitle={slide.title} />
-);
 
 export function DemoShowcaseClient({ initialScripts, initialExternalScripts, initialPersonas, initialOrganizations, initialSubmissions, initialBannerSlides }: Props) {
   const [scripts, setScripts] = useState(initialScripts);
@@ -502,9 +499,9 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PublicTopBar activeTab="demos" />
-      <PublicHeroMarquee slides={bannerSlides} fullBleed compactOnMobile compactOnDesktop renderImage={demoHeroImageRenderer} labels={{ region: "Demo 頁廣告" }} />
+      <LiveBannerStrip slides={bannerSlides} placement="demos" />
       {submitMessage && (
-        <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 z-[60] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-emerald-700/25 bg-background px-4 py-3 text-sm text-foreground shadow-xl sm:left-auto sm:right-6">
+        <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 z-[60] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-success bg-background px-4 py-3 text-sm text-foreground shadow-lg sm:left-auto sm:right-6">
           <span className="min-w-0 flex-1">{submitMessage}</span>
           <button type="button" onClick={() => setSubmitMessage("")} aria-label="關閉通知" className="-mr-1 -mt-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
             <X className="h-4 w-4" aria-hidden />
@@ -512,20 +509,20 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
         </div>
       )}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border/50 pb-4 sm:mb-6 sm:flex sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
+        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-4 sm:mb-6 sm:flex sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
           {selectedGroup ? (
             <div className="flex min-w-0 items-start gap-3">
-              <button type="button" onClick={returnToScriptList} className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md border border-border/70 px-2.5 py-2 text-sm hover:bg-muted/60" aria-label="返回台本清單">
+              <button type="button" onClick={returnToScriptList} className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2.5 py-2 text-sm hover:bg-muted" aria-label="返回台本清單">
                 <ChevronLeft className="h-4 w-4" aria-hidden />台本清單
               </button>
               <div className="min-w-0">
-                <h1 className="mt-1 line-clamp-2 font-serif text-2xl font-bold sm:text-3xl">{selectedGroup.title}</h1>
-                          {selectedGroup.authorName && <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-full bg-muted px-2 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-2 py-0.5 [font-size:var(--public-font-caption)] text-primary">聲演</span>}</p>}
+                <h1 className="mt-1 line-clamp-2 text-2xl font-bold sm:text-3xl">{selectedGroup.title}</h1>
+                          {selectedGroup.authorName && <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>}</p>}
               </div>
             </div>
           ) : (
             <div>
-              <h1 className="font-serif text-2xl font-bold sm:text-3xl">Demo</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">Demo</h1>
             </div>
           )}
           <div className="contents sm:flex sm:w-auto sm:max-w-xl sm:items-center sm:gap-2">
@@ -535,7 +532,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                 <input
                   value={query}
                   onChange={(event) => { setQuery(event.target.value); setVisibleCount(24); }}
-                  className="h-11 w-full rounded-lg border border-border/70 bg-card pl-9 pr-3 sm:h-10 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
+                  className="h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 sm:h-10 text-sm outline-none focus:border-link"
                   placeholder="搜尋台本或台本師"
                   aria-label="搜尋台本或台本師"
                 />
@@ -543,13 +540,13 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
             )}
             <Dialog.Root open={showSubmissionForm} onOpenChange={setShowSubmissionForm}>
               <Dialog.Trigger asChild>
-                <button type="button" className="order-2 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:order-none sm:px-5 sm:text-sm">
+                <button type="button" className="order-2 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md bg-cta px-3 text-xs font-bold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:order-none sm:px-5 sm:text-sm">
                   <Plus className="h-4 w-4" aria-hidden />投稿 Demo
                 </button>
               </Dialog.Trigger>
               <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-                <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border/70 bg-background p-5 shadow-2xl sm:p-6">
+                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+                <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-background p-5 shadow-lg sm:p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <Dialog.Title className="text-lg font-semibold">投稿已錄製的 Demo</Dialog.Title>
@@ -576,10 +573,10 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                           onChange={(event) => { setTargetSearch(event.target.value); setTargetPickerOpen(true); }}
                           onBlur={() => window.setTimeout(() => setTargetPickerOpen(false), 120)}
                           placeholder="搜尋台本名稱或作者…"
-                          className="h-10 w-full rounded-lg border border-border/70 bg-background pl-9 pr-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15"
+                          className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-link"
                         />
                         {targetPickerOpen && (
-                          <div id="demo-submission-target-options" role="listbox" className="absolute inset-x-0 top-[calc(100%+0.25rem)] z-20 max-h-60 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
+                          <div id="demo-submission-target-options" role="listbox" className="absolute inset-x-0 top-[calc(100%+0.25rem)] z-20 max-h-60 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
                             {visibleTargets.length === 0 ? <p className="px-3 py-4 text-sm text-muted-foreground">找不到符合的台本。</p> : visibleTargets.map((option) => (
                               <button
                                 key={option.value}
@@ -588,7 +585,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                                 aria-selected={target === option.value}
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={() => { setTarget(option.value); setTargetSearch(""); setTargetPickerOpen(false); }}
-                                className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-muted/70 aria-selected:bg-muted"
+                                className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-muted aria-selected:bg-muted"
                               >
                                 <span className="min-w-0">
                                   <span className="block truncate text-sm">{option.title}</span>
@@ -603,11 +600,11 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                     </label>
 
                     <label className="grid gap-1 text-sm">Demo 名稱
-                      <input name="demoName" maxLength={160} placeholder="例如：角色 A 試聽" className="h-10 rounded-lg border border-border/70 bg-background px-3" />
+                      <input name="demoName" maxLength={160} placeholder="例如：角色 A 試聽" className="h-10 rounded-lg border border-border bg-background px-3" />
                     </label>
                     <fieldset className="grid gap-1 text-sm">
                       <legend>聲演聲線（可複選）</legend>
-                      <div className="flex h-10 items-center gap-4 rounded-lg border border-border/70 bg-background px-3">
+                      <div className="flex h-10 items-center gap-4 rounded-lg border border-border bg-background px-3">
                         <label className="inline-flex items-center gap-2 text-xs">
                           <input type="checkbox" name="voiceTypes" value="male" checked={voiceTypes.includes("male")} onChange={(event) => setVoiceTypes((current) => event.target.checked ? [...new Set<"male" | "female">([...current, "male"])] : current.filter((type) => type !== "male"))} className="accent-primary" />
                           男聲演
@@ -624,16 +621,16 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                         value={voiceActorQuery}
                         onChange={(event) => setVoiceActorQuery(event.target.value)}
                         placeholder="搜尋公開聲演身份…"
-                        className="h-10 rounded-lg border border-border/70 bg-background px-3"
+                        className="h-10 rounded-lg border border-border bg-background px-3"
                         aria-label="搜尋聲演名單"
                       />
                     </div>
 
-                    <div id="demo-submission-voice-actors" className={`rounded-lg border bg-card/40 p-2.5 sm:col-span-2 ${voiceActorError ? "border-destructive/70" : "border-border/70"}`} aria-invalid={Boolean(voiceActorError)} aria-describedby={voiceActorError ? "demo-submission-voice-actor-error" : undefined}>
+                    <div id="demo-submission-voice-actors" className={`rounded-lg border bg-card p-2.5 sm:col-span-2 ${voiceActorError ? "border-destructive/70" : "border-border"}`} aria-invalid={Boolean(voiceActorError)} aria-describedby={voiceActorError ? "demo-submission-voice-actor-error" : undefined}>
                       {selectedVoiceActors.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-1.5">
                           {selectedVoiceActors.map((persona) => (
-                            <button key={persona.id} type="button" onClick={() => toggleVoiceActor(persona.id)} className="rounded-full bg-primary/15 px-2.5 py-1 text-xs text-primary hover:bg-primary/25">
+                            <button key={persona.id} type="button" onClick={() => toggleVoiceActor(persona.id)} className="rounded-sm bg-muted px-2 py-1 text-xs text-foreground hover:bg-border">
                               {persona.displayName} <span aria-hidden>×</span>
                             </button>
                           ))}
@@ -644,7 +641,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                           {visibleVoiceActors.map((persona) => {
                             const selected = voiceActorIds.includes(persona.id);
                             return (
-                              <button key={persona.id} type="button" aria-pressed={selected} onClick={() => toggleVoiceActor(persona.id)} className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${selected ? "border-primary/50 bg-primary/15 text-primary" : "border-border/70 bg-background hover:bg-muted"}`}>
+                              <button key={persona.id} type="button" aria-pressed={selected} onClick={() => toggleVoiceActor(persona.id)} className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-muted"}`}>
                                 {selected ? "✓ " : ""}{persona.displayName}
                               </button>
                             );
@@ -654,7 +651,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                       <p className="mt-2 px-1 [font-size:var(--public-font-caption)] text-muted-foreground">名單包含自填聲演身份，或已有公開 Demo 演出紀錄的身份頁。</p>
                     </div>
 
-                    <section className="rounded-lg border border-border/70 bg-card/40 p-3 sm:col-span-2" aria-label="新增名單外聲演">
+                    <section className="rounded-lg border border-border bg-card p-3 sm:col-span-2" aria-label="新增名單外聲演">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <h3 className="text-sm font-medium">名單外聲演</h3>
@@ -664,7 +661,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                           type="button"
                           onClick={() => setManualVoiceActors((current) => [...current, { id: `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: "", socialUrl: "" }])}
                           disabled={manualVoiceActors.length >= 20}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs font-medium hover:bg-muted/60 disabled:opacity-50"
+                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
                         >
                           <Plus className="h-3.5 w-3.5" aria-hidden />新增聲演
                         </button>
@@ -685,7 +682,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                                   maxLength={120}
                                   placeholder="聲演名稱"
                                   aria-label={`名單外聲演 ${index + 1} 姓名`}
-                                  className="h-9 rounded-md border border-border/70 bg-background px-2.5 text-sm text-foreground"
+                                  className="h-9 rounded-md border border-border bg-background px-2.5 text-sm text-foreground"
                                 />
                               </label>
                               <label className="grid gap-1 text-xs text-muted-foreground">
@@ -698,7 +695,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                                   maxLength={2000}
                                   placeholder="https://…"
                                   aria-label={`名單外聲演 ${index + 1} 社群連結`}
-                                  className="h-9 rounded-md border border-border/70 bg-background px-2.5 text-sm text-foreground"
+                                  className="h-9 rounded-md border border-border bg-background px-2.5 text-sm text-foreground"
                                 />
                               </label>
                               <button type="button" onClick={() => {
@@ -715,19 +712,19 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                       {voiceActorError && <p id="demo-submission-voice-actor-error" role="alert" className="mt-2 text-xs font-medium text-destructive">{voiceActorError}</p>}
                     </section>
                     <label className="grid gap-1 text-sm sm:col-span-2">公開 Demo 連結
-                      <input name="demoUrl" type="url" required pattern="https://.*" maxLength={2000} placeholder="https://…" className="h-10 rounded-lg border border-border/70 bg-background px-3" />
+                      <input name="demoUrl" type="url" required pattern="https://.*" maxLength={2000} placeholder="https://…" className="h-10 rounded-lg border border-border bg-background px-3" />
                     </label>
                     <label className="grid gap-1 text-sm sm:col-span-2">封面圖片連結（選填）
-                      <input name="coverUrl" type="url" pattern="https://.*" maxLength={2000} placeholder="非 YouTube 來源可補充封面圖片網址" className="h-10 rounded-lg border border-border/70 bg-background px-3" />
+                      <input name="coverUrl" type="url" pattern="https://.*" maxLength={2000} placeholder="非 YouTube 來源可補充封面圖片網址" className="h-10 rounded-lg border border-border bg-background px-3" />
                     </label>
                     <label className="grid gap-1 text-sm">投稿者名稱（公開顯示）
-                      <input name="displayName" maxLength={120} placeholder="可留空" className="h-10 rounded-lg border border-border/70 bg-background px-3" />
+                      <input name="displayName" maxLength={120} placeholder="可留空" className="h-10 rounded-lg border border-border bg-background px-3" />
                     </label>
                     <label className="grid gap-1 text-sm">聯絡 Email（不公開）
-                      <input name="contactEmail" type="email" maxLength={320} placeholder="可留空" className="h-10 rounded-lg border border-border/70 bg-background px-3" />
+                      <input name="contactEmail" type="email" maxLength={320} placeholder="可留空" className="h-10 rounded-lg border border-border bg-background px-3" />
                     </label>
                     <label className="grid gap-1 text-sm sm:col-span-2">簡介
-                      <textarea name="description" rows={3} maxLength={2000} placeholder="補充角色、版本或演出資訊" className="rounded-lg border border-border/70 bg-background px-3 py-2" />
+                      <textarea name="description" rows={3} maxLength={2000} placeholder="補充角色、版本或演出資訊" className="rounded-lg border border-border bg-background px-3 py-2" />
                     </label>
                     <label className="flex items-start gap-2 text-xs text-muted-foreground sm:col-span-2">
                       <input name="confirmPublic" type="checkbox" required className="mt-0.5 accent-primary" />
@@ -762,19 +759,19 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                 value={sort}
                 onChange={(event) => changeSort(event.target.value as DemoSort)}
                 aria-label="Demo 排序"
-                className="h-9 rounded-lg border border-border/70 bg-card px-2 [font-size:var(--public-font-meta)] text-foreground sm:hidden"
+                className="h-9 rounded-lg border border-border bg-card px-2 [font-size:var(--public-font-meta)] text-foreground sm:hidden"
               >
                 <option value="newest">最新</option>
                 <option value="oldest">最舊</option>
                 <option value="random">隨機</option>
               </select>
-              <div role="group" aria-label="Demo 排序" className="hidden h-9 items-center gap-0.5 rounded-lg border border-border/70 bg-card/60 p-0.5 sm:flex">
+              <div role="group" aria-label="Demo 排序" className="hidden h-9 items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 sm:flex">
                 {([ ["newest", "最新"], ["oldest", "最舊"], ["random", "隨機"] ] as const).map(([value, label]) => (
                   <button key={value} type="button" onClick={() => changeSort(value)} aria-pressed={sort === value} className={`h-8 rounded-md px-3 [font-size:var(--public-font-meta)] font-medium ${sort === value ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
                 ))}
               </div>
-              {sort === "random" && <button type="button" onClick={() => { setRandomSeed(Date.now()); setVisibleCount(24); }} aria-label="重新隨機排序" title="重新隨機排序" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border/70 text-muted-foreground hover:text-foreground"><RefreshCw className="h-4 w-4" aria-hidden /></button>}
-              <div role="group" aria-label="展示方式" className="flex h-9 items-center gap-0.5 rounded-lg border border-border/70 bg-card/60 p-0.5">
+              {sort === "random" && <button type="button" onClick={() => { setRandomSeed(Date.now()); setVisibleCount(24); }} aria-label="重新隨機排序" title="重新隨機排序" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground"><RefreshCw className="h-4 w-4" aria-hidden /></button>}
+              <div role="group" aria-label="展示方式" className="flex h-9 items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
                 <button type="button" onClick={() => setView("grid")} aria-label="卡片模式" aria-pressed={view === "grid"} title="卡片模式" className={`inline-flex h-8 items-center gap-1 rounded-md px-2 [font-size:var(--public-font-meta)] ${view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}><LayoutGrid className="h-4 w-4" aria-hidden /><span className="hidden md:inline">卡片</span></button>
                 <button type="button" onClick={() => setView("list")} aria-label="橫條模式" aria-pressed={view === "list"} title="橫條模式" className={`inline-flex h-8 items-center gap-1 rounded-md px-2 [font-size:var(--public-font-meta)] ${view === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}><List className="h-4 w-4" aria-hidden /><span className="hidden md:inline">橫條</span></button>
               </div>
@@ -784,7 +781,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
 
         {scriptGroups.length === 0 ? (
           <PublicEmptyState
-            className="rounded-xl border border-dashed border-border/70 bg-card/40"
+            className="border-y border-border"
             title="目前還沒有公開 Demo"
             description="台本與對應的範例會在審核後出現在這裡。你也可以成為第一位投稿的人。"
             primaryAction={{ label: "投稿 Demo", onClick: () => setShowSubmissionForm(true) }}
@@ -793,7 +790,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
         ) : !selectedGroup ? (
           visibleGroups.length === 0 ? (
             <PublicEmptyState
-              className="rounded-xl border border-dashed border-border/70 bg-card/40"
+              className="border-y border-border"
               title="找不到符合的台本或 Demo"
               description="換個關鍵字試試，或清除搜尋看看全部。"
               primaryAction={{ label: "清除搜尋", onClick: () => setQuery("") }}
@@ -814,44 +811,44 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                   });
                   const cardTitle = group.demos.find((demo) => demo.name.includes("｜") && /PV|試聽/.test(demo.name))?.name || group.title;
                   return (
-                    <article key={group.key} className={`${view === "list" ? "grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[12rem_minmax(0,1fr)]" : "flex flex-col"} min-w-0 overflow-hidden rounded-xl border border-border/70 bg-card/40 transition-colors hover:border-primary/40`}>
-                      <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className={`group relative overflow-hidden bg-muted/40 text-left ${view === "list" ? "h-full min-h-28" : "aspect-video"}`}>
+                    <article key={group.key} className={`${view === "list" ? "grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[12rem_minmax(0,1fr)]" : "flex flex-col"} min-w-0 overflow-hidden rounded-xl border border-border bg-card`}>
+                      <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className={`group relative overflow-hidden bg-muted text-left ${view === "list" ? "h-full min-h-28" : "aspect-video"}`}>
                         <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
-                        {artwork && <PublicImage src={artwork} alt={`${cardTitle}演出圖片`} preset="script-cover" className="transition-transform duration-300 group-hover:scale-[1.03]" />}
+                        {artwork && <PublicImage src={artwork} alt={`${cardTitle}演出圖片`} preset="script-cover" className="group-hover:opacity-90" />}
                         {group.demos.length > 1 && <span className="absolute bottom-1.5 left-1.5 right-1.5 rounded-md bg-black/75 px-1 py-1 text-center [font-size:var(--public-font-caption)] text-white sm:bottom-2 sm:left-auto sm:right-2 sm:px-2 sm:text-xs">多個版本</span>}
                       </button>
                       <div className={`flex min-w-0 flex-1 flex-col p-2.5 ${view === "list" ? "sm:px-4 sm:py-3" : "sm:p-4"}`}>
-                        <button type="button" onClick={() => openScript(group.key)} className={`text-left text-xs font-semibold leading-5 hover:text-primary sm:text-sm ${view === "list" ? "line-clamp-1 sm:line-clamp-2" : "line-clamp-2 sm:min-h-10"}`}>{cardTitle}</button>
+                        <button type="button" onClick={() => openScript(group.key)} className={`text-left text-xs font-semibold leading-5 hover:text-link sm:text-sm ${view === "list" ? "line-clamp-1 sm:line-clamp-2" : "line-clamp-2 sm:min-h-10"}`}>{cardTitle}</button>
                         {group.authorName && <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><span className="shrink-0">台本師：</span><span className="min-w-0 truncate"><DemoAuthorName group={group} /></span></p>}
-                        {group.organizationName && group.organizationHref && <p className="mt-1 truncate text-xs text-muted-foreground">組織：<a href={group.organizationHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{group.organizationName}</a></p>}
+                        {group.organizationName && group.organizationHref && <p className="mt-1 truncate text-xs text-muted-foreground">組織：<a href={group.organizationHref} className="text-link hover:underline">{group.organizationName}</a></p>}
                         {names.length > 0 && <p className={`mt-1 flex min-w-0 items-center gap-x-1 text-xs text-muted-foreground ${view === "list" ? "overflow-hidden whitespace-nowrap" : "flex-wrap"}`}><span className="shrink-0">聲演：</span>{names.map((name, index) => {
                           const href = actorHrefs.get(name);
-                          return <span key={`${name}-${index}`} className={`inline-flex min-w-0 items-center whitespace-nowrap rounded-md bg-muted/40 px-1.5 ${view === "list" ? "truncate" : ""}`}>{href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex min-h-7 items-center text-primary underline underline-offset-2 hover:text-primary/80">{name}</a> : <span>{name}</span>}</span>;
+                          return <span key={`${name}-${index}`} className={`inline-flex min-w-0 items-center whitespace-nowrap rounded-md bg-muted px-1.5 ${view === "list" ? "truncate" : ""}`}>{href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex min-h-7 items-center text-link hover:underline">{name}</a> : <span>{name}</span>}</span>;
                         })}</p>}
                         <div className={`mt-auto hidden pt-3 sm:block ${view === "list" ? "sm:pt-1" : ""}`}>
-                          <button type="button" onClick={() => openScript(group.key)} className="inline-flex min-h-9 items-center rounded-md bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20">{group.demos.length > 1 ? "查看演出版本" : "查看演出"}</button>
+                          <button type="button" onClick={() => openScript(group.key)} className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90">{group.demos.length > 1 ? "查看演出版本" : "查看演出"}</button>
                         </div>
                       </div>
                     </article>
                   );
                 })}
               </div>
-              {visibleGroups.length > visibleCount && <div className="mt-6 flex justify-center"><button type="button" onClick={() => setVisibleCount((count) => count + 24)} className="rounded-lg border border-border/70 px-5 py-2 text-sm hover:bg-muted/60">顯示更多</button></div>}
+              {visibleGroups.length > visibleCount && <div className="mt-6 flex justify-center"><button type="button" onClick={() => setVisibleCount((count) => count + 24)} className="rounded-lg border border-border px-5 py-2 text-sm hover:bg-muted">顯示更多</button></div>}
             </section>
           )
         ) : (
           <div className="space-y-5">
-            <section className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
+            <section className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="grid gap-4 p-4 sm:grid-cols-[minmax(12rem,0.36fr)_minmax(0,1fr)] sm:items-center sm:p-5">
-                <div className="relative aspect-[16/10] overflow-hidden rounded-lg bg-muted/40">
+                <div className="relative aspect-[16/10] overflow-hidden rounded-lg bg-muted">
                   <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
                   {selectedGroupCoverUrl && <PublicImage src={selectedGroupCoverUrl} alt={`${selectedGroup.title}封面`} preset="script-cover" />}
                 </div>
                 <div className="min-w-0">
-                  {selectedGroup.authorName && <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-full bg-muted px-2 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-full bg-primary/10 px-2 py-0.5 [font-size:var(--public-font-caption)] text-primary">聲演</span>}</p>}
-                  {selectedGroup.organizationName && selectedGroup.organizationHref && <p className="mt-1 text-sm text-muted-foreground">組織：<a href={selectedGroup.organizationHref} className="text-primary underline underline-offset-2 hover:text-primary/80">{selectedGroup.organizationName}</a></p>}
+                  {selectedGroup.authorName && <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>}</p>}
+                  {selectedGroup.organizationName && selectedGroup.organizationHref && <p className="mt-1 text-sm text-muted-foreground">組織：<a href={selectedGroup.organizationHref} className="text-link hover:underline">{selectedGroup.organizationName}</a></p>}
                   {selectedGroup.summary && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{selectedGroup.summary}</p>}
-                  <a href={selectedGroup.sourceUrl} target={selectedGroup.scriptType === "external" ? "_blank" : undefined} rel={selectedGroup.scriptType === "external" ? "noopener noreferrer" : undefined} className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border/70 px-3 py-2 text-xs font-medium hover:bg-muted/60">
+                  <a href={selectedGroup.sourceUrl} target={selectedGroup.scriptType === "external" ? "_blank" : undefined} rel={selectedGroup.scriptType === "external" ? "noopener noreferrer" : undefined} className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted">
                     <BookOpen className="h-3.5 w-3.5" aria-hidden />{selectedGroup.scriptType === "external" ? "閱讀原台本" : "閱讀台本"}<ExternalLink className="h-3 w-3" aria-hidden />
                   </a>
                 </div>
@@ -870,10 +867,10 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                   const artwork = youtubeThumbnail(demo.url) || selectedGroup.coverUrl || demo.coverUrl;
                   const singleDemo = selectedGroup.demos.length === 1;
                   return (
-                    <article key={`${demo.id}-${index}`} className={`overflow-hidden rounded-xl border border-border/70 bg-card/40 ${singleDemo ? "sm:grid sm:grid-cols-[minmax(14rem,0.42fr)_minmax(0,1fr)]" : ""}`}>
-                      <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`開啟 ${demo.name || "演出 Demo"}`} className={`group relative block overflow-hidden bg-muted/40 ${singleDemo ? "aspect-video sm:aspect-auto sm:min-h-64" : "aspect-video"}`}>
+                    <article key={`${demo.id}-${index}`} className={`overflow-hidden rounded-xl border border-border bg-card ${singleDemo ? "sm:grid sm:grid-cols-[minmax(14rem,0.42fr)_minmax(0,1fr)]" : ""}`}>
+                      <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`開啟 ${demo.name || "演出 Demo"}`} className={`group relative block overflow-hidden bg-muted ${singleDemo ? "aspect-video sm:aspect-auto sm:min-h-64" : "aspect-video"}`}>
                         <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
-                        {artwork && <PublicImage src={artwork} alt={`${demo.name || "演出 Demo"}封面`} preset="script-cover" className="transition-transform duration-300 group-hover:scale-[1.03]" />}
+                        {artwork && <PublicImage src={artwork} alt={`${demo.name || "演出 Demo"}封面`} preset="script-cover" className="group-hover:opacity-90" />}
                         <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 [font-size:var(--public-font-caption)] font-semibold text-white">播放連結 <ExternalLink className="h-3 w-3" aria-hidden /></span>
                       </a>
                       <div className="flex min-w-0 flex-col p-4">
@@ -881,7 +878,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                         {actors.length > 0 && (
                           <div className="mt-3 flex flex-wrap gap-2">
                             {actors.map((persona) => (
-                              <a key={persona.id} href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/60 py-1 pl-1 pr-3 text-xs hover:border-primary/40 hover:text-primary">
+                              <a key={persona.id} href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="inline-flex items-center gap-2 rounded-md border border-border bg-card py-1 pl-1 pr-3 text-xs hover:text-link">
                                 <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-muted">
                                   {persona.avatar ? <PublicImage src={persona.avatar} alt="" preset="avatar" sizes="28px" /> : <span className="flex h-full items-center justify-center [font-size:var(--public-font-caption)]">{persona.displayName.slice(0, 1)}</span>}
                                 </span>
@@ -898,18 +895,18 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                             <p className="mb-1.5 text-xs text-muted-foreground">名單外聲演</p>
                             <div className="flex flex-wrap gap-2">
                               {demo.manualVoiceActors.map((actor, actorIndex) => (
-                                <span key={`${actor.name}-${actorIndex}`} className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/60 px-3 py-1.5 text-xs">
-                                  {actor.personaId ? <a href={`/author/${encodeURIComponent(actor.personaId)}`} className="font-medium hover:text-primary">{actor.name}</a> : <span>{actor.name}</span>}
-                                  {actor.socialUrl && <a href={actor.socialUrl} target="_blank" rel="noopener noreferrer" aria-label={`${actor.name}社群連結`} className="text-muted-foreground hover:text-primary"><ExternalLink className="h-3 w-3" aria-hidden /></a>}
+                                <span key={`${actor.name}-${actorIndex}`} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs">
+                                  {actor.personaId ? <a href={`/author/${encodeURIComponent(actor.personaId)}`} className="font-medium hover:text-link">{actor.name}</a> : <span>{actor.name}</span>}
+                                  {actor.socialUrl && <a href={actor.socialUrl} target="_blank" rel="noopener noreferrer" aria-label={`${actor.name}社群連結`} className="text-muted-foreground hover:text-link"><ExternalLink className="h-3 w-3" aria-hidden /></a>}
                                 </span>
                               ))}
                             </div>
                           </div>
                         )}
                         {legacyCastNames.length > 0 && <p className="mt-2 text-xs text-muted-foreground">聲演：{legacyCastNames.join("、")}</p>}
-                        {demo.voiceTypes.length > 0 && <p className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">聲演聲線：{demo.voiceTypes.map((type) => <span key={type} className="rounded-full bg-muted px-2 py-0.5">{type === "male" ? "男聲演" : "女聲演"}</span>)}</p>}
+                        {demo.voiceTypes.length > 0 && <p className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">聲演聲線：{demo.voiceTypes.map((type) => <span key={type} className="rounded-sm bg-muted px-1.5 py-0.5">{type === "male" ? "男聲演" : "女聲演"}</span>)}</p>}
                         {demo.description && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{demo.description}</p>}
-                        <a href={demo.url} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-md bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/20">
+                        <a href={demo.url} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
                           開啟 Demo <ExternalLink className="h-3.5 w-3.5" aria-hidden />
                         </a>
                       </div>

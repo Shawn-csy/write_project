@@ -6,74 +6,98 @@
   :root {
     /* Font variables — controlled by next/font; CJK system stack as fallback */
     --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
-    --font-serif: "Noto Serif TC", "Source Han Serif TC", "PMingLiU", "新細明體", Georgia, serif;
+    --font-serif: "Songti TC", "Noto Serif TC", "Source Han Serif TC", "Source Han Serif", "PMingLiU", "新細明體", serif;
 
-    /* ── Warm neutral palette — editorial, Claude.ai-adjacent ── */
-    /* Warm near-white background, no blue or orange cast */
-    --background: 40 18% 97%;
-    --foreground: 220 15% 12%;
+    /* ── Palette ──
+       Low-chroma (Morandi) set: grey-white page, ink grey text, dusty slate blue
+       as the brand colour, a muted blue for links, brick rose for the call-to-action. */
+    --background: 210 12% 97%;
+    --foreground: 215 12% 20%;
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 12%;
-    --muted: 220 10% 95%;
-    --muted-strong: 220 8% 90%;
-    --muted-stronger: 220 7% 84%;
-    --muted-foreground: 220 8% 46%;
-    --border: 220 9% 88%;
+    --card-foreground: 215 12% 20%;
+    --muted: 213 12% 92%;
+    --muted-strong: 213 11% 87%;
+    --muted-stronger: 213 10% 80%;
+    --muted-foreground: 215 8% 38%;
+    --border: 213 11% 76%;
 
-    /* Steel-slate primary — neutral, professional, not orange */
-    --primary: 215 25% 38%;
-    --primary-foreground: 210 30% 98%;
+    --primary: 212 18% 40%;
+    --primary-foreground: 0 0% 100%;
+    --band: 212 18% 40%;
+    --band-muted: 212 18% 34%;
+    --band-border: 212 16% 48%;
+    --band-muted-foreground: 212 24% 94%;
+    --link: 212 34% 34%;
+    --cta: 12 32% 44%;
 
-    --destructive: 0 72% 56%;
+    --destructive: 356 42% 42%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Subtle teal accent */
-    --accent: 195 40% 46%;
-    --accent-foreground: 195 60% 12%;
-    --accent-muted: 195 30% 93%;
-    --accent-strong: 215 28% 32%;
+    --accent: 212 34% 34%;
+    --accent-foreground: 215 12% 20%;
+    --accent-muted: 212 20% 91%;
+    --accent-strong: 212 36% 28%;
 
-    --surface-1: 40 18% 97%;
-    --surface-2: 220 10% 95%;
-    --surface-3: 220 8% 90%;
-    --surface-4: 220 7% 84%;
+    --seal: 356 38% 44%;
+    --success: 150 22% 32%;
+    --success-muted: 150 16% 90%;
+    --warning: 36 40% 32%;
+    --warning-muted: 38 28% 88%;
+    --danger-muted: 356 26% 91%;
+
+    --surface-1: 0 0% 100%;
+    --surface-2: 213 12% 92%;
+    --surface-3: 213 11% 87%;
+    --surface-4: 213 10% 80%;
 
     --paper-bg: #ffffff;
-    --paper-border: #e3e5e8;
-    --paper-shadow: rgba(10, 15, 25, 0.09);
-    --radius: 0.625rem;
+    --paper-border: #cdd2d8;
+    --paper-shadow: rgba(50, 60, 72, 0.08);
+    --radius: 0.25rem;
   }
 
   .dark {
-    /* Deep cool-neutral — not warm brown, not cold blue */
-    --background: 222 12% 8%;
-    --foreground: 210 14% 91%;
-    --card: 222 10% 11%;
-    --card-foreground: 210 14% 91%;
-    --muted: 222 8% 15%;
-    --muted-strong: 222 7% 21%;
-    --muted-stronger: 222 6% 27%;
-    --muted-foreground: 215 8% 58%;
-    --border: 222 7% 20%;
+    --background: 215 10% 13%;
+    --foreground: 215 10% 86%;
+    --card: 215 9% 16%;
+    --card-foreground: 215 10% 86%;
+    --muted: 215 8% 20%;
+    --muted-strong: 215 8% 25%;
+    --muted-stronger: 215 7% 31%;
+    --muted-foreground: 215 8% 64%;
+    --border: 215 8% 33%;
 
-    /* Steel-slate primary — brighter in dark */
-    --primary: 215 40% 62%;
-    --primary-foreground: 222 12% 8%;
+    --primary: 212 26% 68%;
+    --primary-foreground: 215 20% 12%;
+    --band: 213 16% 24%;
+    --band-muted: 213 14% 30%;
+    --band-border: 213 12% 34%;
+    --band-muted-foreground: 213 16% 80%;
+    --link: 212 34% 72%;
+    --cta: 12 32% 46%;
 
-    --destructive: 0 68% 54%;
+    --destructive: 356 42% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --accent-foreground: 210 18% 93%;
-    --accent-muted: 215 15% 16%;
-    --accent-strong: 195 50% 65%;
+    --accent: 212 26% 68%;
+    --accent-foreground: 215 10% 88%;
+    --accent-muted: 213 14% 22%;
+    --accent-strong: 212 34% 76%;
 
-    --surface-1: 222 12% 8%;
-    --surface-2: 222 8% 15%;
-    --surface-3: 222 7% 21%;
-    --surface-4: 222 6% 27%;
+    --seal: 356 38% 48%;
+    --success: 150 22% 68%;
+    --success-muted: 150 12% 20%;
+    --warning: 36 36% 70%;
+    --warning-muted: 36 16% 21%;
+    --danger-muted: 356 18% 22%;
 
-    --paper-bg: #0d0e11;
-    --paper-border: #1e2028;
+    --surface-1: 215 10% 13%;
+    --surface-2: 215 8% 20%;
+    --surface-3: 215 8% 25%;
+    --surface-4: 215 7% 31%;
+
+    --paper-bg: #1e2125;
+    --paper-border: #40454c;
     --paper-shadow: rgba(0, 0, 0, 0.45);
   }
 
@@ -86,6 +110,14 @@
     --public-font-body: 0.875rem;        /* 14px */
     --public-font-card-title: 0.9375rem; /* 15px */
     --public-line-body: 1.55;
+  }
+
+  /* Phones: 12px captions are hard to read in Chinese, so the default scale steps up one size. */
+  @media (max-width: 639px) {
+    :root:not([data-public-text-scale]),
+    [data-public-text-scale="default"] {
+      --public-font-caption: 0.8125rem;  /* 13px */
+    }
   }
 
   [data-public-text-scale="compact"] {
@@ -126,282 +158,74 @@
 
   /* Refined focus ring */
   :focus-visible {
-    outline: 2px solid hsl(var(--primary) / 0.6);
+    outline: 2px solid hsl(var(--link));
     outline-offset: 2px;
-    border-radius: 4px;
   }
 
   /* Warm text selection */
   ::selection {
-    background-color: hsl(var(--primary) / 0.18);
+    background-color: hsl(var(--primary) / 0.22);
     color: hsl(var(--foreground));
   }
 
   /* Thin, tasteful scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
-    border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
 }
 
-/* ── Editorial design primitives ── */
+/* ── Shared rules and marks ── */
 @layer components {
-  /* Subtle bottom rule used on hero, segment bar, sheet header */
-  .editorial-border-b {
-    border-bottom: 1px solid hsl(var(--border) / 0.4);
-  }
-  .editorial-border-b-strong {
-    border-bottom: 1px solid hsl(var(--border) / 0.5);
-  }
 
-  /* Hero background wash */
-  .editorial-hero-wash {
-    background: linear-gradient(
-      160deg,
-      hsl(var(--surface-2)) 0%,
-      hsl(var(--background)) 60%,
-      hsl(var(--surface-2) / 0.4) 100%
-    );
-  }
+  .sheet-scrim { background: hsl(0 0% 0% / 0.6); }
 
-  /* Brand hero owns a full-frame backdrop when rendered inside the carousel.
-     The right edge intentionally resolves to surface color instead of the
-     near-black page background, so ultra-wide screens never expose a black band. */
-  .editorial-brand-hero-backdrop {
-    background:
-      linear-gradient(
-        90deg,
-        hsl(var(--surface-2)) 0%,
-        hsl(var(--background)) 42%,
-        hsl(var(--surface-3) / 0.72) 76%,
-        hsl(var(--surface-4) / 0.92) 100%
-      ),
-      linear-gradient(
-        180deg,
-        hsl(var(--background) / 0.08) 0%,
-        hsl(var(--background) / 0.34) 100%
-      );
+  /* Folder-style tabs: one definition for the gallery categories and the resource directory. */
+  .tab-item {
+    height: 2.25rem;
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+    border: 1px solid hsl(var(--border));
+    border-bottom: 0;
+    border-radius: 0.1875rem 0.1875rem 0 0;
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
   }
-
-  /* Fine grain texture overlay — aria-hidden decorative */
-  .editorial-grain {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-size: 160px 160px;
-    opacity: 0.025;
-    mix-blend-mode: multiply;
-  }
-  .dark .editorial-grain {
-    opacity: 0.05;
-    mix-blend-mode: screen;
-  }
-
-  /* Thin accent underline beneath primary headline word */
-  .editorial-accent-rule {
-    height: 2px;
-    background: hsl(var(--primary) / 0.3);
-    border-radius: 1px;
-  }
-
-  /* Horizontal divider rule (decorative) */
-  .editorial-rule {
-    height: 1px;
-    background: hsl(var(--border));
-  }
-
-  /* Muted overline / eyebrow color */
-  .editorial-eyebrow {
-    color: hsl(var(--primary) / 0.75);
-  }
-
-  /* Dim label color */
-  .editorial-dim {
-    color: hsl(var(--muted-foreground) / 0.6);
-  }
-
-  /* Primary sliding indicator (GallerySegmentBar) */
-  .editorial-indicator {
-    height: 2px;
+  .tab-item:hover { background: hsl(var(--card)); }
+  .tab-item[aria-pressed="true"] {
+    border-color: hsl(var(--primary));
     background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    font-weight: 600;
   }
 
-  /* Backdrop scrim */
-  .editorial-scrim {
-    background: hsl(var(--foreground) / 0.25);
+  /* Section header strip: tinted bar with a brand-colour tab on the left. */
+  .section-bar {
+    background: hsl(var(--muted));
+    border-left: 4px solid hsl(var(--primary));
+    padding: 0.4rem 0.75rem;
   }
 
-  /* Sheet drag handle */
-  .editorial-handle {
-    background: hsl(var(--border));
-  }
-}
-
-/* ── Editorial reveal animation ── */
-@keyframes hero-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-
-.hero-reveal {
-  opacity: 0;
-  animation: hero-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-/* ── Brand Script Desk — Cinematic Script Desk scene ── */
-
-/* Entrance wrappers animate only compositor properties. Their children own
-   the static page-stack transforms, so no animation library is needed. */
-@keyframes brand-desk-page-arrive {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.brand-desk-page-enter {
-  position: absolute;
-  inset: 0;
-  animation: brand-desk-page-arrive 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.brand-desk-page-enter:nth-child(2) { animation-delay: 80ms; }
-.brand-desk-page-enter:nth-child(3) { animation-delay: 160ms; }
-
-/* Page stack container */
-.brand-desk-stack {
-  position: absolute;
-  right: clamp(0.5rem, 4vw, 5rem);
-  top: 50%;
-  width: min(42vw, 22rem);
-  height: min(62%, 20rem);
-  transform: translateY(-50%);
-  filter: drop-shadow(0 20px 36px hsl(0 0% 0% / 0.18));
-}
-
-/* Shared page style */
-.brand-desk-page {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border: 1px solid hsl(var(--border) / 0.4);
-  border-radius: 0.5rem;
-  background:
-    linear-gradient(135deg, hsl(var(--card) / 0.78), hsl(var(--background) / 0.52));
-  padding: clamp(0.75rem, 2vw, 1.25rem);
-}
-
-.brand-desk-page-back {
-  transform: translateY(12px) translateX(10px) rotate(3deg);
-  opacity: 0.55;
-  z-index: 1;
-}
-
-.brand-desk-page-middle {
-  transform: translateY(6px) translateX(5px) rotate(1.5deg);
-  opacity: 0.75;
-  z-index: 2;
-}
-
-.brand-desk-page-front {
-  transform: rotate(-1deg);
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* Ruled lines inside back/middle pages */
-.brand-desk-ruled-line {
-  height: 1.5px;
-  background: hsl(var(--border) / 0.3);
-  border-radius: 1px;
-  margin-bottom: 0.6rem;
-}
-
-/* Script lines on front page */
-.brand-desk-script-line {
-  height: 1.5px;
-  background: hsl(var(--muted-foreground) / 0.22);
-  border-radius: 1px;
-  transform-origin: left center;
-}
-
-/* Typewriter reveal — lines grow from 0 width, then hold */
-@keyframes desk-script-type {
-  0%   { transform: scaleX(0); opacity: 0; }
-  15%  { opacity: 1; }
-  60%  { transform: scaleX(1); }
-  100% { transform: scaleX(1); }
-}
-
-.brand-desk-script-line-type {
-  animation: desk-script-type 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: var(--desk-line-delay, 0ms);
-}
-
-
-@keyframes brand-desk-light-sweep {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 0.18; }
-}
-
-/* Light sweep — decorative, one-shot on mount */
-.brand-desk-sweep {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 0%,
-    hsl(var(--primary) / 0.06) 40%,
-    hsl(var(--primary) / 0.12) 55%,
-    transparent 75%
-  );
-  opacity: 0;
-  animation: brand-desk-light-sweep 900ms ease-in-out 300ms both;
-  pointer-events: none;
-}
-
-/* Texture rule line */
-.brand-desk-rule {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 3.5rem;
-  height: 1px;
-  background: hsl(var(--border) / 0.3);
-}
-
-/* Mask — fade left edge where brand copy is */
-.brand-desk-stack {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, black 18%, black 100%);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-reveal {
-    animation: none;
-    opacity: 1;
-  }
-
-  .brand-desk-script-line-type {
-    animation: none;
-  }
-
-  .brand-desk-script-line-type {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-
-  .brand-desk-page-enter,
-  .brand-desk-sweep {
-    animation: none;
-  }
+  .text-link { color: hsl(var(--link)); }
+  .text-link:hover { text-decoration: underline; }
 }
 
 /* Images that failed on every media origin: hide the broken glyph and alt text. */
 img[data-media-failed="1"] {
   visibility: hidden;
+}
+
+/* Touch screens: small text links and tags keep their look but get a taller hit area. */
+@media (pointer: coarse) {
+  .tap-grow {
+    height: auto;
+    min-height: 1.875rem;
+    line-height: 1.875rem;
+  }
 }

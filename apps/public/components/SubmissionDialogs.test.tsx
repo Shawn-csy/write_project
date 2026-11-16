@@ -49,6 +49,20 @@ describe("public submission forms", () => {
     expect(write).not.toHaveBeenCalled();
   });
 
+  it("submits structured audio advertising data", async () => {
+    const user = userEvent.setup();
+    render(<AudioWorkAdApplicationDialog />);
+    await user.click(screen.getByRole("button", { name: "投稿廣告" }));
+    await user.type(screen.getByLabelText("活動／品牌名稱"), "Campaign");
+    await user.type(screen.getByLabelText("聯絡人"), "Applicant");
+    await user.type(screen.getByLabelText("聯絡 Email"), "writer@example.com");
+    await user.type(screen.getByLabelText("導流網址"), "https://example.com");
+    await user.type(screen.getByLabelText("廣告圖片網址"), "https://example.com/banner.png");
+    await user.click(screen.getByRole("button", { name: "送出審核" }));
+    await waitFor(() => expect(write).toHaveBeenCalledOnce());
+    expect(JSON.parse(write.mock.calls[0][1].body).adApplication).toEqual({ placement: "audio-works", title: "Campaign", link: "https://example.com", imageUrl: "https://example.com/banner.png", startDate: null, endDate: null });
+  });
+
   it("keeps partially filled resource works from silently disappearing", async () => {
     const user = userEvent.setup();
     render(<ResourceSubmissionDialog defaultCategory="cover_art" />);

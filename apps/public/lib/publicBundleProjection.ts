@@ -1,5 +1,5 @@
 export const PUBLIC_BUNDLE_SECTIONS = [
-  "scripts", "personas", "organizations", "topTags", "banner", "demoBanner",
+  "scripts", "personas", "organizations", "topTags", "banner", "demoBanner", "audioWorkBanner",
   "externalPublicScripts", "demoSubmissions", "audioWorks", "activityPages", "productionResources",
 ] as const;
 export type PublicBundleSection = (typeof PUBLIC_BUNDLE_SECTIONS)[number];

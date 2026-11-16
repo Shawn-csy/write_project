@@ -14,7 +14,7 @@ interface Props {
 }
 
 /** Keep an initial visible while an avatar loads or when its source fails. */
-export function PublicAvatarImage({ src, name, preset = "avatar", crop, sizes, fallbackClassName = "bg-primary/10 text-primary" }: Props) {
+export function PublicAvatarImage({ src, name, preset = "avatar", crop, sizes, fallbackClassName = "bg-muted text-link" }: Props) {
   const [failedSrc, setFailedSrc] = useState("");
   const showImage = Boolean(src && failedSrc !== src);
 

@@ -42,7 +42,7 @@ export function AuthorBadge({ author, className = "", style, showAvatar = true, 
   const avatarEl = showAvatar && avatarUrl ? (
     <img src={cropAvatar.src} style={cropAvatar.style as React.CSSProperties} alt={displayName} className="w-4 h-4 rounded-full object-cover" />
   ) : showAvatar ? (
-    <span className="w-3.5 h-3.5 inline-block rounded-full bg-muted/60" aria-hidden />
+    <span className="w-3.5 h-3.5 inline-block rounded-full bg-muted" aria-hidden />
   ) : null;
 
   const nameEl = <span className="font-medium">{displayName || "未知作者"}</span>;

@@ -18,7 +18,7 @@ interface PublicEmptyStateProps {
 function ActionButton({ action, primary }: { action: PublicEmptyStateAction; primary: boolean }) {
   const className = primary
     ? "inline-flex h-10 items-center justify-center rounded-lg bg-primary px-4 [font-size:var(--public-font-meta)] font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-    : "inline-flex h-10 items-center justify-center rounded-lg border border-border/60 px-4 [font-size:var(--public-font-meta)] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
+    : "inline-flex h-10 items-center justify-center rounded-lg border border-border px-4 [font-size:var(--public-font-meta)] font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40";
   if (action.href) {
     return <a href={action.href} className={className}>{action.label}</a>;
   }
@@ -30,7 +30,7 @@ export function PublicEmptyState({ icon, title, description, primaryAction, seco
   return (
     <div className={`px-4 py-16 text-center ${className}`}>
       {icon && (
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md bg-muted text-muted-foreground">
           {icon}
         </div>
       )}

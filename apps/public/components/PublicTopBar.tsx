@@ -51,7 +51,7 @@ function MobileMoreButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="更多選項"
-      className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground transition-all duration-150 hover:bg-muted/70 hover:text-foreground"
+      className="flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
     >
       <MoreHorizontal className="h-[18px] w-[18px]" />
     </button>
@@ -79,7 +79,7 @@ export function PublicTopBar({
         tabs={visibleTabs}
         brandName="公開台本"
         brandSubtitle={SITE_BRAND_NAME}
-        brandLeading={showBack ? <Link href={backHref} aria-label={backLabel} className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground">←</Link> : undefined}
+        brandLeading={showBack ? <Link href={backHref} aria-label={backLabel} className="rounded-md px-2 py-1 text-sm text-muted-foreground hover:bg-muted hover:text-foreground">←</Link> : undefined}
         trailing={trailing}
         mobileTrailingAction={<MobileMoreButton onClick={() => setMoreOpen(true)} />}
         renderLink={renderInternalLink}

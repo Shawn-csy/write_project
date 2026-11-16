@@ -200,13 +200,13 @@ function GalleryHoverPreviewLayer({ preview }: { preview: PreviewState }) {
       className="overflow-y-auto rounded-xl p-4 text-popover-foreground"
     >
       {data.title && (
-        <p className="mb-0.5 [font-size:var(--public-font-card-title)] font-bold font-serif leading-snug text-foreground">{data.title}</p>
+        <p className="mb-0.5 [font-size:var(--public-font-card-title)] font-bold leading-snug text-foreground">{data.title}</p>
       )}
       {data.author && (
-        <p className="mb-3 [font-size:var(--public-font-meta)] text-muted-foreground/70">{data.author}</p>
+        <p className="mb-3 [font-size:var(--public-font-meta)] text-muted-foreground">{data.author}</p>
       )}
       <p
-        className="mb-1.5 [font-size:var(--public-font-caption)] font-semibold tracking-[0.14em] uppercase"
+        className="mb-1.5 [font-size:var(--public-font-caption)] font-semibold"
         style={{ color: "hsl(var(--primary) / 0.65)" }}
       >
         {data.label || "大綱"}

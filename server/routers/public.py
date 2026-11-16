@@ -18,7 +18,7 @@ from crud_ops.publish_state import is_publicly_visible as _is_publicly_visible_s
 from dependencies import get_db, get_current_user_id, get_current_user_claims, verified_email_from_claims
 from rate_limit import client_ip_digest, limiter, resolve_client_ip
 from crud_ops.scripts_command import AnonymousLikeLimitExceeded
-from utils import normalize_homepage_banner_value, safe_json_list
+from utils import normalize_homepage_banner_value, public_banner_value, safe_json_list
 from services.admin_notifications import notify_approval_request
 from services.public_feedback_email import send_public_feedback_notification
 from services.public_view_windows import claim_recent_view
@@ -162,6 +162,10 @@ def create_public_feedback(
     series_name = (payload.seriesName or "").strip()
     notes = (payload.notes or "").strip()
     content = (payload.content or "").strip()
+    if payload.adApplication:
+        if payload.kind != "ad_application":
+            raise HTTPException(status_code=400, detail="廣告資料僅適用廣告申請")
+        content = json.dumps({"adApplication": payload.adApplication.model_dump(), "notes": content}, ensure_ascii=False)
     if not contact_name and not contact_email:
         raise HTTPException(status_code=400, detail="請至少填寫聯絡名稱或 Email")
     if contact_email and (len(contact_email) > 320 or "@" not in contact_email or " " in contact_email):
@@ -1078,14 +1082,14 @@ def read_public_homepage_banner(db: Session = Depends(get_db)):
     global _banner_cache
     now = time.monotonic()
     if _banner_cache is not None and now < _banner_cache[1]:
-        return schemas.HomepageBannerSetting(**_banner_cache[0])
+        return schemas.HomepageBannerSetting(**public_banner_value(_banner_cache[0], "homepage"))
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
         result = schemas.HomepageBannerSetting(items=[])
     else:
         result = schemas.HomepageBannerSetting(**normalize_homepage_banner_value(row.value))
     _banner_cache = (result.model_dump(), now + _BANNER_TTL)
-    return result
+    return schemas.HomepageBannerSetting(**public_banner_value(result.model_dump(), "homepage"))
 
 
 @router.post("/public-terms-acceptances", response_model=schemas.PublicTermsAcceptanceResponse)

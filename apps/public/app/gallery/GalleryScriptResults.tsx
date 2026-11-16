@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { RandomRecommendationStrip } from "./RandomRecommendationStrip";
+import type { MixedGalleryEntry } from "./recommendationModel";
+import { externalScriptCardDetails } from "@/lib/externalScriptCard";
 import {
   ScriptGalleryCard,
   SeriesGalleryCard,
@@ -19,7 +21,7 @@ import {
   groupScriptsIntoGalleryEntries,
 } from "@write/public-ui";
 import { GalleryEmptyState } from "./GalleryEmptyState";
-import { CardCoverPriority, CardMediaImage, CardMediaRegion } from "@/components/CardMediaVisibility";
+import { CardMediaImage, CardMediaRegion } from "@/components/CardMediaVisibility";
 import { publicCardAvatarRenderer } from "@/components/PublicCardAvatar";
 import { ExternalPublicScriptCard } from "@/components/ExternalPublicScriptSection";
 import { externalEntityHref } from "@/lib/externalEntity";
@@ -52,11 +54,6 @@ const STANDARD_GRID = "grid grid-cols-3 gap-3 min-[480px]:grid-cols-4 sm:grid-co
 const DENSE_GRID = "grid grid-cols-4 gap-x-2 gap-y-4 min-[480px]:grid-cols-5 sm:grid-cols-[repeat(auto-fill,minmax(104px,1fr))] sm:gap-x-3 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(108px,1fr))] [&>*]:min-w-0";
 const FEATURED_HOMEPAGE_TAG = "清淡校園練習";
 
-type MixedGalleryEntry =
-  | { kind: "external"; item: ExternalPublicScript }
-  | { kind: "external-series"; entry: Extract<PublicGalleryEntry, { type: "series" }> }
-  | { kind: "gallery"; entry: PublicGalleryEntry };
-
 type ExternalGalleryEntry = Exclude<MixedGalleryEntry, { kind: "gallery" }>;
 
 function toTimestamp(value: number | string | null | undefined): number {
@@ -81,6 +78,7 @@ function externalGalleryInput(item: ExternalPublicScript) {
   const contentTimestamp = item.mountedAt || item.sourceCreatedAt || item.createdAt;
   return enrichScript({
     id: `external:${item.id}`,
+    hasDemo: externalScriptCardDetails(item).hasDemo,
     title: item.title || item.remoteTitle || item.sourceDomain || "未命名台本",
     synopsis: item.summary || item.remoteSummary || "",
     coverUrl: externalCoverSrc(item),
@@ -376,7 +374,7 @@ export function GalleryScriptResults({
             <button
               type="button"
               onClick={() => setRandomSeed(Math.random())}
-              className="inline-flex h-8 items-center rounded-md border border-border/60 bg-background/40 px-3 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+              className="inline-flex h-8 items-center px-1 text-[0.8125rem] text-link hover:underline"
             >
               重新隨機
             </button>
@@ -478,26 +476,8 @@ export function GalleryScriptResults({
   // Default lanes view — ordered by activeLaneMode (active lane first)
   return (
     <div className="space-y-8 sm:space-y-9">
-      {randomEntries.length > 0 && (
-        <HorizontalScrollLane
-          key="random"
-          title="隨機推薦"
-          actionLabel={<><span className="sr-only sm:hidden">換一批</span><span className="hidden sm:inline">換一批</span><RefreshCw className="h-3.5 w-3.5 sm:hidden" aria-hidden /></>}
-          onAction={() => setRandomSeed(Math.random())}
-        >
-          {randomEntries.map((entry, index) => (
-            <CardCoverPriority key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} eager={index < 3}>
-            <div className={CARD_WIDTH}>
-              {entry.kind === "external"
-                ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
-                : entry.kind === "external-series"
-                  ? <SeriesGalleryCard series={entry.entry} variant="standard" href={`/series/${encodeURIComponent(entry.entry.name)}`} authorHref={externalSeriesAuthorHref(entry.entry)} showAgeGate={entry.entry.hasAgeGate} coverImageRenderer={galleryCoverImageRenderer} />
-                  : renderGalleryEntry(entry.entry, cardRenderOptions)}
-            </div>
-            </CardCoverPriority>
-          ))}
-        </HorizontalScrollLane>
-      )}
+      <RandomRecommendationStrip entries={randomEntries} navigationPolicyMap={navigationPolicyMap}
+        onShuffle={() => setRandomSeed(Math.random())} />
       {lanes.ordered.map((lane, laneIndex) =>
         lane.entries.length > 0 || (laneIndex === 0 && externalItems.length > 0) ? (
           <CardMediaRegion key={lane.id} defer={randomEntries.length > 0 || laneIndex > 0}>
@@ -505,7 +485,7 @@ export function GalleryScriptResults({
             initialItemCount={8}
             title={
               lane.isActive ? (
-                <span className="font-semibold">{lane.title}</span>
+                <span>{lane.title}</span>
               ) : (
                 lane.title
               )
@@ -543,7 +523,7 @@ export function GalleryScriptResults({
             <button
               type="button"
               onClick={() => onTagClick(FEATURED_HOMEPAGE_TAG)}
-              className="transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm"
+              className="hover:text-link hover:underline"
               aria-label={`查看${FEATURED_HOMEPAGE_TAG}標籤`}
             >
               {FEATURED_HOMEPAGE_TAG}

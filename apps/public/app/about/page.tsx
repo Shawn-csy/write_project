@@ -69,30 +69,30 @@ export default function AboutPage() {
 
         {/* Below fold — cards, update list, contact */}
         <PublicInfoBelowFold>
-          <PublicInfoSection title="版本資訊" icon="◇" card>
+          <PublicInfoSection title="版本資訊" card>
             <div className="flex items-center justify-between rounded-lg border bg-background px-4 py-3 text-sm">
               <span className="text-muted-foreground">網站版本</span>
               <span className="font-mono font-semibold text-foreground">v{SITE_VERSION}</span>
             </div>
           </PublicInfoSection>
 
-          <PublicInfoSection title="近期更新" icon="↻" card>
+          <PublicInfoSection title="近期更新" card>
             <ul className="space-y-3 text-sm">
-              <li className="rounded-lg border bg-muted/20 p-3">
+              <li className="rounded-lg border bg-muted p-3">
                 <div className="text-xs text-muted-foreground">2026 年 11 月</div>
                 <div className="mt-1 font-medium text-foreground">創作資源與投稿流程</div>
                 <div className="mt-1 text-muted-foreground">
                   資源頁整合聲演、後製、封面與錄音室；新資料與既有頁面的補充可提交審核。
                 </div>
               </li>
-              <li className="rounded-lg border bg-muted/20 p-3">
+              <li className="rounded-lg border bg-muted p-3">
                 <div className="text-xs text-muted-foreground">2026 年 11 月</div>
                 <div className="mt-1 font-medium text-foreground">音聲作品與演出 Demo</div>
                 <div className="mt-1 text-muted-foreground">
                   可依社團瀏覽音聲作品，並查看台本對應的公開演出試聽及聲演身份。
                 </div>
               </li>
-              <li className="rounded-lg border bg-muted/20 p-3">
+              <li className="rounded-lg border bg-muted p-3">
                 <div className="text-xs text-muted-foreground">2026 年 10 月</div>
                 <div className="mt-1 font-medium text-foreground">收錄更多公開台本</div>
                 <div className="mt-1 text-muted-foreground">
@@ -102,13 +102,13 @@ export default function AboutPage() {
             </ul>
           </PublicInfoSection>
 
-          <PublicInfoSection title="聯絡我們" icon="✉" card>
+          <PublicInfoSection title="聯絡我們" card>
             <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href="mailto:silence0603@gmail.com"
-                className="flex-1 flex items-center gap-3 p-4 rounded-xl border bg-background hover:bg-muted/50 transition-colors"
+                className="flex-1 flex items-center gap-3 p-4 rounded-md border bg-background hover:bg-muted transition-colors"
               >
-                <div className="bg-primary/10 p-2.5 rounded-lg">
+                <div className="bg-muted p-2.5 rounded-md">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="20"
@@ -119,7 +119,7 @@ export default function AboutPage() {
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-primary"
+                    className="text-link"
                   >
                     <rect width="20" height="16" x="2" y="4" rx="2" />
                     <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
@@ -134,7 +134,7 @@ export default function AboutPage() {
                 href="https://discordapp.com/users/booostman1"
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 flex items-center gap-3 p-4 rounded-xl border bg-background hover:bg-muted/50 transition-colors"
+                className="flex-1 flex items-center gap-3 p-4 rounded-md border bg-background hover:bg-muted transition-colors"
               >
                 <div className="bg-[#5865F2]/10 p-2.5 rounded-lg">
                   <svg className="w-5 h-5 text-[#5865F2] fill-current" viewBox="0 0 127.14 96.36">

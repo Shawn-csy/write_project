@@ -1,3 +1,4 @@
+import { parseBannerSlides } from "@write/public-ui/server";
 import type { Metadata } from "next";
 import { AudioWorksClient } from "./AudioWorksClient";
 import { apiFetch } from "@/lib/api";
@@ -34,6 +35,10 @@ async function getAudioWorks(): Promise<{ audioWorks: PublicAudioWork[]; organiz
 }
 
 export default async function AudioWorksPage() {
-  const { audioWorks, organizations, retryInBrowser } = await getAudioWorks();
-  return <AudioWorksClient initialWorks={audioWorks} initialOrganizations={organizations} refreshOnMount={STATIC_EXPORT || retryInBrowser} />;
+  const [{ audioWorks, organizations, retryInBrowser }, adBundle] = await Promise.all([
+    getAudioWorks(),
+    apiFetch<{ audioWorkBanner?: unknown }>("/public-bundle?sections=audioWorkBanner", { cache: "no-store" })
+      .catch(() => ({} as { audioWorkBanner?: unknown })),
+  ]);
+  return <AudioWorksClient initialBannerSlides={parseBannerSlides(adBundle.audioWorkBanner) || []} initialWorks={audioWorks} initialOrganizations={organizations} refreshOnMount={STATIC_EXPORT || retryInBrowser} />;
 }

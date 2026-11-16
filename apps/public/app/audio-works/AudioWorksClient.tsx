@@ -1,5 +1,7 @@
 "use client";
 
+import { LiveBannerStrip } from "@/components/LiveBannerStrip";
+import type { HeroSlide } from "@write/public-ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ExternalLink, Headphones, Search } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
@@ -77,7 +79,7 @@ const HANDORU_OFFICIAL_LINKS = [
   { label: "DLsite", url: "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG63553.html" },
 ] as const;
 
-export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOnMount = false }: { initialWorks: PublicAudioWork[]; initialOrganizations: PublicOrg[]; refreshOnMount?: boolean }) {
+export function AudioWorksClient({ initialWorks, initialOrganizations, initialBannerSlides = [], refreshOnMount = false }: { initialWorks: PublicAudioWork[]; initialOrganizations: PublicOrg[]; initialBannerSlides?: HeroSlide[]; refreshOnMount?: boolean }) {
   // Confirm on each visit; the choice is intentionally not persisted between pages.
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [works, setWorks] = useState(initialWorks);
@@ -203,24 +205,25 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
     <div className="flex min-h-screen flex-col bg-background">
       <PublicTopBar activeTab="audio-works" />
       {!ageConfirmed ? (
-        <main className="mx-auto flex w-full max-w-xl flex-1 items-center px-4 py-12 sm:px-6">
-          <section aria-labelledby="audio-age-warning" className="w-full rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
-            <span className="text-xs font-semibold tracking-widest text-red-500">R18</span>
-            <h1 id="audio-age-warning" className="mt-2 font-serif text-2xl font-bold">成人向內容提醒</h1>
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">音聲作品頁包含成人向作品與封面，僅供年滿 18 歲者瀏覽。</p>
-            <div className="mt-7 flex flex-col gap-2 sm:flex-row">
-              <button type="button" onClick={() => setAgeConfirmed(true)} className="inline-flex min-h-11 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">我已年滿 18 歲，進入頁面</button>
+        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
+          <section aria-labelledby="audio-age-warning" className="w-full border-l-4 border-seal bg-muted p-5 sm:p-6">
+            <h1 id="audio-age-warning" className="flex items-center gap-2 text-xl font-bold"><span className="rounded-sm bg-seal px-1.5 py-0.5 text-xs font-bold text-white">R18</span>成人向內容提醒</h1>
+            <p className="mt-3 text-sm leading-relaxed text-foreground">音聲作品頁包含成人向作品與封面，僅供年滿 18 歲者瀏覽。</p>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button type="button" onClick={() => setAgeConfirmed(true)} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">我已年滿 18 歲，進入頁面</button>
               <a href="/" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-5 text-sm font-medium hover:bg-muted">返回首頁</a>
             </div>
           </section>
         </main>
       ) : (
+      <>
+      <LiveBannerStrip slides={initialBannerSlides} placement="audio-works" />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-col gap-3 border-b border-border/70 pb-4 sm:mb-7 sm:flex-row sm:items-center sm:justify-between sm:pb-5">
+        <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:mb-7 sm:flex-row sm:items-center sm:justify-between sm:pb-5">
           <div className="flex min-w-0 items-center gap-3">
             {selected && <button type="button" onClick={() => select(null)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-muted" aria-label="返回音聲作品總覽"><ArrowLeft className="h-4 w-4" /></button>}
-            {selected?.org.logoUrl && <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full border border-border bg-card"><PublicImage src={selected.org.logoUrl} alt={`${selected.org.name}圖像`} preset="logo" /></span>}
-            <h1 className="font-serif text-2xl font-bold tracking-tight sm:text-3xl">{selected?.org.name || "音聲作品"}</h1>
+            {selected?.org.logoUrl && <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-card"><PublicImage src={selected.org.logoUrl} alt={`${selected.org.name}圖像`} preset="logo" /></span>}
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{selected?.org.name || "音聲作品"}</h1>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <AudioWorkSubmissionDialog organizations={organizations} />
@@ -229,14 +232,14 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
         </div>
 
         {!loaded ? (
-          <div className="grid gap-4" aria-label="載入作品">{Array.from({ length: 2 }, (_, index) => <div key={index} className="h-48 animate-pulse rounded-xl bg-muted/70" />)}</div>
+          <div className="grid gap-4" aria-label="載入作品">{Array.from({ length: 2 }, (_, index) => <div key={index} className="h-48 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : selected ? (
           <section aria-label={`${selected.org.name}的作品`}>
             {selected.org.description && <p className="mb-5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{selected.org.description}</p>}
             {officialLinks.length > 0 && (
               <nav aria-label={`${selected.org.name}官方連結`} className="mb-6 flex flex-wrap gap-2">
                 {officialLinks.map((link) => (
-                  <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/50 hover:text-primary sm:text-sm">
+                  <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-xs font-medium text-foreground hover:bg-muted sm:text-sm">
                     {link.label}<ExternalLink className="h-3.5 w-3.5" aria-hidden />
                   </a>
                 ))}
@@ -262,13 +265,13 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
             {filteredWorks.length > visibleCount && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
           </section>
         ) : selectedId ? (
-          <section className="rounded-xl border border-border/70 p-8 text-center">
+          <section className="rounded-xl border border-border p-8 text-center">
             <p>找不到這個組織的公開作品。</p>
-            <button type="button" onClick={() => select(null)} className="mt-4 text-sm text-primary hover:underline">返回總覽</button>
+            <button type="button" onClick={() => select(null)} className="mt-4 text-sm text-link hover:underline">返回總覽</button>
           </section>
         ) : works.length === 0 ? (
-          <section className="rounded-xl border border-dashed border-border/70 px-6 py-16 text-center">
-            <Headphones className="mx-auto h-8 w-8 text-muted-foreground/60" aria-hidden />
+          <section className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
+            <Headphones className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden />
             <h2 className="mt-4 text-base font-semibold">目前沒有公開作品</h2>
           </section>
         ) : (
@@ -283,15 +286,15 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
               {visibleGroups.length > 0 ? <div className="grid gap-4 md:grid-cols-2">
               {visibleGroups.map(({ org, works: orgWorks }) => {
                 const banner = org.bannerUrl;
-                return <button type="button" key={org.id} onClick={() => select(org.id)} className="group flex w-full flex-col overflow-hidden rounded-xl border border-border/70 bg-card/50 text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <span className="relative block aspect-[2.4/1] w-full overflow-hidden bg-gradient-to-br from-primary/15 via-muted to-background">
-                    {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : <span className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_75%_25%,hsl(var(--primary)/0.22),transparent_50%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--muted)))] text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-primary/70" aria-hidden /><span className="block px-4 font-serif text-2xl font-semibold tracking-wide text-foreground/85">{org.name}</span></span></span>}
-                    {org.logoUrl && <span className="absolute bottom-3 left-3 h-14 w-14 overflow-hidden rounded-full border-2 border-white bg-white shadow-md"><PublicImage src={org.logoUrl} alt={`${org.name}圖像`} preset="logo" /></span>}
+                return <button type="button" key={org.id} onClick={() => select(org.id)} className="group flex w-full flex-col overflow-hidden rounded-md border border-border bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <span className="relative block aspect-[2.4/1] w-full overflow-hidden bg-muted">
+                    {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : <span className="flex h-full items-center justify-center text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden /><span className="block px-4 text-xl font-bold text-foreground">{org.name}</span></span></span>}
+                    {org.logoUrl && <span className="absolute bottom-3 left-3 h-14 w-14 overflow-hidden rounded-md border border-border bg-white"><PublicImage src={org.logoUrl} alt={`${org.name}圖像`} preset="logo" /></span>}
                   </span>
                   <span className="flex flex-1 flex-col gap-2 px-5 py-4">
                     <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><span className="text-lg font-semibold sm:text-xl">{org.name}</span><span className="text-xs text-muted-foreground">{orgWorks.length} 件作品</span></span>
                     {org.description && <span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{org.description}</span>}
-                    <span className="mt-auto inline-flex items-center gap-1 pt-1 text-sm font-medium text-primary">查看作品 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
+                    <span className="mt-auto inline-flex items-center gap-1 pt-1 text-sm text-link group-hover:underline">查看作品 <ArrowRight className="h-4 w-4" /></span>
                   </span>
                 </button>;
               })}
@@ -304,6 +307,7 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, refreshOn
           </div>
         )}
       </main>
+      </>
       )}
       <PublicFooter />
     </div>
@@ -316,22 +320,22 @@ function AudioWorkCard({ work }: { work: PublicAudioWork }) {
     !work.credits?.length || !/^\s*[【〔]?(?:聲演|聲優|声優|配音|CV|台本|劇本|脚本|シナリオ|封面|插畫|イラスト|後製|後期|混音|錄音|音效|聲音導演|音樂|配樂|美術|設計|標題設計|導演|監修|原著|原案|製作|共同製作|企劃|企画|制作|其他演出)(?:[・／/、+＆&](?:後製|後期|錄音|配音))?[】〕]?\s*[：:|｜]/i.test(line)
   ).join("\n").trim();
   return (
-    <article className="overflow-hidden rounded-xl border border-border/70 bg-card/40">
+    <article className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {work.coverUrl ? <PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" /> : <div className="flex h-full items-center justify-center"><Headphones className="h-9 w-9 text-muted-foreground/50" aria-hidden /></div>}
-        {isAdultWork && <span className="absolute left-2 top-2 rounded bg-red-600 px-1.5 py-0.5 [font-size:var(--public-font-caption)] font-bold text-white">成人向</span>}
+        {isAdultWork && <span className="absolute left-2 top-2 rounded-sm bg-seal px-1.5 py-0.5 [font-size:var(--public-font-caption)] font-bold text-white">成人向</span>}
         {isFreeWork(work) && <span className="absolute right-2 top-2 rounded bg-slate-900/85 px-1.5 py-0.5 [font-size:var(--public-font-caption)] font-bold text-white">免費版</span>}
       </div>
       <div className="p-3 sm:p-4">
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug sm:text-base">{work.title}</h3>
         {work.creatorName && <p className="mt-1 text-xs text-muted-foreground">{work.creatorName}</p>}
         {work.publishedAt != null && <time className="mt-1 block text-xs text-muted-foreground" dateTime={new Date(work.publishedAt).toISOString()}>{work.url.includes("cxc.today/") ? (work.url.includes("/track/") ? "CxC 上架 " : "CxC 更新 ") : "發售 "}{new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Taipei" }).format(work.publishedAt)}</time>}
-        {Boolean(work.voiceActors?.length) && <p className="mt-1 flex flex-wrap gap-x-1 text-xs text-muted-foreground">聲演：{work.voiceActors!.map((actor, index) => <span key={actor.id}>{index > 0 ? "、" : ""}<a href={`/author/${actor.id}`} className="text-primary hover:underline">{actor.name}</a></span>)}</p>}
-        <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline sm:text-sm">前往作品頁 <ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
-        {(Boolean(work.credits?.length) || introduction) && <details className="mt-3 border-t border-border/60 pt-2 text-xs text-muted-foreground sm:text-sm">
+        {Boolean(work.voiceActors?.length) && <p className="mt-1 flex flex-wrap gap-x-1 text-xs text-muted-foreground">聲演：{work.voiceActors!.map((actor, index) => <span key={actor.id}>{index > 0 ? "、" : ""}<a href={`/author/${actor.id}`} className="text-link hover:underline">{actor.name}</a></span>)}</p>}
+        <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-link hover:underline sm:text-sm">前往作品頁 <ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
+        {(Boolean(work.credits?.length) || introduction) && <details className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground sm:text-sm">
           <summary className="cursor-pointer font-medium text-foreground">製作人員與介紹</summary>
-          {Boolean(work.credits?.length) && <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 leading-relaxed">{work.credits!.map((credit, index) => <div className="contents" key={`${credit.role}-${credit.creditedAs}-${index}`}><dt className="whitespace-nowrap text-muted-foreground">{credit.sourceRole}</dt><dd className="break-words text-foreground">{credit.creditedAs}{credit.provenance === "catalog_description" && <span className="ml-1 text-muted-foreground/70">（本站原有資料）</span>}</dd></div>)}</dl>}
-          {work.credits?.some((credit) => credit.provenance === "official_page") && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-primary hover:underline">核對來源 ↗</a>}
+          {Boolean(work.credits?.length) && <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 leading-relaxed">{work.credits!.map((credit, index) => <div className="contents" key={`${credit.role}-${credit.creditedAs}-${index}`}><dt className="whitespace-nowrap text-muted-foreground">{credit.sourceRole}</dt><dd className="break-words text-foreground">{credit.creditedAs}{credit.provenance === "catalog_description" && <span className="ml-1 text-muted-foreground">（本站原有資料）</span>}</dd></div>)}</dl>}
+          {work.credits?.some((credit) => credit.provenance === "official_page") && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-link hover:underline">核對來源 ↗</a>}
           {introduction && <p className="mt-3 whitespace-pre-line break-words leading-relaxed">{introduction}</p>}
         </details>}
       </div>

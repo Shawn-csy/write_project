@@ -1,15 +1,8 @@
 "use client";
 
-import { useMemo, useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense } from "react";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
-import {
-  PublicHeroMarquee,
-  GalleryHoverPreviewProvider,
-  type HeroSlide,
-  type HeroImageRenderer,
-  type HeroSlideContentRenderer,
-} from "@write/public-ui";
-import { HeroImage } from "@/components/HeroImage";
+import { GalleryHoverPreviewProvider, type HeroSlide } from "@write/public-ui";
 import { PanelLeftClose } from "lucide-react";
 import { GalleryFilterPanel } from "./gallery/GalleryFilterPanel";
 const GalleryListOverlay = lazy(() => import("./gallery/GalleryListOverlay").then(m => ({ default: m.GalleryListOverlay })));
@@ -17,11 +10,10 @@ import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
 import { GalleryTopBar } from "./gallery/GalleryTopBar";
-import { GalleryBrandHeroSlide } from "./gallery/GalleryBrandHeroSlide";
+import { LiveBannerStrip } from "@/components/LiveBannerStrip";
 import type { GallerySortValue } from "./gallery/GallerySortControl";
 import type { ActiveGalleryFilterChip } from "./gallery/GalleryFilterSummary";
 import { GalleryToolbar } from "./gallery/GalleryToolbar";
-import { buildHomepageHeroSlides, type BrandHeroSlide } from "./gallery/homepageHeroModel";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
@@ -39,13 +31,6 @@ interface Props {
   showBrandHero?: boolean;
   initialUrlState: PublicHomepageUrlState;
 }
-
-const heroSlideContentRenderer: HeroSlideContentRenderer = (slide, _index, defaultContent) => {
-  if ((slide as { type?: string }).type === "brand") {
-    return <GalleryBrandHeroSlide slide={slide as BrandHeroSlide} />;
-  }
-  return defaultContent;
-};
 
 export function GalleryClient({ initialScripts, initialExternalPublicScripts, initialPersonas, initialOrganizations, initialActivities = [], initialBannerSlides, showBrandHero = true, initialUrlState }: Props) {
   const {
@@ -104,24 +89,6 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
       filterPanelProps.onToggleTag(chip.value);
     }
   };
-  const heroSlides = useMemo(
-    () => buildHomepageHeroSlides(bannerSlides ?? undefined, showBrandHero),
-    [bannerSlides, showBrandHero]
-  );
-  const firstImageIndex = heroSlides.findIndex((slide) => {
-    if (slide.type === "brand") return false;
-    return Boolean(slide.image?.url || slide.imageUrl);
-  });
-  const heroImageRenderer = useMemo<HeroImageRenderer>(
-    () => (image, slide, index) => (
-      <HeroImage
-        image={image}
-        priority={index === firstImageIndex}
-        slideTitle={slide.title}
-      />
-    ),
-    [firstImageIndex]
-  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -130,30 +97,21 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
       />
 
       <div className="flex flex-col flex-1">
-        {/* Hero — superadmin config controls whether the brand slide is prepended. */}
-        {view === "scripts" && heroSlides.length > 0 && (
-          <PublicHeroMarquee
-            slides={heroSlides}
-            fullBleed
-            compactOnMobile
-            renderImage={heroImageRenderer}
-            renderSlideContent={heroSlideContentRenderer}
-          />
-        )}
+        {view === "scripts" && <LiveBannerStrip slides={bannerSlides ?? undefined} placement="homepage" showBrandHero={showBrandHero} />}
 
         {view === "scripts" && <HomepageActivityBanner activities={initialActivities} />}
 
         <div className={`flex flex-1 w-full py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6 ${view === "scripts" ? "px-4 sm:px-5 lg:px-8" : "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8"}`}>
         {/* Desktop sidebar — only when expanded */}
         {view === "scripts" && !sidebarCollapsed && (
-          <aside className="hidden lg:flex lg:flex-col w-60 shrink-0">
-            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto overscroll-contain">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="[font-size:var(--public-font-caption)] font-semibold text-muted-foreground uppercase tracking-widest">篩選</span>
+          <aside className="hidden lg:flex lg:flex-col w-56 shrink-0">
+            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto overflow-x-hidden overscroll-contain">
+              <div className="section-bar mb-3 flex items-center justify-between">
+                <span className="text-[0.9375rem] font-bold text-foreground">篩選</span>
                 <button
                   type="button"
                   onClick={() => setSidebarCollapsed(true)}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                  className="-my-1 -mr-1.5 inline-flex h-8 w-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-background hover:text-foreground"
                   aria-label="收起篩選欄"
                 >
                   <PanelLeftClose className="w-4 h-4" />

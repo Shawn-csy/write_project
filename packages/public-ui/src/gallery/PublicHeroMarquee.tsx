@@ -142,7 +142,7 @@ export function PublicHeroMarquee({
   const jumpToLabel = labels?.jumpTo ?? ((i: number) => `切換到第 ${i + 1} 張`);
 
   return (
-    <section className="w-full border-b border-border/60 bg-background/50" aria-label={regionLabel}>
+    <section className="w-full border-b border-border bg-background" aria-label={regionLabel}>
       <div
         className={
           fullBleed
@@ -152,8 +152,8 @@ export function PublicHeroMarquee({
       >
         <div
           className={cn(
-            "relative overflow-hidden border border-border/70",
-            fullBleed ? "rounded-none border-x-0" : "rounded-xl"
+            "relative overflow-hidden border border-border",
+            fullBleed ? "rounded-none border-0" : "rounded-sm"
           )}
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -231,7 +231,7 @@ export function PublicHeroMarquee({
                         {hasLink ? (
                           <a
                             href={String(slide.link).trim()}
-                            className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 pointer-events-auto hover:bg-white/75 dark:hover:bg-black/55 transition-all duration-300 shadow-lg shadow-black/10"
+                            className="relative z-20 max-w-xl rounded-md bg-card px-4 py-3 pointer-events-auto hover:bg-card"
                             aria-label={slide.title || regionLabel}
                           >
                             {hasTitle ? (
@@ -242,7 +242,7 @@ export function PublicHeroMarquee({
                             ) : null}
                           </a>
                         ) : (
-                          <div className="relative z-20 max-w-xl rounded-xl border border-white/25 bg-white/60 px-4 py-3 backdrop-blur-md dark:border-white/10 dark:bg-black/40 shadow-lg shadow-black/10">
+                          <div className="relative z-20 max-w-xl rounded-md bg-card px-4 py-3">
                             {hasTitle ? (
                               <p className="text-sm sm:text-lg font-bold text-foreground tracking-tight">{slide.title}</p>
                             ) : null}
@@ -276,7 +276,7 @@ export function PublicHeroMarquee({
               <div className="absolute inset-y-0 left-2 z-30 flex items-center">
                 <button
                   type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-input bg-background/70 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted"
                   onClick={() => goTo(activeIndex - 1)}
                   aria-label={prevLabel}
                 >
@@ -287,7 +287,7 @@ export function PublicHeroMarquee({
               <div className="absolute inset-y-0 right-2 z-30 flex items-center">
                 <button
                   type="button"
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-input bg-background/70 text-foreground shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-muted"
                   onClick={() => goTo(activeIndex + 1)}
                   aria-label={nextLabel}
                 >
@@ -295,7 +295,7 @@ export function PublicHeroMarquee({
                 </button>
               </div>
 
-              <div className="absolute bottom-3 right-3 z-30 flex items-center gap-0.5 rounded-full border border-white/15 bg-black/35 px-1.5 py-1 shadow-sm backdrop-blur-md">
+              <div className="absolute bottom-3 right-3 z-30 flex items-center gap-0.5 rounded-sm bg-black/70 px-1.5 py-1">
                 {safeSlides.map((slide, index) => (
                   <button
                     key={`dot-${slide.id || index}`}

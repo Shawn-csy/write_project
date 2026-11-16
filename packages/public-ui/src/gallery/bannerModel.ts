@@ -46,6 +46,9 @@ export const DEV_PLACEHOLDER_SLIDES: readonly {
 export type HeroSlideBackground = "default" | "none";
 
 export interface HeroSlide {
+  placement?: "homepage" | "demos" | "audio-works";
+  startDate?: string;
+  endDate?: string;
   id?: string | number;
   /** Optional eyebrow used by the homepage's editable brand-intro slide. */
   eyebrow?: string;
@@ -125,6 +128,9 @@ export function parseBannerSlides(banner: unknown): HeroSlide[] | undefined {
     return valid.map((item, idx) => {
       const image = parseHeroImage(item);
       return {
+        placement: item.placement as HeroSlide["placement"],
+        startDate: item.startDate as string | undefined,
+        endDate: item.endDate as string | undefined,
         id: (item.id as string | undefined) ?? `banner-${idx + 1}`,
         ...(item.eyebrow ? { eyebrow: item.eyebrow as string } : {}),
         title: item.title as string | undefined,

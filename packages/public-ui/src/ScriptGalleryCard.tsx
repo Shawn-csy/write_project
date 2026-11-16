@@ -192,17 +192,6 @@ function ScriptGalleryCardInner({
     }
   }, [id, isLiked, onLike]);
 
-  // 3D tilt on cover (standard only)
-  const handleCoverPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
-    e.currentTarget.style.transform = `perspective(500px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) scale(1.03)`;
-  };
-  const handleCoverPointerLeave = (e: React.PointerEvent<HTMLDivElement>) => {
-    e.currentTarget.style.transform = "";
-  };
-
   const handleArticleClick = !href
     ? () => { onView?.(id); onNavigate?.(id); }
     : undefined;
@@ -255,7 +244,7 @@ function ScriptGalleryCardInner({
       dateLabel={script.dateLabel}
       dateTime={script.dateTime}
       articleProps={hoverPreviewProps}
-      coverContainerProps={variant === "standard" ? { onPointerMove: handleCoverPointerMove as unknown as React.PointerEventHandler<HTMLDivElement>, onPointerLeave: handleCoverPointerLeave as unknown as React.PointerEventHandler<HTMLDivElement> } : undefined}
+      coverContainerProps={undefined}
     />
   );
 }

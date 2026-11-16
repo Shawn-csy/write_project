@@ -40,13 +40,13 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
       {org.bannerUrl && (
         <div className="relative h-48 overflow-hidden bg-muted">
           <PublicImage src={org.bannerUrl} alt="" preset="org-banner" crop={org.bannerCrop} />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
         </div>
       )}
 
       <div className="w-full px-3 sm:px-5 lg:px-8 pb-20">
         {/* Org header card */}
-        <div className={`relative mb-8 rounded-xl border border-border/60 bg-background p-6 shadow-sm md:p-8 ${org.bannerUrl ? "-mt-16" : "mt-6 sm:mt-8"}`}>
+        <div className={`mb-8 border-b border-border pb-6 pt-6`}>
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Logo */}
             <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-background bg-muted overflow-hidden shrink-0 shadow">
@@ -60,7 +60,7 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
             </div>
 
             <div className="flex-1 space-y-3 pt-2">
-              <h1 className="text-3xl font-bold font-serif">{org.name}</h1>
+              <h1 className="text-2xl font-bold">{org.name}</h1>
 
               {org.description && (
                 <p className="text-foreground/85 leading-relaxed max-w-2xl">
@@ -75,7 +75,7 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
                     {model.profileTags.map((tag, i) => (
                       <span
                         key={i}
-                        className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground"
+                        className="text-xs px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground"
                       >
                         {tag}
                       </span>
@@ -90,7 +90,7 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
                     href={org.website}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-primary hover:underline"
+                    className="text-link hover:underline"
                   >
                     🔗 官方網站
                   </a>
@@ -102,15 +102,15 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
         </div>
 
         {/* Tabs */}
-        {tabs.length > 1 && <div className="flex gap-1 rounded-lg border border-border/60 bg-muted/30 p-1 mb-5 w-fit">
+        {tabs.length > 1 && <div className="flex gap-1 rounded-lg border border-border bg-muted p-1 mb-5 w-fit">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                visibleTab === tab.id
-                  ? "bg-background text-foreground font-medium shadow-sm border border-border/60"
+ visibleTab === tab.id
+ ? "bg-background text-foreground font-medium border border-border"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -121,8 +121,8 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
 
         {/* Works */}
         {visibleTab === "scripts" && (
-          <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
-            {tabs.length === 1 && <h2 className="mb-4 text-lg font-semibold">台本作品</h2>}
+          <section>
+            {tabs.length === 1 && <div className="section-bar mb-4"><h2 className="text-[17px] font-bold">台本作品</h2></div>}
             {scriptCount === 0 ? (
               <p className="text-muted-foreground text-sm py-8 text-center">
                 目前沒有公開作品
@@ -143,8 +143,8 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
         )}
 
         {visibleTab === "audio" && (
-          <section className="rounded-xl border border-border/60 bg-muted/20 p-5 sm:p-7">
-            <h2 className="text-lg font-semibold">音聲作品</h2>
+          <section>
+            <div className="section-bar"><h2 className="text-[17px] font-bold">音聲作品</h2></div>
             <p className="mt-2 text-sm text-muted-foreground">此社團收錄 {audioWorks.length} 件音聲作品，可查看作品介紹、聲演及發售資訊。</p>
             <a href={`/audio-works?organization=${encodeURIComponent(org.id)}`} className="mt-5 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">查看音聲作品</a>
           </section>
@@ -152,7 +152,7 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
 
         {/* Members */}
         {visibleTab === "members" && (
-          <section className="rounded-xl border border-border/60 bg-muted/20 p-4 sm:p-6">
+          <section>
             {members.length === 0 ? (
               <p className="text-muted-foreground text-sm py-8 text-center">
                 目前沒有成員資料
@@ -163,9 +163,9 @@ export function OrgPageClient({ org, scripts, externalScripts = [], audioWorks =
                   <a
                     key={member.id}
                     href={`/author/${member.id}`}
-                    className="flex items-center gap-3 rounded-lg border border-border/60 bg-background p-4 hover:border-primary/50 transition-colors"
+                    className="flex items-center gap-3 rounded-lg border border-border bg-background p-4"
                   >
-                    <div className="relative w-10 h-10 rounded-full bg-muted overflow-hidden shrink-0">
+                    <div className="relative w-10 h-10 rounded-md border border-border bg-muted overflow-hidden shrink-0">
                       {member.avatar ? (
                         <PublicImage src={member.avatar} alt={member.displayName} preset="avatar" sizes="40px" />
                       ) : (

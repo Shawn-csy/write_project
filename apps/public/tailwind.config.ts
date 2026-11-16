@@ -50,15 +50,24 @@ const config: Config = {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
+        seal: "hsl(var(--seal))",
+        link: "hsl(var(--link))",
+        cta: "hsl(var(--cta))",
+        band: "hsl(var(--band))",
+        success: { DEFAULT: "hsl(var(--success))", muted: "hsl(var(--success-muted))" },
+        warning: { DEFAULT: "hsl(var(--warning))", muted: "hsl(var(--warning-muted))" },
+        "danger-muted": "hsl(var(--danger-muted))",
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
       },
       borderRadius: {
-        lg: "0.875rem",
-        md: "0.625rem",
-        sm: "0.4375rem",
+        "2xl": "0.5rem",
+        xl: "0.375rem",
+        lg: "0.25rem",
+        md: "0.1875rem",
+        sm: "0.125rem",
       },
       keyframes: {
         "accordion-down": {

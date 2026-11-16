@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { liveApi } from "@/lib/liveApi";
 
-const inputClass = "h-10 w-full rounded-lg border border-border/70 bg-background px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15";
+const inputClass = "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-link";
 const emptyWork = () => ({ title: "", url: "", role: "", workType: "audio", coverUrl: "" });
 
 export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory: string }) {
@@ -59,12 +59,12 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
   }
 
   return <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (next) setCategory(defaultCategory); else { setSubmitted(false); setError(""); } }}>
-    <Dialog.Trigger asChild><button type="button" className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground hover:opacity-90 sm:h-10 sm:gap-1.5 sm:px-4"><Plus className="h-4 w-4" aria-hidden />投稿資源</button></Dialog.Trigger>
+    <Dialog.Trigger asChild><button type="button" className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md bg-cta px-3 text-sm font-bold text-white hover:opacity-90 sm:h-10 sm:gap-1.5 sm:px-4"><Plus className="h-4 w-4" aria-hidden />投稿資源</button></Dialog.Trigger>
     <Dialog.Portal>
-      <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
-      <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border/70 bg-background p-5 shadow-2xl sm:p-6">
+      <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
+      <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-background p-5 shadow-lg sm:p-6">
         <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="text-lg font-semibold">投稿資源</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">送出後由管理員審核，核准才會公開。已有頁面請在該頁補充資料。</Dialog.Description></div><Dialog.Close asChild><button type="button" aria-label="關閉投稿表單" className="rounded-md p-2 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" aria-hidden /></button></Dialog.Close></div>
-        {submitted ? <p role="status" className="mt-5 rounded-lg border border-emerald-700/30 bg-emerald-500/10 p-4 text-sm">投稿已送出，審核通過後會公開。</p> : <form onSubmit={submit} className="mt-5 grid gap-3 sm:grid-cols-2">
+        {submitted ? <p role="status" className="mt-5 rounded-lg border border-success bg-success-muted p-4 text-sm">投稿已送出，審核通過後會公開。</p> : <form onSubmit={submit} className="mt-5 grid gap-3 sm:grid-cols-2">
           <label className="grid gap-1 text-sm">資源類別<select value={category} onChange={(event) => setCategory(event.target.value)} className={inputClass}><option value="voice_actor">聲演</option><option value="post_production">後製</option><option value="cover_art">封面</option><option value="recording_studio">錄音室</option></select></label>
           <label className="grid gap-1 text-sm">名稱<input name="name" required maxLength={120} className={inputClass} /></label>
           <label className="grid gap-1 text-sm sm:col-span-2">簡介<textarea name="bio" maxLength={4000} rows={3} className={`${inputClass} h-auto py-2`} /></label>
@@ -73,9 +73,9 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
           <label className="grid gap-1 text-sm">其他連結名稱<input name="socialLabel" maxLength={120} placeholder="例如 X、Instagram" className={inputClass} /></label>
           <label className="grid gap-1 text-sm">其他連結網址<input name="socialUrl" type="url" placeholder="https://…" maxLength={2000} className={inputClass} /></label>
           <div className="sm:col-span-2">
-            <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">參與作品{category === "voice_actor" ? "（選填）" : "（至少一部）"}</p><button type="button" disabled={works.length >= 20} onClick={() => setWorks([...works, emptyWork()])} className="text-sm text-primary hover:underline disabled:opacity-50">新增作品</button></div>
+            <div className="flex items-center justify-between gap-2"><p className="text-sm font-medium">參與作品{category === "voice_actor" ? "（選填）" : "（至少一部）"}</p><button type="button" disabled={works.length >= 20} onClick={() => setWorks([...works, emptyWork()])} className="text-sm text-link hover:underline disabled:opacity-50">新增作品</button></div>
             <p className="mt-1 text-xs text-muted-foreground">可填音聲、遊戲、影片或其他作品；公開頁會顯示審核通過的作品。</p>
-            {works.map((work, index) => <div key={index} className="mt-2 grid gap-2 rounded-lg border border-border/70 p-2 sm:grid-cols-2">
+            {works.map((work, index) => <div key={index} className="mt-2 grid gap-2 rounded-lg border border-border p-2 sm:grid-cols-2">
               <input aria-label={`作品名稱 ${index + 1}`} placeholder="作品名稱" maxLength={200} value={work.title} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, title: e.target.value } : item))} className={inputClass} />
               <input aria-label={`作品網址 ${index + 1}`} type="url" placeholder="作品網址 https://…" maxLength={2000} value={work.url} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, url: e.target.value } : item))} className={inputClass} />
               <select aria-label={`作品類型 ${index + 1}`} value={work.workType} onChange={(e) => setWorks(works.map((item, i) => i === index ? { ...item, workType: e.target.value } : item))} className={inputClass}><option value="audio">音聲</option><option value="game">遊戲</option><option value="video">影片</option><option value="other">其他</option></select>

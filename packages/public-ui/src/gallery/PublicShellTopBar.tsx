@@ -60,6 +60,20 @@ export interface PublicShellTopBarProps {
   renderLink?: (props: { href: string; className: string; ariaCurrent?: "page"; children: React.ReactNode }) => React.ReactNode;
 }
 
+/**
+ * The bar is a solid brand-colour band. Re-pointing the colour variables here lets every
+ * action dropped into its slots (which style themselves with text-muted-foreground,
+ * hover:bg-muted…) read correctly on the dark band without knowing about it.
+ */
+const BAND_STYLE = {
+  "--background": "var(--band)",
+  "--foreground": "0 0% 100%",
+  "--muted-foreground": "var(--band-muted-foreground)",
+  "--muted": "var(--band-muted)",
+  "--border": "var(--band-border)",
+  borderBottom: "1px solid hsl(var(--border))",
+} as React.CSSProperties;
+
 type LinkRenderer = NonNullable<PublicShellTopBarProps["renderLink"]>;
 
 function cn(...classes: (string | undefined | false | null)[]): string {
@@ -68,13 +82,13 @@ function cn(...classes: (string | undefined | false | null)[]): string {
 
 function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
-    "relative flex h-9 items-center justify-center px-3.5 text-[0.8125rem] rounded-md transition-all duration-150 whitespace-nowrap",
+    "relative flex h-full items-center justify-center px-3 text-[0.875rem] whitespace-nowrap transition-colors duration-100",
     tab.hideOnTablet && "hidden lg:inline-flex",
     isActive && activeTabStyle === "pill"
-      ? "bg-primary text-primary-foreground font-medium"
+      ? "bg-foreground text-background font-semibold"
       : isActive && activeTabStyle === "subtle"
-        ? "bg-muted/60 text-foreground font-semibold after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-primary"
-        : "text-muted-foreground hover:text-foreground hover:bg-muted/40 font-normal"
+        ? "text-foreground font-bold after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-foreground"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted font-normal"
   );
 
   if (tab.href) {
@@ -104,11 +118,11 @@ function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShe
 
 function MobileTabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
-    "relative flex h-9 items-center justify-center px-3.5 text-[0.8125rem] whitespace-nowrap transition-all duration-150",
+    "relative flex h-10 items-center justify-center px-3 text-[0.875rem] whitespace-nowrap transition-colors duration-100",
     isActive && activeTabStyle === "pill"
-      ? "rounded-md bg-primary text-primary-foreground font-medium"
+      ? "bg-foreground text-background font-semibold"
       : isActive && activeTabStyle === "subtle"
-        ? "rounded-md bg-muted/60 text-foreground font-semibold after:absolute after:bottom-0 after:left-1/2 after:h-0.5 after:w-4 after:-translate-x-1/2 after:rounded-full after:bg-primary"
+        ? "text-foreground font-bold after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-foreground"
         : "text-muted-foreground font-normal"
   );
 
@@ -147,7 +161,7 @@ export function PublicShellTopBar({
   const hasTabs = tabs.length > 0;
   const brandContent = <>
     <div className="relative w-7 h-7 shrink-0">
-      <div className="absolute inset-0 rounded-[6px] bg-foreground/90 group-hover:bg-foreground transition-colors duration-200" />
+      <div className="absolute inset-0 rounded-[3px] bg-foreground" />
       <svg viewBox="0 0 28 28" fill="none" className="absolute inset-0 w-full h-full p-[5px] text-background" aria-hidden="true">
         <path d="M16 4.5 C17.5 4.5 19 6 18.5 8.5 L17 21.5 C16.5 23 15.5 24 14 23" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         <line x1="10" y1="14" x2="18" y2="14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -155,15 +169,15 @@ export function PublicShellTopBar({
       </svg>
     </div>
     <div className="flex flex-col justify-center gap-0">
-      <span className="font-serif font-bold text-foreground text-[1.0625rem] leading-none group-hover:text-primary transition-colors duration-200">{brandName}</span>
-      {brandSubtitle && <span className="hidden sm:block text-[10px] text-muted-foreground/50 font-normal leading-none mt-0.5 tracking-[0.03em]">{brandSubtitle}</span>}
+      <span className="font-bold text-foreground text-[1.0625rem] leading-none">{brandName}</span>
+      {brandSubtitle && <span className="hidden sm:block text-[0.6875rem] text-muted-foreground font-normal leading-none mt-1">{brandSubtitle}</span>}
     </div>
   </>;
 
   return (
     <header
-      className="sticky top-0 z-40 bg-background/97 backdrop-blur-xl"
-      style={{ borderBottom: "1px solid hsl(var(--border) / 0.6)" }}
+      className="sticky top-0 z-40 bg-background text-foreground"
+      style={BAND_STYLE}
     >
       {/* Row 1: brand + actions */}
       <div className="relative flex h-11 items-center px-4 sm:h-[3.5rem] sm:px-6 lg:px-8 w-full gap-2">
@@ -177,8 +191,8 @@ export function PublicShellTopBar({
         {/* Divider + desktop tabs */}
         {hasTabs && (
           <>
-            <div className="hidden sm:block w-px h-5 bg-border/60 mx-1 shrink-0" aria-hidden />
-            <nav className="hidden sm:flex items-center gap-0.5" aria-label="公開頁面導航">
+            <div className="hidden sm:block w-px h-5 bg-border mx-2 shrink-0" aria-hidden />
+            <nav className="hidden sm:flex h-full items-stretch" aria-label="公開頁面導航">
               {tabs.map((tab) => (
                 <TabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} renderLink={renderLink} />
               ))}
@@ -216,14 +230,14 @@ export function PublicShellTopBar({
 
       {/* Row 2: mobile inline tabs */}
       {mobileNav ? (
-        <div className="sm:hidden overflow-x-auto" style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}>
+        <div className="sm:hidden overflow-x-auto" style={{ borderTop: "1px solid hsl(var(--border))" }}>
           {mobileNav}
         </div>
       ) : hasTabs && !mobileTabSwitcher && (
         <nav
-          className="sm:hidden flex items-center px-2 gap-0.5 overflow-x-auto scrollbar-hide"
+          className="sm:hidden flex items-center px-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           aria-label="公開頁面導航"
-          style={{ borderTop: "1px solid hsl(var(--border) / 0.3)" }}
+          style={{ borderTop: "1px solid hsl(var(--border))" }}
         >
           {tabs.map((tab) => (
             <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} renderLink={renderLink} />

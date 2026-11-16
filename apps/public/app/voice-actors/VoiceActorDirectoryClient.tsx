@@ -71,27 +71,27 @@ export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initi
         <PublicBrowseHeader title="聲演" count={`${visible.length} 位`} actions={
           <label className="relative block w-full sm:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 w-full rounded-lg border border-border/70 bg-card pl-9 pr-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15" placeholder="搜尋聲演" aria-label="搜尋聲演" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-link" placeholder="搜尋聲演" aria-label="搜尋聲演" />
           </label>
         } />
 
         {visible.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border/70 bg-card/40 px-6 py-14 text-center text-sm text-muted-foreground">{query.trim() ? "找不到符合的聲演。" : "目前還沒有公開聲演身份。"}</div>
+          <div className="border-y border-border px-6 py-14 text-center text-sm text-muted-foreground">{query.trim() ? "找不到符合的聲演。" : "目前還沒有公開聲演身份。"}</div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {visible.map((persona) => {
               const socials = socialLinks(persona);
               return (
-                <article key={persona.id} className="flex items-center gap-3 rounded-xl border border-border/70 bg-card/40 p-3 transition-colors hover:border-primary/40">
-                  <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} aria-label={`${persona.displayName}身份頁`} className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-lg font-semibold text-primary">
+                <article key={persona.id} className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
+                  <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} aria-label={`${persona.displayName}身份頁`} className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted text-lg font-semibold text-muted-foreground">
                     <PublicAvatarImage src={persona.avatar} name={persona.displayName} sizes="48px" />
                   </a>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
-                      <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="truncate font-semibold hover:text-primary">{persona.displayName}</a>
+                      <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="truncate font-semibold hover:text-link">{persona.displayName}</a>
                     </div>
                     {persona.bio && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{persona.bio}</p>}
-                    {socials.length > 0 && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">{socials.slice(0, 3).map((social) => <a key={social.url} href={social.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">{social.label}<ExternalLink className="h-3 w-3" aria-hidden /></a>)}</div>}
+                    {socials.length > 0 && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">{socials.slice(0, 3).map((social) => <a key={social.url} href={social.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-link hover:underline">{social.label}<ExternalLink className="h-3 w-3" aria-hidden /></a>)}</div>}
                   </div>
                 </article>
               );

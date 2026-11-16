@@ -70,15 +70,15 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
   return (
     <section className="relative w-full flex flex-col">
       {title && (
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
+        <div className="section-bar mb-4 flex items-center justify-between">
+          <h2 className="text-[1.0625rem] font-bold leading-tight text-foreground">
             {title}
           </h2>
           {actionLabel && typeof onAction === "function" ? (
             <button
               type="button"
               onClick={onAction}
-              className="inline-flex h-8 shrink-0 items-center rounded-md border border-border/60 bg-background/40 px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="-my-1 inline-flex h-8 shrink-0 items-center gap-1 px-1 text-[0.8125rem] text-link hover:underline"
             >
               {actionLabel}
             </button>
@@ -93,12 +93,12 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
         {showLeft && (
           <div
             className={`absolute left-0 md:-left-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
-              isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
+ isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
             }`}
           >
             <button
               type="button"
-              className="pointer-events-auto rounded-full shadow-md border border-border w-10 h-10 hover:scale-105 active:scale-95 transition-transform bg-background/95 hover:bg-background flex items-center justify-center cursor-pointer"
+              className="pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-card hover:bg-muted"
               onClick={handleScrollLeft}
               aria-label="向左滑動"
             >
@@ -110,7 +110,7 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="flex gap-4 overflow-x-auto pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory scroll-smooth px-2 scroll-px-2 [&>*]:snap-start"
+          className="flex gap-4 overflow-x-auto pb-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] snap-x snap-mandatory scroll-smooth [&>*]:snap-start"
         >
           {initialItemCount == null ? children : items.slice(0, visibleCount)}
         </div>
@@ -118,12 +118,12 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
         {showRight && (
           <div
             className={`absolute right-0 md:-right-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
-              isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
+ isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
             }`}
           >
             <button
               type="button"
-              className="pointer-events-auto rounded-full shadow-md border border-border w-10 h-10 hover:scale-105 active:scale-95 transition-transform bg-background/95 hover:bg-background flex items-center justify-center cursor-pointer"
+              className="pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-card hover:bg-muted"
               onClick={handleScrollRight}
               aria-label="向右滑動"
             >

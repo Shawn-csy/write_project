@@ -121,6 +121,7 @@ export function CommunityAdApplicationForm({
 
       const result = await createPublicFeedback({
         kind: "ad_application",
+        adApplication: { placement: "homepage", title: campaignName.trim(), link: targetUrl.trim(), imageUrl: bannerUrl.trim(), startDate: startDate || null, endDate: endDate || null },
         contactName: contactName || selectedEntity.label,
         contactEmail,
         content,

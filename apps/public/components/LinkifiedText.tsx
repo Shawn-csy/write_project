@@ -28,7 +28,7 @@ export function LinkifiedText({ text, className = "" }: { text: string; classNam
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="break-all text-primary underline decoration-primary/40 underline-offset-2 hover:decoration-primary"
+        className="break-all text-link underline underline-offset-2"
       >
         {url}
       </a>

@@ -140,7 +140,7 @@ describe("GalleryMobileSheet", () => {
     render(<GalleryMobileSheet {...BASE_PROPS} onClose={onClose} />);
     // backdrop is the sibling div before the sheet panel
     const dialog = screen.getByRole("dialog");
-    const backdrop = dialog.parentElement!.querySelector<HTMLElement>(".editorial-scrim");
+    const backdrop = dialog.parentElement!.querySelector<HTMLElement>(".sheet-scrim");
     expect(backdrop).toBeTruthy();
     fireEvent.click(backdrop!);
     expect(onClose).toHaveBeenCalledTimes(1);

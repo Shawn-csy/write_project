@@ -187,7 +187,7 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
     <>
       {summary}
     <div className="flex justify-center px-4 py-6 sm:py-8">
-      <div className="w-full max-w-3xl rounded-xl border border-border bg-card shadow-sm">
+      <div className="w-full max-w-3xl border border-border bg-card">
         <div className="p-4 sm:p-6">
           <h1 className="text-lg font-semibold leading-snug mb-2">{config.title}</h1>
           {config.intro && (
@@ -201,7 +201,7 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
                 <button
                   type="button"
                   onClick={() => setOpenSections(allSectionsOpen ? new Set() : new Set(config.sections.map((section) => section.id)))}
-                  className="text-xs font-medium text-primary hover:underline"
+                  className="text-xs text-link hover:underline"
                 >
                   {allSectionsOpen ? "全部收合" : "全部展開"}
                 </button>
@@ -211,7 +211,7 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
                   const open = openSections.has(section.id);
                   const panelId = `consent-section-${section.id}`;
                   return (
-                    <div key={section.id} className="rounded-lg border border-border/60 bg-muted/40">
+                    <div key={section.id} className="border-b border-border">
                       <button
                         type="button"
                         onClick={() => toggleSection(section.id)}
@@ -236,14 +236,14 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
           )}
 
           {/* Checks + primary action stay pinned to the bottom on phones so they never scroll away. */}
-          <div className="sticky bottom-0 -mx-4 border-t border-border/60 bg-card px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:p-0">
+          <div className="sticky bottom-0 -mx-4 border-t border-border bg-card px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 sm:static sm:mx-0 sm:border-t-0 sm:bg-transparent sm:p-0">
             <div className="space-y-3 mb-4">
               {config.requiredChecks.map((check) => (
                 <label key={check.id} className="flex items-start gap-3 cursor-pointer select-none">
                   <span
                     className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-colors ${
-                      checked.has(check.id)
-                        ? "bg-foreground border-foreground text-background"
+ checked.has(check.id)
+ ? "bg-foreground border-foreground text-background"
                         : "border-input bg-background"
                     }`}
                   >
@@ -269,7 +269,7 @@ export function ConsentGate({ scriptId, children, summary }: ConsentGateProps) {
               onClick={handleAccept}
               disabled={!allChecked || submitting}
               aria-describedby={hintText ? "consent-disabled-hint" : undefined}
-              className="w-full py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-foreground text-background hover:opacity-90"
+              className="w-full py-3 rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:opacity-90"
             >
               {submitting ? "處理中…" : "同意並進入閱讀"}
             </button>

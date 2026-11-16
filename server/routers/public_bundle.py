@@ -12,7 +12,7 @@ import schemas
 from dependencies import get_db
 from routers import public as public_router
 from routers.external_public_scripts import get_published_external_public_scripts
-from utils import normalize_homepage_banner_value
+from utils import normalize_homepage_banner_value, public_banner_value, seconds_until_taipei_midnight
 
 router = APIRouter(prefix="/api", tags=["public"])
 
@@ -27,7 +27,7 @@ _bundle_generation = 0
 _BUNDLE_TTL = 60  # seconds
 _MAX_CACHED_BUNDLES = 16
 _BUNDLE_SECTIONS = frozenset({
-    "scripts", "personas", "organizations", "topTags", "banner", "demoBanner",
+    "scripts", "personas", "organizations", "topTags", "banner", "demoBanner", "audioWorkBanner",
     "externalPublicScripts", "demoSubmissions", "audioWorks", "activityPages", "productionResources",
 })
 
@@ -75,14 +75,19 @@ def _get_banner(db: Session) -> dict:
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == HOMEPAGE_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
         return {"items": []}
-    return normalize_homepage_banner_value(row.value)
+    return public_banner_value(normalize_homepage_banner_value(row.value), "homepage")
 
 
 def _get_demo_banner(db: Session) -> dict:
     row = db.query(models.SiteSetting).filter(models.SiteSetting.key == DEMO_BANNER_SETTING_KEY).first()
     if not row or not str(getattr(row, "value", "") or "").strip():
         return {"items": []}
-    return normalize_homepage_banner_value(row.value)
+    return public_banner_value(normalize_homepage_banner_value(row.value), "demos")
+
+
+def _get_audio_work_banner(db: Session) -> dict:
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == "audio_work_banner").first()
+    return public_banner_value(normalize_homepage_banner_value(row.value if row else ""), "audio-works")
 
 
 def invalidate_public_bundle_cache() -> None:
@@ -248,6 +253,8 @@ def _build_bundle_sections(db: Session, requested: frozenset[str]) -> dict:
         result["organizations"] = public_router.list_public_organizations(db)
     if "banner" in requested:
         result["banner"] = _get_banner(db)
+    if "audioWorkBanner" in requested:
+        result["audioWorkBanner"] = _get_audio_work_banner(db)
     if "demoBanner" in requested:
         result["demoBanner"] = _get_demo_banner(db)
     if "externalPublicScripts" in requested:
@@ -342,7 +349,7 @@ def public_bundle(db: Session = Depends(get_db), sections: str | None = None):
 
         try:
             payload = _build_bundle(db) if selected is None else _build_bundle_sections(db, frozenset(selected))
-            built = (JSONResponse(content=payload).body, time.monotonic() + _BUNDLE_TTL)
+            built = (JSONResponse(content=payload).body, time.monotonic() + min(_BUNDLE_TTL, seconds_until_taipei_midnight()))
         except BaseException as error:
             with _bundle_cache_lock:
                 if _bundle_inflight.get(key) is pending:
@@ -367,5 +374,5 @@ def public_bundle(db: Session = Depends(get_db), sections: str | None = None):
     return Response(
         content=cached[0],
         media_type="application/json",
-        headers={"Cache-Control": f"public, max-age={_BUNDLE_TTL}, stale-while-revalidate=120"},
+        headers={"Cache-Control": ("no-store" if {"banner", "demoBanner", "audioWorkBanner"}.intersection(key) else f"public, max-age={_BUNDLE_TTL}, stale-while-revalidate=120")},
     )

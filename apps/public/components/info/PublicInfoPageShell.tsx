@@ -28,7 +28,7 @@ export function PublicInfoPageShell({
       <main className="max-w-3xl mx-auto px-6 py-16">
         {/* Hero */}
         <header className="mb-10">
-          <h1 className="text-3xl font-serif font-bold">{title}</h1>
+          <h1 className="text-3xl font-bold">{title}</h1>
           {description && (
             <p className="mt-2 text-sm text-muted-foreground">{description}</p>
           )}

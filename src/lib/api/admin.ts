@@ -1,5 +1,7 @@
 import { fetchApi } from "./client";
 import type {
+  AdApplication,
+  HomepageBannerItem,
   AdminPaginationQuery,
   ActivityPage,
   ActivitySubmissionRecord,
@@ -344,6 +346,9 @@ export const updateHomepageBannerAdmin = async (payload: HomepageBanner = {}): P
     ? payload.items.map((item, idx) => {
         const imageBackgroundMode = item?.imageBackgroundMode;
         return {
+          placement: item.placement,
+          startDate: item.startDate || null,
+          endDate: item.endDate || null,
           id: String(item?.id || `slide-${idx + 1}`),
           eyebrow: String(item?.eyebrow || "").trim(),
           title: String(item?.title || ""),
@@ -380,6 +385,9 @@ export const getDemoBannerAdmin = async (): Promise<DemoBanner> => {
 export const updateDemoBannerAdmin = async (payload: DemoBanner = {}): Promise<DemoBanner> => {
   const normalizedItems = Array.isArray(payload?.items)
     ? payload.items.map((item, idx) => ({
+        placement: item.placement,
+        startDate: item.startDate || null,
+        endDate: item.endDate || null,
         id: String(item?.id || `demo-slide-${idx + 1}`),
         eyebrow: String(item?.eyebrow || "").trim(),
         title: String(item?.title || ""),
@@ -532,3 +540,7 @@ export const hideExternalAuthorPageAdmin = async (authorKey: string): Promise<Ex
   fetchApi(`/admin/external-author-pages?authorKey=${encodeURIComponent(authorKey)}`, {
     method: "DELETE",
   }) as Promise<ExternalAuthorPageProfile>;
+
+export const getAudioWorkBannerAdmin = (): Promise<HomepageBanner> => fetchApi("/admin/audio-work-banner", { cache: "no-store" }) as Promise<HomepageBanner>;
+export const updateAudioWorkBannerAdmin = (payload: HomepageBanner): Promise<HomepageBanner> => fetchApi("/admin/audio-work-banner", { method: "PUT", body: JSON.stringify(payload) }) as Promise<HomepageBanner>;
+export const publishFeedbackAdAdmin = (id: string, payload: AdApplication): Promise<HomepageBannerItem> => fetchApi(`/admin/public-feedback/${encodeURIComponent(id)}/publish-ad`, { method: "POST", body: JSON.stringify(payload) }) as Promise<HomepageBannerItem>;

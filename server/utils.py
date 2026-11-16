@@ -1,4 +1,49 @@
 import json
+import re
+from datetime import datetime, date
+from zoneinfo import ZoneInfo
+from urllib.parse import urlsplit
+
+
+def validate_banner_url(value, required=False, allow_media=False):
+    value = str(value or "").strip()
+    if not value and not required:
+        return
+    if allow_media and value.startswith("/media/") and "\\" not in value and not re.search(r"[\s\x00-\x1f]", value):
+        return
+    if not required and value.startswith("/") and not value.startswith("//") and "\\" not in value:
+        return
+    parsed = urlsplit(value)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname or parsed.username or parsed.password or re.search(r"[\s\\]", value):
+        raise ValueError("請使用有效的 HTTP(S) 網址")
+
+
+def validate_banner_schedule(start, end):
+    for value in (start, end):
+        if value and (not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) or date.fromisoformat(value).isoformat() != value):
+            raise ValueError("日期格式須為 YYYY-MM-DD")
+    if start and end and end < start:
+        raise ValueError("結束日期不能早於開始日期")
+
+
+def public_banner_value(value, placement, today=None):
+    today = today or datetime.now(ZoneInfo("Asia/Taipei")).date().isoformat()
+    items = []
+    for item in value.get("items", []):
+        if item.get("placement") and item["placement"] != placement:
+            continue
+        try:
+            validate_banner_schedule(item.get("startDate"), item.get("endDate"))
+        except ValueError:
+            continue
+        if item.get("startDate") and item["startDate"] > today:
+            continue
+        if item.get("endDate") and item["endDate"] < today:
+            continue
+        items.append(item)
+    first = items[0] if items else {}
+    return {**{key: first.get(key, "") for key in ("title", "content", "link", "imageUrl")}, "items": items}
+
 
 
 def normalize_homepage_banner_value(raw_value: str) -> dict:
@@ -22,6 +67,9 @@ def normalize_homepage_banner_value(raw_value: str) -> dict:
                 "link": str(item.get("link") or "").strip(),
                 "imageUrl": str(item.get("imageUrl") or "").strip(),
             }
+            for key in ("placement", "startDate", "endDate"):
+                if item.get(key):
+                    normalized[key] = item[key]
             eyebrow = item.get("eyebrow")
             if isinstance(eyebrow, str) and eyebrow.strip():
                 normalized["eyebrow"] = eyebrow.strip()
@@ -47,6 +95,9 @@ def normalize_homepage_banner_value(raw_value: str) -> dict:
             "link": str(parsed.get("link") or "").strip(),
             "imageUrl": str(parsed.get("imageUrl") or "").strip(),
         }
+        for key in ("placement", "startDate", "endDate"):
+            if parsed.get(key):
+                fallback[key] = parsed[key]
         eyebrow = parsed.get("eyebrow")
         if isinstance(eyebrow, str) and eyebrow.strip():
             fallback["eyebrow"] = eyebrow.strip()
@@ -90,3 +141,10 @@ def safe_json_list(value) -> list:
     except Exception:
         pass
     return []
+
+
+def seconds_until_taipei_midnight():
+    now = datetime.now(ZoneInfo("Asia/Taipei"))
+    from datetime import timedelta
+    tomorrow = datetime.combine(now.date() + timedelta(days=1), datetime.min.time(), tzinfo=now.tzinfo)
+    return max(0.001, (tomorrow - now).total_seconds())

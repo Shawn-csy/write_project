@@ -7,6 +7,7 @@ import type {
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "./types";
 import { externalEntityHref, socialAvatarUrl } from "./externalEntity";
 import { externalCoverSrc } from "./externalCover";
+import { cleanScriptSummary } from "./scriptSummary";
 
 function toTimestamp(value?: number | string | null): number {
   if (value == null || value === "") return 0;
@@ -34,7 +35,7 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
     id: script.id,
     hasDemo: Boolean(script.hasDemo || hasValidDemoLink(script.activityDemoLinks)),
     title: script.title,
-    synopsis: script.synopsis ?? undefined,
+    synopsis: cleanScriptSummary(script.synopsis) || undefined,
     outline: script.outline ?? undefined,
     coverUrl: script.coverUrl ?? undefined,
     coverCrop: script.coverCrop ?? undefined,
@@ -205,7 +206,7 @@ export function slimScriptForHomepage(script: PublicScript): PublicScript {
     id: script.id,
     title: script.title,
     hasDemo: Boolean(script.hasDemo || hasValidDemoLink(script.activityDemoLinks)),
-    synopsis: script.synopsis,
+    synopsis: cleanScriptSummary(script.synopsis) || undefined,
     outline: script.outline,
     coverUrl: script.coverUrl,
     coverCrop: script.coverCrop,
@@ -279,7 +280,7 @@ export function slimExternalScriptForHomepage(item: ExternalPublicScript): Exter
     // Consumers read `title || remoteTitle` and `summary || remoteSummary`;
     // fold the fallback in so the second copy does not ship.
     title: item.title || item.remoteTitle || "",
-    summary: clip(item.summary || item.remoteSummary, HOMEPAGE_EXTERNAL_SUMMARY_MAX),
+    summary: clip(cleanScriptSummary(item.summary || item.remoteSummary), HOMEPAGE_EXTERNAL_SUMMARY_MAX),
     // Cards resolve the image from this with externalCoverSrc(): the stored file in the static
     // build, otherwise the /api/public-media/external/:id proxy.
     coverUrl: externalCoverSrc(item),

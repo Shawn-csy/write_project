@@ -926,6 +926,9 @@ def update_homepage_banner(
             "link": str(getattr(item, "link", "") or "").strip(),
             "imageUrl": str(getattr(item, "imageUrl", "") or "").strip(),
         }
+        for key in ("placement", "startDate", "endDate"):
+            if getattr(item, key, None):
+                normalized[key] = getattr(item, key)
         eyebrow = getattr(item, "eyebrow", None)
         if isinstance(eyebrow, str) and eyebrow.strip():
             normalized["eyebrow"] = eyebrow.strip()
@@ -1011,6 +1014,9 @@ def update_demo_banner(
             "link": str(item.link or "").strip(),
             "imageUrl": str(item.imageUrl or "").strip(),
         }
+        for key in ("placement", "startDate", "endDate"):
+            if getattr(item, key, None):
+                normalized[key] = getattr(item, key)
         if item.eyebrow and item.eyebrow.strip():
             normalized["eyebrow"] = item.eyebrow.strip()
         if item.imageAlt and item.imageAlt.strip():
@@ -2452,3 +2458,79 @@ def admin_delete_script(
     if not success:
         raise HTTPException(status_code=400, detail="Failed to delete script")
     return {"success": True}
+
+
+@router.get("/audio-work-banner", response_model=schemas.HomepageBannerSetting)
+def get_audio_work_banner(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == "audio_work_banner").first()
+    return normalize_homepage_banner_value(row.value if row else "")
+
+
+@router.put("/audio-work-banner", response_model=schemas.HomepageBannerSetting)
+def update_audio_work_banner(background_tasks: BackgroundTasks, payload: schemas.HomepageBannerSetting, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    clean = normalize_homepage_banner_value(payload.model_dump_json())
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == "audio_work_banner").first()
+    if not row:
+        row = models.SiteSetting(key="audio_work_banner")
+        db.add(row)
+    row.value = json.dumps(clean, ensure_ascii=False)
+    row.updatedBy = ownerId
+    row.updatedAt = int(time.time() * 1000)
+    db.commit()
+    from routers import public_bundle
+    public_bundle.invalidate_public_bundle_cache()
+    background_tasks.add_task(_send_public_paths_revalidation, ["/audio-works"])
+    return clean
+
+
+@router.post("/public-feedback/{feedback_id}/publish-ad", response_model=schemas.HomepageBannerItem)
+def publish_feedback_ad(background_tasks: BackgroundTasks, feedback_id: str, payload: schemas.AdApplication, db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    feedback = db.query(models.PublicFeedback).filter(models.PublicFeedback.id == feedback_id).with_for_update().first()
+    if not feedback or feedback.kind != "ad_application":
+        raise HTTPException(status_code=404, detail="Ad application not found")
+    # A unique durable marker protects repeated and concurrent approvals, even if
+    # the banner is subsequently removed. Status alone never publishes an ad.
+    marker_key = f"ad_publication:{feedback_id}"
+    if db.query(models.SiteSetting).filter(models.SiteSetting.key == marker_key).first():
+        raise HTTPException(status_code=409, detail="此申請已刊登，請至 Banner 管理編輯")
+    key = {"homepage": HOMEPAGE_BANNER_SETTING_KEY, "demos": DEMO_BANNER_SETTING_KEY, "audio-works": "audio_work_banner"}[payload.placement]
+    row = db.query(models.SiteSetting).filter(models.SiteSetting.key == key).with_for_update().first()
+    value = normalize_homepage_banner_value(row.value if row else "")
+    item = {"id": f"ad-{feedback_id}", **payload.model_dump(), "imageAlt": payload.title}
+    value["items"].append(item)
+    clean = normalize_homepage_banner_value(json.dumps(value, ensure_ascii=False))
+    now = int(time.time() * 1000)
+    if not row:
+        row = models.SiteSetting(key=key)
+        db.add(row)
+    new_value = json.dumps(clean, ensure_ascii=False)
+    if row.value is None:
+        row.value = new_value
+        row.updatedBy = ownerId
+        row.updatedAt = now
+    else:
+        previous = row.value
+        changed = db.query(models.SiteSetting).filter(models.SiteSetting.key == key, models.SiteSetting.value == previous).update({"value": new_value, "updatedBy": ownerId, "updatedAt": now}, synchronize_session=False)
+        if changed != 1:
+            db.rollback()
+            raise HTTPException(status_code=409, detail="廣告設定剛被更新，請重新整理後再刊登")
+    db.add(models.SiteSetting(key=marker_key, value=json.dumps({"placement": payload.placement, "bannerId": item["id"]}), updatedBy=ownerId, updatedAt=now))
+    feedback.status = "closed"
+    feedback.updatedAt = now
+    from sqlalchemy.exc import IntegrityError
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="此申請已刊登，請重新整理")
+    from routers import public_bundle, public
+    public_bundle.invalidate_public_bundle_cache()
+    public._banner_cache = None
+    background_tasks.add_task(_send_public_paths_revalidation, [{"homepage": "/", "demos": "/demos", "audio-works": "/audio-works"}[payload.placement]])
+    return item

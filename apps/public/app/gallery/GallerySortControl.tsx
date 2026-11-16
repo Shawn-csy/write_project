@@ -22,17 +22,17 @@ interface GallerySortControlProps {
 
 export function GallerySortControl({ value, onChange, showOverview = false, className = "" }: GallerySortControlProps) {
   const buttonClass = (active: boolean) =>
-    `h-8 min-w-12 rounded-md px-3 [font-size:var(--public-font-meta)] font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 ${
+    `h-full min-w-12 border-l border-border px-3 text-[0.8125rem] transition-colors duration-100 first:border-l-0 ${
       active
-        ? "bg-background text-foreground shadow-sm"
-        : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+        ? "bg-primary font-bold text-primary-foreground"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
     }`;
 
   return (
     <div
       role="group"
       aria-label="排序"
-      className={`inline-flex h-10 items-center gap-0.5 rounded-lg border border-border/50 bg-muted/40 p-0.5 ${className}`}
+      className={`inline-flex h-9 items-stretch overflow-hidden rounded-md border border-border bg-card ${className}`}
     >
       {showOverview && (
         <button

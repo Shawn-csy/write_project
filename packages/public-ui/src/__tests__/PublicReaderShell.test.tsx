@@ -50,15 +50,13 @@ describe("PublicReaderShell — layout slots", () => {
     expect(container.querySelector(".z-30")).toBeNull();
   });
 
-  it("renders blurred cover img when coverUrl provided", () => {
+  it("keeps a flat background and does not load the cover behind the text", () => {
     const { container } = render(
       <PublicReaderShell coverUrl="https://example.com/cover.jpg">
         <p>Content</p>
       </PublicReaderShell>
     );
-    const bgImg = container.querySelector("img[alt='']") as HTMLImageElement;
-    expect(bgImg).not.toBeNull();
-    expect(bgImg.src).toContain("cover.jpg");
+    expect(container.querySelector("img[alt='']")).toBeNull();
   });
 
   it("renders gradient fallback when coverUrl absent", () => {

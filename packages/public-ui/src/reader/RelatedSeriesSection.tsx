@@ -51,13 +51,13 @@ export function RelatedSeriesSection({
           </span>
           {seriesName && (
             seriesHref ? (
-              <a href={seriesHref} className="text-xs text-primary hover:underline">
+              <a href={seriesHref} className="text-xs text-link hover:underline">
                 查看系列全部
               </a>
             ) : (
               <button
                 type="button"
-                className="text-xs text-primary hover:underline bg-transparent border-none cursor-pointer"
+                className="text-xs text-link hover:underline bg-transparent border-none cursor-pointer"
                 onClick={() => onOpenSeries?.(seriesName)}
               >
                 查看系列全部
@@ -72,13 +72,13 @@ export function RelatedSeriesSection({
           const href = scriptHref?.(item.id);
           const inner = (
             <>
-              <div className="aspect-[2/3] overflow-hidden rounded-md border border-border/60 bg-muted/30">
+              <div className="aspect-[2/3] overflow-hidden rounded-md border border-border bg-muted">
                 {item.coverUrl ? (
                   <img
                     src={cropCover.src}
                     style={cropCover.style as React.CSSProperties}
                     alt={item.title}
-                    className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-[1.02]"
+                    className="h-full w-full object-cover group-hover:opacity-90"
                     loading="lazy"
                     sizes="80px"
                   />
@@ -94,7 +94,7 @@ export function RelatedSeriesSection({
                 <p className="line-clamp-1 text-[11px] text-muted-foreground">
                   {seriesOrderLabel(item.seriesOrder)}
                 </p>
-                <p className="line-clamp-2 text-xs font-medium text-foreground group-hover:text-primary">
+                <p className="line-clamp-2 text-xs font-medium text-foreground group-hover:text-link">
                   {item.title}
                 </p>
               </div>

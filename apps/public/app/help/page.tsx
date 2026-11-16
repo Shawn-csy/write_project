@@ -9,7 +9,7 @@ import { studioUrl } from "@/lib/studioUrl";
 export const revalidate = 3600;
 
 const description = "公開台本、音聲作品、Demo 與創作資源的瀏覽、投稿及資料補充說明。";
-const linkClass = "font-medium text-primary underline underline-offset-2 hover:text-primary/80";
+const linkClass = "font-medium text-link underline underline-offset-2 hover:text-link";
 
 export const metadata: Metadata = {
   title: "使用說明｜泛用型產品作坊",

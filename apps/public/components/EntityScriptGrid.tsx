@@ -19,7 +19,7 @@ const coverRenderer: CoverImageRenderer = ({ src, crop, alt, className }) => (
   <PublicImage src={src} crop={crop} alt={alt} preset="script-cover" className={className} />
 );
 
-export const ENTITY_SCRIPT_GRID_COLUMNS = "repeat(auto-fill, minmax(220px, 1fr))";
+export const ENTITY_SCRIPT_GRID_COLUMNS = "repeat(auto-fill, minmax(min(220px, 45%), 1fr))";
 
 interface Props {
   scripts: PublicScript[];

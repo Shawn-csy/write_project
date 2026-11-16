@@ -63,7 +63,7 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
     <div className="fixed inset-0 z-50 sm:hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 backdrop-blur-[2px]"
+        className="absolute inset-0"
         style={{ background: "hsl(var(--foreground) / 0.25)" }}
         aria-hidden
         onClick={onClose}
@@ -83,14 +83,14 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
         }}
       >
         {/* Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-4 py-2.5">
+        <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-2.5">
           <p className="text-base font-semibold text-foreground">更多選項</p>
           <button
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
             aria-label="關閉選單"
-            className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-5 w-5" aria-hidden />
           </button>
@@ -108,9 +108,9 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
                     href={href}
                     onClick={onClose}
                     aria-current={isActive ? "page" : undefined}
-                    className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "border-primary/35 bg-primary/10 text-foreground" : "border-border/60 bg-card/40 text-foreground hover:bg-muted/60"}`}
+                    className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isActive ? "border-primary bg-muted text-foreground" : "border-border bg-card text-foreground hover:bg-muted"}`}
                   >
-                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-primary/15 text-primary" : "bg-muted/70 text-muted-foreground"}`}>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                       <Icon className="h-4 w-4" aria-hidden />
                     </span>
                     <span>{label}</span>
@@ -123,22 +123,22 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
           <a
             href={studioUrl()}
             aria-label="進入工作室"
-            className="flex min-h-12 w-full items-center justify-between rounded-xl border border-primary/25 bg-primary/10 px-4 text-sm font-semibold text-foreground transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex min-h-12 w-full items-center justify-between rounded-xl border border-border bg-muted px-4 text-sm font-semibold text-foreground transition-colors hover:bg-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span>進入工作室</span>
-            <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden />
+            <ArrowUpRight className="h-4 w-4 text-link" aria-hidden />
           </a>
 
           <section>
             <p className={sheetSectionTitleClass}>外觀設定</p>
-            <div className="rounded-xl border border-border/60 bg-card/45 p-3">
+            <div className="rounded-xl border border-border bg-card p-3">
               <AppearanceMenuContent />
             </div>
           </section>
 
           <section>
             <p className={sheetSectionTitleClass}>說明與資訊</p>
-            <div className="rounded-xl border border-border/60 bg-card/45 p-2">
+            <div className="rounded-xl border border-border bg-card p-2">
               <InfoMenuContent />
             </div>
           </section>
@@ -148,7 +148,7 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
             <button
               type="button"
               onClick={onOpenFeedback}
-              className="flex h-12 w-full items-center gap-2 rounded-xl border border-border/60 bg-card/45 px-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-12 w-full items-center gap-2 rounded-xl border border-border bg-card px-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <MessageSquarePlus className="h-4 w-4 text-muted-foreground" aria-hidden />
               <span>回報問題</span>

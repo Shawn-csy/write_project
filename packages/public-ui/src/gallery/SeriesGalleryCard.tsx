@@ -96,7 +96,7 @@ function SeriesGalleryCardInner({
     authorHref ? (
       <a
         href={authorHref}
-        className="relative z-10 inline-flex min-w-0 max-w-full [font-size:var(--public-font-meta)] text-muted-foreground hover:text-foreground hover:underline no-underline"
+        className="relative z-10 inline-flex min-w-0 max-w-full [font-size:var(--public-font-meta)] text-link hover:underline no-underline"
       >
         <span className="truncate">{authorName}</span>
       </a>
@@ -115,14 +115,14 @@ function SeriesGalleryCardInner({
           src: rawCoverSrc,
           crop: null,
           alt: name,
-          className: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-105",
+          className: "h-full w-full object-cover",
         })
       : (
         <img
           src={cropCover.src}
           style={cropCover.style as React.CSSProperties}
           alt={name}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover"
           loading="lazy"
           sizes="(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 180px"
         />
@@ -145,23 +145,22 @@ function SeriesGalleryCardInner({
     </a>
   );
 
-  const ARTICLE_CLASS =
-    "group relative rounded-xl border border-transparent bg-transparent px-2 pb-2 pt-1 shadow-none hover:-translate-y-[3px] hover:border-border hover:bg-card hover:shadow-[0_4px_16px_hsl(var(--foreground)/0.07),0_1px_3px_hsl(var(--foreground)/0.05)] transition-all duration-200";
+  const ARTICLE_CLASS = "group relative cursor-default";
 
   // ── Dense cover grid ──
   if (variant === "dense") {
     return (
       <article className="group relative min-w-0" data-gallery-card="dense" {...hoverPreviewProps}>
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-md border border-border/50 bg-muted shadow-sm">
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[2px] border border-border bg-muted group-hover:opacity-90">
           {coverWrapEl}
           {showAgeGate && <>
-            <div className="pointer-events-none absolute inset-0 bg-red-900/25" aria-hidden />
-            <span className="pointer-events-none absolute left-1 top-1 z-10 rounded-sm bg-red-600 px-1 text-[9px] font-bold text-white">R18</span>
+            <div className="pointer-events-none absolute inset-0 bg-danger-muted" aria-hidden />
+            <span className="pointer-events-none absolute left-0.5 top-0.5 z-10 rounded-[2px] bg-seal px-1 py-0.5 text-[9px] font-bold leading-none text-white">R18</span>
           </>}
-          <span className="pointer-events-none absolute right-1 top-1 z-10 rounded bg-black/65 px-1.5 py-0.5 text-[10px] font-medium text-white">{chapterCount} 部</span>
+          <span className="pointer-events-none absolute right-1 top-1 z-10 rounded-[2px] bg-black/80 px-1.5 py-0.5 text-[10px] font-medium text-white">{chapterCount} 部</span>
         </div>
         <div className="min-w-0 pt-1.5">
-          <h2 className="line-clamp-2 min-h-[2.5em] [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-primary">
+          <h2 className="line-clamp-2 min-h-[2.5em] [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-link">
             <a href={href} className="text-inherit no-underline">{name}</a>
           </h2>
           {authorName && <div className="mt-0.5 truncate [font-size:var(--public-font-caption)] text-muted-foreground">
@@ -175,19 +174,18 @@ function SeriesGalleryCardInner({
   // ── Compact list ──
   if (variant === "compact") {
     return (
-      <article className="group relative rounded-xl bg-transparent transition-all duration-200" {...hoverPreviewProps}>
-        <div className="mx-2 my-0.5 flex items-stretch gap-3 rounded-lg pl-0 pr-3 py-2 border-l-[3px] border-l-primary/40 transition-all duration-200 group-hover:border-l-primary group-hover:bg-primary/5">
+      <article className="group relative border-b border-border" {...hoverPreviewProps}>
+        <div className="flex items-stretch gap-3 py-2.5 pr-2 group-hover:bg-muted">
           {/* Cover stack hint */}
-          <div className="w-[40px] shrink-0 ml-3">
-            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border/40 bg-muted/25 shadow-sm">
-              <div className="absolute inset-0 translate-x-1 translate-y-1 rounded-sm border border-border/30 bg-muted/50" aria-hidden />
-              <div className="absolute inset-0 overflow-hidden rounded-sm">
+          <div className="w-[40px] shrink-0 ml-1">
+            <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[3px] border border-border bg-muted">
+                            <div className="absolute inset-0 overflow-hidden rounded-sm">
                 {coverWrapEl}
               </div>
               {showAgeGate && (
                 <>
-                  <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
-                  <span className="absolute top-0.5 left-0.5 z-10 rounded-[2px] bg-red-600 border border-red-400/60 px-1 py-px text-[8px] font-bold leading-none text-white pointer-events-none tracking-wide">R18</span>
+                  <div className="absolute inset-0 bg-danger-muted pointer-events-none" aria-hidden />
+                  <span className="absolute top-1 left-1 z-10 rounded-[2px] bg-seal px-1 py-0.5 text-[9px] font-bold leading-none text-white pointer-events-none">R18</span>
                 </>
               )}
             </div>
@@ -196,11 +194,11 @@ function SeriesGalleryCardInner({
           {/* Meta */}
           <div className="min-w-0 flex-1 space-y-0.5">
             <div className="flex min-w-0 items-center gap-1.5">
-              <Layers className="w-3 h-3 shrink-0 text-primary/60" aria-hidden />
-              <span className="[font-size:var(--public-font-caption)] text-primary font-medium shrink-0">系列</span>
+              <Layers className="w-3 h-3 shrink-0 text-link" aria-hidden />
+              <span className="[font-size:var(--public-font-caption)] text-muted-foreground font-medium shrink-0">系列</span>
               <span className="[font-size:var(--public-font-caption)] text-muted-foreground">· {chapterCount} 部</span>
             </div>
-            <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 transition-colors duration-200 group-hover:text-primary">
+            <div className="min-w-0 [font-size:var(--public-font-card-title)] font-semibold leading-tight text-foreground line-clamp-1 group-hover:text-link">
               <a href={href} className="text-inherit no-underline before:absolute before:inset-0 before:z-0">
                 {name}
               </a>
@@ -227,22 +225,20 @@ function SeriesGalleryCardInner({
     <article className={ARTICLE_CLASS} {...hoverPreviewProps}>
       {/* Cover with stack decoration */}
       <div className="relative aspect-[2/3] w-full">
-        <div className="absolute inset-0 translate-x-1.5 translate-y-1.5 rounded-lg bg-muted/60 border border-border/30" aria-hidden />
-        <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 rounded-lg bg-muted/40 border border-border/20" aria-hidden />
+        <div className="absolute inset-0 translate-x-[6px] translate-y-[6px] rounded-[3px] border border-border bg-card" aria-hidden />
+        <div className="absolute inset-0 translate-x-[3px] translate-y-[3px] rounded-[3px] border border-border bg-card" aria-hidden />
         <div
-          className="absolute inset-0 overflow-hidden rounded-lg bg-muted transition-shadow"
-          style={{ boxShadow: "0 1px 4px hsl(var(--foreground)/0.12), 0 0 0 1px hsl(var(--border)/0.6)" }}
+          className="absolute inset-0 overflow-hidden rounded-[2px] border border-border bg-muted group-hover:opacity-90"
         >
           {coverWrapEl}
-          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-foreground/5 pointer-events-none" aria-hidden />
           {showAgeGate && (
             <>
-              <div className="absolute inset-0 bg-red-900/25 pointer-events-none" aria-hidden />
-              <span className="absolute top-1.5 left-1.5 z-10 rounded border border-red-400/60 bg-red-600 px-1.5 py-0.5 text-[11px] font-bold leading-none text-white pointer-events-none tracking-wide">R-18</span>
+              <div className="absolute inset-0 bg-danger-muted pointer-events-none" aria-hidden />
+              <span className="absolute top-1 left-1 z-10 rounded-[2px] bg-seal px-1.5 py-1 text-[11px] font-bold leading-none text-white pointer-events-none">R-18</span>
             </>
           )}
         </div>
-        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 rounded-md bg-black/55 px-1.5 py-0.5 backdrop-blur-sm">
+        <div className="absolute top-1.5 right-1.5 z-10 flex items-center gap-1 rounded-[2px] bg-black/80 px-1.5 py-1">
           <Layers className="w-3 h-3 text-white/80" aria-hidden />
           <span className="text-[10px] font-semibold text-white/90 leading-none">{chapterCount}</span>
         </div>
@@ -250,12 +246,12 @@ function SeriesGalleryCardInner({
 
       {/* Meta */}
       <div className="pt-2.5 space-y-1">
-        <p className="[font-size:var(--public-font-caption)] text-primary font-medium flex items-center gap-1">
+        <p className="[font-size:var(--public-font-caption)] text-muted-foreground font-medium flex items-center gap-1">
           <Layers className="w-3 h-3" aria-hidden />
           系列
         </p>
-        <h2 className="font-serif [font-size:var(--public-font-card-title)] font-semibold leading-snug line-clamp-2">
-          <a href={href} className="text-foreground group-hover:text-primary transition-colors no-underline">
+        <h2 className="[font-size:var(--public-font-card-title)] font-bold leading-snug line-clamp-2">
+          <a href={href} className="text-foreground no-underline hover:text-link hover:underline">
             {name}
           </a>
         </h2>
@@ -266,15 +262,9 @@ function SeriesGalleryCardInner({
           <p className="[font-size:var(--public-font-meta)] [line-height:var(--public-line-body)] text-muted-foreground line-clamp-2">{cardSummary}</p>
         )}
 
-        <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
-          <span className="[font-size:var(--public-font-meta)] text-muted-foreground">
-            {chapterCount} 部
-          </span>
-          {updatedLabel && (
-            <span className="[font-size:var(--public-font-caption)] text-muted-foreground">
-              更新 {updatedLabel}
-            </span>
-          )}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 pt-1.5 [font-size:var(--public-font-caption)] tabular-nums text-muted-foreground">
+          <span>{chapterCount} 部</span>
+          {updatedLabel && <span>更新 {updatedLabel}</span>}
         </div>
       </div>
     </article>

@@ -129,7 +129,7 @@ export default async function ScriptReaderPage({
     <div data-seo-excerpt className="px-4 py-6 max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-2">{script.title}</h1>
       {(excerpt.synopsis || description) && (
-        <p className="text-muted-foreground mb-3 whitespace-pre-line">{excerpt.synopsis || description}</p>
+        <p className="text-muted-foreground mb-3 whitespace-pre-line [overflow-wrap:anywhere]">{excerpt.synopsis || description}</p>
       )}
       {excerpt.outline && (
         <section className="mb-3">
