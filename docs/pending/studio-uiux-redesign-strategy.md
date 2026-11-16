@@ -1,5 +1,8 @@
 # 工作室 UI／UX 重整：問題盤點與修改策略
 
+> **範圍核對（2026-11-16）**：本文保留 2026-10-29 Dev 改版的執行紀錄與未完成項目，不代表正式環境目前部署狀態，也不授權沿用歷史部署指令。正式 Studio 是 Vite 靜態檔，經 Mac Nginx／Tunnel 提供；現行架構見 [正式環境架構](../architecture/production-architecture.md)。
+
+
 日期：2026-10-29  
 狀態：第一批可用性修正已部署 Dev；整體流程重整進行中。  
 適用環境：`dev` 分支、`studio-dev-open-scripts.shawnup.com`。

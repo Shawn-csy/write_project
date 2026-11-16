@@ -1,5 +1,7 @@
 # Public Read Page SEO and UX Architecture
 
+> **執行環境更新（2026-11-16）**：本文的 reader、metadata、ConsentGate 與共享模型邊界仍適用；「SSR／server-rendered／server-side parsing」在正式站指 Next 建置時產生的靜態 HTML／SEO 快照，不是請求時 Next 服務。瀏覽器另讀取 live API；新內容的 HTML 與 metadata 需經 Pages 重建。開發模式仍可執行 Next server。見[正式環境架構](./production-architecture.md)。
+
 Last updated: 2026-06-18
 
 ## Purpose

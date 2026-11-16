@@ -1,6 +1,6 @@
 # @write/script-engine
 
-Canonical screenplay parser shared by Vite editor, Next.js public reader, and export pipelines.
+Canonical screenplay parser shared by Vite editor, Next.js public reader, and export pipelines. The production public reader is statically built for Cloudflare Pages and uses browser live API reads; sharing this parser does not require a production Next.js server. See [production architecture](../../docs/architecture/production-architecture.md).
 
 ## Stable Public API
 

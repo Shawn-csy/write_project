@@ -1,9 +1,11 @@
 # 正式公開站（Cloudflare Pages）部署與重新部署
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+
 狀態：2026-11-11 起，`open-scripts.shawnup.com` 由 Cloudflare Pages 提供靜態前端；資料與圖片優先讀本機服務（Tunnel），失聯時改讀 D1／R2 唯讀備援。
 設計背景見 `pending/cloudflare-pages-tunnel-d1-r2-direction.md`；本文只記錄正式環境的現況與操作。
 
-本精簡分支尚未部署：新版把公開媒體與 JSON 路由統一交給 FastAPI，正式環境不再啟動 Next server。舊版仍可透過發布紀錄回滾；[精簡與驗收說明](production-runtime-simplification.md)。
+2026-11-16 PR #48、#49 已部署：公開媒體與 JSON 路由統一交給 FastAPI，正式環境不再啟動 Next server。舊版仍可透過發布紀錄回滾；[精簡與驗收說明](production-runtime-simplification.md)。
 
 ## 資源與網域
 
@@ -17,11 +19,11 @@
 | 備援媒體 | R2 bucket `write-project-public-media` | `media-open-scripts.shawnup.com` |
 | 同步 | launchd `com.shawnup.write-project-public-sync-prod`，每 15 分鐘 | 讀 `api-open-scripts` 寫 D1／R2 |
 
-Tunnel 是與其他網站共用的 `91d6eb76-bd34-4655-94b3-a30b62f7eb89`（遠端設定）。新增主機名稱前會先備份設定到 `/Users/shanti/write_project_backups/prod-tunnel-config-<日期>.json`。
+Tunnel 是與其他網站共用的 `91d6eb76-bd34-4655-94b3-a30b62f7eb89`（遠端設定）。新增主機名稱前會先備份設定到 `$HOME/write_project_backups/prod-tunnel-config-<日期>.json`。
 
 ## 什麼時候要重新部署 Pages
 
-後台改內容後，瀏覽器會向 API 重抓；搜尋引擎、分享 metadata 與新路徑的 HTTP 200 仍需要重新建置 Pages。本分支已加入[內容自動更新流程](#published-content-refresh)，首次正常發布包含該流程的程式並完成啟用後，會定期偵測變更並更新。這次實作尚未部署。
+後台改內容後，瀏覽器會向 API 重抓；搜尋引擎、分享 metadata 與新路徑的 HTTP 200 仍需要重新建置 Pages。[內容自動更新流程](#published-content-refresh) 已啟用並驗證，會定期偵測變更並更新。
 
 要重新部署的情況：
 
@@ -31,46 +33,17 @@ Tunnel 是與其他網站共用的 `91d6eb76-bd34-4655-94b3-a30b62f7eb89`（遠�
 
 ## 重新部署步驟
 
-建置會向 `BACKEND_API_URL` 讀取公開資料，請在確認 `api-open-scripts.shawnup.com/healthz` 回 200 後執行。
+程式變更走 [完整發布程序](continuous-deployment.md)，內容變更可在 Actions 手動執行 **Refresh published content**。兩者共用發布互斥與 Pages 鎖。
+
+人工操作須在精確正式 SHA 的乾淨 checkout 中設定正式持久目錄後執行：
 
 ```bash
-cd apps/public
-BACKEND_API_URL=https://api-open-scripts.shawnup.com \
-NEXT_PUBLIC_DEPLOY_ENV=production \
-NEXT_PUBLIC_API_ORIGIN=https://api-open-scripts.shawnup.com \
-NEXT_PUBLIC_FALLBACK_API_ORIGIN=https://fallback-open-scripts.shawnup.com \
-NEXT_PUBLIC_MEDIA_ORIGIN=https://api-open-scripts.shawnup.com \
-NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN=https://media-open-scripts.shawnup.com \
-NEXT_PUBLIC_STUDIO_ORIGIN=https://studio-open-scripts.shawnup.com \
-NEXT_PUBLIC_BASE_URL=https://open-scripts.shawnup.com \
-npm run build:pages
+export WP_RELEASE_ROOT="$HOME/Desktop/write_project/releases"
+bash scripts/release.sh pages
+bash scripts/release.sh verify
 ```
 
-建置會拒絕下列錯配：production 使用 Dev 的 API／Studio／canonical 網域，或缺少備援與媒體備援網域。
-
-在上傳前先在本機檢查輸出：
-
-```bash
-# 輸出沒有殘留 Dev 網域，環境標記為 production
-grep -rl "dev-open-scripts" out | head
-grep -o 'data-deploy-environment="[a-z]*"' out/index.html | head -1
-test -f out/404.html && echo "404.html ok"
-```
-
-部署（專案已存在，不需要 `--force`）：
-
-```bash
-npx wrangler pages deploy out --project-name write-project-public-site --branch main
-```
-
-部署後驗證：
-
-```bash
-for p in / /authors /audio-works /demos /resources /about /sitemap.xml; do
-  printf "%-16s" $p; curl -s -o /dev/null -w "%{http_code}\n" https://open-scripts.shawnup.com$p
-done
-curl -s -o /dev/null -w "不存在的作品（應為 404 外殼）%{http_code}\n" https://open-scripts.shawnup.com/read/zzz-nonexistent
-```
+此入口固定擷取公開內容，建置後再次比對，才上傳，另以 verify 做正式入口煙霧驗證；不要以直接 `build:pages` 加 `wrangler pages deploy` 取代。`pages-build`／`pages-upload` 是內部步驟，不具完整發布保護。內容刷新工作另核對公開 `/content-version.json` 與 durable receipt 的 commit／digest；單獨 `pages` 不會更新內容刷新 journal，UI 可能暫時顯示未知或舊狀態，下一次刷新會重新核對。僅上傳成功不足以完成驗收。
 
 ## 回滾
 
@@ -78,9 +51,9 @@ Pages 保留每次部署。到 Cloudflare 後台的 `write-project-public-site` 
 
 ## 備援資料與媒體的同步
 
-launchd 工作每 15 分鐘執行 `scripts/sync-public-cloudflare.mjs --production --scheduled`；資料沒變時略過寫入。日誌在 `~/Library/Logs/write-project-public-sync-prod/`。
+launchd 工作每 900 秒從獨立不可變的 ops runtime 執行 `scripts/sync-public-cloudflare.mjs --production --scheduled`；資料沒變時略過寫入。不是從工作區 checkout 執行。日誌在 `~/Library/Logs/write-project-public-sync-prod/`。
 
-手動同步：
+手動同步（先確認目前同步已結束，再 bootout 同步排程，並切換至下文的可信任 ops runtime 目錄；完成後恢復原 plist）：
 
 ```bash
 PUBLIC_SYNC_API_ORIGIN=https://api-open-scripts.shawnup.com \
@@ -95,13 +68,7 @@ node scripts/sync-public-cloudflare.mjs --production
 - 封面檔名來自作品標題，可能含空格、逗號、括號；同步對「整個欄位就是媒體網址」的值整串處理，不能只靠空白斷詞。
 - 修改備援 Worker（`apps/public/worker/`）後重新部署：`npm run deploy:api-fallback -w apps/public`。D1 的 schema 定義在 `worker/schema.sql`，新資料庫要先套用再同步。
 
-停用或重裝排程：
-
-```bash
-launchctl bootout gui/$(id -u)/com.shawnup.write-project-public-sync-prod
-cp scripts/com.shawnup.write-project-public-sync-prod.plist ~/Library/LaunchAgents/
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.shawnup.write-project-public-sync-prod.plist
-```
+同步 runtime 安裝於 `$HOME/Library/Application Support/write-project-ops/<runtime-source-sha>/`，內含 manifest、獨立鎖定 Wrangler 4.153.0 的依賴與操作 README。2026-11-16 runtime source 為 `8c78355bc64429a3b220cfa5bdb0234338491236`；同步／監控程式已驗證與正式 `6b32f07` 相同。升級須校驗 manifest，等待執行中的同步完成，再僅 bootout 對應 label，保留舊 plist，再複製準備好的 plist 並 bootstrap；不可直接用指向開發 checkout 的 repository plist 覆蓋。手動強制同步前先確認同步已結束並卸載該排程，避免重疊或中斷寫入。回復則 bootout、恢復前一版 plist、bootstrap。指令與監控見 [監控手冊](production-monitoring.md)。
 
 ## 主 API 的 nginx 注意事項
 
@@ -131,13 +98,13 @@ sessionStorage.removeItem('public-api:primary-down-until');
 ## 切換紀錄與回復
 
 - 2026-11-11 將 `open-scripts.shawnup.com` 的 CNAME 從 Tunnel（`91d6eb76-bd34-4655-94b3-a30b62f7eb89.cfargotunnel.com`，Proxy）改為 `write-project-public-site.pages.dev`（Proxy）。切換後約 1 分鐘內為 522，等 Pages 驗證網域完成後轉為 200。
-- 緊急回復到本機提供：把該 CNAME 改回上面的 Tunnel 網域。此時工作室路徑（`/dashboard` 等）也會恢復在原網域。
+- 歷史切換前曾可把 CNAME 改回 Tunnel。現行 Nginx 會將公開頁轉址 Pages，單改 DNS 無法恢復公開站；現行回復應使用 Pages 部署回滾。只有先恢復經驗證的舊入口／Next release，才可評估歷史 DNS 回復程序。
 - 工作室入口改為 `https://studio-open-scripts.shawnup.com/dashboard`；Firebase Authentication 的授權網域須包含 `studio-open-scripts.shawnup.com`，否則工作室 Google 登入會失敗。
 
 ## 已知限制
 
 - 新發布的作品／作者／標籤首次載入是 404 狀態外殼，沒有 metadata，直到下次重新部署。
-- 內容自動更新程式與排程已實作；尚未部署驗證。啟用前仍使用人工重新部署，啟用後也需等待排程與建置完成。
+- 內容自動更新程式與排程已部署驗證，仍需等待排程、排隊與建置完成；建置中內容改變會 deferred 至下次執行。
 - 正常情況備援同步間隔約 15 分鐘；同步失敗會落後更久。瀏覽次數、按讚、意見回饋在備援期間略過。
 - `pages.dev` 網址沒有 `noindex`，canonical 指向正式網域；該網址上的跨網域 API 會被後端 CORS 擋下，不能用來驗證即時資料。
 
@@ -145,7 +112,7 @@ sessionStorage.removeItem('public-api:primary-down-until');
 
 內容更新流程位於 `.github/workflows/content-refresh.yml`，設定每小時第 7、22、37、52 分鐘執行，也可在 Actions 手動執行 **Refresh published content**。GitHub 可能延後排程，另需加上排隊、建置和上傳時間；這不是立即發布的時效保證。緊急下架可手動觸發，不必等待下一次排程。
 
-**啟用前提**：先合併並正常發布一個包含 `scripts/content-refresh.py` 的完整版本，留下 `complete` 發布紀錄。排程設定合併到預設分支後才會由 GitHub 啟用；未具備完整版本紀錄時會停止並顯示初始化說明。本次只完成程式與本機驗收，未部署、未安裝本機排程。
+**啟用前提**：先合併並正常發布一個包含 `scripts/content-refresh.py` 的完整版本，留下 `complete` 發布紀錄。排程設定合併到預設分支後才會由 GitHub 啟用；未具備完整版本紀錄時會停止並顯示初始化說明。此初始化已於 2026-11-16 完成；內容刷新使用 GitHub Actions 排程，沒有另裝本機內容刷新排程。
 
 流程先從 main checkout 唯讀解析目前入口與發布紀錄中的完整 commit SHA，再 checkout 該 SHA 執行。較新的 main 即使已有其他尚未發布的程式或文件，也不會混入內容發布。缺少舊版本紀錄、commit 不符或工作目錄不乾淨時會停止。
 
@@ -178,4 +145,4 @@ python3 scripts/content-refresh.py run
 - 驗證包含公開版本標記、HTML 環境標記、抽樣作品標題與 canonical、以及 sitemap 作品 ID 集合；通過後才記錄完成。上傳成功但紀錄尚未落盤的中斷窗口可能造成安全的重傳。
 - 依序取得 release-workflow、site-release、Pages 鎖。程式發布與內容更新共用 Actions concurrency；一般／人工 `release.sh pages` 也使用 Pages 鎖及固定快照建置。低階 `pages-build`／`pages-upload` 是內部子步驟，人工操作請走 `pages` 或完整發布入口。
 
-若要讓 Pages 人工回滾持續保留，先暫停 **Refresh published content** workflow；否則下次執行會發現標記不同並恢復目前公開內容。暫停／恢復是營運操作，本次未執行。
+若要讓 Pages 人工回滾持續保留，先暫停 **Refresh published content** workflow；否則下次執行會發現標記不同並恢復目前公開內容。暫停／恢復是營運操作；人工回滾後須確認是否恢復自動更新。

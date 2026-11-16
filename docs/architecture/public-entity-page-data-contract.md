@@ -134,8 +134,7 @@ Do not use profile tags as script card tags.
 | Script card cover | `script.coverUrl` / `script.coverDesign` | shared gallery card renderer | `script-cover` |
 | Series badge/cover | `script.series.*` | shared gallery card renderer | card-owned |
 
-`/media/...` must stay browser-facing in API data. It is converted to the
-backend origin only inside `PublicImage` for Next image optimization.
+`/media/...` must stay browser-facing in API data. In Pages output, `PublicImage` resolves it to the public media origin; media failures can fall back to R2. FastAPI owns the bounded media proxy. There is no production Next image optimizer. See [production architecture](./production-architecture.md).
 
 ## Execution Plan
 

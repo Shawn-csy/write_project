@@ -1,5 +1,7 @@
 # Public Homepage SSR Data Architecture
 
+> **歷史設計紀錄（2026-11-16 標註）**：下文記錄 Pages 遷移前的 Next server SSR 修復、階段驗收與 ISR 規劃，不是目前部署或刷新操作指南。目前首頁由 Next 建置為 Cloudflare Pages 靜態 HTML，瀏覽器以 `LiveGalleryClient` 讀取主 API／唯讀 fallback；HTML 與 SEO 快照由程式發布或排程內容刷新重建。沒有 production Next server 或 ISR。現況與發布流程見[正式環境架構](./production-architecture.md)。下文保留歷史勾選狀態，不代表目前仍有待部署的 SSR 階段。
+
 ## Problem
 
 The public homepage must be useful to both users and crawlers from the initial

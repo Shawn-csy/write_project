@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Public App（Open Scripts）
 
-## Getting Started
+`apps/public` 使用 Next.js App Router 編寫公開首頁、台本閱讀頁、作者／社團頁及 SEO metadata。正式站將 Next 產物靜態匯出至 Cloudflare Pages；瀏覽器讀取 FastAPI live API，主服務不可用時以 Worker/D1 JSON 與 R2 媒體提供唯讀 fallback。正式環境沒有常駐 Next server、ISR 或 Next image optimizer。
 
-First, run the development server:
+完整拓樸與更新時序見[正式環境架構](../../docs/architecture/production-architecture.md)；發布見[持續部署](../../docs/engineering/continuous-deployment.md)，靜態頁操作見[Pages production](../../docs/engineering/public-pages-production.md)。Studio 是 repository 根目錄的 Vite app。
+
+## 本機開發
+
+在 repository 根目錄安裝 workspace dependencies，執行：
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm ci
+npm run dev -w apps/public
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+預設開啟 `http://localhost:3000`。`BACKEND_API_URL` 未設定時使用 `http://localhost:1091`；其他 API／媒體來源依環境設定。Next server-mode 的 route handlers、rewrites 與快取設定支援本機開發，不能用其驗收結果代替 Pages 靜態產物驗收。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 建置與資料邊界
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Pages 預覽建置（不會發布）
+npm run build:pages-preview -w apps/public
 
-## Learn More
+# 正式 Pages 建置（不會單獨完成正式發布）
+npm run build:pages -w apps/public
+```
 
-To learn more about Next.js, take a look at the following resources:
+使用 `scripts/build-public-pages.mjs` 的建置流程產生 `apps/public/out`，包含 HTML、SEO／sitemap 快照及 Pages 路由與標頭設定。`npm run build -w apps/public`／`npm run start -w apps/public` 是保留的 Next server-mode 建置／啟動命令，不是正式部署方式。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+首頁及實體頁初始內容是建置快照；hydration 後由 browser API adapters 讀取公開資料。寫入、Firebase 認證與 PostgreSQL 由主 API 負責，fallback 不接收寫入。API／媒體 URL 必須是瀏覽器可達的公開來源，不能把 Docker 內部位址帶到產物。
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+程式發布與內容刷新是兩條流程：正常發布在 CI 通過後由 Mac self-hosted runner 發布 API／Studio 並驗證 Pages；內容刷新排程在每小時 `7,22,37,52` 分，以已部署 SHA 重建快照，可能延遲或因資料變動延後建置，不是 webhook 或即時逐項發布。
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+共享元件與產品模型邊界見[Frontend boundaries](../../docs/architecture/frontend-boundaries.md)、[Public homepage architecture](../../docs/architecture/public-homepage-architecture.md)及[Media presentation](../../docs/architecture/public-media-presentation-architecture.md)。

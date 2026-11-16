@@ -1,4 +1,6 @@
 # 資料庫架構（版本庫現況）
+
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
 最後更新：2026-11-13
 
 本文描述 checked-in defaults，並非線上容器、資料或 schema 的即時驗證。
@@ -26,4 +28,4 @@ Schema 作業與 API 啟動分離。以 `scripts/migrate-prod-schema.sh --verify
 - ORM：`server/models.py`；連線：`server/database.py`。
 - 目前遷移：`server/migration.py`；SQLite 一次性轉移：`server/migrate_sqlite_to_postgres.py`（`--truncate` 會覆蓋目標資料）。
 - 網站發布由 `scripts/release.sh`／`scripts/site-release.py` 管理，不停止 PostgreSQL。舊整組 `safe-deploy.sh` 僅限已安排的停機維護，不能作為日常發布路徑。
-- 版本化 migration 與 restore 驗收仍是 [待辦路線圖](../pending/architecture-maintenance-roadmap.md)，不代表已完成。
+- 版本化 migration 仍是 [待辦路線圖](../pending/architecture-maintenance-roadmap.md)，不代表已完成。備份的隔離還原驗收已於 2026-11-16 完成（40 表、2,375 筆、208 個媒體），見 [備份與還原](backup-restore.md)。

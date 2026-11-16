@@ -1,6 +1,6 @@
 # 公開台本平台 (`write_project`)
 
-最後更新：2026-11-16（本分支的精簡架構；尚未部署）
+最後更新：2026-11-16（精簡架構已部署；正式驗收版本 `6b32f07`）
 
 本專案是一個台本創作、發布與公開閱讀平台。公開網站與工作室分別由兩個前端提供：
 
@@ -8,6 +8,34 @@
 - `apps/public/`：Next.js 公開站原始碼。正式公開入口採 Cloudflare Pages 靜態匯出，瀏覽器向 Tunnel 主 API 取得即時公開資料，失聯時使用 D1／R2 唯讀備援。SEO HTML、metadata 與 sitemap 是建置快照；正式環境不再啟動 Next server，公開 JSON 與封面統一由 FastAPI 提供。Next.js 保留為 Pages 建置工具與本機開發服務。
 
 共享的解析、渲染、公開 UI、媒體裁切與 PDF 匯出能力放在 `packages/*`，避免 Vite 與 Next 重複實作。
+
+## 正式架構總覽
+
+```mermaid
+flowchart TB
+  Reader[公開站讀者] --> Pages[Cloudflare Pages<br/>靜態 HTML、SEO、前端程式]
+  Reader -->|瀏覽器即時 API／媒體| Tunnel[Cloudflare Tunnel]
+  Editor[工作室使用者] --> Tunnel
+  Tunnel --> Nginx[正式 Mac：Nginx]
+  Nginx --> Studio[Vite 工作室靜態檔]
+  Nginx --> API[FastAPI<br/>業務、公開 API、媒體與縮圖]
+  API --> DB[(PostgreSQL)]
+  API --> Media[本機上傳媒體]
+  Reader -. 公開唯讀備援 .-> Cloud[Worker＋D1／R2]
+  API -->|每 15 分鐘同步| Cloud
+  DB --> Backup[每日 04:00 台北時間備份]
+  Media --> Backup
+  Backup --> Copies[本機 14 天＋Horcrux 180 天]
+  Monitor[每 5 分鐘監控] -. 檢查 .-> API
+  Monitor -. 檢查 .-> Pages
+```
+
+- **程式部署**：PR 合併 main → 同一 SHA 的兩組 CI 全部成功 → Mac runner 建置、驗證候選並切換 API／Nginx → 發布 Pages → 線上驗證、保留回滾版。
+- **內容更新**：工作室先寫入 PostgreSQL；瀏覽器依快取與刷新機制取得新資料。GitHub Actions 約每 15 分鐘檢查內容，用已部署版本建置、驗證並更新 Pages 靜態快照。
+- **維運**：本機監控每 5 分鐘、D1／R2 同步每 15 分鐘、每日 04:00 備份。監控與備份排程已啟用，Horcrux 副本已通過實際隔離還原。
+- **邊界**：正式環境沒有 Next server／ISR；D1／R2 僅備援公開讀取。Mac 仍是寫入單點，Horcrux 是外接碟副本，並非異地備份。
+
+完整服務圖、部署／內容流程、監控範圍、備份限制與驗收證據見 [正式環境整體架構](./docs/architecture/production-architecture.md)。
 
 ## 目前產品面
 
@@ -27,7 +55,7 @@
 | 公開站 | Next.js 16 App Router, React 19, TypeScript；Pages 靜態匯出；正式 API／媒體由 FastAPI 提供 |
 | 共享套件 | npm workspaces under `packages/*` |
 | 後端 | FastAPI, SQLAlchemy |
-| DB | PostgreSQL（SQLite 僅用於遷移/除錯） |
+| DB | 正式 PostgreSQL；SQLite 用於測試、遷移及獨立爬蟲狀態 |
 | 測試 | Vitest, Playwright, Pytest |
 | 樣式 | Tailwind CSS, CSS variables, shared marker theme tokens |
 
@@ -61,24 +89,20 @@ scripts/                  development and maintenance scripts
 
 ## 公開站路由
 
-下表 Revalidate 僅描述 Next **server mode** 的 ISR／快取設定。Pages 靜態匯出不執行 ISR，不會自行刷新 SEO HTML、metadata 或 sitemap；瀏覽器即時 API 更新與重新建置快照是不同路徑。
+正式公開頁由 Pages 靜態匯出，HTML、metadata 與 sitemap 隨發布快照更新；頁面載入後可向公開 API 讀取即時資料。Next server mode 的 ISR／revalidate 設定不代表正式站更新時程。
 
-| Route | 用途 | Revalidate |
-|---|---|---|
-| `/` | 首頁 gallery, hero banner, scripts/authors/orgs views | `force-dynamic`（資料快取另計） |
-| `/read/[id]` | 公開閱讀器 | 1 hour |
-| `/author/[id]` | 作者頁 | 1 hour |
-| `/org/[id]` | 組織頁 | 1 hour |
-| `/author/external/[name]` | 外部作者頁 | 依公開資料快取 |
-| `/org/external/[name]` | 外部組織頁 | 依公開資料快取 |
-| `/series/[name]` | 系列頁 | 1 hour |
-| `/tag/[name]` | 標籤集合頁 | 1 hour |
-| `/authors`, `/audio-works`, `/demos`, `/resources` | 公開名錄 | 依頁面資料快取 |
-| `/resources/[id]` | 製作資源詳情與參與作品 | 依公開資料快取 |
-| `/about`, `/help`, `/license`, `/privacy`, `/terms` | 公開資訊頁 | 1 hour |
+| Route | 用途 |
+|---|---|
+| `/` | 首頁 gallery、hero、作品／作者／組織目錄 |
+| `/read/[id]` | 公開閱讀器 |
+| `/author/[id]`、`/org/[id]` | 作者／組織頁 |
+| `/author/external/[name]`、`/org/external/[name]` | 外部作者／組織頁 |
+| `/series/[name]`、`/tag/[name]` | 系列／標籤集合頁 |
+| `/authors`、`/audio-works`、`/demos`、`/resources` | 公開名錄 |
+| `/resources/[id]` | 製作資源詳情與參與作品 |
+| `/about`、`/help`、`/license`、`/privacy`、`/terms` | 公開資訊頁 |
 
-BFF routes 位於 `apps/public/app/api/*`，僅在 Next server mode 執行；Pages 瀏覽器使用編入建置的主／備援 API origins。
-工作室 Demo 管理頁使用 `/studio/demos`；公開 `/demos` 由 Next.js 提供。
+`apps/public/app/api/*` 的 Next BFF 僅供 server mode／開發相容；正式瀏覽器使用建置時設定的主／備援 API origins。正式 API 與媒體實作位於 FastAPI。工作室 Demo 管理頁使用 `/studio/demos`；公開 `/demos` 由 Pages 提供，原始碼位於 `apps/public`。
 
 ## 架構邊界
 
@@ -140,6 +164,9 @@ npm run test:e2e         # Playwright E2E
 
 ## 主要文件入口
 
+- [正式環境整體架構](./docs/architecture/production-architecture.md)
+- [監控操作](./docs/engineering/production-monitoring.md)
+- [備份與還原](./docs/engineering/backup-restore.md)
 - [Changelog](./CHANGELOG.md)
 - [Frontend Runtime Boundaries](./docs/architecture/frontend-boundaries.md)
 - [Public Homepage Architecture](./docs/architecture/public-homepage-architecture.md)
@@ -169,5 +196,5 @@ npm run test:e2e         # Playwright E2E
 - 公開頁功能以 Next.js 為準；Vite 不再承擔 public runtime。
 - 編輯器與工作室仍由 Vite 承擔。
 - 解析、marker theme、reader renderer、public gallery model、PDF export 必須放在 shared packages，不允許兩邊複製邏輯。
-- SEO metadata、public URLs、BFF routes 只放在 `apps/public`。
+- 公開頁路由與 SEO metadata 放在 `apps/public`；正式 API／媒體放在 FastAPI。Next BFF 僅保留開發相容用途。
 - 新增 reader/public 功能前，先確認應放在 app adapter、public domain model、renderer package，或 engine package。

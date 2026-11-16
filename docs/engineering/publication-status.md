@@ -1,5 +1,7 @@
 # Pages publication status
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+
 Studio's admin sidebar polls `GET /api/admin/publication-status` every 30 seconds using normal authenticated requests. The endpoint requires administrator authorization and disables response caching. This is explicitly a site-wide view: a successful database save does not prove that item is included in Pages. The UI always states that new changes await publication and individual inclusion is unknown.
 
 Mount only `<release-root>/.content-refresh` read-only at `/run/wp-publication` in the backend and set `WP_PUBLICATION_STATE_DIR=/run/wp-publication`. No release checkout, Docker socket, credentials, or snapshots are mounted. Reads are bounded to 64 KiB of `state.json`; absent, malformed, oversized or unreadable state returns unknown without disclosing paths or errors. No network calls or snapshot capture occur on API reads.

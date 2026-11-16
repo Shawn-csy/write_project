@@ -1,6 +1,10 @@
 # 自動部署（CD）
 
-最後更新：2026-11-16（本分支精簡流程尚未部署）
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+
+最後更新：2026-11-16（精簡流程已部署並驗證）
+
+2026-11-16 正式驗收：[程式發布 run](https://github.com/Shawn-csy/write_project/actions/runs/43798799241)、[內容刷新 run](https://github.com/Shawn-csy/write_project/actions/runs/43799579143)。
 
 ## 流程
 
@@ -21,7 +25,7 @@ scripts/release.sh auto
 
 ## 舊版本清理
 
-新版發布只建立 API 映像與工作室靜態檔，不再建立 Next server 映像。舊版回滾目標仍可能包含 Next server，須依舊版紀錄完整保留。`release.sh auto` 在切流成功後執行 `site-release.py prune`：
+新版發布只建立 API 映像與工作室靜態檔，不再建立 Next server 映像。舊版回滾目標仍可能包含 Next server，須依舊版紀錄完整保留。`release.sh auto` 在 Pages／驗證成功並寫入 `complete` 後執行 `site-release.py prune`：
 
 - **保留**：正式版，以及它記錄的回滾目標（`release.json` 的 `previous_edge`）。兩者的容器、映像、靜態檔與控制資料都完整留著，`rollback` 隨時可用。
 - **刪除**：更舊版本的 `wp-site-<tag>-*` 容器、`write_project-backend/public:<tag>` 映像、`releases/<tag>`、`releases/.site-release/<tag>` 與 `dist/releases/<tag>`；保留版本已複製到 `releases/` 的 `dist/releases` 建置輸出也一併刪除。
@@ -98,8 +102,8 @@ cd ~/actions-runner-write-project
 
 runner 從自己的 checkout 建置，但兩樣東西必須用正式位置：
 
-- `WP_RELEASE_ROOT=/Users/shanti/Desktop/write_project/releases`：正式入口掛載的靜態檔與發布控制資料。
-- `WP_STUDIO_ENV_FILE=/Users/shanti/Desktop/write_project/.env`：工作室建置需要的公開 Firebase 設定（不進 git）。
+- `WP_RELEASE_ROOT=$HOME/Desktop/write_project/releases`：正式入口掛載的靜態檔與發布控制資料。
+- `WP_STUDIO_ENV_FILE=$HOME/Desktop/write_project/.env`：工作室建置需要的公開 Firebase 設定（不進 git）。
 
 ## 回滾
 
@@ -107,6 +111,6 @@ runner 從自己的 checkout 建置，但兩樣東西必須用正式位置：
 
 ### 內容更新與程式發布的分工
 
-`.github/workflows/content-refresh.yml` 提供每約 15 分鐘及手動的內容更新入口，與程式發布共用 `production-deploy` concurrency 和可信任 runner。首次使用前須正常發布一個包含新工具且紀錄為 `complete` 的版本；本次尚未部署。GitHub 排程可能延後，還要計入建置時間。
+`.github/workflows/content-refresh.yml` 提供每約 15 分鐘及手動的內容更新入口，與程式發布共用 `production-deploy` concurrency 和可信任 runner。2026-11-16 正常發布已留下 `complete` 紀錄，內容更新亦已成功完成；新環境仍須先正常發布一個包含新工具且紀錄為 `complete` 的版本。GitHub 排程可能延後，還要計入建置時間。
 
 main checkout 只負責唯讀解析正式版本，真正建置使用該完整 SHA，避免帶入尚未發布的程式。內容流程持有發布、入口及 Pages 鎖，只有 Pages 產物與狀態紀錄會更新；不執行 API 切流、schema、身份收斂或清理。D1／R2 同步獨立運作。一般 `release.sh pages` 也使用共用 Pages 鎖、固定快照及新的輸出目錄，因此公開內容清空後仍可正常發布後續程式版本。狀態、重試、緊急下架與人工回滾注意事項見 [Pages 操作](public-pages-production.md#published-content-refresh)。

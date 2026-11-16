@@ -5,6 +5,14 @@ All notable product-facing changes are documented here.
 For the commit-level inventory between `v0.5.0` and `v0.6.0`, see `docs/archive/release-version-map-after-v0.5.0.md`.
 The early `v0.1.0`–`v0.4.9` releases are summarized in the historical overview below.
 
+## [Unreleased]
+
+### 發布與維運（2026-11-16，已部署；尚未另建版本標籤）
+
+- 在 PR #46、#47 的發布／內容刷新基礎上，PR #48、#49 已精簡正式 runtime 並完成維運啟用：發布綁定指定 CI 與正式版本，補齊候選版檢查、切流、收斂、Pages 驗證及 journal；內容快照以排程偵測來源，建置後再次比對並保留 receipt。
+- 啟用獨立 ops runtime 的公開資料／媒體同步、本機監測，以及每日完整備份、外接鏡像與隔離還原驗證；外接鏡像不等於異地備份，程式回滾不回滾資料庫。
+- 更新正式架構說明，區分 Pages 靜態公開站、Mac Studio／API 與唯讀 D1／R2 備援，並標記舊架構文件的歷史範圍。現況見 [正式環境架構](docs/architecture/production-architecture.md)。
+
 ## [0.7.4] - 2026-11-10
 
 整合公開作品與製作資源目錄，改善小螢幕瀏覽、投稿審核及正式站發布流程。

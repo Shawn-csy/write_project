@@ -1,5 +1,7 @@
 # Dependency Audit Exceptions
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。 本文保留各日期的歷史量測／處置；其中 Next 常駐服務、舊容器與當時「目前」字樣不可當作今日正式拓樸。現行公開站為 Pages 靜態匯出，API／媒體由 FastAPI 提供。
+
 最後更新：2026-11-10
 
 ## 目前正式版（2026-11-10）

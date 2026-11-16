@@ -1,10 +1,14 @@
 # Production Security Hardening Plan
 
-最後更新：2026-11-10
+最後更新：2026-11-16（現況邊界註記；保留 2026-11-10 修補紀錄）
+
+> **現況與歷史範圍**：現行部署見 [正式環境架構](../architecture/production-architecture.md)。公開站為 Cloudflare Pages 靜態輸出，沒有正式 Next server、BFF、圖片 optimizer、ISR 或 `/api/revalidate`；本文相關 Phase 3、optimizer 與 Next container 敘述是舊 server-mode 的安全修補／測試歷史，不是目前公開請求路徑，也不應重新啟用為正式依賴。Next.js 仍供開發及建置使用。
+>
+> 正式 API／Studio 經 Tunnel → loopback 1090 Nginx → FastAPI／內部 PostgreSQL，Nginx 同時供應 Studio 靜態檔。DB／backend 不直接 publish 到 host 的修正已完成；下列弱密碼與公開 ports 程式片段是修補前範例。安全測試與依賴稽核須持續執行，歷史零漏洞結果不是永久保證。
 
 ## 目的
 
-本文件整理目前公開網站與後端部署架構中已確認的資安風險，並定義長期、系統性、可驗收的改善路線。
+本文件整理 2026-11-10 公開網站與後端部署架構中已確認的資安風險，並定義長期、系統性、可驗收的改善路線。
 
 這不是功能開發文件，也不是短期補丁清單。目標是把正式環境的攻擊面、公開寫入 API、防濫用、快取重建權限、外部媒體來源與依賴漏洞治理成一套穩定的安全基線。
 
@@ -15,7 +19,7 @@
 - `docker-compose.prod.yml`
 - `nginx.conf`
 - FastAPI backend public/private API 邊界
-- Next.js public BFF / revalidation route
+- Next.js public BFF / revalidation route（舊 server-mode 修補歷史，非目前正式 runtime）
 - 公開寫入 API：view、like、terms acceptance、訪客投稿與聲演資料補充
 - 公開媒體與外部圖片來源策略
 - production dependency audit
@@ -37,9 +41,9 @@
 | P1 | 公開寫入 API 無足夠 rate limit | 已部署後端與入口限制，仍需持續攻擊測試 | DB bloat、view/like 刷數、terms acceptance 濫用 |
 | P1 | API 寫入先解析過大的 JSON body | 已部署預設與路由大小上限、回歸測試 | 無需大量請求就可增加解析記憶體與 CPU 負擔 |
 | P1 | like 去重依賴 client-controlled `visitorId` | 已部署來源 IP 約束，仍需持續攻擊測試 | 攻擊者可偽造 visitorId 造成互動數據失真 |
-| P1 | Next 圖片最佳化器允許私有 IP 並跟隨外部重新導向 | 已部署，需持續回歸測試 | 受允許的外部圖片來源若重新導向到內網，可能讓伺服器代為請求 |
-| P2 | `/api/revalidate` path 無白名單、無數量與長度上限 | 已部署路徑與數量限制 | secret 洩漏後可 DoS ISR cache / 重渲染 |
-| P2 | production dependency audit 有 high/critical 項目 | 目前 `npm audit --omit=dev` 為 0 項 | 供應鏈風險與已知 CVE |
+| P1 | 歷史 Next 圖片最佳化器允許私有 IP 並跟隨外部重新導向 | 舊 server-mode 已修補；正式已移除 Next optimizer，現驗證 FastAPI 媒體安全邊界 | 受允許的外部圖片來源若重新導向到內網，可能讓伺服器代為請求 |
+| P2 | 歷史 `/api/revalidate` path 無白名單、無數量與長度上限 | 舊 server-mode 已修補；正式 Pages 不使用此端點 | secret 洩漏後可 DoS ISR cache / 重渲染 |
+| P2 | production dependency audit 有 high/critical 項目 | 該次稽核 `npm audit --omit=dev` 為 0 項 | 供應鏈風險與已知 CVE |
 | P2 | Python 後端相依上限阻止安全更新 | 已將 `cryptography` 升至 50.0.2，映像稽核 0 項；CI 加入 `pip-audit --strict` | 舊映像含已知漏洞且原 `<45` 上限無法取得修復版 |
 | P3 | 外部圖片 fallback 到 browser `<img>` | 保留並設定 `no-referrer` | 非 SSRF，但會讓訪客向第三方來源發請求 |
 
@@ -53,7 +57,7 @@
 
 ### P0 — Postgres 不應對外 publish
 
-現況：
+修補前狀態（歷史）：
 
 ```yaml
 write_project-postgres:
@@ -78,7 +82,7 @@ write_project-postgres:
 
 ### P0 — Backend 不應對外 publish
 
-現況：
+修補前狀態（歷史）：
 
 ```yaml
 write_project-backend:
@@ -129,7 +133,7 @@ write_project-backend:
 
 ### P2 — Revalidate route 需要縮小權限
 
-現況：
+修補前狀態（歷史）：
 
 ```ts
 if (typeof path === "string" && path.startsWith("/")) {
@@ -183,7 +187,7 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 ### P3 — 外部圖片來源策略
 
-現況：
+修補前狀態（歷史）：
 
 - allowlist host 走 `next/image`；
 -未知外部 URL fallback 到 browser `<img>`。
@@ -218,9 +222,9 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 - [x] `docker-compose.prod.yml` 只對外 publish nginx。
 - [x] Postgres 只在 internal network 可達。
-- [x] Backend 只被 nginx / public Next container 內部呼叫。
+- [x] Backend 不直接 publish 到 host；當時可由 nginx／public Next container 內部呼叫。目前正式請求由 Nginx 轉送，沒有 public Next container。
 - [x] production 未提供 DB secret 時 fail fast（`${POSTGRES_PASSWORD:?...}`）。
-- [x] 待部署 Compose 的 Nginx 僅綁 `127.0.0.1:1090` 與 `[::1]:1090`；`scripts/check-prod-network-boundary.py` 在安全測試、CI 與部署前檢查此界線。Tunnel 實際曾透過 `::1:1090` 連入。
+- [x] 當時候選 Compose 的 Nginx 僅綁 `127.0.0.1:1090` 與 `[::1]:1090`；`scripts/check-prod-network-boundary.py` 在安全測試、CI 與部署前檢查此界線。Tunnel 實際曾透過 `::1:1090` 連入。
 - [x] 網站專用切流後，實際 `wp-prod-live-edge` 僅綁 `127.0.0.1:1090` 與 `[::1]:1090`；公開入口與雙 loopback `/healthz` 均回 200。舊容器仍保留但已停止，其他服務未重啟。
 
 ### Phase 2 — Public Write Rate Limits
@@ -251,7 +255,7 @@ if (typeof path === "string" && path.startsWith("/")) {
 - [x] view 短時間窗口去重（同 IP + script_id，避免一次 request 衝破 counter）。
 - [x] terms acceptance 欄位長度與 body size 限制。
 
-### Phase 3 — Revalidate Scope Lockdown
+### Phase 3 — Revalidate Scope Lockdown（舊 server-mode 歷史）
 
 任務：
 
@@ -345,7 +349,7 @@ bash scripts/security-check.sh
 - 不接受 revalidate route 只檢查 secret、不檢查 path scope。
 - 不接受把 dependency audit high/critical 永久忽略但沒有 exception 文件。
 
-## 建議執行順序
+## 原始執行順序（歷史）
 
 1. Phase 1：先收斂 production network boundary。
 2. Phase 2：補 public write rate limit 與 abuse guard。
@@ -356,6 +360,4 @@ bash scripts/security-check.sh
 
 ## 目前結論
 
-使用者列出的問題成立，且優先順序合理。
-
-最需要立即處理的是部署層 P0：Postgres 與 backend 不應在 production 直接 publish 到 host。這兩項修完後，再處理公開寫入 API 的防濫用，才是系統化且長期穩定的路線。
+部署層 P0 的 DB／backend port 與 secret 邊界已修正；公開寫入限制仍需持續回歸與攻擊測試。正式公開站採靜態 Pages，舊 revalidation／optimizer 修補不代表目前有對外 Next server。後續工作以現行 FastAPI、Nginx、瀏覽器外部媒體策略、供應鏈稽核與復原流程為範圍；不把歷史修補清單重新當成待部署工作。

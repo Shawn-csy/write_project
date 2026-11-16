@@ -1,20 +1,20 @@
 # 架構維護分階段路線圖
 
-更新：2026-11-13。這是待辦與驗收範圍，不宣稱全部完成，也不代表線上狀態檢查。現況由 [前端邊界](../architecture/frontend-boundaries.md)、[資料庫架構](../engineering/database-architecture-current.md) 與 [發布程序](../engineering/continuous-deployment.md) 說明。
+更新：2026-11-16。現行部署與資料路徑以 [正式環境架構](../architecture/production-architecture.md) 為準；本頁區分已實作／啟用與仍待完成的工作。2026-11-13 的本機驗收紀錄不等於當時已部署；下列狀態納入 PR #48、#49 合併後的正式啟用證據。
 
-| 階段／狀態 | 範圍 | 驗收條件 |
+| 階段／狀態 | 已交付範圍 | 剩餘驗收與限制 |
 |---|---|---|
-| 1. CI 與 release reliability（首批已本機驗收，未部署） | 已補 CI 觸發範圍、工作室檢查、具名 CI 閘門、發布 journal 與切流後續跑；保持網站入口切換與 DB 維護分離 | 必要工作有明確成功條件，缺失／失敗不能發布；切流後的 Pages／驗證失敗可定位並依程序重試；切流前的部分建置失敗須拒絕繼續並人工檢查，不能宣稱所有步驟可自動重試；回滾範圍清楚，本機檢查與整合證據經 review |
-| 2. 內容驅動 Pages refresh 與來源新鮮度（首批已本機驗收，未部署） | 公開內容變動觸發 SEO 快照重建；合併重複事件，追蹤建置來源與 D1/R2 同步新鮮度 | 新增／更新／撤下內容可在重建後反映於 HTML、metadata、sitemap；失敗可見且可重試；瀏覽器 live API 與建置快照時間可區別；不存在路徑維持正確語意 |
-| 3. route／UI feature boundaries（待辦） | route 僅負責組裝、URL／metadata／資料 adapter；依功能整理 UI 與 model，先選一個 discovery／目錄模組作示例，再決定擴張 | 示例的 route、feature UI、pure model 與 shared package 責任清楚；不新增跨 app 反向 imports；既有 URL、SEO、loading／error／empty 行為與工作室預覽通過適當驗證；示例尚未實作 |
-| 4. versioned migrations 與 restores（待辦） | 從目前 legacy migration 建立有版本、可追蹤的變更流程，定義 backup／restore 及資料回復與程式回滾的差異 | 空庫升級與既有資料升級均可重現；失敗、重跑與並發控制有驗證；隔離環境可從備份還原並檢查資料／schema／readiness；有可操作的復原程序，不把映像回滾當資料回滾 |
+| 1. CI 與 release reliability（已部署） | main 的兩個指定 CI workflow 通過後，由 Mac self-hosted runner 執行 API／Studio candidate、schema 檢查、切流、converge、Pages 建置／上傳／驗證及完整 journal | API／edge 直接回滾與 Pages 回滾各自處理；程式回滾不回滾資料庫。不得把部分完成或 journal 不完整當發布完成 |
+| 2. 內容驅動 Pages refresh 與來源新鮮度（已部署／排程啟用） | 固定正式 deployed SHA、擷取來源、建置、再次擷取比對、上傳、驗證及狀態 receipt；GitHub cron 每小時 7、22、37、52 分執行，約 15 分鐘檢查一次；D1／R2 另由 launchd 每 900 秒同步 | 排程可能延後，建置中內容改變會延後再試；不是 webhook 或即時發布事件。API 多次讀取不是資料庫交易快照。網站級 receipt 不等於每件作品的發布證明；事件推送／outbox、對外新鮮度 UI 仍待辦 |
+| 3. route／UI feature boundaries（待辦） | 依功能整理 UI、model 與 route adapter 的方向維持 | 先選一個 discovery／目錄示例，驗證 URL、SEO、loading／error／empty 與工作室預覽；不新增跨 app 反向 imports，示例尚未完成 |
+| 4. versioned migrations 與 restores（備份／還原已啟用，版本化流程仍待辦） | 每日 04:00 Asia/Taipei 執行 PostgreSQL custom dump、媒體與 hash manifest；本機保留 14 日，外接 Horcrux 不同掛載檔案系統保留 180 日；隔離還原驗證 40 表、2,375 筆與 208 個媒體通過 | 仍需完善版本化 migration 的空庫／既有資料升級、並發與重跑治理；DB dump 與媒體不是共同原子快照。外接備份不是異地備份；Mac 仍為寫入單點 |
 
-第 1 階段仍待候選預建置與不可變 release manifest 的設計及驗收；本次可靠性修正不代表這些能力已完成。2026-11-13 本機驗收：前端 2,522 項測試、根目錄與公開站型別檢查、工作室建置、fixture 驅動的公開站 standalone／Pages 雙建置，以及發布／CI 契約檢查通過。發布故障測試使用隔離假指令，不代表正式環境切流演練已完成。
+## 正式啟用與證據
 
-逐階段交付與 review；第 1 階段完成不代表後續階段完成。任何正式部署、同步、遷移或 restore 的實際結果須另外留下當次證據。
+- 正式程式版本：`6b32f07`（2026-11-16）。[正式發布 workflow](https://github.com/Shawn-csy/write_project/actions/runs/43798799241) 與 [內容 refresh workflow](https://github.com/Shawn-csy/write_project/actions/runs/43799579143) 分別記錄程式發布與內容快照重建。
+- D1／R2 同步已由獨立於 checkout 的不可變 ops runtime 執行；監測 launchd 每 300 秒檢查 API／圖片延遲、有限 Nginx 媒體錯誤樣本、Pages／同步新鮮度與磁碟，使用本機日誌及 exit code，沒有新增 email／Slack 告警服務。
+- 備份外接鏡像失敗時保留本機備份並以非零狀態退出；完整復原與程式回滾分開處理。
 
-### 第二階段驗收紀錄
+公開站是 Next.js 靜態建置輸出加瀏覽器 live API，不把 Next server／ISR 當正式環境後續必備元件。Ci-en／Bedtime 爬蟲仍為獨立 CLI，沒有排程或自動發布；不宣稱支援 X 爬蟲。
 
-2026-11-13 已實作內容排程／手動入口、固定快照建置、正式 commit 綁定、內容指紋及可重試狀態紀錄。實際建置通過新增、修改、下架與公開目錄完全清空；故障測試涵蓋建置／上傳／驗證失敗、入口與版本不符、並行鎖、公開版本被替換及內容變動。未部署正式環境，也未宣稱排程已線上運作。
-
-本階段採每約 15 分鐘偵測公開資料，會合併期間的修改；建置途中資料改變會延後再試。D1／R2 仍獨立同步。剩餘限制是排程延後與建置耗時，以及公開 API 多次讀取並非交易快照；即時發布事件／outbox、對外新鮮度狀態介面與備援同步監測仍待後續階段。操作與重試見 [Pages 操作](../engineering/public-pages-production.md#published-content-refresh)。
+內容 refresh 的操作與重試見 [Pages 操作](../engineering/public-pages-production.md#published-content-refresh)。逐階段交付與 review；任一階段完成不代表所有維護工作已完成。

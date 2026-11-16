@@ -1,8 +1,10 @@
 # Private backup and restore drill
 
+正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
+
 ## Actual readiness (2026-11-16)
 
-Read-only inspection of the installed LaunchAgent found `BACKUP_MIRROR_DIR` and `PATH`, with no offsite destination. Off-machine backup is **unconfigured**, not complete. The external disk is a mirror, not remote delivery. No production dump, upload, schedule installation or production restore was performed for this change.
+The installed `com.shawnup.write-project-backup` LaunchAgent now runs daily at 04:00 Asia/Taipei using `~/bin/backup-db.sh` and adjacent `~/bin/backup-bundle.py`. Local retention is 14 days; the Horcrux external mirror retains 180 days. A real production bundle passed a disposable restore drill: 40 tables, 2,375 records and 208 media files, after correcting the drill shadowing defect. No production database was restored in place. No offsite destination is configured; the external disk is a local mirror, not offsite delivery.
 
 ## Backup format and compatibility
 
@@ -16,11 +18,11 @@ Database dump uses pg_dump's consistent DB snapshot. Source table counts before/
 
 ## Existing Horcrux external disk
 
-The user selected `/Volumes/Horcrux/write_project_backups`. Read-only inspection confirmed `/Volumes/Horcrux` is mounted on a different device from the home filesystem. Configure `BACKUP_MIRROR_DIR` to that directory. A configured external mirror is required: absence, permissions, copy or checksum failure exits nonzero. The script verifies a real mounted ancestor on a distinct filesystem, rejects symlink paths and checks the parent exists before creating anything. This prevents creating a fake directory under `/Volumes` when the disk is absent. A complete copy is atomically renamed only after hash validation. The external mirror keeps 180 days (`MIRROR_KEEP_DAYS`); local storage keeps 14 days. Neither copy protects against loss of both disks in the same location. There is no offsite delivery feature or destination.
+The user selected `/Volumes/Horcrux/write_project_backups`. Read-only inspection confirmed `/Volumes/Horcrux` is mounted on a different device from the home filesystem. The installed job configures `BACKUP_MIRROR_DIR` to that directory. A configured external mirror is required: absence, permissions, copy or checksum failure exits nonzero. The script verifies a real mounted ancestor on a distinct filesystem, rejects symlink paths and checks the parent exists before creating anything. This prevents creating a fake directory under `/Volumes` when the disk is absent. A complete copy is atomically renamed only after hash validation. The external mirror keeps 180 days (`MIRROR_KEEP_DAYS`); local storage keeps 14 days. Neither copy protects against loss of both disks in the same location. There is no offsite delivery feature or destination.
 
-## Installation (manual; not performed)
+## Installed helpers and future updates
 
-Install both helpers together into `~/bin`, retain executable permissions, set an absolute `MEDIA_STORAGE_ROOT` and ensure launchd's Python/Docker PATH works. Review `scripts/com.shawnup.write-project-backup.plist` before installing it. Desktop/media access may require macOS privacy authorization for the scheduled interpreter. Do not copy just the shell wrapper. The template retains the existing Horcrux destination. Verify a manual run and restore drill after merge and before activating the updated schedule.
+Install both helpers together into `~/bin`, retain executable permissions, set an absolute `MEDIA_STORAGE_ROOT` and ensure launchd's Python/Docker PATH works. Review `scripts/com.shawnup.write-project-backup.plist` before installing it. Desktop/media access may require macOS privacy authorization for the scheduled interpreter. Do not copy just the shell wrapper. The template retains the existing Horcrux destination. The updated helpers and schedule were activated on 2026-11-16 and passed a manual backup and isolated restore drill. Future updates must repeat that verification.
 
 ## Verify and disposable restore drill
 
@@ -32,4 +34,4 @@ python3 -m unittest discover -s scripts -p test_backup_bundle.py -v
 
 Only use trusted locally acquired bundles. The drill accepts no destination/container override: it creates a random `wp-restore-drill-*` container and internal network, tmpfs database, temporary media directory, no host ports and no production mounts. It verifies hashes and safe archive members before provisioning, restores with errors fatal, compares all public-table counts to source evidence, requires populated records, and runs `pg_amcheck --heapallindexed`. Media extraction occurs only into a disposable temporary directory. Container/network/temp media cleanup runs on success and exceptions. SIGKILL or machine loss can leave resources; inspect only resources with the generated `wp-restore-drill-*` name before manual cleanup. Never substitute a production container into a restore command.
 
-Synthetic validation used an isolated network-none PostgreSQL 16 fixture with two script records and one fake image, then backup + isolated drill. No production data was read. Unit tests cover truncated artifacts, checksums, archive traversal, symlinks/credential exclusion, same-device/missing mounts and symlink mirror destinations. Offsite delivery remains unconfigured. Parent acceptance also copied the synthetic bundle to a temporary directory on Horcrux, verified checksums, and restored two records plus one media file from that copy. The temporary external-disk fixture and disposable containers were removed; no production data was copied.
+Earlier predeployment synthetic validation used an isolated network-none PostgreSQL 16 fixture with two script records and one fake image, then backup + isolated drill. That earlier synthetic validation read no production data. Unit tests cover truncated artifacts, checksums, archive traversal, symlinks/credential exclusion, same-device/missing mounts and symlink mirror destinations. Offsite delivery remains unconfigured. Parent acceptance also copied the synthetic bundle to a temporary directory on Horcrux, verified checksums, and restored two records plus one media file from that copy. The temporary external-disk fixture and disposable containers were removed; that earlier fixture contained no production data. The later production-bundle acceptance described above supersedes the earlier readiness status.

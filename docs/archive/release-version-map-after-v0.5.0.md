@@ -1,5 +1,8 @@
 # Release Version Map After v0.5.0
 
+> **歷史封存（2026-11-16 核對）**：本文保留原日期的設計、完成狀態與驗收紀錄，不代表目前正式環境，也不是現行部署／備份操作指南。現行架構請見 [正式環境架構](../architecture/production-architecture.md)。正式公開站為 Cloudflare Pages 靜態輸出；Next.js 用於建置／開發，正式環境沒有 Next server、ISR 或 revalidation 服務。本文中的舊 runtime、Cloud Run／Supabase 備援、部署指令及待辦僅供追溯；操作前請依現行文件。
+
+
 Status: draft inventory only. No git tags have been created.
 
 Base tag: `v0.5.0`

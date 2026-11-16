@@ -1,5 +1,7 @@
 # Security Protection Guide
 
+> **部署範圍更新（2026-11-16）**：正式公開頁由 Pages 靜態服務；API／媒體／Studio 入口才走 Cloudflare Tunnel → loopback Nginx → FastAPI／Studio 靜態檔。Nginx 限流不涵蓋 Pages HTML。第 8 節保留原 server-mode 驗證紀錄，現行 API 限流仍以 Nginx 設定為準；第 9 節記錄遷移前 HTML／RSC 問題與保留 adapter 的防護，不代表 production 仍執行 Next SSR 或 ISR。Pages 安全標頭由靜態產物 `_headers` 套用。見[正式環境架構](./production-architecture.md)。
+
 最後更新：2026-03-19
 
 ## 1) 目的與範圍
@@ -91,13 +93,13 @@ cd server && PYTHONPATH=. ../server/venv/bin/pytest \
 
 ## 8) 公開站來源入口保護（2026-11-10）
 
-目前公開站的 Nginx 入口只發布於 IPv4／IPv6 loopback，由 Cloudflare Tunnel 連入；`scripts/check-prod-network-boundary.py` 驗證公開埠邊界。Nginx 依 Cloudflare 提供的 `CF-Connecting-IP` 對寫入方法共用每來源 10 r/s、burst 24、最多 8 個同時連線；無該標頭時使用連入位址。後端公開寫入路由另有自身的速率與內容驗證。
+API／Studio 的 Nginx 入口只發布於 IPv4／IPv6 loopback，由 Cloudflare Tunnel 連入；`scripts/check-prod-network-boundary.py` 驗證公開埠邊界。Nginx 依 Cloudflare 提供的 `CF-Connecting-IP` 對寫入方法共用每來源 10 r/s、burst 24、最多 8 個同時連線；無該標頭時使用連入位址。後端公開寫入路由另有自身的速率與內容驗證。
 
 動態頁、公開 bundle／身份 API 與公開媒體代理的 GET／HEAD，另共用每來源 20 r/s、burst 40、最多 12 個同時連線。查詢字串不進入限流鍵，避免以不同參數規避額度；靜態資源與健康檢查不使用讀取額度。兩個預算各自獨立，超量回 429。這些限制保護單一來源造成的過載，無法單獨抵擋分散式攻擊；仍需 Cloudflare 邊緣層與來源站監控配合。
 
 在隔離候選入口執行 `scripts/check-ingress-read-limits.py` 與 `scripts/check-ingress-write-limits.py`。讀取測試交錯對首頁與 bundle API 發出 80 個同來源請求，兩種路徑都出現 429，另一來源、圖示及健康檢查仍可回 200；三秒後原來源恢復。正常瀏覽器載入首頁、作者與聲演頁九次，均無 429 或資源錯誤。`scripts/security-check.sh` 的後端 99 項、前端 66 項回歸測試通過。正式切流後主要頁面、readiness 與公開網址均回 200。
 
-## 9) HTML／RSC 快取邊界（2026-11-10）
+## 9) 歷史 Next server-mode HTML／RSC 快取邊界（2026-11-10）
 
 Next.js 同一頁面 URL 會依 `RSC` 請求標頭回傳 HTML 或 `text/x-component`。Cloudflare 的實際快取鍵未區分此標頭：用獨立查詢字串先請求 RSC，再請求一般 HTML，第二次得到快取的 RSC 內容。首頁原本的公開 `Cache-Control` 同時套用在兩種回應，也套用在 `_rsc` 參數正規化的 307 轉址。台本等 ISR 頁面亦有同樣問題，且 RSC 原本可被快取 3600 秒。
 

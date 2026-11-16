@@ -1,6 +1,6 @@
 # Public Media Presentation Architecture
 
-Last updated: 2026-11-16 (runtime simplification branch; not yet deployed)
+Last updated: 2026-11-16 (production runtime simplification deployed; see [production architecture](./production-architecture.md))
 
 Production media serving is owned by FastAPI (`server/services/public_media.py`),
 including external covers and bounded thumbnail generation. Pages has no Next
@@ -182,8 +182,7 @@ Status: Done
 - `apps/public/components/PublicImage.tsx` — accepts `src`, `alt`, `preset`, `crop?`, `sizes?` (override), `priority?`, `className?`.
 - `sizes` defaults to preset config value; caller can override for fixed-pixel contexts (e.g. 48px avatar in list).
 - Callers no longer call `getMediaCropStyle()` — crop is passed as raw `MediaCropLike` and resolved internally.
-- `PublicImage` is the only boundary that upgrades browser-facing `/media/...`
-  URLs to the backend origin for `next/image`'s server-side optimizer.
+- In Pages static output, `PublicImage` resolves `/media/...` to the public media origin and renders plain `<img>`; `MediaFallbackBridge` provides the R2 fallback. Public media proxy URLs use FastAPI's bounded implementation. No production Next image optimizer runs.
 - Unknown external image hosts fall back to plain `<img>` instead of going through
   `next/image`; this avoids an open optimizer/proxy surface.
 - **Fallback contract (current):** `if (!src) return null`. No placeholder slot. Callers are responsible for rendering their own empty state. The "consistent fallback contract" target in Phase 3 is partially met — blank-space is prevented by `objectFit: cover`, but a visual placeholder/skeleton for missing images is not yet implemented. This is acceptable until Phase 4 editor preview requires a shared empty state.
@@ -333,20 +332,18 @@ Reason:
 - `@write/public-ui` components intentionally render plain `<img>` and run in the
   browser.
 - Browsers cannot resolve Docker-internal hostnames.
-- Next's optimizer is the only consumer that needs backend-internal absolute URLs.
+- Production media URLs must resolve from the browser; no consumer requires a Docker-internal optimizer origin.
 
 ### Runtime Routing
 
-- Production nginx serves `/media/...` by proxying to backend.
-- Next dev/standalone uses `next.config.ts` rewrites for `/media/:path*`.
-- `/api/public-*` routes are routed to FastAPI in nginx so deployment method
-  does not change public frontend API behavior.
+- Pages serves HTML, JavaScript and static assets; browser media/API requests use the configured public origins.
+- On the API hostname, Cloudflare Tunnel reaches loopback Nginx, which proxies `/media/...` and `/api/public-*` to FastAPI. R2 and Worker/D1 provide read-only media/JSON fallbacks.
+- Next dev/standalone retains `next.config.ts` rewrites for local compatibility; Pages export omits them.
 
 ### Implementation Notes
 
 - `apps/public/lib/api.ts` returns backend JSON unchanged.
-- `apps/public/components/PublicImage.tsx` resolves `/media/...` to backend origin
-  only for `next/image`.
+- `apps/public/components/PublicImage.tsx` resolves static-export `/media/...` to the browser-facing media origin; non-static media uses the bounded public media proxy.
 - `apps/public/lib/publicImageOrigins.ts` owns the allowlist for external origins
   that can use `next/image`.
 
@@ -613,7 +610,7 @@ The media system is complete when:
 - authors can inspect at least card, banner, avatar/logo, and mobile previews;
 - per-preset overrides are supported for advanced cases;
 - `next/image` remains isolated to the Next public app boundary;
-- `/media/...` works for both browser `<img>` and Next image optimizer;
+- `/media/...` works through the configured browser media origin and R2 fallback; local server-mode media proxy compatibility is verified separately;
 - shared UI image components support host renderer injection where needed;
 - homepage hero uses the `hero-banner` preset through the host renderer slot;
 - hero art direction supports placement-specific crops for mobile, desktop, and

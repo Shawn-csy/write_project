@@ -1,5 +1,7 @@
 # Public Homepage Architecture Plan
 
+> **部署更新（2026-11-16）**：本文件的共享元件與產品模型仍適用。正式站是 Next 建置的 Cloudflare Pages 靜態產物，搭配瀏覽器 live API；下文 server-safe 模組表示建置與開發可用，不代表常駐 Next 服務。BFF route handlers 與 ISR 僅屬保留的 server-mode adapter。見[正式環境架構](./production-architecture.md)。
+
 Last updated: 2026-06-25
 
 ## Purpose
@@ -12,7 +14,7 @@ This document defines the long-term architecture and execution plan for the publ
 
 ## Non-Negotiable Principles
 
-- Next.js public pages are the canonical public runtime. Vite can remain useful for editor/workspace flows, but it must not be the source of truth for public discovery.
+- Next.js-authored Pages static pages are the canonical public surface. Vite can remain useful for editor/workspace flows, but it must not be the source of truth for public discovery.
 - Public homepage state that affects shareability, navigation, or SEO-relevant discovery must be URL-addressable.
 - Filtering, segment classification, license derivation, banner parsing, and lane building are product semantics. They belong in shared model packages, not page components.
 - App layers may own routing, server data loading, BFF route handlers, SEO metadata, and host-specific href builders.
@@ -32,7 +34,7 @@ This document defines the long-term architecture and execution plan for the publ
   - `gallery/useGalleryFilterModel.ts`
   - `gallery/bannerModel.ts`
   - `server.ts` for server-safe exports
-- `apps/public` owns Next.js routing, SSR page composition, BFF routes, and metadata.
+- `apps/public` owns Next.js routing, build-time page composition and metadata, browser API adapters, and local server-mode BFF compatibility routes.
 - `apps/public/app/GalleryClient.tsx` has already been split into smaller app-local composition pieces:
   - `GalleryTopBar`
   - `GalleryFilterPanel`
@@ -41,7 +43,7 @@ This document defines the long-term architecture and execution plan for the publ
   - `GalleryScriptResults`
   - `useGalleryController`
 - `apps/public/lib/galleryProjection.ts` centralizes public API projection into gallery model inputs.
-- `/api/public-bundle`, `/api/public-personas`, and `/api/public-organizations` proxy backend calls through same-origin BFF routes.
+- Production browser reads of `/api/public-bundle`, `/api/public-personas`, and `/api/public-organizations` use the configured FastAPI origin, with a read-only Worker/D1 fallback. Same-origin Next BFF routes remain for server-mode development compatibility.
 
 ### Remaining structural gaps
 
@@ -266,7 +268,7 @@ The public homepage is considered replacement-ready only when these categories a
 
 | Category | Required Capability | Owner | Status |
 |---|---|---|---|
-| Server data | SSR receives scripts and banner payload | `apps/public` | Done (ISR 5min + on-demand revalidation) |
+| Initial data | Build-time HTML receives scripts and banner payload; browser refreshes live data | `apps/public` | Pages static snapshot + scheduled content rebuild; no production ISR |
 | Banner | Backend banner parsed through one pure model | `@write/public-ui/server` | Done (`parseBannerSlides` + `buildHomepageHeroSlides`) |
 | Banner fallback | No placeholder slides in production fallback | `@write/public-ui` + `apps/public` | Done |
 | Script filtering | Search, segment, usage, license tags | `@write/public-ui` | Done |
