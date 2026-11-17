@@ -6,6 +6,7 @@ No read path resolves an identity by its current display name.
 """
 import time
 from collections import defaultdict
+from types import SimpleNamespace
 
 import models
 
@@ -26,7 +27,7 @@ def participations_by_persona(db, persona_ids):
     def add(pid, role, work=None, credit=None, name=''):
         if pid not in result or role not in ROLES:
             return
-        key = (pid, role, work.id if work else credit.url)
+        key = (pid, role, work.id if work else credit.url or credit.id)
         if key in seen:
             return
         seen.add(key)
@@ -76,6 +77,38 @@ def participations_by_persona(db, persona_ids):
     for work in approved.values():
         for pid in work.voiceActorIds or []:
             add(pid, 'voice_actor', work)
+    # Legacy portfolio entries belong to the containing identity, never to a name match.
+    role_rows = {(r.personaId, r.role): r for r in db.query(models.PersonaRole).filter(models.PersonaRole.personaId.in_(persona_ids))}
+    for person in db.query(models.Persona).filter(models.Persona.id.in_(persona_ids)):
+        voice = role_rows.get((person.id, 'voice_actor'))
+        profile = voice.profile if voice and isinstance(voice.profile, dict) else {}
+        legacy = profile.get('works') or person.voiceActorWorks or []
+        for index, entry in enumerate(legacy):
+            if not isinstance(entry, dict):
+                continue
+            url = entry.get('url') or ''
+            matches = by_url.get(url, [])
+            if matches and (len(matches) != 1 or matches[0].status != 'approved'):
+                continue
+            work = matches[0] if matches else None
+            legacy_id = f'legacy-voice-{person.id}-{index}'
+            credit = SimpleNamespace(id=legacy_id, title=entry.get('title') or '', url=url,
+                                     coverUrl=entry.get('coverUrl') or '', workType=entry.get('workType') or 'audio', createdAt=0)
+            # Entries without URLs cannot safely be merged by title.
+            key = (person.id, 'voice_actor', work.id if work else url or legacy_id)
+            if key not in seen:
+                add(person.id, 'voice_actor', work, credit)
+            item = next((r for r in result[person.id] if r['creditRole'] == 'voice_actor' and
+                         ((url and r['url'] == url) or r['id'] == legacy_id)), None)
+            if item:
+                for field, value in [('characterName', entry.get('role')), ('description', entry.get('description'))]:
+                    if value and value != item.get(field):
+                        item[field] = '；'.join(filter(None, [item.get(field), value]))
+        for item in result[person.id]:
+            role_row = role_rows.get((person.id, item['creditRole']))
+            profile = role_row.profile if role_row and isinstance(role_row.profile, dict) else {}
+            details = (profile.get('participationDetails') or {}).get(item['url'], {})
+            item.update({k: details[k] for k in ('characterName', 'description') if k in details})
     for items in result.values():
         items.sort(key=lambda item: item['publishedAt'] or 0, reverse=True)
     return result
@@ -123,7 +156,7 @@ def catalog_participants(db, work_ids):
 
 
 def record_participation(db, *, persona_id, role, url, title='', cover_url='', work_type='audio',
-                         credited_as='', audio_work_id=None, source=''):
+                         credited_as='', audio_work_id=None, source='', character_name=None, description=None):
     """Idempotent reviewed write shared by moderation and importers; never commits."""
     db.flush()  # Other adapters may have pending role rows in this non-autoflush session.
     if role not in ROLES or not db.get(models.Persona, persona_id):
@@ -161,6 +194,17 @@ def record_participation(db, *, persona_id, role, url, title='', cover_url='', w
         db.add(models.PersonaRole(personaId=persona_id, role=role, isVisible=True,
                                  sourceTypes=['work_participation'], profile={}))
     db.flush()
+    if character_name is not None or description is not None:
+        role_row = db.query(models.PersonaRole).filter_by(personaId=persona_id, role=role).one()
+        profile = dict(role_row.profile or {})
+        details = dict(profile.get('participationDetails') or {})
+        entry = dict(details.get(url) or {})
+        if character_name is not None:
+            entry['characterName'] = str(character_name).strip()[:200]
+        if description is not None:
+            entry['description'] = str(description).strip()[:1000]
+        details[url] = entry
+        role_row.profile = {**profile, 'participationDetails': details}
     return row
 
 
@@ -342,3 +386,22 @@ def other_source_credits(db, work_ids):
                                                        ~models.AudioWorkCredit.role.in_(SOURCE_ROLES)):
             result[c.audioWorkId].append(dict(sourceRole=c.sourceRole, creditedAs=c.creditedAs, sourceUrl=c.sourceUrl))
     return result
+
+
+def apply_profile_participations(db, persona, works):
+    """Apply approved additive portfolios for every role through the same writer."""
+    for work in works:
+        record_participation(db, persona_id=persona.id, role=work['creditRole'], url=work['url'],
+                             title=work.get('title') or '', cover_url=work.get('coverUrl') or '',
+                             work_type=work.get('workType') or 'audio', credited_as=persona.displayName or '',
+                             source='profile_submission', character_name=work.get('characterName'),
+                             description=work.get('description'))
+
+
+
+def profile_review_works(db, persona, proposal):
+    if proposal.get('workFormat') != 'participation-v1' and proposal.get('profileKind', 'voice_actor') == 'voice_actor':
+        return persona.voiceActorWorks or []
+    kind = proposal.get('profileKind')
+    roles = {'scriptwriter'} if kind == 'author' else {'voice_actor'} if kind == 'voice_actor' else set(models.PRODUCTION_ROLES)
+    return [item for item in participations_by_persona(db, [persona.id])[persona.id] if item['creditRole'] in roles]

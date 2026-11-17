@@ -165,6 +165,7 @@ class AdminVoiceActorCreate(BaseModel):
 
 
 class VoiceActorProfileSubmissionCreate(BaseModel):
+    workFormat: Optional[Literal["participation-v1"]] = None
     personaId: str
     profileKind: Optional[Literal["voice_actor", "author", "production"]] = None
     displayName: str

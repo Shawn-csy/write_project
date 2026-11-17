@@ -35,12 +35,18 @@ def import_snapshot(db, snapshot):
                 raise ValueError('匯入參與紀錄必須提供查核來源')
             if work:
                 record_catalog_participant(db, work, p)
+                if p['personaId'] and ('characterName' in raw or 'description' in raw):
+                    record_participation(db, persona_id=p['personaId'], role=p['role'], url=url,
+                        title=work.title, cover_url=work.coverUrl or '', audio_work_id=work.id,
+                        credited_as=p['creditedAs'], source=p['sourceUrl'],
+                        character_name=raw.get('characterName'), description=raw.get('description'))
             else:
                 if not p['personaId']:
                     raise ValueError('目錄外作品需確認身份後再匯入個人作品集')
                 record_participation(db, persona_id=p['personaId'], role=p['role'], url=url,
                     title=item['title'], cover_url=item.get('coverUrl', ''),
-                    work_type=item.get('workType', 'audio'), credited_as=p['creditedAs'], source=p['sourceUrl'])
+                    work_type=item.get('workType', 'audio'), credited_as=p['creditedAs'], source=p['sourceUrl'],
+                    character_name=raw.get('characterName'), description=raw.get('description'))
     report = finalize_catalog_import(db, work_ids=work_ids)
     report["createdIdentityLinks"] = db.query(PersonaCredit).count() - before_links
     report["createdSourceCredits"] = db.query(AudioWorkCredit).count() - before_sources

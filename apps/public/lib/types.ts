@@ -223,6 +223,8 @@ export interface PublicProductionCredit {
 }
 
 export interface PublicWorkParticipation extends Omit<PublicProductionCredit, "creditRole"> {
+  characterName?: string;
+  description?: string;
   creditRole: PublicIdentityRole;
 }
 

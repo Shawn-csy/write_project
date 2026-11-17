@@ -1,3 +1,4 @@
+from services.work_participations import profile_review_works
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
@@ -1356,12 +1357,14 @@ def create_voice_actor_profile_submission(
     if not display_name:
         raise HTTPException(status_code=400, detail="請填寫公開顯示名稱")
     works = []
-    for item in (payload.works[:30] if profile_kind == "production" else []):
+    unified_works = payload.workFormat == "participation-v1" or profile_kind in {"production", "author"}
+    allowed_work_roles = production_roles if profile_kind == "production" else {"scriptwriter" if profile_kind == "author" else "voice_actor"}
+    for item in (payload.works[:30] if unified_works else []):
         if not isinstance(item, dict):
             continue
         role = str(item.get("creditRole") or "").strip()
-        if role not in production_roles:
-            raise HTTPException(status_code=400, detail="參與作品的製作類別無效")
+        if role not in allowed_work_roles:
+            raise HTTPException(status_code=400, detail="參與作品的職務無效")
         url = _public_profile_url(item.get("url"))
         title = str(item.get("title") or "").strip()[:200]
         if not url or not title:
@@ -1370,8 +1373,10 @@ def create_voice_actor_profile_submission(
         if work_type not in {"audio", "game", "video", "other"}:
             raise HTTPException(status_code=400, detail="參與作品的類型無效")
         works.append({"title": title, "url": url, "coverUrl": _public_profile_url(item.get("coverUrl"), image=True),
-                      "workType": work_type, "creditRole": role})
-    for item in (payload.works[:50] if profile_kind == "voice_actor" else []):
+                      "workType": work_type, "creditRole": role,
+                      "characterName": str(item.get("characterName") or "").strip()[:200],
+                      "description": str(item.get("description") or "").strip()[:1000]})
+    for item in (payload.works[:50] if profile_kind == "voice_actor" and not unified_works else []):
         if not isinstance(item, dict):
             continue
         cover_url = str(item.get("coverUrl") or "").strip()[:2000]
@@ -1404,6 +1409,7 @@ def create_voice_actor_profile_submission(
         if name or url:
             organizations.append({"name": name, "url": url})
     profile = {
+        "workFormat": "participation-v1" if unified_works else None,
         "profileKind": profile_kind,
         "displayName": display_name,
         "contributorName": contributor_name,
@@ -1603,7 +1609,7 @@ def list_owned_voice_actor_profile_submissions(
             submitterName=row.submitterName, contactEmail=row.contactEmail,
             contributorName=str((row.profile or {}).get("contributorName") or ""),
             collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
-            currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else []},
+            currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": profile_review_works(db, persona, row.profile or {})},
             profile=row.profile or {}, acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
             status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
         ))
@@ -1663,7 +1669,12 @@ def review_owned_voice_actor_profile_submission(
         if "website" in accepted: persona.website = str(profile.get("website") or "").strip()[:2000]
         if "links" in accepted: persona.links = [item for item in profile.get("links", []) if isinstance(item, dict)][:30]
         if "organizations" in accepted: persona.voiceActorOrganizations = [item for item in profile.get("organizations", []) if isinstance(item, dict)][:20]
-        if "works" in accepted: persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
+        if "works" in accepted:
+            if profile.get("workFormat") == "participation-v1":
+                from services.work_participations import apply_profile_participations
+                apply_profile_participations(db, persona, profile.get("works") or [])
+            else:
+                persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
         if "contributorName" in accepted:
             name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
             existing = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
@@ -1691,7 +1702,7 @@ def review_owned_voice_actor_profile_submission(
         profileKind="voice_actor",
         contactEmail=row.contactEmail, contributorName=str((row.profile or {}).get("contributorName") or ""),
         collaborators=persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else [],
-        currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else []},
+        currentProfile={"displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "", "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [], "works": profile_review_works(db, persona, row.profile or {})},
         profile=row.profile or {}, acceptedFields=row.acceptedFields or [], status=row.status, reviewNote=row.reviewNote or "", reviewedAt=row.reviewedAt, createdAt=row.createdAt,
     )
 

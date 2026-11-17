@@ -1,3 +1,4 @@
+from services.work_participations import profile_review_works
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, HTTPException, Request
 from typing import Any, List, Optional
 from sqlalchemy.orm import Session
@@ -2173,27 +2174,14 @@ def _profile_kind(profile: object) -> str:
     return kind if kind in {"author", "production"} else "voice_actor"
 
 
-def _apply_production_profile(db: Session, persona: models.Persona, profile: dict, accepted_fields: set, now_ms: int) -> None:
-    """Approved production works become credits on the identity; the contributor joins its history."""
+def _apply_participation_profile(db: Session, persona: models.Persona, profile: dict, accepted_fields: set, now_ms: int) -> None:
+    """Approved works become credits on the identity; the contributor joins its history."""
     from services.identity_convergence import _Converger
 
     converger = _Converger(db)
     if "works" in accepted_fields:
-        for work in profile.get("works") or []:
-            if not isinstance(work, dict) or work.get("creditRole") not in models.PRODUCTION_ROLES or not work.get("url"):
-                continue
-            audio = (db.query(models.PublicAudioWorkSubmission).filter_by(url=work["url"], status="approved").first()
-                     if work.get("workType", "audio") == "audio" else None)
-            converger.ensure_role(persona.id, work["creditRole"], "profile_submission")
-            from services.work_participations import record_participation
-            record_participation(
-                db, persona_id=persona.id, role=work["creditRole"], url=audio.url if audio else work["url"],
-                title=audio.title if audio else str(work.get("title") or ""),
-                cover_url=(audio.coverUrl if audio else work.get("coverUrl")) or "",
-                work_type="audio" if audio else str(work.get("workType") or "other"),
-                credited_as=persona.displayName or "", audio_work_id=audio.id if audio else None,
-                source="profile_submission",
-            )
+        from services.work_participations import apply_profile_participations
+        apply_profile_participations(db, persona, profile.get("works") or [])
     if "contributorName" in accepted_fields:
         name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
         converger.add_contributors(persona, [{"name": name, "contributedAt": now_ms}])
@@ -2243,7 +2231,7 @@ def list_voice_actor_profile_submissions_admin(
             currentProfile={
                 "displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "",
                 "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [],
-                "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else [],
+                "works": profile_review_works(db, persona, row.profile or {}),
             } if persona else {},
             profile=row.profile or {},
             acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
@@ -2279,7 +2267,7 @@ def review_voice_actor_profile_submission_admin(
     now_ms = int(time.time() * 1000)
     if payload.status == "approved":
         accepted_fields = set(payload.acceptedFields)
-        allowed_fields = {"displayName", "bio", "avatar", "website", "links"}
+        allowed_fields = {"displayName", "bio", "avatar", "website", "links", "works"}
         if profile_kind == "voice_actor":
             allowed_fields |= {"organizations", "works", "contributorName"}
         if profile_kind == "production":
@@ -2300,14 +2288,17 @@ def review_voice_actor_profile_submission_admin(
             persona.links = [item for item in profile.get("links", []) if isinstance(item, dict)][:30]
         if profile_kind == "voice_actor" and "organizations" in accepted_fields:
             persona.voiceActorOrganizations = [item for item in profile.get("organizations", []) if isinstance(item, dict)][:20]
-        if profile_kind == "voice_actor" and "works" in accepted_fields:
+        if profile_kind == "voice_actor" and "works" in accepted_fields and profile.get("workFormat") != "participation-v1":
             persona.voiceActorWorks = [item for item in profile.get("works", []) if isinstance(item, dict)][:50]
         if profile_kind == "voice_actor" and "contributorName" in accepted_fields:
             contributors = persona.voiceActorContributors if isinstance(persona.voiceActorContributors, list) else []
             contributor_name = str(profile.get("contributorName") or "").strip()[:120] or "訪客協作者"
             persona.voiceActorContributors = [*contributors, {"name": contributor_name, "contributedAt": now_ms}][:100]
-        if profile_kind == "production":
-            _apply_production_profile(db, persona, profile, accepted_fields, now_ms)
+        if profile_kind in {"production", "author"}:
+            _apply_participation_profile(db, persona, profile, accepted_fields, now_ms)
+        if profile_kind == "voice_actor" and profile.get("workFormat") == "participation-v1" and "works" in accepted_fields:
+            from services.work_participations import apply_profile_participations
+            apply_profile_participations(db, persona, profile.get("works") or [])
         persona.updatedAt = now_ms
         if profile_kind == "voice_actor":
             persona.tags = [tag for tag in crud._ensure_list(persona.tags) if str(tag).strip() != "待認領"]
@@ -2331,6 +2322,8 @@ def review_voice_actor_profile_submission_admin(
                     sources.append("profile_submission")
                 role.sourceTypes = sources
                 existing_profile = dict(role.profile) if isinstance(role.profile, dict) else {}
+                if "participationDetails" in existing_profile:
+                    role_profile["participationDetails"] = existing_profile["participationDetails"]
                 if "collaborationEnabled" in existing_profile:
                     role_profile["collaborationEnabled"] = existing_profile["collaborationEnabled"]
                 role.profile = role_profile
@@ -2355,7 +2348,7 @@ def review_voice_actor_profile_submission_admin(
         currentProfile={
             "displayName": persona.displayName or "", "bio": persona.bio or "", "avatar": persona.avatar or "", "website": persona.website or "",
             "links": crud._ensure_list(persona.links), "organizations": persona.voiceActorOrganizations if isinstance(persona.voiceActorOrganizations, list) else [],
-            "works": persona.voiceActorWorks if isinstance(persona.voiceActorWorks, list) else [],
+            "works": profile_review_works(db, persona, row.profile or {}),
         },
         profile=row.profile or {}, acceptedFields=row.acceptedFields if isinstance(row.acceptedFields, list) else [],
         status=row.status, reviewNote=row.reviewNote or "",
