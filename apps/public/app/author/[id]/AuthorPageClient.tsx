@@ -15,6 +15,7 @@ import { combinePublicIdentities } from "@/lib/publicIdentity";
 import { PublicProfileAvatar, PublicProfileCard, PublicProfileContainer, PublicProfileLink, PublicProfileRole, PublicProfileSection, PublicProfileWorkCard } from "@/components/PublicProfileLayout";
 import { IdentityProfileForm } from "@/components/identity/IdentityProfileForm";
 import { ROLE_LABELS, editableProfileKinds, productionRolesOf, resolveIdentityRoles } from "@/components/identity/identityRoles";
+import { externalCoverSrc } from "@/lib/externalCover";
 import { cleanScriptSummary } from "@/lib/scriptSummary";
 
 /**
@@ -138,14 +139,10 @@ const SECTIONS: IdentitySection[] = [
     render: (ctx) => <>
       {ctx.scripts.length > 0 && <EntityScriptGrid scripts={ctx.scripts} />}
       {ctx.externalScripts.length > 0 && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {ctx.externalScripts.map((script) => <article key={script.id} className="min-w-0">
-          {script.coverUrl && <div className="relative aspect-[16/10] overflow-hidden rounded-sm border border-border bg-muted"><PublicImage src={script.coverUrl} alt={`${script.title}封面`} preset="script-cover" /></div>}
-          <div className="pt-2">
-            <h3 className="line-clamp-2 text-sm font-bold">{script.title || script.remoteTitle || "未命名台本"}</h3>
-            {cleanScriptSummary(script.summary) && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{cleanScriptSummary(script.summary)}</p>}
-            <a href={script.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-link hover:underline">閱讀台本<ExternalLink className="h-3 w-3" aria-hidden /></a>
-          </div>
-        </article>)}
+        {ctx.externalScripts.map((script) => <PublicProfileWorkCard key={script.id}
+          title={script.title || script.remoteTitle || "未命名台本"} url={script.sourceUrl} coverUrl={externalCoverSrc(script)}
+          workType="other" sourceLabel={script.sourceName || script.sourceDomain || "外部台本"}
+          subtitle={cleanScriptSummary(script.summary)} linkLabel="閱讀台本" />)}
       </div>}
     </>,
   },
@@ -241,7 +238,9 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
                 {roles.length > 0 && (
                   <div className="flex flex-wrap gap-1.5" aria-label="創作者身份">
                     {roles.map((role) => (
-                      <PublicProfileRole key={role} href={productionRoles.includes(role as ProductionRole) ? `/resources?category=${role}` : undefined}>{ROLE_LABELS[role]}</PublicProfileRole>
+                      <PublicProfileRole key={role} href={productionRoles.includes(role as ProductionRole)
+                        ? `/resources?category=${role === "recording_studio" ? persona.roleProfiles?.recording_studio?.entityType === "person" ? "recording_engineer" : persona.roleProfiles?.recording_studio?.entityType === "studio" ? "recording_studio" : "recording_unclassified" : role}`
+                        : undefined}>{ROLE_LABELS[role]}</PublicProfileRole>
                     ))}
                   </div>
                 )}

@@ -304,6 +304,7 @@ def _production_directory(db: Session) -> list[dict]:
             "name": projected.displayName or "",
             "categories": categories,
             "commissionCategories": commission_categories,
+            "recordingEntityType": (projected.roleProfiles or {}).get("recording_studio", {}).get("entityType"),
             "otherRoles": [role for role in projected.roles if role not in models.PRODUCTION_ROLES],
             "summary": projected.bio or "",
             "bio": projected.bio or "",

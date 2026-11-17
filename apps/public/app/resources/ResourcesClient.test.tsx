@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ResourcesClient, type ProductionResource } from "./ResourcesClient";
 import { liveApi } from "@/lib/liveApi";
 
@@ -9,6 +9,35 @@ const base = {
 } satisfies Pick<ProductionResource, "categories" | "summary" | "websiteUrl">;
 
 describe("ResourcesClient", () => {
+  beforeEach(() => { window.history.replaceState({}, "", "/resources"); window.sessionStorage.clear(); });
+  it("only shows the unclassified recording tab while an unresolved identity exists", () => {
+    const studio: ProductionResource = { id: "studio", personaId: "studio", name: "錄音室", categories: ["recording_studio"], recordingEntityType: "studio", summary: "", websiteUrl: "", works: [{ id: "w", title: "作品", url: "https://example.com/w", coverUrl: "", creditRole: "recording_studio", creditedAs: "錄音室" }] };
+    const { unmount } = render(<ResourcesClient initialPersonas={[]} initialResources={[studio]} />);
+    expect(screen.queryByRole("button", { name: "待分類錄音" })).toBeNull();
+    unmount();
+    render(<ResourcesClient initialPersonas={[]} initialResources={[studio, { ...studio, id: "legacy", personaId: "legacy", name: "待核身份", recordingEntityType: undefined }]} />);
+    expect(screen.getByRole("button", { name: "待分類錄音" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "待分類錄音" }));
+    expect(screen.getByText("待核身份")).toBeTruthy();
+    expect(screen.getByText("1 筆")).toBeTruthy();
+  });
+  it("uses the same role-filtered work lane for voice actors with deduplicated counts", () => {
+    window.sessionStorage.clear();
+    const work = { id: "audio", title: "參演作品", url: "https://example.com/audio", coverUrl: "https://example.com/cover.jpg", creditRole: "voice_actor" as const, creditedAs: "聲演甲" };
+    render(<ResourcesClient initialResources={[]} initialPersonas={[{
+      id: "actor", displayName: "聲演甲", roles: ["voice_actor", "post_production"],
+      workParticipations: [work, { ...work, id: "duplicate" }, { ...work, id: "mix", title: "後製作品", creditRole: "post_production" }],
+    }]} />);
+    expect(screen.getByText("1 部參與作品")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "前往作品：參演作品" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲，顯示作品" }));
+    expect(screen.getAllByRole("link", { name: "前往作品：參演作品" })).toHaveLength(1);
+    expect(screen.queryByRole("link", { name: "前往作品：後製作品" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "後製" }));
+    expect(screen.getByRole("link", { name: "前往作品：後製作品" })).toBeTruthy();
+    window.sessionStorage.clear();
+  });
+
   it("submits an independent game credit without requiring audio catalog entry", async () => {
     const write = vi.spyOn(liveApi, "write").mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
     try {
@@ -16,6 +45,7 @@ describe("ResourcesClient", () => {
       fireEvent.click(screen.getByRole("button", { name: "投稿資源" }));
       const dialog = within(screen.getByRole("dialog"));
       fireEvent.change(dialog.getByLabelText("資源類別"), { target: { value: "recording_studio" } });
+      fireEvent.change(dialog.getByLabelText("錄音身份"), { target: { value: "studio" } });
       fireEvent.change(dialog.getByLabelText("名稱", { exact: true }), { target: { value: "遊戲錄音室" } });
       fireEvent.change(dialog.getByLabelText("官方／委託頁網址"), { target: { value: "https://example.com/studio" } });
       fireEvent.change(dialog.getByLabelText("作品名稱 1"), { target: { value: "獨立遊戲" } });
@@ -28,6 +58,7 @@ describe("ResourcesClient", () => {
       await waitFor(() => expect(write).toHaveBeenCalledOnce());
       const payload = JSON.parse(String(write.mock.calls[0][1]?.body));
       expect(payload.works).toEqual([{ title: "獨立遊戲", url: "https://example.com/game", role: "", workType: "game", coverUrl: "https://example.com/game.jpg" }]);
+      expect(payload.recordingEntityType).toBe("studio");
       expect(dialog.getByRole("status").textContent).toContain("投稿已送出");
     } finally { write.mockRestore(); }
   });
@@ -76,7 +107,7 @@ describe("ResourcesClient", () => {
     }]} />);
     fireEvent.click(screen.getByRole("button", { name: "後製" }));
     expect(screen.getByAltText("韾笙重工").getAttribute("src")).toBe("https://example.com/avatar.jpg");
-    expect(screen.getByRole("link", { name: "X" }).getAttribute("href")).toBe("https://x.com/oseizyuukou");
+    expect(screen.getByRole("link", { name: "韾笙重工的X" }).getAttribute("href")).toBe("https://x.com/oseizyuukou");
     expect(screen.getAllByText("聲演")).toHaveLength(2);
     expect(screen.queryByAltText("作品甲封面")).toBeNull();
   });

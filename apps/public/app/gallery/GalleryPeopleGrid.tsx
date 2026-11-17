@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { AuthorLike, OrgLike } from "@write/public-ui";
-import type { PublicOrg, PublicPersona } from "@/lib/types";
+import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
+import { authorDirectoryWorks } from "@/lib/authorDirectoryWorks";
+import { PublicIdentityDirectoryRow } from "@/components/PublicIdentityDirectoryRow";
 import { BuildingIcon, LinkIcon } from "./GalleryIcons";
 import { PublicCardGridSkeleton } from "@/components/PublicSkeleton";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
@@ -138,38 +140,13 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 
 // ── Author card ───────────────────────────────────────────────────────────────
 
-function AuthorCard({ author, onTagClick }: { author: PublicPersona; onTagClick: (tag: string) => void }) {
+function AuthorCard({ author, works, onTagClick }: { author: PublicPersona; works: ReturnType<typeof authorDirectoryWorks>; onTagClick: (tag: string) => void }) {
   const href = author.externalHref || `/author/${author.id}`;
-  return (
-    <div className="flex min-w-0 flex-col border-b border-border">
-      <a href={href} className="group flex items-start gap-3 py-3">
-        <div className="relative w-12 h-12 rounded-md border border-border overflow-hidden shrink-0">
-          <PublicAvatarImage src={author.avatar} name={author.displayName} sizes="48px" fallbackClassName={publicAvatarColor(author.displayName)} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-bold [font-size:var(--public-font-body)] truncate group-hover:text-link group-hover:underline">{author.displayName}</p>
-          {author.bio && (
-            <p className="[font-size:var(--public-font-caption)] text-muted-foreground line-clamp-2 mt-0.5">{author.bio}</p>
-          )}
-          {author.organizations && author.organizations.length > 0 && (
-            <p className="[font-size:var(--public-font-caption)] text-muted-foreground mt-0.5 truncate flex items-center gap-1">
-              <BuildingIcon />
-              {author.organizations.map((o) => o.name).join("、")}
-            </p>
-          )}
-        </div>
-      </a>
-      {author.tags && author.tags.length > 0 && (
-        <CollapsedTagButtons
-          tags={author.tags}
-          onTagClick={onTagClick}
-          limit={3}
-          singleRow
-          className="max-w-full pb-3 pl-[3.75rem]"
-        />
-      )}
-    </div>
-  );
+  const links = (Array.isArray(author.links) ? author.links : []).flatMap((link) =>
+    link.url ? [{ label: link.label || "連結", url: link.url, isPublic: (link as { isPublic?: boolean }).isPublic === true, public: (link as { public?: boolean }).public === true }] : []);
+  return <PublicIdentityDirectoryRow name={author.displayName} href={href} avatar={author.avatar} bio={author.bio}
+    works={works} roleLabels={["台本師"]} tags={author.tags || []} links={links} onTagClick={onTagClick}
+    extra={author.organizations?.length ? <p className="mt-0.5 flex items-center gap-1 [font-size:var(--public-font-caption)] text-muted-foreground"><BuildingIcon />{author.organizations.map((o) => o.name).join("、")}</p> : undefined} />;
 }
 
 // ── Org card ──────────────────────────────────────────────────────────────────
@@ -244,6 +221,8 @@ function PeopleError({ onRetry }: { onRetry: () => void }) {
 
 interface GalleryAuthorGridProps {
   authors: PublicPersona[];
+  scripts?: PublicScript[];
+  externalScripts?: ExternalPublicScript[];
   filteredAuthors: AuthorLike[];
   peopleStatus: PeopleStatus;
   onRetry: () => void;
@@ -255,6 +234,8 @@ interface GalleryAuthorGridProps {
 
 export function GalleryAuthorGrid({
   authors,
+  scripts = [],
+  externalScripts = [],
   filteredAuthors,
   peopleStatus,
   onRetry,
@@ -276,11 +257,11 @@ export function GalleryAuthorGrid({
         onToggleTag={onToggleTag}
         onResetFilters={onResetFilters}
       />
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
         {filteredAuthors.map((authorLike) => {
           const author = authorLike.id ? authorById.get(authorLike.id) : undefined;
           if (!author) return null;
-          return <AuthorCard key={author.id} author={author} onTagClick={onToggleTag} />;
+          return <AuthorCard key={author.id} author={author} works={authorDirectoryWorks(author, scripts, externalScripts)} onTagClick={onToggleTag} />;
         })}
         {filteredAuthors.length === 0 && (
           <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">

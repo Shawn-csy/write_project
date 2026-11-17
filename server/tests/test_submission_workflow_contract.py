@@ -126,6 +126,66 @@ def test_new_resource_can_publish_a_game_outside_the_audio_catalog(client, db_se
     assert item["works"][0]["coverUrl"] == "https://example.com/game-cover.jpg"
 
 
+def test_recording_submission_keeps_person_and_studio_types_distinct(client, db_session):
+    base = {"category": "recording_studio", "profileUrl": "https://example.com/recording",
+            "works": [{"title": "錄音作品", "url": "https://example.com/recording-work"}],
+            "submitterName": "投稿者", "contactEmail": "sender@example.com"}
+    assert client.post("/api/production-resource-submissions", json={**base, "name": "未分類錄音"}).status_code == 400
+    for name, entity_type in (("錄音師甲", "person"), ("錄音工作室甲", "studio")):
+        submitted = client.post("/api/production-resource-submissions", json={**base, "name": name,
+                                "recordingEntityType": entity_type})
+        assert submitted.status_code == 200, submitted.text
+        reviewed = client.patch(f"/api/admin/production-resource-submissions/{submitted.json()['submissionId']}/status",
+                                json={"status": "approved"}, headers={"X-User-ID": "admin-owner"})
+        assert reviewed.status_code == 200, reviewed.text
+        person_id = reviewed.json()["publishedId"]
+        profile = client.get(f"/api/public-personas/{person_id}").json()
+        assert profile["roleProfiles"]["recording_studio"]["entityType"] == entity_type
+        resource = next(item for item in client.get("/api/public-bundle?sections=productionResources").json()["productionResources"]
+                        if item["personaId"] == person_id)
+        assert resource["recordingEntityType"] == entity_type
+        assert len(resource["works"]) == 1
+
+
+def test_legacy_pending_recording_submission_requires_reviewed_type(client, db_session):
+    row = ProductionResourceSubmission(id="legacy-recording", submitterName="舊投稿者", contactEmail="old@example.com",
+        profile={"name": "舊錄音投稿", "category": "recording_studio", "profileUrl": "https://example.com/old",
+                 "works": [{"title": "作品", "url": "https://example.com/old-work"}]}, status="pending", createdAt=1)
+    db_session.add(row)
+    db_session.commit()
+    url = "/api/admin/production-resource-submissions/legacy-recording/status"
+    headers = {"X-User-ID": "admin-owner"}
+    missing = client.patch(url, json={"status": "approved"}, headers=headers)
+    assert missing.status_code == 400
+    assert db_session.get(ProductionResourceSubmission, "legacy-recording").status == "pending"
+    reviewed = client.patch(url, json={"status": "approved", "recordingEntityType": "person"}, headers=headers)
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["profile"]["recordingEntityType"] == "person"
+
+
+def test_existing_recording_identity_type_can_be_reviewed_with_source(client, db_session, monkeypatch):
+    revalidated = []
+    monkeypatch.setattr(resource_profiles_router, "_send_public_paths_revalidation", revalidated.append)
+    db_session.add(Persona(id="recording-person", displayName="錄音工作者"))
+    db_session.flush()
+    db_session.add(PersonaRole(personaId="recording-person", role="recording_studio",
+                               profile={"commissionOffers": [{"service": "錄音"}]}))
+    db_session.commit()
+    route = "/api/admin/recording-identities/recording-person/entity-type"
+    assert client.patch(route, json={"entityType": "person", "sourceUrl": "https://example.com/source"}).status_code == 401
+    assert client.patch(route, json={"entityType": "person", "sourceUrl": ""},
+                        headers={"X-User-ID": "admin-owner"}).status_code == 400
+    updated = client.patch(route, json={"entityType": "person", "sourceUrl": "https://example.com/source"},
+                           headers={"X-User-ID": "admin-owner"})
+    assert updated.status_code == 200, updated.text
+    profile = db_session.query(PersonaRole).filter_by(personaId="recording-person").one().profile
+    assert profile == {"commissionOffers": [{"service": "錄音"}], "entityType": "person",
+                       "entityTypeSourceUrl": "https://example.com/source"}
+    listed = client.get("/api/admin/recording-identities", headers={"X-User-ID": "admin-owner"}).json()
+    assert any(row["personaId"] == "recording-person" and row["entityType"] == "person" for row in listed)
+    assert revalidated == [["/resources", "/author/recording-person"]]
+
+
 def test_resource_submission_rejects_incomplete_or_excess_works(client):
     payload = {"name": "封面師乙", "category": "cover_art", "profileUrl": "https://example.com/artist",
                "works": [{"title": "遊戲封面", "url": "https://example.com/game", "workType": "game"}],

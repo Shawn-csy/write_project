@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {"personaId": "1f2366db-b959-4b69-aa16-53087e425e09", "entityType": "person", "sourceUrl": "https://portaly.cc/dabTsai", "note": "大白本人之錄音師與後製服務頁"},
+    {"personaId": "4f64bbdd-65a5-5550-9818-6573c31b0e67", "entityType": "person", "sourceUrl": "https://www.hongliantw.com/", "note": "風蓮本人提供錄音服務"},
+    {"personaId": "f8938f96-f9a3-42f1-b29d-f5f2eafe3863", "entityType": "studio", "sourceUrl": "https://dabstudio-audio.com/services/", "note": "流浪白鷺聲音工作室官方服務頁"},
+    {"personaId": "57438e9e-2cab-4a84-8000-8d90ee15aaa0", "entityType": "studio", "sourceUrl": "https://www.allsound.pro/", "note": "所有聲音製作官方錄音室服務頁"},
+    {"personaId": "46ff7730-c69a-4a9f-8afb-5079145efe68", "entityType": "studio", "sourceUrl": "https://www.facebook.com/p/感聲錄音室-SenSonus-Records-61565240793445/", "note": "感聲錄音室官方頁"}
+  ]
+}

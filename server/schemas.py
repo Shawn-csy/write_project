@@ -234,6 +234,7 @@ class ProductionResourceProfileSubmissionCreate(BaseModel):
 class ProductionResourceSubmissionCreate(BaseModel):
     name: str
     category: Literal["voice_actor", "post_production", "cover_art", "recording_studio"]
+    recordingEntityType: Optional[Literal["person", "studio"]] = None
     bio: str = ""
     avatarUrl: str = ""
     profileUrl: str = ""
@@ -247,6 +248,12 @@ class ProductionResourceSubmissionCreate(BaseModel):
 class ProductionResourceSubmissionStatusUpdate(BaseModel):
     status: Literal["approved", "rejected"]
     reviewNote: str = ""
+    recordingEntityType: Optional[Literal["person", "studio"]] = None
+
+
+class RecordingIdentityTypeUpdate(BaseModel):
+    entityType: Literal["person", "studio"]
+    sourceUrl: str
 
 
 class ProductionResourceSubmissionRecord(BaseModel):

@@ -2,7 +2,7 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthorPageClient } from "./AuthorPageClient";
-import type { PublicAudioWork, PublicPersona } from "@/lib/types";
+import type { ExternalPublicScript, PublicAudioWork, PublicPersona } from "@/lib/types";
 
 describe("AuthorPageClient resource age confirmation", () => {
   it("keeps voice work covers behind the shared resource confirmation", () => {
@@ -21,6 +21,15 @@ describe("AuthorPageClient resource age confirmation", () => {
 });
 
 describe("AuthorPageClient as the one identity page", () => {
+  it("preserves source links and a cover area for external scripts without artwork", () => {
+    render(<AuthorPageClient persona={{ id: "writer", displayName: "作者", roles: ["scriptwriter"] }} scripts={[]} externalScripts={[{
+      id: "doc", title: "星光", sourceUrl: "https://docs.google.com/document/d/example/edit", sourceName: "Google Docs", coverUrl: "", summary: "作品簡介",
+    } as ExternalPublicScript]} />);
+    expect(screen.getByLabelText("星光尚未提供封面")).toBeTruthy();
+    expect(screen.getByText("Google Docs")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "閱讀台本：星光" }).getAttribute("href")).toBe("https://docs.google.com/document/d/example/edit");
+  });
+
   it("shows sourced commission terms and credited audio scripts", () => {
     window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
     const persona = {

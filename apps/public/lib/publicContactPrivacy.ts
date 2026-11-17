@@ -15,8 +15,8 @@ export interface ContactLike {
   public?: boolean;
 }
 
-const PRIVATE_LABEL = /e-?mail|電子郵件|信箱|郵件|discord|\bdc\b/i;
-const PRIVATE_VALUE = /^mailto:|^[^\s@]+@[^\s@]+\.[^\s@]+$|discord(?:app)?\.(?:com|gg)|^discord:/i;
+const PRIVATE_LABEL = /e-?mail|電子郵件|信箱|郵件|discord|\bdc\b|line|賴帳號/i;
+const PRIVATE_VALUE = /^mailto:|^[^\s@]+@[^\s@]+\.[^\s@]+$|discord(?:app)?\.(?:com|gg)|^discord:|^line:/i;
 
 export function isPrivateContact(item: ContactLike): boolean {
   const label = String(item.label || "").trim();

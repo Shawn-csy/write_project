@@ -61,6 +61,12 @@ def _publish_new_identity(db: Session, row: models.ProductionResourceSubmission,
                                     website=profile.get("profileUrl") or "", links=links)
     converger.add_contributors(persona, [{"name": row.submitterName, "contributedAt": now}])
     converger.ensure_role(persona.id, category, "resource_submission")
+    if category == "recording_studio":
+        role = converger.roles[(persona.id, category)]
+        source_url = profile.get("profileUrl") or next((link.get("url") for link in links if link.get("url")), "")
+        role.profile = {**(role.profile or {}), "entityType": profile["recordingEntityType"],
+                        "entityTypeSourceUrl": source_url}
+        role.updatedAt = now
     if category == "voice_actor":
         from services.work_participations import apply_profile_participations
         apply_profile_participations(db, persona, [dict(item, creditRole='voice_actor', characterName=item.get('role') or '') for item in works])
@@ -129,7 +135,10 @@ def submit_new_resource(request: Request, payload: schemas.ProductionResourceSub
                           "workType": work_type, "role": str(work.get("role") or "").strip()[:120]})
     if payload.category != "voice_actor" and not works:
         raise HTTPException(status_code=400, detail="請至少提供一部參與作品，才能建立製作資源頁")
+    if payload.category == "recording_studio" and payload.recordingEntityType not in {"person", "studio"}:
+        raise HTTPException(status_code=400, detail="請選擇個人錄音師或錄音室／工作室")
     profile = {"name": name, "category": payload.category, "bio": payload.bio.strip()[:4000],
+               "recordingEntityType": payload.recordingEntityType if payload.category == "recording_studio" else None,
                "avatarUrl": _public_url(payload.avatarUrl, image=True), "profileUrl": profile_url,
                "links": links, "works": works}
     row = models.ProductionResourceSubmission(id=str(uuid.uuid4()), submitterName=submitter,
@@ -176,6 +185,12 @@ def review_new_resource(submission_id: str, payload: schemas.ProductionResourceS
     if payload.status == "approved":
         if _existing_identity_with_role(db, name, category):
             raise HTTPException(status_code=409, detail="這位創作者已有頁面")
+        if category == "recording_studio":
+            entity_type = payload.recordingEntityType or profile.get("recordingEntityType")
+            if entity_type not in {"person", "studio"}:
+                raise HTTPException(status_code=400, detail="核准前請確認這是個人錄音師或錄音室／工作室")
+            profile = {**profile, "recordingEntityType": entity_type}
+            row.profile = profile
         persona_id = _publish_new_identity(db, row, profile, now)
         row.publishedId = persona_id
     row.status = payload.status
@@ -189,3 +204,37 @@ def review_new_resource(submission_id: str, payload: schemas.ProductionResourceS
                  *(["/voice-actors"] if category == "voice_actor" else [])]
         background_tasks.add_task(_send_public_paths_revalidation, paths)
     return _new_resource_record(row)
+
+
+@admin_router.get("/recording-identities")
+def list_recording_identities(db: Session = Depends(get_db), ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    rows = db.query(models.PersonaRole, models.Persona).join(
+        models.Persona, models.Persona.id == models.PersonaRole.personaId,
+    ).filter(models.PersonaRole.role == "recording_studio").order_by(models.Persona.displayName).all()
+    return [{"personaId": persona.id, "name": persona.displayName,
+             "entityType": (role.profile or {}).get("entityType"),
+             "sourceUrl": (role.profile or {}).get("entityTypeSourceUrl") or ""}
+            for role, persona in rows]
+
+
+@admin_router.patch("/recording-identities/{persona_id}/entity-type")
+def update_recording_identity_type(persona_id: str, payload: schemas.RecordingIdentityTypeUpdate,
+                                   background_tasks: BackgroundTasks, db: Session = Depends(get_db),
+                                   ownerId: str = Depends(get_current_user_id)):
+    if not is_admin_user(db, ownerId):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    source_url = _public_url(payload.sourceUrl)
+    if not source_url:
+        raise HTTPException(status_code=400, detail="請提供可核實的錄音身份來源網址")
+    role = db.query(models.PersonaRole).filter_by(personaId=persona_id, role="recording_studio").first()
+    if not role:
+        raise HTTPException(status_code=404, detail="找不到錄音身份")
+    profile = dict(role.profile or {})
+    role.profile = {**profile, "entityType": payload.entityType, "entityTypeSourceUrl": source_url}
+    role.updatedAt = int(time.time() * 1000)
+    db.commit()
+    public_bundle.invalidate_public_bundle_cache()
+    background_tasks.add_task(_send_public_paths_revalidation, ["/resources", f"/author/{persona_id}"])
+    return {"personaId": persona_id, "entityType": payload.entityType, "sourceUrl": source_url}

@@ -53,7 +53,7 @@ export default function AboutPage() {
           <ul className="list-disc pl-5 space-y-2 text-foreground/90">
             <li><strong>公開台本</strong>：瀏覽本站台本與外部收錄作品，並查看來源和授權資訊。</li>
             <li><strong>音聲與 Demo</strong>：探索社團作品，以及與台本對應的演出試聽。</li>
-            <li><strong>創作資源</strong>：尋找聲演、後製、封面創作者及錄音室，查看參與作品與聯絡方式。</li>
+            <li><strong>創作資源</strong>：尋找聲演、後製、封面與錄音創作者，查看參與作品與聯絡方式。</li>
             <li><strong>工作室</strong>：創作者可進入工作室管理自己的台本。</li>
           </ul>
           <p>
@@ -82,7 +82,7 @@ export default function AboutPage() {
                 <div className="text-xs text-muted-foreground">2026 年 11 月</div>
                 <div className="mt-1 font-medium text-foreground">創作資源與投稿流程</div>
                 <div className="mt-1 text-muted-foreground">
-                  資源頁整合聲演、後製、封面與錄音室；新資料與既有頁面的補充可提交審核。
+                  資源頁整合聲演、後製、封面與錄音；新資料與既有頁面的補充可提交審核。
                 </div>
               </li>
               <li className="rounded-lg border bg-muted p-3">

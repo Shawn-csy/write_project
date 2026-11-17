@@ -110,6 +110,33 @@ def test_public_submission_to_review_workflow(client, db_session):
     assert client.get('/api/admin/public-audio-work-submissions?status=all&unresolvedOnly=true', headers=headers).json()['total'] == 0
 
 
+def test_new_catalog_work_reaches_each_role_directory_and_identity_once(client, db_session):
+    setup(db_session)
+    db_session.commit()
+    roles = ('scriptwriter', 'voice_actor', 'post_production', 'cover_art', 'recording_studio')
+    response = client.post('/api/public-audio-work-submissions', json=dict(
+        title='新增跨職務作品', url='https://example.com/new-five-roles', confirmPublic=True,
+        organizationId='org', participants=[participant(role, None) for role in roles]))
+    assert response.status_code == 200, response.text
+    work_id = response.json()['submissionId']
+    headers = {'X-User-ID': 'admin-owner'}
+    roster = [participant(role) for role in roles]
+    for _ in range(2):
+        approved = client.patch(f'/api/admin/public-audio-work-submissions/{work_id}/status',
+                                headers=headers, json={'status': 'approved', 'participants': roster})
+        assert approved.status_code == 200, approved.text
+    profile = client.get('/api/public-personas/p').json()
+    profile_works = [item for item in profile['workParticipations'] if item['audioWorkId'] == work_id]
+    assert len(profile_works) == len(roles)
+    assert {item['creditRole'] for item in profile_works} == set(roles)
+    assert all(item['url'] == 'https://example.com/new-five-roles' for item in profile_works)
+    bundle = client.get('/api/public-bundle?sections=personas,productionResources').json()
+    listed = next(item for item in bundle['personas'] if item['id'] == 'p')
+    assert {item['creditRole'] for item in listed['workParticipations'] if item['audioWorkId'] == work_id} == set(roles)
+    resource = next(item for item in bundle['productionResources'] if item['personaId'] == 'p')
+    assert {item['creditRole'] for item in resource['works'] if item['audioWorkId'] == work_id} == set(roles) - {'scriptwriter', 'voice_actor'}
+
+
 def test_public_cannot_assign_identity(client, db_session):
     setup(db_session)
     db_session.commit()

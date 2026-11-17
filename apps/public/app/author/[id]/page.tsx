@@ -22,7 +22,11 @@ function identityTopBar(persona: PublicPersona): { activeTab: string; backHref: 
   if (roles.includes("scriptwriter")) return { activeTab: "authors", backHref: "/authors", backLabel: "返回作者" };
   const production = roles.find((role) => role !== "voice_actor");
   if (roles.includes("voice_actor") || !production) return { activeTab: "resources", backHref: "/resources", backLabel: "返回資源" };
-  return { activeTab: "resources", backHref: `/resources?category=${production}`, backLabel: "返回資源" };
+  const category = production === "recording_studio"
+    ? persona.roleProfiles?.recording_studio?.entityType === "person" ? "recording_engineer"
+      : persona.roleProfiles?.recording_studio?.entityType === "studio" ? "recording_studio" : "recording_unclassified"
+    : production;
+  return { activeTab: "resources", backHref: `/resources?category=${category}`, backLabel: "返回資源" };
 }
 
 export const revalidate = 3600;
