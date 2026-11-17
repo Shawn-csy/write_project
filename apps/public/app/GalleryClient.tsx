@@ -91,7 +91,7 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="modern-homepage min-h-screen bg-background flex flex-col">
       <GalleryTopBar
         activeTab={tab}
       />

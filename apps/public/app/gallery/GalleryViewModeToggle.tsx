@@ -6,66 +6,27 @@ import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
 interface GalleryViewModeToggleProps {
   value: GalleryViewMode;
   onChange: (mode: GalleryViewMode) => void;
-  /** compact=true → 40px toolbar group; false (default) → 44px touch targets in the filter sheet */
+  /** Compact desktop toolbar; default keeps a 44px touch target in sheets. */
   compact?: boolean;
 }
 
-const MODES: { value: GalleryViewMode; label: string }[] = [
-  { value: "standard", label: "標準" },
-  { value: "compact", label: "密集" },
-];
-
-function ModeButton({
-  mode,
-  active,
-  compact,
-  onChange,
-}: {
-  mode: { value: GalleryViewMode; label: string };
-  active: boolean;
-  compact: boolean;
-  onChange: (mode: GalleryViewMode) => void;
-}) {
+/** Shows the current layout; one click switches to the other persisted mode. */
+export function GalleryViewModeToggle({ value, onChange, compact = false }: GalleryViewModeToggleProps) {
   const { ref, handlers } = useAnimePressFeedback<HTMLButtonElement>();
+  const dense = value === "compact";
+  const action = dense ? "切換為標準顯示" : "切換為密集顯示";
   return (
     <button
       ref={ref}
       type="button"
-      onClick={() => onChange(mode.value)}
-      aria-pressed={active}
-      className={`border-l border-border text-[0.8125rem] transition-colors duration-100 first:border-l-0 ${
- compact
- ? "h-full px-3"
-          : "min-h-[44px] px-4"
-      } ${
-        active
-          ? "bg-primary font-bold text-primary-foreground"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-      }`}
+      onClick={() => onChange(dense ? "standard" : "compact")}
+      aria-label={action}
+      title={action}
+      data-testid="gallery-view-mode-toggle"
+      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-card px-3 text-[0.8125rem] text-foreground transition-colors duration-100 hover:bg-muted ${compact ? "h-9" : "min-h-[44px]"}`}
       {...handlers}
     >
-      {mode.label}
+      {dense ? "密集" : "標準"}
     </button>
-  );
-}
-
-export function GalleryViewModeToggle({ value, onChange, compact = false }: GalleryViewModeToggleProps) {
-  return (
-    <div
-      className={`flex items-stretch overflow-hidden rounded-md border border-border bg-card ${compact ? "h-9" : ""}`}
-      role="group"
-      aria-label="顯示模式"
-      data-testid="gallery-view-mode-toggle"
-    >
-      {MODES.map((mode) => (
-        <ModeButton
-          key={mode.value}
-          mode={mode}
-          active={value === mode.value}
-          compact={compact}
-          onChange={onChange}
-        />
-      ))}
-    </div>
   );
 }

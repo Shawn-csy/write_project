@@ -43,7 +43,6 @@ function isExternal(link: string) {
 export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
   const [, setNow] = useState(() => Date.now());
   const trackRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
   const [paddingCycles, setPaddingCycles] = useState(1);
   const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
   const [hovered, setHovered] = useState(false);
@@ -122,7 +121,7 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
 
   useEffect(() => {
     const track = trackRef.current;
-    if (!track || !looping) { setActive(0); return; }
+    if (!track || !looping) return;
     let settleTimer: number;
     const base = () => cycleWidth() * paddingCycles;
     const reset = () => {
@@ -130,11 +129,6 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
       if (cycle > 0) setPaddingCycles(Math.max(1, Math.ceil(track.clientWidth / cycle)));
       const original = tileAt(count * paddingCycles);
       if (original) track.scrollLeft = original.offsetLeft;
-      setActive(0);
-    };
-    const updateActive = () => {
-      const closest = nearestTile();
-      if (closest >= 0) setActive(closest % count);
     };
     const normalize = () => {
       const cycle = cycleWidth();
@@ -142,10 +136,8 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
       // Reposition only after scrolling settles, to an identical visual copy.
       const phase = ((track.scrollLeft - base()) % cycle + cycle) % cycle;
       track.scrollLeft = base() + (Math.abs(phase - cycle) < 1 ? 0 : phase);
-      updateActive();
     };
     const update = () => {
-      updateActive();
       window.clearTimeout(settleTimer);
       settleTimer = window.setTimeout(normalize, 150);
     };
@@ -170,11 +162,6 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
   if (count === 0) return null;
   const tileClass = "relative h-40 shrink-0 snap-start";
   const arrowClass = "absolute top-1/2 z-10 hidden h-12 w-7 -translate-y-1/2 items-center justify-center bg-black/55 text-white hover:bg-black/75 sm:flex";
-  const goTo = (index: number) => {
-    const track = trackRef.current;
-    const target = tileAt(count * paddingCycles + index);
-    if (track && target) track.scrollTo({ left: target.offsetLeft, behavior: reducedMotion ? "auto" : "smooth" });
-  };
   const cycles = looping
     ? Array.from({ length: paddingCycles * 2 + 1 }, (_, index) => index === paddingCycles ? "original" : `copy-${index}`)
     : ["original"];
@@ -244,14 +231,6 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
           </button>
         </>}
       </div>
-      {looping && (
-        <div className="flex items-center justify-center gap-1.5 py-2">
-          {banners.map((banner, index) => (
-            <button key={banner.key} type="button" aria-label={`第 ${index + 1} 張橫幅`} aria-current={index === active}
-              onClick={() => goTo(index)} className={`h-2 w-2 rounded-full ${index === active ? "bg-primary" : "bg-border"}`} />
-          ))}
-        </div>
-      )}
     </section>
   );
 }

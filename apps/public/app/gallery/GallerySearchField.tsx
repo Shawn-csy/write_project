@@ -26,7 +26,7 @@ export function GallerySearchField({ value, onChange, onFocusChange, className =
         onKeyDown={(event) => { if (event.key === "Escape") event.currentTarget.blur(); }}
         placeholder="搜尋台本、作者或標籤"
         aria-label="搜尋台本、作者或標籤"
-        className="h-9 w-full rounded-md border border-border bg-card pl-9 pr-9 text-[0.875rem] outline-none placeholder:text-muted-foreground focus:border-link focus:ring-1 focus:ring-link [&::-webkit-search-cancel-button]:hidden"
+        className="gallery-search-input h-10 w-full rounded-md border border-border bg-card pl-9 pr-9 text-[0.875rem] outline-none placeholder:text-muted-foreground focus:border-link focus:ring-1 focus:ring-link [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button

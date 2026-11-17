@@ -159,7 +159,7 @@ export function GalleryToolbar({
         ref={barRef}
         data-compact={compact ? "true" : "false"}
         data-testid="gallery-toolbar"
-        className={`sticky top-[86px] z-30 -mx-4 mb-5 bg-background px-4 sm:-mx-5 sm:top-[57px] sm:px-5 lg:mx-0 lg:px-0 ${
+        className={`gallery-toolbar sticky top-[86px] z-30 -mx-4 mb-5 bg-background px-4 sm:-mx-5 sm:top-[57px] sm:px-5 lg:mx-0 lg:px-0 ${
  compact ? "border-b border-border shadow-[0_2px_4px_rgba(0,0,0,0.06)]" : ""
         }`}
       >
@@ -178,6 +178,7 @@ export function GalleryToolbar({
             </div>
             <div className="xl:hidden"><SortSelect value={sort} onChange={onSortChange} /></div>
             <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 xl:inline-flex" />
+            <GalleryViewModeToggle value={viewMode} onChange={onViewModeChange} compact />
             <div ref={actionsRef} className="relative shrink-0">
               <button
                 type="button"
@@ -210,7 +211,7 @@ export function GalleryToolbar({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b-2 border-primary md:gap-x-3 md:gap-y-1 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b border-border md:gap-x-3 md:gap-y-1 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
               <GallerySearchField
                 value={searchTerm}
                 onChange={onSearchChange}
