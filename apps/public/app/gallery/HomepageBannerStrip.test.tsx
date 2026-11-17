@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { HomepageBannerStrip } from "./HomepageBannerStrip";
 
 describe("HomepageBannerStrip", () => {
@@ -18,6 +18,22 @@ describe("HomepageBannerStrip", () => {
     expect(link.getAttribute("target")).toBe("_blank");
     expect(screen.getAllByRole("img")).toHaveLength(2);
     expect(screen.getByAltText("活動")).toBeTruthy();
+  });
+
+  it("sizes mixed artwork by its natural ratio so adjacent slides have no empty gutters", () => {
+    const { container } = render(<HomepageBannerStrip slides={[
+      { id: "portrait", title: "直式", imageUrl: "/media/portrait.webp" },
+      { id: "wide", title: "橫式", imageUrl: "/media/wide.webp" },
+    ]} />);
+    const images = screen.getAllByRole("img") as HTMLImageElement[];
+    Object.defineProperties(images[0], { naturalWidth: { value: 900 }, naturalHeight: { value: 1600 } });
+    Object.defineProperties(images[1], { naturalWidth: { value: 1600 }, naturalHeight: { value: 900 } });
+    fireEvent.load(images[0]);
+    fireEvent.load(images[1]);
+    const tiles = container.querySelectorAll("[data-banner-index]");
+    expect((tiles[0] as HTMLElement).style.width).toBe("90px");
+    expect((tiles[1] as HTMLElement).style.width).toBe("284px");
+    expect(container.querySelector("[data-testid='banner-track']")?.className).toContain("gap-0 ");
   });
 
   it("falls back to a text tile when a banner has no image", () => {

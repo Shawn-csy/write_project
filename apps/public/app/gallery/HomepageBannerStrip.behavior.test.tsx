@@ -9,18 +9,14 @@ const slides = [
 ];
 const advance = async (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
 
-// jsdom does not lay out flex tracks. Give each tile deterministic 100px
-// geometry and a 2px gap so wrapping behavior can be exercised independently.
+// jsdom does not lay out flex tracks. Give each tile deterministic positions
+// so measured navigation and wrapping can be exercised independently.
 function layout(track: HTMLElement, width = 204) {
   Object.defineProperty(track, "clientWidth", { configurable: true, value: width });
   Array.from(track.children).forEach((child, index) => {
     Object.defineProperty(child, "offsetWidth", { configurable: true, value: 100 });
     Object.defineProperty(child, "offsetLeft", { configurable: true, value: index * 102 });
   });
-  Object.defineProperty(track, "scrollBy", { configurable: true, value: vi.fn(({ left }) => {
-    track.scrollLeft += left;
-    track.dispatchEvent(new Event("scroll"));
-  }) });
   Object.defineProperty(track, "scrollTo", { configurable: true, value: vi.fn(({ left }) => {
     track.scrollLeft = left;
     track.dispatchEvent(new Event("scroll"));
@@ -38,7 +34,7 @@ describe("looping banner behavior", () => {
     layout(track);
     expect(track.scrollLeft).toBe(306);
     await advance(4000);
-    expect(track.scrollBy).toHaveBeenCalledWith({ left: 102, behavior: "smooth" });
+    expect(track.scrollTo).toHaveBeenCalledWith({ left: 408, behavior: "smooth" });
     expect(screen.getByLabelText("第 2 張橫幅")).toHaveAttribute("aria-current", "true");
     await advance(8200);
     expect(track.scrollLeft).toBe(306);
@@ -74,24 +70,24 @@ describe("looping banner behavior", () => {
     layout(track);
     fireEvent.mouseEnter(region);
     await advance(8000);
-    expect(track.scrollBy).not.toHaveBeenCalled();
+    expect(track.scrollTo).not.toHaveBeenCalled();
     fireEvent.mouseLeave(region);
     fireEvent.focus(screen.getByRole("link", { name: "Image" }));
     await advance(8000);
-    expect(track.scrollBy).not.toHaveBeenCalled();
+    expect(track.scrollTo).not.toHaveBeenCalled();
     fireEvent.blur(screen.getByRole("link", { name: "Image" }), { relatedTarget: document.body });
     fireEvent.pointerDown(track);
     await advance(8000);
-    expect(track.scrollBy).not.toHaveBeenCalled();
+    expect(track.scrollTo).not.toHaveBeenCalled();
     fireEvent.pointerUp(window);
     visibility.mockReturnValue("hidden");
     fireEvent(document, new Event("visibilitychange"));
     await advance(8000);
-    expect(track.scrollBy).not.toHaveBeenCalled();
+    expect(track.scrollTo).not.toHaveBeenCalled();
     visibility.mockReturnValue("visible");
     fireEvent(document, new Event("visibilitychange"));
     await advance(4000);
-    expect(track.scrollBy).toHaveBeenCalledTimes(1);
+    expect(track.scrollTo).toHaveBeenCalledTimes(1);
   });
 
   it("honors reduced motion for autoplay and manual navigation", async () => {
@@ -100,9 +96,9 @@ describe("looping banner behavior", () => {
     const track = screen.getByTestId("banner-track");
     layout(track);
     await advance(12000);
-    expect(track.scrollBy).not.toHaveBeenCalled();
+    expect(track.scrollTo).not.toHaveBeenCalled();
     fireEvent.click(screen.getByLabelText("下一張橫幅"));
-    expect(track.scrollBy).toHaveBeenCalledWith({ left: 102, behavior: "auto" });
+    expect(track.scrollTo).toHaveBeenCalledWith({ left: 408, behavior: "auto" });
     expect(screen.queryByLabelText("暫停橫幅輪播")).toBeNull();
   });
 
@@ -111,7 +107,7 @@ describe("looping banner behavior", () => {
     const track = screen.getByTestId("banner-track");
     layout(track);
     await advance(12000);
-    expect(track.scrollBy).not.toHaveBeenCalled();
+    expect(track.scrollTo).not.toHaveBeenCalled();
     expect(track.children).toHaveLength(1);
     expect(screen.queryByLabelText("下一張橫幅")).toBeNull();
   });
