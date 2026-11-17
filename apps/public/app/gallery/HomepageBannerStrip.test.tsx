@@ -36,6 +36,20 @@ describe("HomepageBannerStrip", () => {
     expect(container.querySelector("[data-testid='banner-track']")?.className).toContain("gap-0 ");
   });
 
+  it("sizes images that were cached before hydration", () => {
+    const width = vi.spyOn(HTMLImageElement.prototype, "naturalWidth", "get").mockReturnValue(900);
+    const height = vi.spyOn(HTMLImageElement.prototype, "naturalHeight", "get").mockReturnValue(1600);
+    try {
+      const { container } = render(<HomepageBannerStrip slides={[
+        { id: "cached", title: "快取圖片", imageUrl: "/media/cached.webp" },
+      ]} />);
+      expect((container.querySelector("[data-banner-index]") as HTMLElement).style.width).toBe("90px");
+    } finally {
+      width.mockRestore();
+      height.mockRestore();
+    }
+  });
+
   it("falls back to a text tile when a banner has no image", () => {
     render(<HomepageBannerStrip slides={[{ id: "t", title: "站務公告", content: "週末維護" }]} />);
     expect(screen.getByText("站務公告")).toBeTruthy();
