@@ -3,6 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Plus, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
+import { PARTICIPATION_ROLE_LABELS } from "@write/public-ui/participation-roles";
 import { liveApi } from "@/lib/liveApi";
 
 const inputClass = "h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-link";
@@ -13,7 +14,8 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
   const [busy, setBusy] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
-  const [category, setCategory] = useState(defaultCategory);
+  const [category, setCategory] = useState(defaultCategory.startsWith("recording_") ? "recording_studio" : defaultCategory);
+  const [recordingEntityType, setRecordingEntityType] = useState(defaultCategory === "recording_engineer" ? "person" : "");
   const [works, setWorks] = useState([emptyWork()]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -30,6 +32,7 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
         workType: item.workType, coverUrl: item.coverUrl.trim(),
       }));
       if (category !== "voice_actor" && submittedWorks.length === 0) throw new Error("請至少提供一部參與作品。");
+      if (category === "recording_studio" && !recordingEntityType) throw new Error("請選擇個人錄音師或錄音室／工作室。");
       if (submittedWorks.some((item) => !item.title)) throw new Error("請填寫每部參與作品的名稱。");
       if (category !== "voice_actor" && !String(form.get("profileUrl") || "").trim() && !String(form.get("socialUrl") || "").trim()) {
         throw new Error("請提供官方、委託或社群連結，方便核對資源。");
@@ -38,6 +41,7 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: String(form.get("name") || "").trim(), category,
+          recordingEntityType: category === "recording_studio" ? recordingEntityType : undefined,
           bio: String(form.get("bio") || "").trim(),
           avatarUrl: String(form.get("avatarUrl") || "").trim(),
           profileUrl: String(form.get("profileUrl") || "").trim(),
@@ -58,14 +62,15 @@ export function ResourceSubmissionDialog({ defaultCategory }: { defaultCategory:
     }
   }
 
-  return <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (next) setCategory(defaultCategory); else { setSubmitted(false); setError(""); } }}>
+  return <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (next) { setCategory(defaultCategory.startsWith("recording_") ? "recording_studio" : defaultCategory); setRecordingEntityType(defaultCategory === "recording_engineer" ? "person" : ""); } else { setSubmitted(false); setError(""); } }}>
     <Dialog.Trigger asChild><button type="button" className="inline-flex h-9 shrink-0 items-center gap-1 rounded-md bg-cta px-3 text-sm font-bold text-white hover:opacity-90 sm:h-10 sm:gap-1.5 sm:px-4"><Plus className="h-4 w-4" aria-hidden />投稿資源</button></Dialog.Trigger>
     <Dialog.Portal>
       <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
       <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-background p-5 shadow-lg sm:p-6">
         <div className="flex items-start justify-between gap-4"><div><Dialog.Title className="text-lg font-semibold">投稿資源</Dialog.Title><Dialog.Description className="mt-1 text-sm text-muted-foreground">送出後由管理員審核，核准才會公開。已有頁面請在該頁補充資料。</Dialog.Description></div><Dialog.Close asChild><button type="button" aria-label="關閉投稿表單" className="rounded-md p-2 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" aria-hidden /></button></Dialog.Close></div>
         {submitted ? <p role="status" className="mt-5 rounded-lg border border-success bg-success-muted p-4 text-sm">投稿已送出，審核通過後會公開。</p> : <form onSubmit={submit} className="mt-5 grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1 text-sm">資源類別<select value={category} onChange={(event) => setCategory(event.target.value)} className={inputClass}><option value="voice_actor">聲演</option><option value="post_production">後製</option><option value="cover_art">封面</option><option value="recording_studio">錄音室</option></select></label>
+          <label className="grid gap-1 text-sm">資源類別<select value={category} onChange={(event) => { setCategory(event.target.value); if (event.target.value === "recording_studio") setRecordingEntityType(""); }} className={inputClass}>{(["voice_actor", "post_production", "cover_art", "recording_studio"] as const).map((role) => <option key={role} value={role}>{PARTICIPATION_ROLE_LABELS[role]}</option>)}</select></label>
+          {category === "recording_studio" && <label className="grid gap-1 text-sm">錄音身份<select required aria-label="錄音身份" value={recordingEntityType} onChange={(event) => setRecordingEntityType(event.target.value)} className={inputClass}><option value="">請選擇</option><option value="person">個人錄音師</option><option value="studio">錄音室／工作室</option></select></label>}
           <label className="grid gap-1 text-sm">名稱<input name="name" required maxLength={120} className={inputClass} /></label>
           <label className="grid gap-1 text-sm sm:col-span-2">簡介<textarea name="bio" maxLength={4000} rows={3} className={`${inputClass} h-auto py-2`} /></label>
           <label className="grid gap-1 text-sm sm:col-span-2">官方／委託頁網址<input name="profileUrl" type="url" placeholder="https://…" maxLength={2000} className={inputClass} /></label>

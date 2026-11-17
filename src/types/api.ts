@@ -611,6 +611,7 @@ export interface ProductionResourceSubmission {
   profile: {
     name: string;
     category: "voice_actor" | "post_production" | "cover_art" | "recording_studio";
+    recordingEntityType?: "person" | "studio" | null;
     bio: string;
     avatarUrl: string;
     profileUrl: string;

@@ -4,13 +4,7 @@ import { hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
 import { hasScriptwriterRole } from "@/lib/publicIdentity";
 
 /** Display names for every identity role, in page order. */
-export const ROLE_LABELS: Record<PublicIdentityRole, string> = {
-  scriptwriter: "台本師",
-  voice_actor: "聲演",
-  post_production: "後製",
-  cover_art: "封面",
-  recording_studio: "錄音室",
-};
+export { PARTICIPATION_ROLE_LABELS as ROLE_LABELS } from "@write/public-ui/participation-roles";
 
 export const ROLE_ORDER: PublicIdentityRole[] = ["scriptwriter", "voice_actor", ...PRODUCTION_ROLES];
 

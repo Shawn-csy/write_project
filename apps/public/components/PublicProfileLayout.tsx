@@ -35,12 +35,24 @@ export function PublicProfileSection({ title, count, children }: { title: string
   </section>;
 }
 
-export function PublicProfileWorkCard({ title, url, coverUrl, subtitle, workType }: { title: string; url: string; coverUrl?: string | null; subtitle?: string; workType?: "audio" | "game" | "video" | "other" }) {
+export function PublicProfileWorkCard({ title, url, coverUrl, subtitle, workType, compact = false, sourceLabel, linkLabel }: {
+  title: string; url: string; coverUrl?: string | null; subtitle?: string;
+  workType?: "audio" | "game" | "video" | "other"; compact?: boolean; sourceLabel?: string; linkLabel?: string;
+}) {
   const Container = url ? "a" : "article";
-  return <Container {...(url ? { href: url, target: "_blank", rel: "noopener noreferrer", "aria-label": `前往作品：${title}` } : {})} className="group block">
+  const Icon = workType === "game" ? Gamepad2 : workType === "video" ? Clapperboard : workType === "other" ? FileText : Headphones;
+  return <Container {...(url ? { href: url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${linkLabel || "前往作品"}：${title}` } : {})} className="group block min-w-0">
     <div className="relative aspect-[4/3] overflow-hidden rounded-sm border border-border bg-muted group-hover:opacity-90">
-      {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" /> : workType === "game" ? <Gamepad2 className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden /> : workType === "video" ? <Clapperboard className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden /> : workType === "other" ? <FileText className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden /> : <Headphones className="absolute inset-0 m-auto h-9 w-9 text-muted-foreground" aria-hidden />}
+      {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes={compact ? "96px" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"} /> :
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-muted-foreground" aria-label={`${title}尚未提供封面`}>
+          <Icon className={compact ? "h-6 w-6" : "h-9 w-9"} aria-hidden />
+          {sourceLabel && <span className="text-center text-xs">{sourceLabel}</span>}
+        </div>}
     </div>
-    <div className="pt-2"><h3 className="line-clamp-2 text-sm font-bold group-hover:text-link group-hover:underline">{title}</h3>{subtitle && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}</div>
+    <div className={compact ? "pt-1" : "pt-2"}>
+      <h3 className={`line-clamp-2 group-hover:text-link group-hover:underline ${compact ? "text-xs leading-snug" : "text-sm font-bold"}`}>{title}</h3>
+      {subtitle && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{subtitle}</p>}
+      {linkLabel && url && <span className="mt-2 inline-flex items-center gap-1 text-xs text-link">{linkLabel}<ArrowUpRight className="h-3 w-3" aria-hidden /></span>}
+    </div>
   </Container>;
 }

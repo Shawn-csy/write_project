@@ -48,6 +48,7 @@ export default function RootLayout({
     <html
       lang="zh-Hant"
       className="h-full antialiased"
+      suppressHydrationWarning
       data-deploy-environment={deployEnvironment}
     >
       <head>

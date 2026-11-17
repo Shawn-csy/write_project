@@ -161,9 +161,21 @@ export const getProductionResourceSubmissionsAdmin = async ({ status = "pending"
   return fetchApi(`/admin/production-resource-submissions?${params}`) as Promise<ProductionResourceSubmissionListResponse>;
 };
 
-export const updateProductionResourceSubmissionAdmin = async (submissionId: string, status: "approved" | "rejected", reviewNote = ""): Promise<ProductionResourceSubmission> => fetchApi(`/admin/production-resource-submissions/${encodeURIComponent(submissionId)}/status`, {
-  method: "PATCH", body: JSON.stringify({ status, reviewNote }),
+export const updateProductionResourceSubmissionAdmin = async (submissionId: string, status: "approved" | "rejected", reviewNote = "", recordingEntityType?: "person" | "studio"): Promise<ProductionResourceSubmission> => fetchApi(`/admin/production-resource-submissions/${encodeURIComponent(submissionId)}/status`, {
+  method: "PATCH", body: JSON.stringify({ status, reviewNote, ...(recordingEntityType ? { recordingEntityType } : {}) }),
 }) as Promise<ProductionResourceSubmission>;
+
+export interface RecordingIdentityAdmin {
+  personaId: string; name: string; entityType: "person" | "studio" | null; sourceUrl: string;
+}
+
+export const getRecordingIdentitiesAdmin = async (): Promise<RecordingIdentityAdmin[]> =>
+  fetchApi("/admin/recording-identities") as Promise<RecordingIdentityAdmin[]>;
+
+export const updateRecordingIdentityTypeAdmin = async (personaId: string, entityType: "person" | "studio", sourceUrl: string): Promise<RecordingIdentityAdmin> =>
+  fetchApi(`/admin/recording-identities/${encodeURIComponent(personaId)}/entity-type`, {
+    method: "PATCH", body: JSON.stringify({ entityType, sourceUrl }),
+  }) as Promise<RecordingIdentityAdmin>;
 
 export const getExternalAuthorProfileSubmissionsAdmin = async ({ q = "", status = "pending", limit = 100, offset = 0 }: AdminPaginationQuery & { status?: "all" | "pending" | "approved" | "rejected" } = {}): Promise<ExternalAuthorProfileSubmissionListResponse> => {
   const params = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });

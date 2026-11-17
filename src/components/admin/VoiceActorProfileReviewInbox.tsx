@@ -1,3 +1,4 @@
+import { PARTICIPATION_ROLE_LABELS } from "@write/public-ui/participation-roles";
 import React, { useCallback, useEffect, useState } from "react";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { Badge } from "../ui/badge";
@@ -30,7 +31,7 @@ const KIND_FIELDS: Record<NonNullable<VoiceActorProfileSubmission["profileKind"]
   production: [...PROFILE_FIELDS, "works", "contributorName"],
 };
 const KIND_LABELS: Record<NonNullable<VoiceActorProfileSubmission["profileKind"]>, string> = { author: "作者", voice_actor: "聲演", production: "製作" };
-const CREDIT_ROLE_LABELS: Record<string, string> = { scriptwriter: "台本師", voice_actor: "聲演", post_production: "後製", cover_art: "封面", recording_studio: "錄音室" };
+const CREDIT_ROLE_LABELS: Record<string, string> = PARTICIPATION_ROLE_LABELS;
 
 function getChangedFields(item: VoiceActorProfileSubmission): FieldKey[] {
   const before = item.currentProfile || {};

@@ -1,6 +1,7 @@
 "use client";
 
-export type ParticipationRole = "scriptwriter" | "voice_actor" | "post_production" | "cover_art" | "recording_studio";
+import { PARTICIPATION_ROLE_LABELS as labels, type ParticipationRole } from "./participationRoles";
+export type { ParticipationRole } from "./participationRoles";
 export interface WorkParticipantInput {
   role: ParticipationRole;
   personaId?: string | null;
@@ -8,9 +9,7 @@ export interface WorkParticipantInput {
   sourceUrl?: string;
   sourceRole?: string;
 }
-const labels: Record<ParticipationRole, string> = {
-  scriptwriter: "台本", voice_actor: "聲演", post_production: "後製", cover_art: "封面／插畫", recording_studio: "錄音",
-};
+
 
 export function WorkParticipantEditor({ value, onChange, identities, disabled = false }: {
   value: WorkParticipantInput[];

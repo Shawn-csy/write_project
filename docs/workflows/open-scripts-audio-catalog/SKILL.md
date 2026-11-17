@@ -29,9 +29,15 @@ description: 建立或更新 Open Scripts「音聲作品」中的社團、參與
 - 每筆已查核的署名記錄 `role`、原始 `creditedAs`、`sourceUrl`。身份已確認時填目標環境的 `personaId`；改名、別名、同名都不能只靠顯示名稱自動合併。無法確認身份時保留文字署名，列入未連結報告，不猜 ID、不為消除提示而建立身份。來源未列出某職務不代表沒有參與，也不能自行推定參與。
 - 目錄作品使用 `record_catalog_participant`；目錄外且已確認身份的作品使用 `record_participation`。少量操作可用作品審核頁的「參與者與職務」；批量關聯使用 `python -m scripts.import_work_participations <snapshot> --database-name <目標DB>`，預設 dry run，獲得本次寫入授權後才加 `--apply`。既有社團匯入腳本需在同一交易內呼叫 `finalize_catalog_import`，限定本次組織或作品 IDs，回報新關聯與未連結署名。
 - 共用輸出是個人頁的 `workParticipations`。台本、聲演、後製、封面、錄音以身份 ID 關聯，顯示分區由職務決定。`AudioWorkCredit` 是來源署名、`PersonaCredit` 是身份關聯，舊表暫時保留是相容層；不要直接繞過共用服務寫入身份關聯。
-- 寫入後核對每個已確認參與者的個人頁 API：每件作品對應的職務、原始署名、連結均正確，待審／退回作品及隱藏角色不出現在公開參與作品。管理員清單的「只顯示尚未連結身份的作品」用來追蹤剩餘缺口。回報作品數與職務關聯數時分開計算，同件作品可有多種職務。
+- 寫入後核對每個已確認參與者的個人頁 API 與 `/api/public-bundle?sections=personas,productionResources`：每件作品對應的職務、原始署名、連結均正確，作者列表、所屬職務的資源列表及個人頁各顯示一次；重跑匯入後件數不增加。待審／退回作品及隱藏角色不出現在公開參與作品。管理員清單的「只顯示尚未連結身份的作品」用來追蹤剩餘缺口。回報作品數與職務關聯數時分開計算，同件作品可有多種職務。
 
 - 作者、聲演與製作身份的外部參與作品皆使用上述共用入口；不要再新增 `voiceActorWorks` 清單作為新作品的主要儲存。個人資料補充使用 `workFormat: "participation-v1"`，核准後新增／更新參與關聯。聲演角色與說明以 `characterName`／`description` 保留；舊清單由相容層讀取，無連結項目不可按標題合併。
+
+## 錄音師與錄音室
+
+- 來源 credit 的 `recording` 仍對應 `recording_studio` 參與職務；承接者類型另存在 `PersonaRole.profile.entityType`，只允許 `person` 或 `studio`。不要依名稱有無「工作室」或僅憑提供錄音服務推定類型，不要把個人與其品牌身份合併或移轉既有作品。
+- 新資源投稿要明確選個人錄音師或錄音室／工作室；管理員審核舊待審投稿也要補分類，並核實官方或本人來源。既有身份可在管理端「既有錄音身份分類」更正，填入可核實的 `entityTypeSourceUrl`。未確認的舊身份保留在待分類錄音目錄，不要默默排除。
+- 發布前讀 `docs/engineering/work-participations.md` 的來源快照、dry run／回填步驟；確認 bundle 的 `recordingEntityType`、錄音師與錄音室分列、作品信用關聯仍各自正確。分類更正後須刷新公開 bundle、資源和個人頁及備援快照。
 
 ## 驗證與回報
 

@@ -48,6 +48,25 @@ describe("GalleryAuthorGrid", () => {
     expect(screen.queryByText("Hidden Author")).toBeNull();
   });
 
+  it("shows only the author's linked scripts beneath the identity", () => {
+    render(<GalleryAuthorGrid peopleStatus="loaded" onRetry={() => {}}
+      authors={[{ id: "p1", displayName: "作者甲", workParticipations: [
+        { id: "audio", title: "音聲台本", url: "https://example.com/audio", coverUrl: "", creditRole: "scriptwriter", creditedAs: "作者甲" },
+        { id: "audio", title: "音聲台本", url: "https://example.com/audio", coverUrl: "", creditRole: "scriptwriter", creditedAs: "作者甲" },
+        { id: "acting", title: "參演", url: "https://example.com/acting", coverUrl: "", creditRole: "voice_actor", creditedAs: "作者甲" },
+      ] }]}
+      filteredAuthors={[{ id: "p1", displayName: "作者甲" }]}
+      scripts={[{ id: "s1", title: "本站台本", persona: { id: "p1", displayName: "作者甲" } }, { id: "s2", title: "別人的台本", persona: { id: "p2", displayName: "作者乙" } }]}
+      externalScripts={[{ id: "e1", title: "外部台本", sourceUrl: "https://example.com/story", authorPersonaId: "p1", status: "published" }]}
+      allTags={[]} selectedTags={[]} onToggleTag={noopTag} onResetFilters={noopReset} />);
+    expect(screen.getByText("3 部參與作品")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "前往作品：本站台本" }).getAttribute("href")).toBe("/read/s1");
+    expect(screen.getByRole("link", { name: "前往作品：外部台本" }).getAttribute("href")).toBe("https://example.com/story");
+    expect(screen.getAllByRole("link", { name: "前往作品：音聲台本" })).toHaveLength(1);
+    expect(screen.queryByText("參演")).toBeNull();
+    expect(screen.queryByText("別人的台本")).toBeNull();
+  });
+
   it("external author cards resize local media avatars", () => {
     render(
       <GalleryAuthorGrid
@@ -82,6 +101,22 @@ describe("GalleryAuthorGrid", () => {
     fireEvent.error(screen.getByRole("img", { name: "海聶" }));
     expect(screen.queryByRole("img", { name: "海聶" })).toBeNull();
     expect(screen.getByText("海")).toBeTruthy();
+  });
+
+  it("never turns an unverified contact value into a relative link", async () => {
+    render(<GalleryAuthorGrid peopleStatus="loaded" onRetry={() => {}}
+      authors={[{ id: "p1", displayName: "作者甲", links: [
+        { label: "其他", url: "what" }, { label: "Email", url: "person@example.com" },
+        { label: "官網", url: "https://example.com" },
+      ] }]}
+      filteredAuthors={[{ id: "p1", displayName: "作者甲" }]}
+      allTags={[]} selectedTags={[]} onToggleTag={noopTag} onResetFilters={noopReset} />);
+    expect(screen.queryByRole("link", { name: "作者甲的其他" })).toBeNull();
+    expect(screen.getByText("其他：what")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "作者甲的Email" })).toBeNull();
+    expect(screen.getByRole("link", { name: "作者甲的官網" }).getAttribute("href")).toBe("https://example.com/");
+    await userEvent.click(screen.getByRole("button", { name: "顯示聯絡方式" }));
+    expect(screen.getByRole("link", { name: "作者甲的Email" }).getAttribute("href")).toBe("mailto:person@example.com");
   });
 
   it("loaded + empty filteredAuthors → empty message", () => {

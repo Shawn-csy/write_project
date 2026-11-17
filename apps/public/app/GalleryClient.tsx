@@ -168,6 +168,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
           {view === "authors" && (
             <GalleryAuthorGrid
               authors={authors}
+              scripts={initialScripts}
+              externalScripts={initialExternalPublicScripts}
               filteredAuthors={homepageModel.filteredAuthors}
               peopleStatus={peopleStatus}
               onRetry={retryPeople}
