@@ -8,10 +8,8 @@ import { GalleryBrandHeroSlide } from "./GalleryBrandHeroSlide";
 import { BRAND_SLIDE } from "./homepageHeroModel";
 
 /**
- * Homepage promotion strip, laid out the way doujin storefronts do it: fixed 3:1
- * tiles side by side on a wide screen, one tile with the next one peeking on a phone.
- * Each image is shown whole — a banner with lettering must never be cropped — so
- * artwork should be made at 3:1 (1500×500).
+ * Homepage promotion strip with a shared height and each image at its native ratio.
+ * Images with lettering stay whole, and adjacent banners meet without empty gutters.
  */
 
 interface Banner {
@@ -47,6 +45,7 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const [paddingCycles, setPaddingCycles] = useState(1);
+  const [imageRatios, setImageRatios] = useState<Record<string, number>>({});
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -83,41 +82,48 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
 
   // Visual copies allow native touch scrolling in either direction. Only the
   // original cycle has semantic headings and focusable links.
-  const stride = () => {
+  const tileAt = (index: number) => trackRef.current?.children[index] as HTMLElement | undefined;
+  const cycleWidth = () => {
+    const first = tileAt(0), next = tileAt(count);
+    return first && next ? next.offsetLeft - first.offsetLeft : 0;
+  };
+  const nearestTile = () => {
     const track = trackRef.current;
-    const first = track?.children[0] as HTMLElement | undefined;
-    const second = track?.children[1] as HTMLElement | undefined;
-    if (!first) return 0;
-    return second && second.offsetLeft > first.offsetLeft
-      ? second.offsetLeft - first.offsetLeft
-      : first.offsetWidth + 2;
+    if (!track) return -1;
+    const tiles = Array.from(track.children) as HTMLElement[];
+    let best = 0;
+    for (let i = 1; i < tiles.length; i++) {
+      if (Math.abs(tiles[i].offsetLeft - track.scrollLeft) < Math.abs(tiles[best].offsetLeft - track.scrollLeft)) best = i;
+    }
+    return best;
   };
   const move = (direction: number) => {
     const track = trackRef.current;
     if (!track) return;
-    track.scrollBy({ left: direction * stride(), behavior: reducedMotion ? "auto" : "smooth" });
+    const target = tileAt(Math.min(Math.max(nearestTile() + direction, 0), track.children.length - 1));
+    if (target) track.scrollTo({ left: target.offsetLeft, behavior: reducedMotion ? "auto" : "smooth" });
   };
 
   useEffect(() => {
     const track = trackRef.current;
     if (!track || !looping) { setActive(0); return; }
     let settleTimer: number;
-    const base = () => stride() * count * paddingCycles;
+    const base = () => cycleWidth() * paddingCycles;
     const reset = () => {
-      const cycle = stride() * count;
+      const cycle = cycleWidth();
       if (cycle > 0) setPaddingCycles(Math.max(1, Math.ceil(track.clientWidth / cycle)));
-      track.scrollLeft = base();
+      const original = tileAt(count * paddingCycles);
+      if (original) track.scrollLeft = original.offsetLeft;
       setActive(0);
     };
     const updateActive = () => {
-      const index = Math.round((track.scrollLeft - base()) / stride());
-      setActive(((index % count) + count) % count);
+      const closest = nearestTile();
+      if (closest >= 0) setActive(closest % count);
     };
     const normalize = () => {
-      const cycle = stride() * count;
+      const cycle = cycleWidth();
       if (!cycle) return;
-      // Wait for the gesture/animation to finish before moving to an identical
-      // copy. Writing scrollLeft during smooth scrolling would cancel it.
+      // Reposition only after scrolling settles, to an identical visual copy.
       const phase = ((track.scrollLeft - base()) % cycle + cycle) % cycle;
       track.scrollLeft = base() + (Math.abs(phase - cycle) < 1 ? 0 : phase);
       updateActive();
@@ -137,7 +143,7 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
       track.removeEventListener("scrollend", normalize);
       window.removeEventListener("resize", reset);
     };
-  }, [count, looping, paddingCycles]);
+  }, [count, looping, paddingCycles, imageRatios]);
 
   useEffect(() => {
     if (!looping || hovered || focused || dragging || hidden || reducedMotion) return;
@@ -146,13 +152,12 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
   }, [looping, hovered, focused, dragging, hidden, reducedMotion]);
 
   if (count === 0) return null;
-  const tileClass = looping
-    ? "relative aspect-[3/1] w-[88%] shrink-0 snap-start sm:w-[30rem]"
-    : "relative aspect-[3/1] w-full max-w-[45rem] shrink-0";
+  const tileClass = "relative h-40 shrink-0 snap-start";
   const arrowClass = "absolute top-1/2 z-10 hidden h-12 w-7 -translate-y-1/2 items-center justify-center bg-black/55 text-white hover:bg-black/75 sm:flex";
   const goTo = (index: number) => {
     const track = trackRef.current;
-    if (track) track.scrollTo({ left: (count * paddingCycles + index) * stride(), behavior: reducedMotion ? "auto" : "smooth" });
+    const target = tileAt(count * paddingCycles + index);
+    if (track && target) track.scrollTo({ left: target.offsetLeft, behavior: reducedMotion ? "auto" : "smooth" });
   };
   const cycles = looping
     ? Array.from({ length: paddingCycles * 2 + 1 }, (_, index) => index === paddingCycles ? "original" : `copy-${index}`)
@@ -166,8 +171,18 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
       onPointerDown={() => setDragging(true)}>
       <div className="relative">
         <div ref={trackRef} data-testid="banner-track"
-          className={`flex snap-x snap-mandatory gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${looping ? "" : "justify-center"}`}>
+          className={`flex snap-x snap-mandatory gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${looping ? "" : "justify-center"}`}>
           {cycles.flatMap((cycle) => banners.map((banner, index) => {
+            const ratio = banner.src ? imageRatios[banner.src] ?? 3 : 3;
+            const tileStyle = { width: `${Math.round(160 * ratio)}px` };
+            const onImageLoad = (event: React.SyntheticEvent<HTMLElement>) => {
+              if (!banner.src || !(event.target instanceof HTMLImageElement)) return;
+              const image = event.target;
+              if (image.naturalWidth && image.naturalHeight) {
+                const next = image.naturalWidth / image.naturalHeight;
+                setImageRatios((current) => current[banner.src] === next ? current : { ...current, [banner.src]: next });
+              }
+            };
             const duplicate = cycle !== "original";
             const body = banner.brand ? (
               <GalleryBrandHeroSlide duplicate={duplicate} slide={{ ...BRAND_SLIDE, title: banner.title, content: banner.content, eyebrow: banner.eyebrow }} />
@@ -182,6 +197,7 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
             if (duplicate) return (
               <div key={`${cycle}-${banner.key}`} aria-hidden="true" data-banner-copy={cycle}
                 className={`${tileClass} overflow-hidden bg-card ${banner.link ? "cursor-pointer hover:opacity-90" : ""}`}
+                style={tileStyle} onLoadCapture={onImageLoad}
                 onClick={() => {
                   // A visible visual copy can activate its one semantic link;
                   // it never adds a duplicate tab stop or heading.
@@ -195,11 +211,11 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
                 href={banner.link} target={isExternal(banner.link) ? "_blank" : undefined}
                 rel={isExternal(banner.link) ? "noopener noreferrer" : undefined}
                 aria-label={banner.alt || banner.title || `橫幅 ${index + 1}`}
-                className={`${tileClass} block overflow-hidden bg-card hover:opacity-90`}>
+                className={`${tileClass} block overflow-hidden bg-card hover:opacity-90`} style={tileStyle} onLoadCapture={onImageLoad}>
                 {body}
               </a>
             ) : (
-              <div key={`${cycle}-${banner.key}`} data-banner-index={index} className={`${tileClass} overflow-hidden bg-card`}>{body}</div>
+              <div key={`${cycle}-${banner.key}`} data-banner-index={index} className={`${tileClass} overflow-hidden bg-card`} style={tileStyle} onLoadCapture={onImageLoad}>{body}</div>
             );
           }))}
         </div>
