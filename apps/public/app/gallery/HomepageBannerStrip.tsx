@@ -80,6 +80,22 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
     };
   }, []);
 
+  // Cached images can finish loading before React attaches onLoadCapture.
+  // Read their dimensions after hydration so the first visible cycle also fits.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    const ratios: Record<string, number> = {};
+    for (const image of track.querySelectorAll("img")) {
+      const src = image.closest<HTMLElement>("[data-banner-src]")?.dataset.bannerSrc;
+      if (src && image.naturalWidth && image.naturalHeight) ratios[src] = image.naturalWidth / image.naturalHeight;
+    }
+    if (Object.keys(ratios).length) {
+      setImageRatios((current) => Object.entries(ratios).every(([src, ratio]) => current[src] === ratio)
+        ? current : { ...current, ...ratios });
+    }
+  }, [slides]);
+
   // Visual copies allow native touch scrolling in either direction. Only the
   // original cycle has semantic headings and focusable links.
   const tileAt = (index: number) => trackRef.current?.children[index] as HTMLElement | undefined;
@@ -197,7 +213,7 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
             if (duplicate) return (
               <div key={`${cycle}-${banner.key}`} aria-hidden="true" data-banner-copy={cycle}
                 className={`${tileClass} overflow-hidden bg-card ${banner.link ? "cursor-pointer hover:opacity-90" : ""}`}
-                style={tileStyle} onLoadCapture={onImageLoad}
+                style={tileStyle} data-banner-src={banner.src || undefined} onLoadCapture={onImageLoad}
                 onClick={() => {
                   // A visible visual copy can activate its one semantic link;
                   // it never adds a duplicate tab stop or heading.
@@ -211,11 +227,11 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
                 href={banner.link} target={isExternal(banner.link) ? "_blank" : undefined}
                 rel={isExternal(banner.link) ? "noopener noreferrer" : undefined}
                 aria-label={banner.alt || banner.title || `橫幅 ${index + 1}`}
-                className={`${tileClass} block overflow-hidden bg-card hover:opacity-90`} style={tileStyle} onLoadCapture={onImageLoad}>
+                className={`${tileClass} block overflow-hidden bg-card hover:opacity-90`} style={tileStyle} data-banner-src={banner.src || undefined} onLoadCapture={onImageLoad}>
                 {body}
               </a>
             ) : (
-              <div key={`${cycle}-${banner.key}`} data-banner-index={index} className={`${tileClass} overflow-hidden bg-card`} style={tileStyle} onLoadCapture={onImageLoad}>{body}</div>
+              <div key={`${cycle}-${banner.key}`} data-banner-index={index} className={`${tileClass} overflow-hidden bg-card`} style={tileStyle} data-banner-src={banner.src || undefined} onLoadCapture={onImageLoad}>{body}</div>
             );
           }))}
         </div>
