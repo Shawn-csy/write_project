@@ -1,0 +1,201 @@
+/* New homepage only. The wrapper also supplies tokens during SSR, before the
+   version preference effect runs. The html scope supplies them to portal sheets.
+   Legacy snapshot and other public routes retain their own palette. */
+.modern-homepage,
+html[data-homepage-version="modern"] {
+  --background: 210 7.14% 94.51%;
+  --foreground: 0 0% 23.92%;
+  --card: 0 0% 96.86%;
+  --card-foreground: 0 0% 23.92%;
+  --muted: 210 16.67% 95.29%;
+  --muted-strong: 0 0% 90%;
+  --muted-stronger: 0 0% 83%;
+  --muted-foreground: 0 0% 40%;
+  --border: 0 0% 86.67%;
+  --primary: 0 0% 26.67%;
+  --primary-foreground: 0 0% 96.86%;
+  --link: 200 100% 32%;
+  --accent: 0 0% 26.67%;
+  --accent-foreground: 0 0% 96.86%;
+  --accent-muted: 0 0% 93%;
+  --accent-strong: 0 0% 20%;
+  --band: 0 0% 96.86%;
+  --band-foreground: 0 0% 23.92%;
+  --band-muted: 0 0% 95%;
+  --band-border: 0 0% 86.67%;
+  --band-muted-foreground: 0 0% 40%;
+  --cta: 0 0% 26.67%;
+  --surface-1: 0 0% 96.86%;
+  --surface-2: 210 16.67% 95.29%;
+  --surface-3: 0 0% 90%;
+  --surface-4: 0 0% 83%;
+  --paper-bg: #f7f7f7;
+  --paper-border: #dddddd;
+  --paper-shadow: rgba(0, 0, 0, 0.06);
+}
+
+/* PublicShellTopBar sets an inline white foreground for the old colored band.
+   Override that mapping only inside this homepage, retaining its local roles. */
+.modern-homepage > header {
+  --foreground: var(--band-foreground) !important;
+}
+.modern-homepage [data-testid="brand-hero-slide"] {
+  color: hsl(var(--band-foreground));
+}
+.modern-homepage [data-testid="brand-hero-slide"] p {
+  color: hsl(var(--band-muted-foreground));
+}
+.modern-homepage [data-testid="homepage-banner-strip"] {
+  background: hsl(var(--background));
+}
+
+/* Neutral dark roles follow the measured SoundCloud/itch.io pattern: a charcoal
+   canvas, restrained neutral surfaces, soft gray actions and blue text links. */
+.dark .modern-homepage,
+html.dark[data-homepage-version="modern"] {
+  --background: 0 0% 12.94%;
+  --foreground: 0 0% 86.67%;
+  --card: 0 0% 16.08%;
+  --card-foreground: 0 0% 86.67%;
+  --muted: 0 0% 19.61%;
+  --muted-strong: 0 0% 24%;
+  --muted-stronger: 0 0% 29%;
+  --muted-foreground: 0 0% 69.8%;
+  --border: 0 0% 27%;
+  --primary: 0 0% 78.82%;
+  --primary-foreground: 0 0% 14.51%;
+  --link: 218.4 100% 70.59%;
+  --accent: 0 0% 78.82%;
+  --accent-foreground: 0 0% 14.51%;
+  --accent-muted: 0 0% 18.82%;
+  --accent-strong: 0 0% 86.67%;
+  --band: 0 0% 16.08%;
+  --band-foreground: 0 0% 86.67%;
+  --band-muted: 0 0% 19.61%;
+  --band-border: 0 0% 27%;
+  --band-muted-foreground: 0 0% 69.8%;
+  --cta: 0 0% 78.82%;
+  --surface-1: 0 0% 16.08%;
+  --surface-2: 0 0% 19.61%;
+  --surface-3: 0 0% 24%;
+  --surface-4: 0 0% 29%;
+  --paper-bg: #292929;
+  --paper-border: #454545;
+  --paper-shadow: rgba(0, 0, 0, 0.3);
+}
+
+.dark .modern-homepage .bg-cta,
+html.dark[data-homepage-version="modern"] .bg-cta {
+  color: hsl(var(--primary-foreground));
+}
+.dark .modern-homepage .gallery-search-input {
+  border-color: hsl(var(--muted-foreground) / 0.5);
+  background: hsl(var(--card));
+  box-shadow: none;
+}
+.dark .modern-homepage .gallery-search-input:focus {
+  border-color: hsl(var(--link));
+  box-shadow: 0 0 0 2px hsl(var(--link) / 0.22);
+}
+.dark .modern-homepage [data-testid="homepage-banner-strip"] {
+  background: hsl(var(--background));
+}
+.dark .modern-homepage [data-testid="random-recommendation-strip"] article {
+  border-color: hsl(var(--border) / 0.65);
+  border-radius: 0.625rem;
+  box-shadow: 0 2px 6px hsl(0 0% 0% / 0.16);
+}
+
+/* Section names are reading landmarks, not another toolbar. */
+.modern-homepage .section-bar {
+  background: transparent;
+  border-left: 0;
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0 0 0.65rem;
+}
+
+/* Quiet inactive categories; filled primary is reserved for the current category. */
+.modern-homepage .tab-item {
+  border-color: transparent;
+  border-radius: 0.375rem 0.375rem 0 0;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+.modern-homepage .tab-item:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+.modern-homepage .tab-item[aria-pressed="true"] {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.modern-homepage .gallery-search-input {
+  border-color: hsl(var(--primary) / 0.65);
+  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.05);
+}
+.modern-homepage .gallery-search-input:focus {
+  border-color: hsl(var(--link));
+  box-shadow: 0 0 0 2px hsl(var(--link) / 0.22);
+}
+
+/* Keep tappable controls generous without increasing desktop visual density. */
+@media (pointer: coarse), (max-width: 639px) {
+  .modern-homepage .gallery-toolbar button,
+  .modern-homepage .gallery-toolbar select,
+  .modern-homepage .gallery-search-input {
+    min-height: 2.75rem;
+  }
+  .modern-homepage .gallery-toolbar button:has(> svg:only-child) {
+    min-width: 2.75rem;
+  }
+}
+
+html[data-homepage-version="modern"]:not([data-public-text-scale]),
+html[data-homepage-version="modern"][data-public-text-scale="default"] {
+  --public-font-caption: 0.8125rem;
+}
+
+
+.modern-homepage [data-testid="random-recommendation-strip"] .section-bar button {
+  min-height: 2.5rem;
+}
+.modern-homepage [data-testid="random-recommendation-strip"] .section-bar button:has(> svg:only-child) {
+  min-width: 2.5rem;
+}
+
+@media (pointer: coarse), (max-width: 639px) {
+  .modern-homepage [data-testid="random-recommendation-strip"] .section-bar button {
+    min-height: 2.75rem;
+  }
+  .modern-homepage [data-testid="random-recommendation-strip"] .section-bar button:has(> svg:only-child) {
+    min-width: 2.75rem;
+  }
+}
+
+
+/* Text-only banner tiles share the neutral band; image tiles keep artwork. */
+.modern-homepage [data-testid="homepage-banner-strip"] .bg-band {
+  color: hsl(var(--band-foreground));
+}
+.modern-homepage [data-testid="homepage-banner-strip"] .bg-band > span {
+  color: hsl(var(--band-foreground));
+}
+.modern-homepage [data-testid="homepage-banner-strip"] .bg-band > span + span {
+  color: hsl(var(--band-muted-foreground));
+}
+/* Activity artwork still uses white overlay text; only its no-image fallback
+   inherits the new light-band foreground. */
+html:not(.dark) .modern-homepage section[aria-label="公開活動"] a:not(:has(img)) .text-white,
+html:not(.dark) .modern-homepage section[aria-label="公開活動"] a:not(:has(img)) .text-white > span {
+  color: hsl(var(--band-foreground));
+}
+html:not(.dark) .modern-homepage section[aria-label="公開活動"] a:not(:has(img)) > span:last-child {
+  border-color: hsl(var(--band-border));
+}
+
+html:not(.dark) .modern-homepage .bg-cta,
+html:not(.dark)[data-homepage-version="modern"] .bg-cta {
+  color: hsl(var(--primary-foreground));
+}

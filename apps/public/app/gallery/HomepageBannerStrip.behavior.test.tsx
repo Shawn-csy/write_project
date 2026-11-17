@@ -35,30 +35,29 @@ describe("looping banner behavior", () => {
     expect(track.scrollLeft).toBe(306);
     await advance(4000);
     expect(track.scrollTo).toHaveBeenCalledWith({ left: 408, behavior: "smooth" });
-    expect(screen.getByLabelText("第 2 張橫幅")).toHaveAttribute("aria-current", "true");
+    expect(track.scrollLeft).toBe(408);
     await advance(8200);
     expect(track.scrollLeft).toBe(306);
-    expect(screen.getByLabelText("第 1 張橫幅")).toHaveAttribute("aria-current", "true");
+    expect(screen.queryByRole("button", { name: /第 .+ 張橫幅/ })).toBeNull();
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getAllByRole("link")).toHaveLength(2);
     expect(screen.queryByRole("button", { name: /暫停|播放/ })).toBeNull();
     expect(track.querySelectorAll('[aria-hidden="true"] a, [aria-hidden="true"] h1')).toHaveLength(0);
   });
 
-  it("wraps backwards only after scrolling settles and supports circle navigation", () => {
+  it("wraps backwards only after scrolling settles and supports arrow navigation", () => {
     render(<HomepageBannerStrip slides={slides} />);
     const track = screen.getByTestId("banner-track");
     layout(track);
     fireEvent.click(screen.getByLabelText("上一張橫幅"));
     expect(track.scrollLeft).toBe(204); // Smooth reverse motion is not cancelled.
-    expect(screen.getByLabelText("第 3 張橫幅")).toHaveAttribute("aria-current", "true");
     fireEvent(track, new Event("scrollend"));
     expect(track.scrollLeft).toBe(510);
     fireEvent.click(screen.getByLabelText("下一張橫幅"));
     expect(track.scrollLeft).toBe(612);
     fireEvent(track, new Event("scrollend"));
     expect(track.scrollLeft).toBe(306);
-    fireEvent.click(screen.getByLabelText("第 2 張橫幅"));
+    fireEvent.click(screen.getByLabelText("下一張橫幅"));
     expect(track.scrollTo).toHaveBeenCalledWith({ left: 408, behavior: "smooth" });
   });
 

@@ -21,7 +21,7 @@ function RecommendationCard({ card, duplicate, activateCopy }: {
   };
   const Title = duplicate ? "div" : "h3";
   return (
-    <article className="relative flex h-32 gap-3 overflow-hidden rounded-md border border-border bg-card p-2 text-card-foreground transition-colors hover:border-link/60 focus-within:border-link"
+    <article className="relative flex h-36 gap-3 overflow-hidden rounded-md border border-border bg-card p-2 text-card-foreground transition-colors hover:border-link/60 focus-within:border-link"
       onMouseEnter={(event) => preview?.show(detail, event.clientX, event.clientY)}
       onMouseMove={(event) => preview?.move(event.clientX, event.clientY)}
       onMouseLeave={() => preview?.hide()}
@@ -49,7 +49,7 @@ function RecommendationCard({ card, duplicate, activateCopy }: {
             </a>
           )}
         </Title>
-        <div className="mt-1 flex min-w-0 items-center gap-1 text-[11px] leading-4 text-muted-foreground">
+        <div className="mt-1 flex min-w-0 items-center gap-1 [font-size:var(--public-font-caption)] leading-4 text-muted-foreground">
           {card.authorHref ? duplicate ? (
             <span className="relative z-10 cursor-pointer truncate text-link" onClick={(event) => activate(event, "author")}>{card.author}</span>
           ) : (
@@ -57,8 +57,8 @@ function RecommendationCard({ card, duplicate, activateCopy }: {
           ) : <span className="truncate">{card.author || "未提供作者"}</span>}
           {card.chapterCount && <span className="shrink-0">· {card.chapterCount} 篇</span>}
         </div>
-        <p className="mt-1 line-clamp-2 text-[11px] leading-[1.35] text-muted-foreground">{card.summary || "尚未提供簡介"}</p>
-        <div className="mt-auto flex items-center gap-2 pt-0.5 text-[10px] leading-4">
+        <p className="mt-1 line-clamp-2 [font-size:var(--public-font-caption)] leading-[1.35] text-muted-foreground">{card.summary || "尚未提供簡介"}</p>
+        <div className="mt-auto flex items-center gap-2 pt-0.5 [font-size:var(--public-font-caption)] leading-4">
           {card.showAgeGate && <span className="font-semibold text-seal">成人向</span>}
           {card.demoHref && (duplicate ? (
             <span className="relative z-10 cursor-pointer text-link" onClick={(event) => activate(event, "demo")}>Demo</span>
