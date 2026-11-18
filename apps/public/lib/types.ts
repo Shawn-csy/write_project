@@ -187,7 +187,7 @@ export interface PublicAudioWork {
   creatorUrl?: string;
   organizationId?: string | null;
   voiceActors?: Array<{ id: string; name: string }>;
-  credits?: Array<{ role: string; sourceRole: string; creditedAs: string; provenance: "official_page" | "catalog_description"; sourceUrl: string }>;
+  credits?: Array<{ role: string; sourceRole: string; creditedAs: string; provenance: "official_page" | "catalog_description"; sourceUrl: string; personaId?: string }>;
   accessType?: "paid" | "free";
   publishedAt?: number | null;
   createdAt?: number;

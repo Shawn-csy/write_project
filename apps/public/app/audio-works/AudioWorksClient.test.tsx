@@ -12,7 +12,10 @@ const initialWorks = [{ id: "work-1", title: "作品甲", url: "https://example.
 const initialOrganizations = [{ id: "org-1", name: "社團甲" }] as PublicOrg[];
 
 describe("AudioWorksClient data loading", () => {
-  beforeEach(() => readPublicBundle.mockReset().mockResolvedValue({ data: { audioWorkBanner: [] }, source: "primary" }));
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/audio-works");
+    readPublicBundle.mockReset().mockResolvedValue({ data: { audioWorkBanner: [] }, source: "primary" });
+  });
   afterEach(() => vi.unstubAllGlobals());
 
   it("uses server data without downloading the same bundle again", () => {
@@ -53,5 +56,19 @@ describe("AudioWorksClient data loading", () => {
 
     act(() => onIntersect([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
     expect(screen.getAllByRole("article")).toHaveLength(20);
+  });
+
+  it("links reviewed staff credits while leaving unlinked source names as text", () => {
+    const works = [{ ...initialWorks[0], credits: [
+      { role: "cover_art", sourceRole: "封面", creditedAs: "舊署名", personaId: "artist-1", provenance: "official_page", sourceUrl: initialWorks[0].url },
+      { role: "cover_art", sourceRole: "封面", creditedAs: "待核署名", provenance: "official_page", sourceUrl: initialWorks[0].url },
+    ] }] as PublicAudioWork[];
+    render(<AudioWorksClient initialWorks={works} initialOrganizations={initialOrganizations} />);
+    fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
+    fireEvent.click(screen.getByRole("button", { name: /社團甲/ }));
+    fireEvent.click(screen.getByText("製作人員與介紹"));
+    expect(screen.getByRole("link", { name: "舊署名" }).getAttribute("href")).toBe("/author/artist-1");
+    expect(screen.queryByRole("link", { name: "待核署名" })).toBeNull();
+    expect(screen.getByText("待核署名")).toBeTruthy();
   });
 });

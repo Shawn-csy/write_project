@@ -1,11 +1,12 @@
 import time
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from concurrent.futures import Future
 from threading import Lock
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 import crud_ops as crud
 import models
 import schemas
@@ -13,6 +14,7 @@ from dependencies import get_db
 from routers import public as public_router
 from routers.external_public_scripts import get_published_external_public_scripts
 from utils import normalize_homepage_banner_value, public_banner_value, seconds_until_taipei_midnight
+from services.work_participations import SOURCE_ROLES
 
 router = APIRouter(prefix="/api", tags=["public"])
 
@@ -139,18 +141,45 @@ def _get_approved_audio_work_submissions(db: Session) -> list[dict]:
     )
     actor_ids = {actor_id for row in rows for actor_id in (row.voiceActorIds or [])}
     actors = {actor.id: actor for actor in db.query(models.Persona).filter(models.Persona.id.in_(actor_ids)).all()} if actor_ids else {}
+    work_ids = {row.id for row in rows}
+    work_ids_by_url: dict[str, set[str]] = defaultdict(set)
+    for row in rows:
+        work_ids_by_url[row.url].add(row.id)
+    linked_credits: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    if work_ids:
+        reviewed = db.query(models.PersonaCredit).filter(or_(
+            models.PersonaCredit.audioWorkId.in_(work_ids),
+            models.PersonaCredit.url.in_(list(work_ids_by_url)),
+        )).all()
+        linked_persona_ids = {credit.personaId for credit in reviewed}
+        visible_roles = {(role.personaId, role.role) for role in db.query(models.PersonaRole).filter(
+            models.PersonaRole.personaId.in_(linked_persona_ids),
+            models.PersonaRole.isVisible.is_(True),
+        ).all()} if linked_persona_ids else set()
+        linked_personas = {person.id: person for person in db.query(models.Persona).filter(
+            models.Persona.id.in_(linked_persona_ids)).all()} if linked_persona_ids else {}
+        for credit in reviewed:
+            person = linked_personas.get(credit.personaId)
+            if (not person or (credit.personaId, credit.role) not in visible_roles
+                    or (credit.role == "voice_actor" and person.voiceActorHidden)):
+                continue
+            target_ids = ([credit.audioWorkId] if credit.audioWorkId in work_ids else []) if credit.audioWorkId else work_ids_by_url.get(credit.url, set())
+            if len(target_ids) == 1:
+                linked_credits[(next(iter(target_ids)), credit.role, credit.creditedAs)].add(credit.personaId)
     credits_by_work: dict[str, list[dict]] = {row.id: [] for row in rows}
     if credits_by_work:
         credits = db.query(models.AudioWorkCredit).filter(
             models.AudioWorkCredit.audioWorkId.in_(credits_by_work)
         ).order_by(models.AudioWorkCredit.role, models.AudioWorkCredit.creditedAs).all()
         for credit in credits:
+            identity_ids = linked_credits.get((credit.audioWorkId, SOURCE_ROLES.get(credit.role, ""), credit.creditedAs), set())
             credits_by_work[credit.audioWorkId].append({
                 "role": credit.role,
                 "sourceRole": credit.sourceRole,
                 "creditedAs": credit.creditedAs,
                 "provenance": credit.provenance,
                 "sourceUrl": credit.sourceUrl,
+                **({"personaId": next(iter(identity_ids))} if len(identity_ids) == 1 else {}),
             })
     return [
         {

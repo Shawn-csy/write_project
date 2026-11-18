@@ -37,16 +37,15 @@ export function PublicProfileSection({ title, count, children }: { title: string
 
 export function PublicProfileWorkCard({ title, url, coverUrl, subtitle, workType, compact = false, sourceLabel, linkLabel }: {
   title: string; url: string; coverUrl?: string | null; subtitle?: string;
-  workType?: "audio" | "game" | "video" | "other"; compact?: boolean; sourceLabel?: string; linkLabel?: string;
+  workType?: "audio" | "game" | "video" | "other" | "script"; compact?: boolean; sourceLabel?: string; linkLabel?: string;
 }) {
   const Container = url ? "a" : "article";
-  const Icon = workType === "game" ? Gamepad2 : workType === "video" ? Clapperboard : workType === "other" ? FileText : Headphones;
+  const Icon = workType === "game" ? Gamepad2 : workType === "video" ? Clapperboard : workType === "other" || workType === "script" ? FileText : Headphones;
   return <Container {...(url ? { href: url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${linkLabel || "前往作品"}：${title}` } : {})} className="group block min-w-0">
     <div className="relative aspect-[4/3] overflow-hidden rounded-sm border border-border bg-muted group-hover:opacity-90">
       {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes={compact ? "96px" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"} /> :
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-muted-foreground" aria-label={`${title}尚未提供封面`}>
-          <Icon className={compact ? "h-6 w-6" : "h-9 w-9"} aria-hidden />
-          {sourceLabel && <span className="text-center text-xs">{sourceLabel}</span>}
+        <div className={`absolute inset-0 flex flex-col ${workType === "script" ? "items-start justify-between bg-card p-2 text-foreground" : "items-center justify-center gap-2 px-2 text-muted-foreground"}`} aria-label={`${title}尚未提供封面`}>
+          {workType === "script" ? <><span className="line-clamp-1 border-b border-border pb-1 text-[10px] font-bold tracking-widest text-muted-foreground">台本{sourceLabel ? ` · ${sourceLabel}` : ""}</span><span className="line-clamp-3 w-full break-words text-xs font-semibold leading-snug">{title}</span><span className="h-px w-6 bg-primary" aria-hidden /></> : <><Icon className={compact ? "h-6 w-6" : "h-9 w-9"} aria-hidden />{sourceLabel && <span className="text-center text-xs">{sourceLabel}</span>}</>}
         </div>}
     </div>
     <div className={compact ? "pt-1" : "pt-2"}>

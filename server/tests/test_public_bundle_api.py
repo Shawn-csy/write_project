@@ -49,6 +49,43 @@ def test_public_audio_works_include_only_approved_credits(client, db_session):
     public_bundle_router.invalidate_public_bundle_cache()
 
 
+def test_audio_credit_links_only_reviewed_visible_identity(client, db_session):
+    public_bundle_router.invalidate_public_bundle_cache()
+    work = models.PublicAudioWorkSubmission(
+        id="linked-staff", title="作品", url="https://example.com/linked-staff", status="approved"
+    )
+    db_session.add(work)
+    db_session.add_all([
+        models.Persona(id="staff-visible", displayName="同名"),
+        models.Persona(id="staff-url", displayName="網址署名"),
+        models.Persona(id="staff-hidden", displayName="同名"),
+        models.PersonaRole(personaId="staff-visible", role="cover_art", isVisible=True),
+        models.PersonaRole(personaId="staff-url", role="cover_art", isVisible=True),
+        models.PersonaRole(personaId="staff-hidden", role="cover_art", isVisible=False),
+    ])
+    db_session.flush()
+    for name in ("舊署名", "網址署名", "同名", "隱藏署名"):
+        db_session.add(models.AudioWorkCredit(
+            audioWorkId=work.id, role="cover_art", sourceRole="封面", creditedAs=name,
+            provenance="official_page", sourceUrl=work.url, checkedAt=1,
+        ))
+    db_session.add_all([
+        models.PersonaCredit(personaId="staff-visible", role="cover_art", audioWorkId=work.id,
+                             url=work.url, creditedAs="舊署名"),
+        models.PersonaCredit(personaId="staff-url", role="cover_art", url=work.url,
+                             creditedAs="網址署名"),
+        models.PersonaCredit(personaId="staff-hidden", role="cover_art", audioWorkId=work.id,
+                             url=work.url, creditedAs="隱藏署名"),
+    ])
+    db_session.commit()
+    credits = client.get("/api/public-bundle?sections=audioWorks").json()["audioWorks"][0]["credits"]
+    assert {credit["creditedAs"]: credit.get("personaId") for credit in credits} == {
+        "舊署名": "staff-visible", "網址署名": "staff-url",
+        "同名": None, "隱藏署名": None,
+    }
+    public_bundle_router.invalidate_public_bundle_cache()
+
+
 def test_explicit_production_credit_parser_handles_combined_roles():
     assert set(credited_roles("錄音・後期：所有聲音製作\n封面：玫臼惹\n故事裡提到後製：不是署名")) == {
         ("recording_studio", "所有聲音製作"),
