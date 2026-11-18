@@ -23,7 +23,7 @@ from database import SessionLocal
 from models import AudioWorkCredit, Organization, Persona, PersonaCredit, PersonaRole, PublicAudioWorkSubmission, User
 from routers.public_bundle import invalidate_public_bundle_cache
 from services.catalog_identities import catalog_credit_names, identity_candidates
-from services.work_participations import catalog_participants, finalize_catalog_import, replace_catalog_participants
+from services.work_participations import catalog_participants, finalize_catalog_import, reconcile_catalog_participants
 
 
 SOURCE = "https://www.pttweb.cc/bbs/C_Chat/M.1772807118.A.62B"
@@ -220,24 +220,16 @@ def main():
         by_url = {work.url: work for work in db.query(PublicAudioWorkSubmission).filter(
             PublicAudioWorkSubmission.id.in_(work_ids)).all()}
         source_items = []
+        linked_credits = 0
         for item in snapshot["items"]:
             work = by_url[item["url"]]
             current_participants = current_rosters.get(work.id, [])
             participants = reviewed_roster(item.get("participants", []), current_participants, pending_profiles)
-            source_items.append({**item, "participants": participants})
-            expected = {(p["role"], p["creditedAs"], p.get("personaId"))
-                        for p in participants}
-            current = {(p["role"], p["creditedAs"], p.get("personaId"))
-                       for p in current_participants}
-            snapshot_keys = {(role, name) for role, name, _ in expected}
-            comparable_current = {
-                (role, name, pid) for role, name, pid in current
-                if (role, name) in snapshot_keys or pid in retired_ids
-            }
-            # Rerunning a complete snapshot must preserve later credits added
-            # to a work whose reviewed source roster is already present.
-            if comparable_current != expected:
-                replace_catalog_participants(db, work, participants, reviewed=True)
+            linked_credits += sum(bool(p.get("personaId")) for p in participants)
+            # The reviewed participants are handled here. Finalization should
+            # only materialize legacy links and ingest other source credits.
+            source_items.append({**item, "participants": []})
+            if reconcile_catalog_participants(db, work, participants, current_participants, retired_ids):
                 replaced_rosters += 1
             for bad_name in ("伊橙 (", "小語 ("):
                 for source in db.query(AudioWorkCredit).filter_by(
@@ -261,9 +253,7 @@ def main():
                           "worksCreated": created_works,
                           "worksUpdated": updated_works, "rostersCorrected": replaced_rosters,
                           "invalidSourceCreditsRemoved": removed_bad_source_credits,
-                          "linkedCreditsInSnapshot": sum(bool(p.get("personaId"))
-                                                          for item in source_items
-                                                          for p in item.get("participants", [])),
+                          "linkedCreditsInSnapshot": linked_credits,
                           "identityProfilesPendingReview": list(pending_profiles.values()),
                           "additionalLinksFromFinalization": report["newIdentityLinks"],
                           "unresolvedCredits": len(report["unresolved"])}, ensure_ascii=False))

@@ -6,7 +6,8 @@ from scripts.import_ptt_chinese_audio_circles import reviewed_roster
 from services.catalog_identities import existing_catalog_actors, identity_candidates, require_new_catalog_identity
 from services.work_participations import (
     catalog_participants, finalize_catalog_import, participations_by_persona,
-    record_catalog_participant, record_participation, replace_catalog_participants,
+    reconcile_catalog_participants, record_catalog_participant, record_participation,
+    replace_catalog_participants,
 )
 
 
@@ -23,6 +24,46 @@ def setup(db, status='approved'):
 
 def participant(role='scriptwriter', pid='p'):
     return dict(role=role, personaId=pid, creditedAs='舊署名', sourceUrl='https://example.com/source')
+
+
+def test_reimport_updates_only_the_named_credit(db_session):
+    work = setup(db_session)
+    record_catalog_participant(db_session, work, participant(role='voice_actor'))
+    manual = {**participant(role='post_production'), 'creditedAs': '後補署名'}
+    other_actor = {**participant(role='voice_actor', pid='other'), 'creditedAs': '後補聲演'}
+    db_session.add(models.Persona(id='replacement', displayName='校正後身份'))
+    for credit in (manual, other_actor):
+        record_catalog_participant(db_session, work, credit)
+    original = db_session.query(models.PersonaCredit).filter_by(creditedAs='後補署名').one()
+    original_id = original.id
+    original_source = db_session.query(models.AudioWorkCredit).filter_by(creditedAs='後補署名').one().id
+
+    incoming = [participant(role='voice_actor', pid='replacement')]
+    roster = lambda: catalog_participants(db_session, [work.id])[work.id]
+    assert reconcile_catalog_participants(db_session, work, incoming, roster())
+    finalize_catalog_import(db_session, work_ids=[work.id])
+    assert {(p['creditedAs'], p['personaId']) for p in roster()} == {
+        ('舊署名', 'replacement'), ('後補署名', 'p'), ('後補聲演', 'other'),
+    }
+    assert set(work.voiceActorIds) == {'replacement', 'other'}
+    assert db_session.query(models.PersonaCredit).filter_by(creditedAs='後補署名').one().id == original_id
+    assert db_session.query(models.AudioWorkCredit).filter_by(creditedAs='後補署名').one().id == original_source
+    assert not reconcile_catalog_participants(db_session, work, incoming, roster())
+
+
+@pytest.mark.parametrize('retire_alias', [False, True])
+def test_reimport_can_keep_a_reviewed_credit_unlinked_without_reviving_a_legacy_alias(db_session, retire_alias):
+    work = setup(db_session)
+    db_session.add(models.PersonaCreditName(personaId='p', role='voice_actor', creditedAs='舊署名'))
+    db_session.add(models.AudioWorkCredit(audioWorkId=work.id, role='voice_actor', sourceRole='聲優',
+                                        creditedAs='舊署名', provenance='official_page', sourceUrl=work.url, checkedAt=1))
+    db_session.flush()
+    roster = lambda: catalog_participants(db_session, [work.id])[work.id]
+    assert roster()[0]['personaId'] == 'p'
+    incoming = [] if retire_alias else [participant(role='voice_actor', pid=None)]
+    assert reconcile_catalog_participants(db_session, work, incoming, roster(), ('p',) if retire_alias else ())
+    assert finalize_catalog_import(db_session, work_ids=[work.id])['unresolved'][0]['personaId'] is None
+    assert db_session.query(models.AudioWorkCredit).filter_by(provenance='official_page').count() == 1
 
 
 def test_catalog_import_defers_name_collision_and_preserves_reviewed_credit(db_session):

@@ -264,17 +264,19 @@ def replace_catalog_participants(db, work, participants, *, reviewed=False):
     db.flush()
 
 
-def record_catalog_participant(db, work, participant):
+def record_catalog_participant(db, work, participant, *, authoritative=False):
     """Add a reviewed source credit and optional explicit ID without replacing a roster."""
     from schemas import WorkParticipantInput
     p = WorkParticipantInput.model_validate(participant).model_dump()
     if p.get('personaId') and not db.get(models.Persona, p['personaId']):
         raise ValueError('找不到參與身份')
     source_role = CANONICAL_SOURCE[p['role']]
-    existing = db.query(models.AudioWorkCredit).filter_by(
+    source_query = db.query(models.AudioWorkCredit).filter_by(
         audioWorkId=work.id, creditedAs=p['creditedAs']).filter(
-            models.AudioWorkCredit.role.in_([source for source, role in SOURCE_ROLES.items() if role == p['role']])).first()
-    if existing is None:
+            models.AudioWorkCredit.role.in_([source for source, role in SOURCE_ROLES.items() if role == p['role']]))
+    if authoritative:
+        source_query = source_query.filter_by(provenance='reviewed_participation')
+    if source_query.first() is None:
         db.add(models.AudioWorkCredit(audioWorkId=work.id, role=source_role,
             sourceRole=p.get('sourceRole') or p['role'], creditedAs=p['creditedAs'],
             provenance='reviewed_participation', sourceUrl=p.get('sourceUrl') or work.url,
@@ -286,6 +288,64 @@ def record_catalog_participant(db, work, participant):
         if p['role'] == 'voice_actor':
             work.voiceActorIds = list(dict.fromkeys([*(work.voiceActorIds or []), p['personaId']]))
     db.flush()
+
+
+def reconcile_catalog_participants(db, work, participants, current, retired_ids=()):
+    """Apply reviewed changes to named credits without rewriting other entries."""
+    expected = defaultdict(set)
+    observed = defaultdict(set)
+    linked = set()
+    retired = set(retired_ids)
+    for p in participants:
+        role, name, pid = p['role'], p['creditedAs'], p.get('personaId')
+        if pid and (pid in retired or (role, pid) in linked):
+            raise ValueError(f"Invalid or duplicate reviewed credit for {pid}: {name}")
+        if pid:
+            linked.add((role, pid))
+        expected[role, name].add(pid)
+    for p in current:
+        observed[p['role'], p['creditedAs']].add(p.get('personaId'))
+    changed = {key for key, ids in expected.items() if ids != observed[key]}
+    retired_keys = {key for key, ids in observed.items() if ids & retired}
+    if not changed and not retired_keys:
+        return False
+
+    credits = db.query(models.PersonaCredit).filter_by(url=work.url).all()
+    removed = set()
+    kept = {}
+    for credit in credits:
+        key = (credit.role, credit.creditedAs)
+        person = (credit.role, credit.personaId)
+        if credit.personaId in retired or (key in changed and credit.personaId not in expected[key]):
+            db.delete(credit)
+            removed.add(person)
+        else:
+            kept[person] = credit.creditedAs
+
+    for role, name in changed:
+        if role == 'voice_actor':
+            removed.update((role, pid) for pid in observed[role, name] - expected[role, name]
+                           if pid and (role, pid) not in kept)
+    work.voiceActorIds = [pid for pid in (work.voiceActorIds or [])
+                         if pid not in retired and ('voice_actor', pid) not in removed]
+    db.flush()
+
+    for role, name in retired_keys - expected.keys():
+        # Preserve the source name and prevent its retiring alias from being
+        # materialized again by finalization in the same transaction.
+        source = next(p for p in current if p['role'] == role and p['creditedAs'] == name)
+        record_catalog_participant(db, work, {**source, 'personaId': None}, authoritative=True)
+    for p in participants:
+        role, name, pid = p['role'], p['creditedAs'], p.get('personaId')
+        if (role, name) not in changed:
+            continue
+        if pid and (role, pid) in kept:
+            if kept[role, pid] != name:
+                raise ValueError(f"Reviewed credit conflicts with an existing credit for {pid}: {name}")
+            # The identity link is intact. Only ensure the reviewed source row.
+            p = {**p, 'personaId': None}
+        record_catalog_participant(db, work, p, authoritative=expected[role, name] == {None})
+    return True
 
 
 def finalize_catalog_import(db, *, organization_id=None, work_ids=None, source_items=()):
