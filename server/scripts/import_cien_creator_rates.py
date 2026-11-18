@@ -13,7 +13,7 @@ from urllib.parse import urlparse
 
 from database import SessionLocal
 from services.catalog_identities import require_new_catalog_identity
-from models import Organization, Persona, PersonaOrganizationMembership, PersonaRole
+from models import Organization, Persona, PersonaCreditName, PersonaOrganizationMembership, PersonaRole
 from routers.public_bundle import invalidate_public_bundle_cache
 
 
@@ -70,7 +70,10 @@ def main():
                 db.add(person)
                 changes += 1
                 db.flush()
-            if person is None or person.displayName != name:
+            if person is None or (
+                person.displayName != name
+                and not db.query(PersonaCreditName).filter_by(personaId=person_id, creditedAs=name).first()
+            ):
                 raise SystemExit(f"Creator identity mismatch: {name}")
             if name == "風蓮/Hong Liân":
                 for field in ("bio", "website"):
