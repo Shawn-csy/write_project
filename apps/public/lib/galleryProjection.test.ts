@@ -106,6 +106,7 @@ describe("galleryProjection", () => {
       displayName: "Persona",
       avatarUrl: "/a.jpg",
       tags: ["聲劇"],
+      searchText: "聲劇",
     });
     expect(toOrgLike({ id: "o1", name: "Org", tags: ["社團"] })).toEqual({
       id: "o1",

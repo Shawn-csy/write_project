@@ -177,6 +177,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
               selectedTags={selectedAuthorTags}
               onToggleTag={onToggleAuthorTag}
               onResetFilters={onResetAuthorTags}
+              searchTerm={filterPanelProps.searchTerm}
+              onSearchChange={filterPanelProps.onSearchChange}
             />
           )}
 

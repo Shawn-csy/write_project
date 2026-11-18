@@ -7,10 +7,11 @@ interface GallerySearchFieldProps {
   onChange: (value: string) => void;
   onFocusChange?: (focused: boolean) => void;
   className?: string;
+  placeholder?: string;
 }
 
 /** Single search input shared by the desktop and mobile gallery toolbar. */
-export function GallerySearchField({ value, onChange, onFocusChange, className = "" }: GallerySearchFieldProps) {
+export function GallerySearchField({ value, onChange, onFocusChange, className = "", placeholder = "搜尋台本、作者或標籤" }: GallerySearchFieldProps) {
   return (
     <div className={`relative min-w-0 ${className}`}>
       <Search
@@ -24,8 +25,8 @@ export function GallerySearchField({ value, onChange, onFocusChange, className =
         onFocus={() => onFocusChange?.(true)}
         onBlur={() => onFocusChange?.(false)}
         onKeyDown={(event) => { if (event.key === "Escape") event.currentTarget.blur(); }}
-        placeholder="搜尋台本、作者或標籤"
-        aria-label="搜尋台本、作者或標籤"
+        placeholder={placeholder}
+        aria-label={placeholder}
         className="gallery-search-input h-10 w-full rounded-md border border-border bg-card pl-9 pr-9 text-[0.875rem] outline-none placeholder:text-muted-foreground focus:border-link focus:ring-1 focus:ring-link [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (

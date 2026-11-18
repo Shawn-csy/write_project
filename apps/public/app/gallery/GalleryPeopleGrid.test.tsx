@@ -10,6 +10,28 @@ const noopReset = () => {};
 // ─── GalleryAuthorGrid ────────────────────────────────────────────────────────
 
 describe("GalleryAuthorGrid", () => {
+  it("switches to a concise author list while keeping profile links", async () => {
+    const author = { id: "p1", displayName: "作者甲" };
+    render(<GalleryAuthorGrid peopleStatus="loaded" onRetry={noopReset}
+      authors={[author]} filteredAuthors={[author]}
+      scripts={[{ id: "s1", title: "第一部作品", persona: author }]}
+      allTags={[]} selectedTags={[]} onToggleTag={noopTag} onResetFilters={noopReset} />);
+    expect(screen.getByRole("link", { name: "前往作品：第一部作品" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "切換為密集顯示" }));
+    expect(screen.getByRole("link", { name: "作者甲" }).getAttribute("href")).toBe("/author/p1");
+    expect(screen.getByText("第一部作品")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "前往作品：第一部作品" })).toBeNull();
+  });
+
+  it("sends author search input to the shared URL filter", async () => {
+    const onSearchChange = vi.fn();
+    render(<GalleryAuthorGrid peopleStatus="loaded" onRetry={noopReset}
+      authors={[]} filteredAuthors={[]} allTags={[]} selectedTags={[]}
+      onToggleTag={noopTag} onResetFilters={noopReset} onSearchChange={onSearchChange} />);
+    await userEvent.type(screen.getByRole("searchbox", { name: "搜尋作者、作品或標籤" }), "方所長");
+    expect(onSearchChange).toHaveBeenCalled();
+  });
+
   it("idle → loading indicator", () => {
     render(<GalleryAuthorGrid authors={[]} filteredAuthors={[]} peopleStatus="idle" onRetry={() => {}} allTags={[]} selectedTags={[]} onToggleTag={noopTag} onResetFilters={noopReset} />);
     expect(screen.getByText("載入中...")).toBeTruthy();
