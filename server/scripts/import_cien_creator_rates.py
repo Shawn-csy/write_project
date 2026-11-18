@@ -12,6 +12,7 @@ import uuid
 from urllib.parse import urlparse
 
 from database import SessionLocal
+from services.catalog_identities import require_new_catalog_identity
 from models import Organization, Persona, PersonaOrganizationMembership, PersonaRole
 from routers.public_bundle import invalidate_public_bundle_cache
 
@@ -59,6 +60,7 @@ def main():
             if name == "風蓮/Hong Liân" and person is None:
                 if db.query(Persona).filter_by(displayName=name).first():
                     raise SystemExit("Windlian name already belongs to a different identity")
+                require_new_catalog_identity(db, display_name=name, persona_id=person_id, website=item["website"])
                 person = Persona(
                     id=person_id, ownerId=None, displayName=name, avatar="", bannerUrl="",
                     bio=item["bio"], website=item["website"], links=[],

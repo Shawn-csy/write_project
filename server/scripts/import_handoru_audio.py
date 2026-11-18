@@ -13,6 +13,7 @@ import uuid
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
 
+from services.catalog_identities import existing_catalog_actors
 from services.work_participations import record_source_credit
 from database import SessionLocal
 from models import AudioWorkCredit, Organization, Persona, PersonaRole, PublicAudioWorkSubmission, User
@@ -77,7 +78,7 @@ def main():
                     changes += 1
         actors = {}
         for name in sorted({name for work in works for name in work["voiceActors"]}):
-            existing = db.query(Persona).filter_by(displayName=name).all()
+            existing = existing_catalog_actors(db, name, organization_id=ORG_ID)
             if len(existing) > 1:
                 raise SystemExit(f"Ambiguous voice actor identity: {name}")
             if existing:

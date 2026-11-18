@@ -12,6 +12,7 @@ import time
 import uuid
 from zoneinfo import ZoneInfo
 
+from services.catalog_identities import existing_catalog_actors
 from services.work_participations import record_source_credit
 from database import SessionLocal
 from models import AudioWorkCredit, Organization, Persona, PublicAudioWorkSubmission, User
@@ -79,7 +80,7 @@ def main():
                     setattr(org, field, org_data[field])
                     org.updatedAt = now
                     changes += 1
-        actor = db.query(Persona).filter_by(displayName="一介").all()
+        actor = existing_catalog_actors(db, "一介", organization_id=ORG_ID, website="https://www.youtube.com/@voice_1J")
         linked_actor_id = None
         if len(actor) == 1 and any(
             link.get("url") == "https://www.youtube.com/@voice_1J" for link in (actor[0].links or [])

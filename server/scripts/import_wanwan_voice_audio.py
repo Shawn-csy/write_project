@@ -13,6 +13,7 @@ import time
 import uuid
 from zoneinfo import ZoneInfo
 
+from services.catalog_identities import existing_catalog_actors
 from database import SessionLocal
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission, User
 from routers.public_bundle import invalidate_public_bundle_cache
@@ -74,7 +75,7 @@ def main():
             org.updatedAt = now
             changes += 1
 
-        actors = db.query(Persona).filter_by(displayName="晚晚").all()
+        actors = existing_catalog_actors(db, "晚晚", organization_id=ORG_ID, website=org_data["x"])
         if len(actors) > 1:
             raise SystemExit("Ambiguous 晚晚 persona identity")
         if actors:

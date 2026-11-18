@@ -15,6 +15,7 @@ import uuid
 from zoneinfo import ZoneInfo
 
 from database import SessionLocal
+from services.catalog_identities import require_new_catalog_identity
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission
 from routers.public_bundle import invalidate_public_bundle_cache
 
@@ -70,6 +71,7 @@ def main() -> None:
         if actor and (actor.displayName != "芽瑪" or actor.voiceActorHidden):
             raise SystemExit("Voice actor ID conflicts with an existing record")
         if not actor:
+            require_new_catalog_identity(db, display_name="芽瑪", persona_id=ACTOR_ID, website=org_data["x"])
             actor = Persona(
                 id=ACTOR_ID, ownerId=None, displayName="芽瑪",
                 avatar=org_data["logoUrl"], bannerUrl=org_data["bannerUrl"],

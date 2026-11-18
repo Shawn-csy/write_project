@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from services.catalog_identities import existing_catalog_actors
 from database import SessionLocal
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission
 
@@ -61,7 +62,7 @@ def main():
         actors = {}
         created_actor = 0
         for name in sorted(actor_names):
-            matches = db.query(Persona).filter_by(displayName=name).all()
+            matches = existing_catalog_actors(db, name, organization_id=ORG_ID)
             if len(matches) > 1:
                 raise SystemExit(f"Ambiguous voice actor identity: {name}")
             if matches:

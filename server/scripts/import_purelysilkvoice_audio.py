@@ -11,6 +11,7 @@ import time
 import uuid
 from pathlib import Path
 
+from services.catalog_identities import existing_catalog_actors
 from database import SessionLocal
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission
 from routers.public_bundle import invalidate_public_bundle_cache
@@ -61,7 +62,7 @@ def main() -> None:
         actors = {}
         created_actors = 0
         for name in sorted({name for work in works for name in work["voiceActors"]}):
-            matches = db.query(Persona).filter(Persona.displayName == name).all()
+            matches = existing_catalog_actors(db, name, organization_id=ORG_ID)
             if len(matches) > 1:
                 raise SystemExit(f"Ambiguous voice actor identity: {name}")
             if matches:
