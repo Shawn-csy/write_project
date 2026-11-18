@@ -286,9 +286,15 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, initialBa
               {visibleGroups.length > 0 ? <div className="grid gap-4 md:grid-cols-2">
               {visibleGroups.map(({ org, works: orgWorks }) => {
                 const banner = org.bannerUrl;
+                const previewWorks = orgWorks.filter((work) => Boolean(work.coverUrl)).slice(0, 3);
                 return <button type="button" key={org.id} onClick={() => select(org.id)} className="group flex w-full flex-col overflow-hidden rounded-md border border-border bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                   <span className="relative block aspect-[2.4/1] w-full overflow-hidden bg-muted">
-                    {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : <span className="flex h-full items-center justify-center text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden /><span className="block px-4 text-xl font-bold text-foreground">{org.name}</span></span></span>}
+                    {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : previewWorks.length > 0 ? (
+                      <span className={`grid h-full ${previewWorks.length === 1 ? "grid-cols-1" : previewWorks.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                        {previewWorks.map((work) => <span key={work.id} className="relative min-w-0 overflow-hidden"><PublicImage src={work.coverUrl || ""} alt={`${work.title}封面預覽`} preset="org-banner" /></span>)}
+                        <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-4 pb-3 pt-9 text-xs font-medium text-white">代表作品封面</span>
+                      </span>
+                    ) : <span className="flex h-full items-center justify-center text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden /><span className="block px-4 text-xl font-bold text-foreground">{org.name}</span></span></span>}
                     {org.logoUrl && <span className="absolute bottom-3 left-3 h-14 w-14 overflow-hidden rounded-md border border-border bg-white"><PublicImage src={org.logoUrl} alt={`${org.name}圖像`} preset="logo" /></span>}
                   </span>
                   <span className="flex flex-1 flex-col gap-2 px-5 py-4">

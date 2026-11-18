@@ -1,7 +1,7 @@
 {
   "source": "https://www.pttweb.cc/bbs/C_Chat/M.1772807118.A.62B",
   "checkedAt": "2026-11-18T01:11:45.097149+00:00",
-  "scope": "DLsite audio products from 17 circle pages absent from the current production catalog; no inferred personal identity credits.",
+  "scope": "DLsite audio products from 17 circles absent from the production catalog; identity links require official profile links, existing reviewed participation, or an explicit personal-circle relationship corroborated by the official circle and product credit.",
   "circles": [
     {
       "labelFromArticle": "床貓與小夥伴",
@@ -265,7 +265,9 @@
           "role": "voice_actor",
           "creditedAs": "水曜日",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html",
+          "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01686914.html"
         },
         {
           "role": "cover_art",
@@ -1142,13 +1144,18 @@
           "role": "scriptwriter",
           "creditedAs": "白野蓮子",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
+          "personaId": "192a22c2-8d69-428a-a733-f19229f26e86",
+          "identityEvidence": "https://www.pttweb.cc/bbs/C_Chat/M.1772807118.A.62B",
+          "identityReviewNote": "PTT explicitly identifies RG01018519 as 白野蓮子的個人社團; DLsite product credits 白野蓮子 as writer."
         },
         {
           "role": "voice_actor",
           "creditedAs": "伊橙/Kurihara Risako",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01278173.html"
         },
         {
           "role": "cover_art",
@@ -1244,16 +1251,26 @@
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
         },
         {
-          "role": "voice_actor",
-          "creditedAs": "伊橙/Kurihara Risako、霏筱雨",
-          "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
-        },
-        {
           "role": "cover_art",
           "creditedAs": "悠井浩",
           "sourceRole": "插畫",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "霏筱雨",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "identityEvidence": "https://twitter.com/FeixiaoyuRain"
         }
       ],
       "metadataLabels": [
@@ -1268,7 +1285,8 @@
         "社團名",
         "聲優",
         "販賣日"
-      ]
+      ],
+      "originalVoiceCredit": "伊橙/Kurihara Risako、霏筱雨"
     },
     {
       "id": "RJ01721597",
@@ -1949,16 +1967,26 @@
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
         },
         {
-          "role": "voice_actor",
-          "creditedAs": "Kirara、草草龍",
-          "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
-        },
-        {
           "role": "post_production",
           "creditedAs": "風蓮",
           "sourceRole": "後製",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "Kirara",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html",
+          "personaId": "a2844a64-b983-5e1b-89d0-f5f7c551ca74",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232799.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "草草龍",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html",
+          "personaId": "b2c05820-0f99-57a3-a2ba-a951bbaa8fae",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01154430.html"
         }
       ],
       "metadataLabels": [
@@ -1974,7 +2002,8 @@
         "聲優",
         "販賣日",
         "音樂"
-      ]
+      ],
+      "originalVoiceCredit": "Kirara、草草龍"
     },
     {
       "id": "RJ01503808",
@@ -1995,16 +2024,26 @@
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
         },
         {
-          "role": "voice_actor",
-          "creditedAs": "Kirara、草草龍",
-          "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
-        },
-        {
           "role": "post_production",
           "creditedAs": "風蓮",
           "sourceRole": "後製",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "Kirara",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html",
+          "personaId": "a2844a64-b983-5e1b-89d0-f5f7c551ca74",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232799.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "草草龍",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html",
+          "personaId": "b2c05820-0f99-57a3-a2ba-a951bbaa8fae",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01154430.html"
         }
       ],
       "metadataLabels": [
@@ -2020,7 +2059,8 @@
         "聲優",
         "販賣日",
         "音樂"
-      ]
+      ],
+      "originalVoiceCredit": "Kirara、草草龍"
     },
     {
       "id": "RJ01606308",
@@ -2136,7 +2176,9 @@
           "role": "voice_actor",
           "creditedAs": "柔依",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01259663.html"
         },
         {
           "role": "cover_art",
@@ -2275,7 +2317,10 @@
           "role": "voice_actor",
           "creditedAs": "床貓",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html",
+          "personaId": "453af589-951d-4e81-b642-28491283281a",
+          "identityEvidence": "https://cxc.today/zh/@BedtimeStory/item/43826",
+          "identityReviewNote": "PTT explicitly identifies RG50114 as 床貓的個人社團; DLsite circle and this product credit name match the existing voice actor with reviewed Bedtime Story works."
         },
         {
           "role": "cover_art",
@@ -2322,7 +2367,10 @@
           "role": "voice_actor",
           "creditedAs": "床貓",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html",
+          "personaId": "453af589-951d-4e81-b642-28491283281a",
+          "identityEvidence": "https://cxc.today/zh/@BedtimeStory/item/43826",
+          "identityReviewNote": "PTT explicitly identifies RG50114 as 床貓的個人社團; DLsite circle and this product credit name match the existing voice actor with reviewed Bedtime Story works."
         },
         {
           "role": "cover_art",
@@ -2368,7 +2416,10 @@
           "role": "voice_actor",
           "creditedAs": "床貓",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html",
+          "personaId": "453af589-951d-4e81-b642-28491283281a",
+          "identityEvidence": "https://cxc.today/zh/@BedtimeStory/item/43826",
+          "identityReviewNote": "PTT explicitly identifies RG50114 as 床貓的個人社團; DLsite circle and this product credit name match the existing voice actor with reviewed Bedtime Story works."
         }
       ],
       "metadataLabels": [
@@ -2448,7 +2499,9 @@
           "role": "scriptwriter",
           "creditedAs": "海聶",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
         },
         {
           "role": "voice_actor",
@@ -2634,7 +2687,9 @@
           "role": "scriptwriter",
           "creditedAs": "凜峰",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html",
+          "personaId": "c3fd5edd-98b3-4489-8896-214942281574",
+          "identityEvidence": "https://x.com/rinne_rinkadou"
         },
         {
           "role": "voice_actor",
