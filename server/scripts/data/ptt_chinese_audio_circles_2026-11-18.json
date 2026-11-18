@@ -259,7 +259,9 @@
           "role": "scriptwriter",
           "creditedAs": "AbundantCH(水原)",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html",
+          "personaId": "547072e2-e009-50d8-ac2b-aa5ff4be941d",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
         },
         {
           "role": "voice_actor",
@@ -273,7 +275,9 @@
           "role": "cover_art",
           "creditedAs": "浜北鈴祀",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html",
+          "personaId": "90af03b9-698e-5207-8a4d-73732ade4277",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
         }
       ],
       "metadataLabels": [
@@ -306,13 +310,17 @@
           "role": "scriptwriter",
           "creditedAs": "水原",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html",
+          "personaId": "4fb48ec4-5922-52dc-a639-5c3f228c1904",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "希子",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html",
+          "personaId": "56d3a42b-733a-5bde-a1c9-19e4983b9aeb",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
         }
       ],
       "metadataLabels": [
@@ -345,31 +353,79 @@
           "role": "scriptwriter",
           "creditedAs": "54OP",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "personaId": "79a5fdd7-1c6a-5d6b-b722-0f980733d5bf",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "獅子女屋",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "personaId": "040e384f-0e97-5c11-ad74-265243564a3c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
         },
         {
           "role": "voice_actor",
-          "creditedAs": "汁慾、琦米",
+          "creditedAs": "汁慾",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "originalCreditedAs": "汁慾、琦米",
+          "personaId": "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "琦米",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "originalCreditedAs": "汁慾、琦米",
+          "personaId": "b94eee83-9bcd-5e8e-bde1-8b94f9d6f8eb",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
         },
         {
           "role": "cover_art",
-          "creditedAs": "嵐星人、玖伊枯、藍叉、@kky_dayo",
+          "creditedAs": "嵐星人",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "originalCreditedAs": "嵐星人、玖伊枯、藍叉、@kky_dayo",
+          "personaId": "04f55c06-5d28-5dd1-8276-403b2fab0242",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "玖伊枯",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "originalCreditedAs": "嵐星人、玖伊枯、藍叉、@kky_dayo",
+          "personaId": "df332f24-2a93-5f0c-9794-be3ad382f3c3",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "藍叉",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "originalCreditedAs": "嵐星人、玖伊枯、藍叉、@kky_dayo",
+          "personaId": "78aa7eeb-310f-5d79-a4ca-505e7166c3e8",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "@kky_dayo",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "originalCreditedAs": "嵐星人、玖伊枯、藍叉、@kky_dayo",
+          "personaId": "a3714d75-c155-5a3e-aaae-db5a2747f3ea",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
         },
         {
           "role": "recording_studio",
           "creditedAs": "禮讚錄音",
           "sourceRole": "錄音",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+          "personaId": "1f6c1c53-81fa-55e9-9dcb-0d7040adff5e",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
         }
       ],
       "metadataLabels": [
@@ -410,19 +466,126 @@
           "role": "scriptwriter",
           "creditedAs": "54OP",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "personaId": "79a5fdd7-1c6a-5d6b-b722-0f980733d5bf",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
         },
         {
           "role": "scriptwriter",
-          "creditedAs": "54OP、獅子女屋",
+          "creditedAs": "獅子女屋",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "54OP、獅子女屋",
+          "personaId": "040e384f-0e97-5c11-ad74-265243564a3c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
         },
         {
           "role": "voice_actor",
-          "creditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "creditedAs": "陳彥鈞",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "112d8e47-1926-594c-900f-2c4297be1d0f",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "王辰驊",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "43785fb2-4059-5c22-a0db-fd4298bd4c9c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "莊汶錡",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "7aa74ec7-a771-5fb9-a2b2-bc3df3bcb831",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "錢欣郁",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "6339a745-870a-564a-ad54-395afe727316",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "晚晚",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "715e3257-241d-54fc-bafc-73ade9ca9ff7",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "靳遠",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "a1356364-35b1-5c95-b420-182a5e1d7169",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "郭璨華",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "ecb66f8d-6b0a-58fb-b712-63d9263137eb",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "葛晨【隆中閣】",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "琦米",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "b94eee83-9bcd-5e8e-bde1-8b94f9d6f8eb",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "一介",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "52e79a6c-7e49-5973-bb25-d86614b22d35",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "K某",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "5a83a8aa-e878-5f75-8013-7492ca52bcff",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "周景",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+          "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "personaId": "969cef93-810d-5c81-90a6-96ef25a68866",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
         },
         {
           "role": "cover_art",
@@ -466,13 +629,27 @@
           "role": "scriptwriter",
           "creditedAs": "獅子女屋",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+          "personaId": "040e384f-0e97-5c11-ad74-265243564a3c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
           "role": "voice_actor",
-          "creditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "creditedAs": "司鳳【隆中閣】",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+          "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "personaId": "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "葛晨【隆中閣】",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+          "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "personaId": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
           "role": "cover_art",
@@ -486,7 +663,9 @@
           "role": "recording_studio",
           "creditedAs": "禮讚錄音有限公司",
           "sourceRole": "錄音室",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+          "personaId": "e1981490-1b6c-55ff-b182-a021399ff63d",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         }
       ],
       "metadataLabels": [
@@ -522,13 +701,27 @@
           "role": "scriptwriter",
           "creditedAs": "獅子女屋",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
+          "personaId": "040e384f-0e97-5c11-ad74-265243564a3c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
         },
         {
           "role": "voice_actor",
-          "creditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "creditedAs": "司鳳【隆中閣】",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
+          "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "personaId": "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "葛晨【隆中閣】",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
+          "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "personaId": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
         },
         {
           "role": "cover_art",
@@ -572,19 +765,81 @@
           "role": "scriptwriter",
           "creditedAs": "54OP",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "personaId": "79a5fdd7-1c6a-5d6b-b722-0f980733d5bf",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
         },
         {
           "role": "scriptwriter",
-          "creditedAs": "54OP、獅子女屋",
+          "creditedAs": "獅子女屋",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "54OP、獅子女屋",
+          "personaId": "040e384f-0e97-5c11-ad74-265243564a3c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
         },
         {
           "role": "voice_actor",
-          "creditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "creditedAs": "王辰驊",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "43785fb2-4059-5c22-a0db-fd4298bd4c9c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "陳彥鈞",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "112d8e47-1926-594c-900f-2c4297be1d0f",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "莊汶錡",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "7aa74ec7-a771-5fb9-a2b2-bc3df3bcb831",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "晚晚配音中",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "7aefedff-7735-5610-9c60-547c758e3c8d",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "錢欣郁",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "6339a745-870a-564a-ad54-395afe727316",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "一介",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "52e79a6c-7e49-5973-bb25-d86614b22d35",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "靳遠",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+          "originalCreditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "personaId": "a1356364-35b1-5c95-b420-182a5e1d7169",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
         },
         {
           "role": "cover_art",
@@ -813,7 +1068,9 @@
           "role": "post_production",
           "creditedAs": "小語",
           "sourceRole": "後製",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html",
+          "personaId": "657de370-f6e7-5d3d-a4a3-a09c261a82e5",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html"
         }
       ],
       "metadataLabels": [
@@ -876,7 +1133,9 @@
           "role": "post_production",
           "creditedAs": "小語",
           "sourceRole": "後製",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html",
+          "personaId": "657de370-f6e7-5d3d-a4a3-a09c261a82e5",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html"
         }
       ],
       "metadataLabels": [
@@ -934,7 +1193,9 @@
           "role": "post_production",
           "creditedAs": "小語",
           "sourceRole": "後製",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html",
+          "personaId": "657de370-f6e7-5d3d-a4a3-a09c261a82e5",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html"
         }
       ],
       "metadataLabels": [
@@ -966,9 +1227,21 @@
       "participants": [
         {
           "role": "scriptwriter",
-          "creditedAs": "宵夜、拾參",
+          "creditedAs": "宵夜",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html",
+          "originalCreditedAs": "宵夜、拾參",
+          "personaId": "80e49652-f315-5fd5-9e26-2f4fd0ae5d92",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "拾參",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html",
+          "originalCreditedAs": "宵夜、拾參",
+          "personaId": "20c2d8f1-df45-53d9-a1ee-1e6919f4564b",
+          "identityEvidence": "https://x.com/Thirteennn013"
         },
         {
           "role": "voice_actor",
@@ -1066,9 +1339,21 @@
       "participants": [
         {
           "role": "scriptwriter",
-          "creditedAs": "微綠、江月英",
+          "creditedAs": "微綠",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html",
+          "originalCreditedAs": "微綠、江月英",
+          "personaId": "9ee01e44-ebbb-54b6-a94e-f12f12c7c9bd",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "江月英",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html",
+          "originalCreditedAs": "微綠、江月英",
+          "personaId": "657e715e-c5b4-5e8f-9dea-6c59481199d1",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
         },
         {
           "role": "voice_actor",
@@ -1141,7 +1426,9 @@
           "role": "post_production",
           "creditedAs": "赤赤",
           "sourceRole": "音效後製",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
+          "personaId": "a56c34cf-2046-556d-aa91-d49e86c70491",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
         },
         {
           "role": "recording_studio",
@@ -1207,13 +1494,17 @@
           "role": "cover_art",
           "creditedAs": "猫屋(NEKOYA)",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
+          "personaId": "c1ea875e-bd87-5a07-b4a0-0d7866c65514",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
         },
         {
           "role": "post_production",
           "creditedAs": "韾笙重工(TAKA)",
           "sourceRole": "後製",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
+          "personaId": "ec026bb8-ade2-53ff-a584-e5a837318c9a",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
         }
       ],
       "metadataLabels": [
@@ -1306,7 +1597,9 @@
           "role": "cover_art",
           "creditedAs": "悠井浩",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html",
+          "personaId": "36d4375e-85cb-5278-a279-dd846d710223",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
         },
         {
           "role": "voice_actor",
@@ -1407,7 +1700,9 @@
           "role": "voice_actor",
           "creditedAs": "孩莉莉",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html",
+          "personaId": "755e95bf-c07e-588b-9ecf-a4980028b6be",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html"
         }
       ],
       "metadataLabels": [
@@ -1439,7 +1734,9 @@
           "role": "voice_actor",
           "creditedAs": "孩莉莉",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html",
+          "personaId": "755e95bf-c07e-588b-9ecf-a4980028b6be",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html"
         }
       ],
       "metadataLabels": [
@@ -1471,7 +1768,9 @@
           "role": "voice_actor",
           "creditedAs": "孩莉莉",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html",
+          "personaId": "755e95bf-c07e-588b-9ecf-a4980028b6be",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html"
         }
       ],
       "metadataLabels": [
@@ -1503,7 +1802,9 @@
           "role": "voice_actor",
           "creditedAs": "孩莉莉",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html",
+          "personaId": "755e95bf-c07e-588b-9ecf-a4980028b6be",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html"
         }
       ],
       "metadataLabels": [
@@ -1534,7 +1835,9 @@
           "role": "voice_actor",
           "creditedAs": "孩莉莉",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html",
+          "personaId": "755e95bf-c07e-588b-9ecf-a4980028b6be",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html"
         }
       ],
       "metadataLabels": [
@@ -1627,13 +1930,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "苦盡肝來遇見你",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html",
+          "personaId": "06b3f985-a6bd-52a8-b119-a59fc6f5239c",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
         }
       ],
       "metadataLabels": [
@@ -1664,13 +1971,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "毒蘑菇精靈",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html",
+          "personaId": "2b135884-a720-5106-b28f-1f20ad00808a",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
         }
       ],
       "metadataLabels": [
@@ -1701,13 +2012,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html"
         }
       ],
       "metadataLabels": [
@@ -1738,13 +2053,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html"
         }
       ],
       "metadataLabels": [
@@ -1775,13 +2094,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html"
         }
       ],
       "metadataLabels": [
@@ -1812,13 +2135,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html"
         }
       ],
       "metadataLabels": [
@@ -1849,13 +2176,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html"
         }
       ],
       "metadataLabels": [
@@ -1886,13 +2217,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html"
         }
       ],
       "metadataLabels": [
@@ -1923,13 +2258,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我（繁体）",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html"
         }
       ],
       "metadataLabels": [
@@ -1960,13 +2299,17 @@
           "role": "voice_actor",
           "creditedAs": "娜瑩",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html",
+          "personaId": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
         },
         {
           "role": "scriptwriter",
           "creditedAs": "菩薩保祐我(繁体)",
           "sourceRole": "台本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html",
+          "personaId": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
         }
       ],
       "metadataLabels": [
@@ -2020,7 +2363,9 @@
           "role": "scriptwriter",
           "creditedAs": "雲田",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html",
+          "personaId": "6235d09d-0887-576e-b37d-7036e99cfd14",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
         },
         {
           "role": "post_production",
@@ -2079,7 +2424,9 @@
           "role": "scriptwriter",
           "creditedAs": "雲田",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html",
+          "personaId": "6235d09d-0887-576e-b37d-7036e99cfd14",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
         },
         {
           "role": "post_production",
@@ -2190,7 +2537,9 @@
           "role": "scriptwriter",
           "creditedAs": "雲田",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html",
+          "personaId": "6235d09d-0887-576e-b37d-7036e99cfd14",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
         },
         {
           "role": "voice_actor",
@@ -2204,7 +2553,9 @@
           "role": "cover_art",
           "creditedAs": "mirai",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html",
+          "personaId": "a57c1124-cc14-539a-b795-c50945960995",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
         }
       ],
       "metadataLabels": [
@@ -2238,7 +2589,9 @@
           "role": "scriptwriter",
           "creditedAs": "韾笙重工",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
+          "personaId": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html"
         },
         {
           "role": "voice_actor",
@@ -2287,13 +2640,17 @@
           "role": "scriptwriter",
           "creditedAs": "韾笙重工",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+          "personaId": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "鍋子",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+          "personaId": "510689ce-721d-5da4-9db7-8f4b6c24bce0",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
         },
         {
           "role": "cover_art",
@@ -2334,19 +2691,25 @@
           "role": "scriptwriter",
           "creditedAs": "韾笙重工",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html",
+          "personaId": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "鍋子",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html",
+          "personaId": "510689ce-721d-5da4-9db7-8f4b6c24bce0",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "麵音白湯",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html",
+          "personaId": "e5ef637f-3ae6-5ad1-b802-48eec9f6566c",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
         }
       ],
       "metadataLabels": [
@@ -2379,7 +2742,9 @@
           "role": "scriptwriter",
           "creditedAs": "艾梅",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html",
+          "personaId": "9bdfc3b3-704d-5a66-b554-09afb5730f6f",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html"
         },
         {
           "role": "voice_actor",
@@ -2429,7 +2794,9 @@
           "role": "scriptwriter",
           "creditedAs": "艾梅",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html",
+          "personaId": "9bdfc3b3-704d-5a66-b554-09afb5730f6f",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
         },
         {
           "role": "voice_actor",
@@ -2444,7 +2811,9 @@
           "role": "cover_art",
           "creditedAs": "Q.azieru",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html",
+          "personaId": "56671b10-d734-5e29-91da-9b8fd2cd615a",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
         }
       ],
       "metadataLabels": [
@@ -2478,7 +2847,9 @@
           "role": "scriptwriter",
           "creditedAs": "艾梅",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html",
+          "personaId": "9bdfc3b3-704d-5a66-b554-09afb5730f6f",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html"
         },
         {
           "role": "voice_actor",
@@ -2527,7 +2898,9 @@
           "role": "voice_actor",
           "creditedAs": "夢寐愛姆",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html",
+          "personaId": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html"
         },
         {
           "role": "cover_art",
@@ -2577,13 +2950,17 @@
           "role": "voice_actor",
           "creditedAs": "夢寐愛姆",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html",
+          "personaId": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "獄犬",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html",
+          "personaId": "f376892d-948d-5029-8fe7-fff137f52f35",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
         }
       ],
       "metadataLabels": [
@@ -2625,7 +3002,9 @@
           "role": "voice_actor",
           "creditedAs": "夢寐愛姆",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html",
+          "personaId": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html"
         },
         {
           "role": "cover_art",
@@ -2668,19 +3047,25 @@
           "role": "scriptwriter",
           "creditedAs": "桐真",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+          "personaId": "395e2ab6-04a0-5c46-ad62-14fb3737e585",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "夢寐愛姆",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+          "personaId": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "萊安",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+          "personaId": "af4d0f40-306c-5bda-a67e-467bc016e172",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
         }
       ],
       "metadataLabels": [
@@ -2722,13 +3107,17 @@
           "role": "voice_actor",
           "creditedAs": "夢寐愛姆",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html",
+          "personaId": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "萊安",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html",
+          "personaId": "af4d0f40-306c-5bda-a67e-467bc016e172",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
         }
       ],
       "metadataLabels": [
@@ -2771,13 +3160,17 @@
           "role": "voice_actor",
           "creditedAs": "夢寐愛姆",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html",
+          "personaId": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "雨宮Luky",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html",
+          "personaId": "ccc58773-d06c-513f-b224-313b3e689eee",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
         }
       ],
       "metadataLabels": [
@@ -3016,19 +3409,44 @@
           "role": "scriptwriter",
           "creditedAs": "kao",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+          "personaId": "1c954e94-a0c0-556a-89b1-5ecc7b31070f",
+          "identityEvidence": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
         },
         {
           "role": "voice_actor",
-          "creditedAs": "塔巴絲可、希靈、黑銀夜烏",
+          "creditedAs": "塔巴絲可",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+          "originalCreditedAs": "塔巴絲可、希靈、黑銀夜烏",
+          "personaId": "5bb26b01-9112-5866-a754-83263621df60",
+          "identityEvidence": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "希靈",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+          "originalCreditedAs": "塔巴絲可、希靈、黑銀夜烏",
+          "personaId": "7a2b9735-91c0-5e7f-9baf-cb1ee871eb33",
+          "identityEvidence": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "黑銀夜烏",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+          "originalCreditedAs": "塔巴絲可、希靈、黑銀夜烏",
+          "personaId": "2ef287e5-a2df-50e8-a811-2edf014c4f6b",
+          "identityEvidence": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "穆鈴",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+          "personaId": "300656f3-651c-5acf-bdd3-b54674af7e6c",
+          "identityEvidence": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
         }
       ],
       "metadataLabels": [
@@ -3295,19 +3713,25 @@
           "role": "scriptwriter",
           "creditedAs": "由良",
           "sourceRole": "劇本",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+          "personaId": "fb5cc75f-1380-5683-900b-c7f398fd2742",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "埃爾庫涅",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+          "personaId": "4b8a3607-4fde-5d1b-816a-a48437a194d7",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "夏川糕",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+          "personaId": "0e4c2bfa-244b-5cd5-8cce-399fa2a66e51",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
         }
       ],
       "metadataLabels": [
@@ -3406,9 +3830,21 @@
         },
         {
           "role": "voice_actor",
-          "creditedAs": "tabasuko、拾參",
+          "creditedAs": "tabasuko",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html",
+          "originalCreditedAs": "tabasuko、拾參",
+          "personaId": "24a985af-3fc1-52f5-918a-ac3f35cc6eb2",
+          "identityEvidence": "https://x.com/mirotabasco"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "拾參",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html",
+          "originalCreditedAs": "tabasuko、拾參",
+          "personaId": "20c2d8f1-df45-53d9-a1ee-1e6919f4564b",
+          "identityEvidence": "https://x.com/Thirteennn013"
         },
         {
           "role": "cover_art",
@@ -3471,19 +3907,25 @@
           "role": "scriptwriter",
           "creditedAs": "由良",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html",
+          "personaId": "fb5cc75f-1380-5683-900b-c7f398fd2742",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "埃爾庫涅",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html",
+          "personaId": "4b8a3607-4fde-5d1b-816a-a48437a194d7",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
         },
         {
           "role": "cover_art",
           "creditedAs": "夏川糕",
           "sourceRole": "插畫",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html",
+          "personaId": "0e4c2bfa-244b-5cd5-8cce-399fa2a66e51",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
         }
       ],
       "metadataLabels": [
@@ -3516,13 +3958,17 @@
           "role": "scriptwriter",
           "creditedAs": "由良",
           "sourceRole": "作者",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html",
+          "personaId": "fb5cc75f-1380-5683-900b-c7f398fd2742",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
         },
         {
           "role": "voice_actor",
           "creditedAs": "波奇卡德霍",
           "sourceRole": "聲優",
-          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html",
+          "personaId": "282e190f-8e90-53c2-8af7-6c75a8b275e5",
+          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
         },
         {
           "role": "cover_art",
@@ -3562,7 +4008,8 @@
       "displayName": "拾參",
       "website": "https://x.com/Thirteennn013",
       "roles": [
-        "voice_actor"
+        "voice_actor",
+        "scriptwriter"
       ],
       "sourceUrls": [
         "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html",
@@ -3913,6 +4360,859 @@
         "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html",
         "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html"
       ]
+    },
+    {
+      "id": "547072e2-e009-50d8-ac2b-aa5ff4be941d",
+      "displayName": "AbundantCH(水原)",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01005315"
+    },
+    {
+      "id": "90af03b9-698e-5207-8a4d-73732ade4277",
+      "displayName": "浜北鈴祀",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01005315"
+    },
+    {
+      "id": "4fb48ec4-5922-52dc-a639-5c3f228c1904",
+      "displayName": "水原",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01005315"
+    },
+    {
+      "id": "56d3a42b-733a-5bde-a1c9-19e4983b9aeb",
+      "displayName": "希子",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01005315"
+    },
+    {
+      "id": "79a5fdd7-1c6a-5d6b-b722-0f980733d5bf",
+      "displayName": "54OP",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "040e384f-0e97-5c11-ad74-265243564a3c",
+      "displayName": "獅子女屋",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5",
+      "displayName": "汁慾",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "b94eee83-9bcd-5e8e-bde1-8b94f9d6f8eb",
+      "displayName": "琦米",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "04f55c06-5d28-5dd1-8276-403b2fab0242",
+      "displayName": "嵐星人",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "df332f24-2a93-5f0c-9794-be3ad382f3c3",
+      "displayName": "玖伊枯",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "78aa7eeb-310f-5d79-a4ca-505e7166c3e8",
+      "displayName": "藍叉",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "a3714d75-c155-5a3e-aaae-db5a2747f3ea",
+      "displayName": "@kky_dayo",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "1f6c1c53-81fa-55e9-9dcb-0d7040adff5e",
+      "displayName": "禮讚錄音",
+      "website": "",
+      "roles": [
+        "recording_studio"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415",
+      "recordingEntityType": "studio"
+    },
+    {
+      "id": "112d8e47-1926-594c-900f-2c4297be1d0f",
+      "displayName": "陳彥鈞",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "43785fb2-4059-5c22-a0db-fd4298bd4c9c",
+      "displayName": "王辰驊",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "7aa74ec7-a771-5fb9-a2b2-bc3df3bcb831",
+      "displayName": "莊汶錡",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "6339a745-870a-564a-ad54-395afe727316",
+      "displayName": "錢欣郁",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "715e3257-241d-54fc-bafc-73ade9ca9ff7",
+      "displayName": "晚晚",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "a1356364-35b1-5c95-b420-182a5e1d7169",
+      "displayName": "靳遠",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "ecb66f8d-6b0a-58fb-b712-63d9263137eb",
+      "displayName": "郭璨華",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
+      "displayName": "葛晨【隆中閣】",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "52e79a6c-7e49-5973-bb25-d86614b22d35",
+      "displayName": "一介",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "5a83a8aa-e878-5f75-8013-7492ca52bcff",
+      "displayName": "K某",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "969cef93-810d-5c81-90a6-96ef25a68866",
+      "displayName": "周景",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
+      "displayName": "司鳳【隆中閣】",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "e1981490-1b6c-55ff-b182-a021399ff63d",
+      "displayName": "禮讚錄音有限公司",
+      "website": "",
+      "roles": [
+        "recording_studio"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415",
+      "recordingEntityType": "studio"
+    },
+    {
+      "id": "7aefedff-7735-5610-9c60-547c758e3c8d",
+      "displayName": "晚晚配音中",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01006415"
+    },
+    {
+      "id": "657de370-f6e7-5d3d-a4a3-a09c261a82e5",
+      "displayName": "小語",
+      "website": "",
+      "roles": [
+        "post_production"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01011490"
+    },
+    {
+      "id": "80e49652-f315-5fd5-9e26-2f4fd0ae5d92",
+      "displayName": "宵夜",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01012472"
+    },
+    {
+      "id": "9ee01e44-ebbb-54b6-a94e-f12f12c7c9bd",
+      "displayName": "微綠",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01012472"
+    },
+    {
+      "id": "657e715e-c5b4-5e8f-9dea-6c59481199d1",
+      "displayName": "江月英",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01012472"
+    },
+    {
+      "id": "a56c34cf-2046-556d-aa91-d49e86c70491",
+      "displayName": "赤赤",
+      "website": "",
+      "roles": [
+        "post_production"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01012472"
+    },
+    {
+      "id": "c1ea875e-bd87-5a07-b4a0-0d7866c65514",
+      "displayName": "猫屋(NEKOYA)",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01018519"
+    },
+    {
+      "id": "ec026bb8-ade2-53ff-a584-e5a837318c9a",
+      "displayName": "韾笙重工(TAKA)",
+      "website": "",
+      "roles": [
+        "post_production"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01018519"
+    },
+    {
+      "id": "36d4375e-85cb-5278-a279-dd846d710223",
+      "displayName": "悠井浩",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01021853"
+    },
+    {
+      "id": "755e95bf-c07e-588b-9ecf-a4980028b6be",
+      "displayName": "孩莉莉",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01034749"
+    },
+    {
+      "id": "a83f9686-a38d-595e-b408-cbdd54e822e3",
+      "displayName": "娜瑩",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01048599"
+    },
+    {
+      "id": "06b3f985-a6bd-52a8-b119-a59fc6f5239c",
+      "displayName": "苦盡肝來遇見你",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01048599"
+    },
+    {
+      "id": "2b135884-a720-5106-b28f-1f20ad00808a",
+      "displayName": "毒蘑菇精靈",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01048599"
+    },
+    {
+      "id": "d9ae3a36-2845-5f86-99e8-fd52d87f57da",
+      "displayName": "菩薩保祐我",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01048599"
+    },
+    {
+      "id": "6235d09d-0887-576e-b37d-7036e99cfd14",
+      "displayName": "雲田",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01052118"
+    },
+    {
+      "id": "a57c1124-cc14-539a-b795-c50945960995",
+      "displayName": "mirai",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG01052118"
+    },
+    {
+      "id": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
+      "displayName": "韾笙重工",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG39804"
+    },
+    {
+      "id": "510689ce-721d-5da4-9db7-8f4b6c24bce0",
+      "displayName": "鍋子",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG39804"
+    },
+    {
+      "id": "e5ef637f-3ae6-5ad1-b802-48eec9f6566c",
+      "displayName": "麵音白湯",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG39804"
+    },
+    {
+      "id": "9bdfc3b3-704d-5a66-b554-09afb5730f6f",
+      "displayName": "艾梅",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG50114"
+    },
+    {
+      "id": "56671b10-d734-5e29-91da-9b8fd2cd615a",
+      "displayName": "Q.azieru",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG50114"
+    },
+    {
+      "id": "8ca17fd8-b57e-5ec7-b92a-609410c42d9b",
+      "displayName": "夢寐愛姆",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG64435"
+    },
+    {
+      "id": "f376892d-948d-5029-8fe7-fff137f52f35",
+      "displayName": "獄犬",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG64435"
+    },
+    {
+      "id": "395e2ab6-04a0-5c46-ad62-14fb3737e585",
+      "displayName": "桐真",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG64435"
+    },
+    {
+      "id": "af4d0f40-306c-5bda-a67e-467bc016e172",
+      "displayName": "萊安",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG64435"
+    },
+    {
+      "id": "ccc58773-d06c-513f-b224-313b3e689eee",
+      "displayName": "雨宮Luky",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG64435"
+    },
+    {
+      "id": "1c954e94-a0c0-556a-89b1-5ecc7b31070f",
+      "displayName": "kao",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG70686"
+    },
+    {
+      "id": "5bb26b01-9112-5866-a754-83263621df60",
+      "displayName": "塔巴絲可",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG70686"
+    },
+    {
+      "id": "7a2b9735-91c0-5e7f-9baf-cb1ee871eb33",
+      "displayName": "希靈",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG70686"
+    },
+    {
+      "id": "2ef287e5-a2df-50e8-a811-2edf014c4f6b",
+      "displayName": "黑銀夜烏",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG70686"
+    },
+    {
+      "id": "300656f3-651c-5acf-bdd3-b54674af7e6c",
+      "displayName": "穆鈴",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG70686"
+    },
+    {
+      "id": "fb5cc75f-1380-5683-900b-c7f398fd2742",
+      "displayName": "由良",
+      "website": "",
+      "roles": [
+        "scriptwriter"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG74454"
+    },
+    {
+      "id": "4b8a3607-4fde-5d1b-816a-a48437a194d7",
+      "displayName": "埃爾庫涅",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG74454"
+    },
+    {
+      "id": "0e4c2bfa-244b-5cd5-8cce-399fa2a66e51",
+      "displayName": "夏川糕",
+      "website": "",
+      "roles": [
+        "cover_art"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG74454"
+    },
+    {
+      "id": "282e190f-8e90-53c2-8af7-6c75a8b275e5",
+      "displayName": "波奇卡德霍",
+      "website": "",
+      "roles": [
+        "voice_actor"
+      ],
+      "sourceUrls": [
+        "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
+      ],
+      "sourceOnly": true,
+      "scopeMakerId": "RG74454"
     }
+  ],
+  "retiredResourceIds": [
+    "f74e7209-e4d5-5801-b842-39f9591728f7"
   ]
 }
