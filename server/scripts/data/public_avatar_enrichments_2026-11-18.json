@@ -1,6 +1,6 @@
 {
   "date": "2026-11-18",
-  "description": "Official X profile avatars matched by the persona website URL and profile display name; 方所長 is the user-confirmed alias for 方婷.",
+  "description": "Official X profile avatars matched by the persona website URL and profile display name; 方所長 is the user-confirmed alias for 方婷. Also stored a Pixiv profile image locally because direct hotlinking returns 403.",
   "profiles": [
     {
       "personaId": "d24d9b53-779d-5612-ad49-4bd43438a364",
@@ -49,6 +49,16 @@
       "sourceUrl": "https://x.com/FontineLeng",
       "sourceImageUrl": "https://pbs.twimg.com/profile_images/1693956057692024832/AIL2HO81_400x400.jpg",
       "assetFile": "d4ae9e17-931e-55fb-977d-4a26a7d43acc.jpg"
+    },
+    {
+      "personaId": "b4534f5c-ac87-413a-a79a-be91dcf2da98",
+      "name": "冬瓜冰茶",
+      "avatarUrl": "/media/public-avatar-curation/b4534f5c-ac87-413a-a79a-be91dcf2da98.jpg",
+      "sourceUrl": "https://www.pixiv.net/users/15485840",
+      "sourceImageUrl": "https://i.pximg.net/user-profile/img/2024/10/25/13/42/53/26520715_612d5f0064c7f427b0d7944684b4976a_170.jpg",
+      "assetFile": "b4534f5c-ac87-413a-a79a-be91dcf2da98.jpg",
+      "replaceAvatarUrl": "https://i.pximg.net/user-profile/img/2024/10/25/13/42/53/26520715_612d5f0064c7f427b0d7944684b4976a_170.jpg",
+      "enrichmentId": "credit-e9ffd84f2fe6a188"
     }
   ]
 }
