@@ -10,7 +10,7 @@ const noopReset = () => {};
 // ─── GalleryAuthorGrid ────────────────────────────────────────────────────────
 
 describe("GalleryAuthorGrid", () => {
-  it("switches to a concise author list while keeping profile links", async () => {
+  it("switches to an avatar grid while keeping profile links", async () => {
     const author = { id: "p1", displayName: "作者甲" };
     render(<GalleryAuthorGrid peopleStatus="loaded" onRetry={noopReset}
       authors={[author]} filteredAuthors={[author]}
@@ -18,8 +18,8 @@ describe("GalleryAuthorGrid", () => {
       allTags={[]} selectedTags={[]} onToggleTag={noopTag} onResetFilters={noopReset} />);
     expect(screen.getByRole("link", { name: "前往作品：第一部作品" })).toBeTruthy();
     await userEvent.click(screen.getByRole("button", { name: "切換為密集顯示" }));
-    expect(screen.getByRole("link", { name: "作者甲" }).getAttribute("href")).toBe("/author/p1");
-    expect(screen.getByText("第一部作品")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /作者甲/ }).getAttribute("href")).toBe("/author/p1");
+    expect(screen.getByText("1 部作品")).toBeTruthy();
     expect(screen.queryByRole("link", { name: "前往作品：第一部作品" })).toBeNull();
   });
 
