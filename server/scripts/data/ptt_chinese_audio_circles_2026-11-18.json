@@ -1,0 +1,3382 @@
+{
+  "source": "https://www.pttweb.cc/bbs/C_Chat/M.1772807118.A.62B",
+  "checkedAt": "2026-11-18T01:11:45.097149+00:00",
+  "scope": "DLsite audio products from 17 circle pages absent from the current production catalog; no inferred personal identity credits.",
+  "circles": [
+    {
+      "labelFromArticle": "床貓與小夥伴",
+      "makerId": "RG50114",
+      "name": "床貓與小夥伴（ベッディ）",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG50114.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ297588",
+        "RJ293957",
+        "RJ281108"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "甜心櫻桃",
+      "makerId": "RG01048599",
+      "name": "CherryBeat甜心櫻桃",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01048599.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01748870",
+        "RJ01696124",
+        "RJ01651907",
+        "RJ01603898",
+        "RJ01565213",
+        "RJ01530226",
+        "RJ01502219",
+        "RJ01462074",
+        "RJ01420191",
+        "RJ01402910"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "如月社",
+      "makerId": "RG01052118",
+      "name": "如月社",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01052118.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01701485",
+        "RJ01606308",
+        "RJ01503808",
+        "RJ01480849",
+        "RJ01436444"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "滷肉飯",
+      "makerId": "RG01021853",
+      "name": "滷肉飯",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01021853.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01721597",
+        "RJ01380371",
+        "RJ01279583"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "AbundantCH",
+      "makerId": "RG01005315",
+      "name": "AbundantCH",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01005315.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01373272",
+        "RJ01072538"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "Mirolive",
+      "makerId": "RG74454",
+      "name": "Mirolive",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG74454.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01556107",
+        "RJ01472497",
+        "RJ01463252",
+        "RJ01392675",
+        "RJ01244259",
+        "RJ01231682",
+        "RJ01199877",
+        "RJ01073703",
+        "RJ01047019"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "夜語音坊",
+      "makerId": "RG01041304",
+      "name": "夜語音坊（スタジオナイトヴォイス）",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01041304.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01354703"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "輕聲愛戀",
+      "makerId": "RG01010336",
+      "name": "輕聲愛戀 | Speak Gently Love",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01010336.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01343367",
+        "RJ01187970"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "雲際線工作室",
+      "makerId": "RG65906",
+      "name": "雲際線工作室",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG65906.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01092843",
+        "RJ01058578",
+        "RJ430683",
+        "RJ395373"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "星露",
+      "makerId": "RG70686",
+      "name": "星露",
+      "url": "https://www.dlsite.com/home/circle/profile/=/maker_id/RG70686.html",
+      "category": "home",
+      "productIds": [
+        "RJ436592"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "莉莉的房間",
+      "makerId": "RG01034749",
+      "name": "台灣女孩 莉莉的房間（タイワン）",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01034749.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01389860",
+        "RJ01360388",
+        "RJ01334857",
+        "RJ01322361",
+        "RJ01322031"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "伊聲懸命舖",
+      "makerId": "RG01011490",
+      "name": "ISKM伊聲懸命舖",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01011490.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01633202",
+        "RJ01232858",
+        "RJ01200745",
+        "RJ01200075"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "咪咪兔",
+      "makerId": "RG01018519",
+      "name": "咪咪兔",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01018519.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01437906"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "韾笙重工",
+      "makerId": "RG39804",
+      "name": "韾笙重工（インシェンジョンゴン）",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG39804.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ392014",
+        "RJ365425",
+        "RJ325212"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "拾參",
+      "makerId": "RG01012472",
+      "name": "拾參Thirteen CH.",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG01012472.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01478029",
+        "RJ01356423",
+        "RJ01269037",
+        "RJ01138422"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "迷聲夢寐",
+      "makerId": "RG64435",
+      "name": "Lucid Dream 迷聲夢寐",
+      "url": "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG64435.html",
+      "category": "maniax",
+      "productIds": [
+        "RJ01587217",
+        "RJ01329133",
+        "RJ01190091",
+        "RJ01070231",
+        "RJ01027593",
+        "RJ398048"
+      ],
+      "excludedNonAudioProductIds": []
+    },
+    {
+      "labelFromArticle": "親能補拙聲攻坊",
+      "makerId": "RG01006415",
+      "name": "親能補拙聲攻坊",
+      "url": "https://www.dlsite.com/bl/circle/profile/=/maker_id/RG01006415.html",
+      "category": "bl",
+      "productIds": [
+        "RJ01753083",
+        "RJ01610079",
+        "RJ01593965",
+        "RJ01395416",
+        "RJ01147122"
+      ],
+      "excludedNonAudioProductIds": []
+    }
+  ],
+  "items": [
+    {
+      "id": "RJ01072538",
+      "title": "溫柔女友的寸止調教[中文音聲]",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01073000/RJ01072538_img_main.jpg",
+      "summary": "女友溫柔的聲音,溫暖的話語,但絕對嚴厲的指令,你能通過挑戰嗎?",
+      "accessType": "paid",
+      "sourceMakerId": "RG01005315",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html",
+      "adult": true,
+      "releasedOn": "2023-06-30",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "AbundantCH(水原)",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "水曜日",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "浜北鈴祀",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01072538.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01373272",
+      "title": "主人的日常寸止調教",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01374000/RJ01373272_img_main.jpg",
+      "summary": "主人的日常寸止調教,包含羞辱,龜頭責及大量寸止",
+      "accessType": "paid",
+      "sourceMakerId": "RG01005315",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html",
+      "adult": true,
+      "releasedOn": "2025-04-12",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "水原",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "希子",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01373272.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01147122",
+      "title": "[ABO]乃基與桂花的一期一會 ★附主役訪談特典",
+      "url": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01148000/RJ01147122_img_main.jpg",
+      "summary": "身為台北最知名的美貌Omega,姜尚鈺秉著「一期一炮」的原則,每個床伴不睡第二次,並只挑長相優、身材好的…… 即便因此遭網友批評嘲諷,他仍不屑為自己辯解。 直到某天在網上看到有人為他說話…… 「葉舒笙,男性Omega……」 姜尚鈺喃喃這個名字,葉舒笙讓姜尚鈺未見面便心動!  然而姜尚鈺卻兩人第一次見面時,被身為「Alpha」葉舒笙催化發情了而瘋狂H……",
+      "accessType": "paid",
+      "sourceMakerId": "RG01006415",
+      "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+      "adult": true,
+      "releasedOn": "2024-02-16",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "54OP",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "獅子女屋",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "汁慾、琦米",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "嵐星人、玖伊枯、藍叉、@kky_dayo",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        },
+        {
+          "role": "recording_studio",
+          "creditedAs": "禮讚錄音",
+          "sourceRole": "錄音",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+        }
+      ],
+      "metadataLabels": [
+        "CP/配對",
+        "作品形式",
+        "作者",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ],
+      "sourceCredits": {
+        "作曲": [
+          "極栗音樂工作室"
+        ]
+      }
+    },
+    {
+      "id": "RJ01395416",
+      "title": "【金秘書必須3P】～與鬼簽約變成超敏感體質,整夜3P到絕頂失神～",
+      "url": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01396000/RJ01395416_img_main.jpg",
+      "summary": "理性禁慾的金祕書,這次真的撐不住了。 一場鎮靈任務後,他身體異常敏感、慾望高漲,卻怎麼也找不出原因——只知道,一靠近那兩個男人就會更硬。  一個是高冷未婚夫,說話像命令、動作卻讓人腿軟; 一個是死纏爛打的前男友,笑著挑釁,每句話都像在逼他張腿。  原本只想驅鬼,沒想到被兩位霸總壓到床上輪番伺候。 3P成了驅邪法,高潮成了解藥——那對女鬼的聲音卻還在耳邊呢喃。 這真相究竟是月老的玩笑,還是一場靈異詐騙?",
+      "accessType": "paid",
+      "sourceMakerId": "RG01006415",
+      "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
+      "adult": true,
+      "releasedOn": "2025-06-08",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "54OP",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "54OP、獅子女屋",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "邊邊",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+        }
+      ],
+      "metadataLabels": [
+        "CP/配對",
+        "作品形式",
+        "作者",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01593965",
+      "title": "【誘捕禁慾按摩師】~前輩,最後一堂課請用身體教我......",
+      "url": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01594000/RJ01593965_img_main.jpg",
+      "summary": "「用身體好好記住我吧。」一場沈浸式雙人四手療程,客人在引導中墜入深層放鬆,禁慾學長卻以「最後一堂課」為名,在半夢半醒的曖昧空間裡,一寸一寸越過專業的界線。Ver.A 學長化身S系導師,以情慾指令貫穿身下的誘受學弟;Ver.B 學弟反客為主,讓驕傲的前輩在自己身下喘息淪陷。療程結束,真相才剛開始——誰是獵人,誰是獵物?這個秘密,只有你們三個人知道。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01006415",
+      "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
+      "adult": true,
+      "releasedOn": "2026-04-11",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "獅子女屋",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "RIZ009",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+        },
+        {
+          "role": "recording_studio",
+          "creditedAs": "禮讚錄音有限公司",
+          "sourceRole": "錄音室",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
+        }
+      ],
+      "metadataLabels": [
+        "CP/配對",
+        "作品形式",
+        "作者",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01610079",
+      "title": "诱捕禁慾按摩师~前辈,最后一堂课请用身体教我......(双版本)",
+      "url": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01611000/RJ01610079_img_main.jpg",
+      "summary": "「闭上眼睛,用身体记住我。」一场沉浸式双人四手疗程,客人在低语引导中坠入深层放松,禁欲学长却以「最后一堂课」为名,在半梦半醒的暧昧空间里,一寸一寸越过专业的界线。Ver.A 学长化身S系导师,以情欲指令贯穿身下的诱受学弟;Ver.B 学弟反客为主,让骄傲的前辈在自己身下喘息沦陷。疗程结束,真相才刚开始——谁是猎人,谁是猎物?这个秘密,只有你们三个人知道。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01006415",
+      "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
+      "adult": true,
+      "releasedOn": "2026-04-19",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "獅子女屋",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "RIZ009",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+        }
+      ],
+      "metadataLabels": [
+        "CP/配對",
+        "作品形式",
+        "作者",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01753083",
+      "title": "【キム秘書は3P必須 】幽霊との契約で超敏感体質に！? 一晩中3Pでイカされまくって失神寸前♡～",
+      "url": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01754000/RJ01753083_img_main.jpg",
+      "summary": "除霊の方法は、まさかの3P！? 悪霊に憑かれ、超敏感体質になった金秘書。火照る身体に、止まらない欲情！ 女幽霊が告げた解決法は「3Pを続けろ！」って、どういうこと！?",
+      "accessType": "paid",
+      "sourceMakerId": "RG01006415",
+      "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html",
+      "adult": true,
+      "releasedOn": "2026-10-29",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "54OP",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "54OP、獅子女屋",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "王辰驊、陳彥鈞、莊汶錡、晚晚配音中、錢欣郁、一介、靳遠",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "邊邊",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01753083.html"
+        }
+      ],
+      "metadataLabels": [
+        "CP/配對",
+        "作品形式",
+        "作者",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01187970",
+      "title": "ASMR | 輕聲愛戀 | 專屬的哄睡精靈",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01187970.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01188000/RJ01187970_img_main.jpg",
+      "summary": "俏皮的溫柔女友,今晚就在身旁摟著你,輕輕地訴說對你的愛,期望明天一早醒來,聽到的第一個聲音是...",
+      "accessType": "paid",
+      "sourceMakerId": "RG01010336",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01187970.html",
+      "adult": false,
+      "releasedOn": "2024-05-01",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01187970.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "希靈Healing",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01187970.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "蘿拉Lola",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01187970.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01343367",
+      "title": "ASMR | 輕聲愛戀 | 耳邊的溫柔喚醒 |與希靈的親密旅程",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01343367.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01344000/RJ01343367_img_main.jpg",
+      "summary": "可愛溫柔的女友,指尖輕柔地揉弄耳朵與髮絲,甜膩的氣息貼近,曖昧的氣息交纏,你是真的在裝睡?還是期待她再多做點什麼……",
+      "accessType": "paid",
+      "sourceMakerId": "RG01010336",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01343367.html",
+      "adult": false,
+      "releasedOn": "2025-02-19",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01343367.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "希靈Healing",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01343367.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "八彌",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01343367.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01200075",
+      "title": "【三穴一體】我的飛機杯哪有這麼可愛~與她們的緊密生活~【中文音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200075.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01201000/RJ01200075_img_main.jpg",
+      "summary": "心愛的女友送的飛機杯,竟變成了可愛小蘿o!? 「因為我是三合一的飛機杯,所以我也是三位一體的精靈。」 「主人今天想要怎麼使用我呢?」 與3 (+2) 個型態的飛機杯精靈,展開一場場酣暢淋漓的自慰之旅……",
+      "accessType": "paid",
+      "sourceMakerId": "RG01011490",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200075.html",
+      "adult": true,
+      "releasedOn": "2024-05-29",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200075.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200075.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "海聶",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200075.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ],
+      "sourceCredits": {
+        "音效": [
+          "伊橙"
+        ]
+      }
+    },
+    {
+      "id": "RJ01200745",
+      "title": "【話屋物語】與你相愛的下雨天【中文音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01201000/RJ01200745_img_main.jpg",
+      "summary": "在淋著雨的下雨天,你來到了「話屋」遇到了身為說書人的她,漸漸的,從一開始的主顧,發展出了一段甜蜜的愛情......",
+      "accessType": "paid",
+      "sourceMakerId": "RG01011490",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html",
+      "adult": true,
+      "releasedOn": "2024-06-18",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "老雲",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "艾朵",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "小語",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01200745.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ],
+      "sourceCredits": {
+        "音效": [
+          "小語"
+        ]
+      }
+    },
+    {
+      "id": "RJ01232858",
+      "title": "【換裝娃娃】晚上女友都在COS【成人中文音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01233000/RJ01232858_img_main.jpg",
+      "summary": "你最近有個甜蜜的煩惱。小茜,是個不太說話的女孩, 然而,每到禮拜五,她便會特地換裝,迎接剛結束工作的你──今天的小茜會換什麼衣服呢?",
+      "accessType": "paid",
+      "sourceMakerId": "RG01011490",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html",
+      "adult": true,
+      "releasedOn": "2024-08-15",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "舒米",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "艾朵",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "小語",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01232858.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01633202",
+      "title": "【劇情向】與蕾莉亞的戰間期溫存【中文成人音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01634000/RJ01633202_img_main.jpg",
+      "summary": "身為「戰爭孤兒」的你,面對即將來臨的戰爭,決定遠走他鄉,在路途中遇上了半龍半人的蕾莉亞,人類與龍人的溫存扶持故事。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01011490",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html",
+      "adult": true,
+      "releasedOn": "2026-05-24",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "羊羽",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "PainGoro",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "小語",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01633202.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01138422",
+      "title": "對巨乳抖S大姊姊的反攻大成功 | 壞狗勾,聖誕快樂!",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01139000/RJ01138422_img_main.jpg",
+      "summary": "?作品簡介  在有幸成為教官姊姊的男朋友(兼她的狗勾)後,約定好了要一起度過今年的聖誕節。 在面對精心打扮了一番,還難得的噴了香水的自己。 教官卻雙手空空,甚至反常地穿了包緊緊的大衣,白白浪費了她的姣好身材。 面對一臉失望卻還笑臉盈盈的主人,你會做出什麼回應呢?",
+      "accessType": "paid",
+      "sourceMakerId": "RG01012472",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html",
+      "adult": true,
+      "releasedOn": "2024-01-11",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "宵夜、拾參",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "拾參",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "黒澤ユイ",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01138422.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01269037",
+      "title": "【像野獸一般的做愛吧!/100分鐘超滿足】~性冷感姊姊的春藥絕頂,高潮地獄~",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01269037.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01270000/RJ01269037_img_main.jpg",
+      "summary": "你叫醒了累倒在沙發上的姊姊,替她按摩放鬆。她十分享受你的服務,但氣氛卻逐漸旖旎了起來......",
+      "accessType": "paid",
+      "sourceMakerId": "RG01012472",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01269037.html",
+      "adult": true,
+      "releasedOn": "2024-10-01",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "格琳",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01269037.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "拾參",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01269037.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "九笙",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01269037.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01356423",
+      "title": "【甜蜜調教】讓抖S巨乳的姊姊教導你,做為寵物的快樂♡",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01357000/RJ01356423_img_main.jpg",
+      "summary": "想被姊姊狠狠的壓在身體下面 用力欺負嗎 又甜又寵甜蜜調教 適合抖M又缺愛的你:)",
+      "accessType": "paid",
+      "sourceMakerId": "RG01012472",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html",
+      "adult": true,
+      "releasedOn": "2025-03-15",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "微綠、江月英",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "拾參",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "黒澤ユイ",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01356423.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01478029",
+      "title": "【KU100新婚之夜】~兄弟系VTuber~今晚成為了你的老婆",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01479000/RJ01478029_img_main.jpg",
+      "summary": "完全不演真實嬌喘!與姊姊的洞房花燭夜~兄弟你好香~從玩大老二變成玩「大老二」",
+      "accessType": "paid",
+      "sourceMakerId": "RG01012472",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
+      "adult": true,
+      "releasedOn": "2025-10-04",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "毛捲捲",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
+          "personaId": "e29da18d-8f1d-49d3-b614-c503326bfb2b",
+          "identityEvidence": "https://x.com/thesmallmimi123"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "拾參",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "葛瑞Grey",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
+          "personaId": "bb9dba9f-ac3f-45ec-bbaf-0858120d53e5",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "赤赤",
+          "sourceRole": "音效後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
+        },
+        {
+          "role": "recording_studio",
+          "creditedAs": "感聲錄音室/SenSouns Records",
+          "sourceRole": "錄音室",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ],
+      "sourceCredits": {
+        "排版": [
+          "拾參"
+        ],
+        "聲音導演": [
+          "伊橙"
+        ]
+      }
+    },
+    {
+      "id": "RJ01437906",
+      "title": "青梅竹馬的返祖現象有點不妙",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01438000/RJ01437906_img_main.jpg",
+      "summary": "這是你與青梅竹馬的女孩成為戀人的第一晚,抱著期待的心情等待對方的來電。然而接到的電話卻並不尋常,前往女友家中查看,竟發現她長出了奇怪的角和尾巴！為了擺脫這奇怪的返祖現象恢復原樣,屬於兩人的漫長夜晚開始了……",
+      "accessType": "paid",
+      "sourceMakerId": "RG01018519",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
+      "adult": true,
+      "releasedOn": "2025-08-10",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "白野蓮子",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "猫屋(NEKOYA)",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工(TAKA)",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01279583",
+      "title": "【中文音聲】魔法少女被搔癢直到高潮",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01279583.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01280000/RJ01279583_img_main.jpg",
+      "summary": "普通的魔法少女在上學路上竟然被邪惡組織打敗後帶到基地!而她將要面對的竟然是……搔癢! ! ! ! !",
+      "accessType": "paid",
+      "sourceMakerId": "RG01021853",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01279583.html",
+      "adult": true,
+      "releasedOn": "2024-11-01",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "小滷肉",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01279583.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01279583.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "Nisusu",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01279583.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01380371",
+      "title": "【中文音聲】足控變態女與惡魔妹",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01381000/RJ01380371_img_main.jpg",
+      "summary": "本來生活就如地獄的情況下檢查出了癌症的夢佳欣,在家中喝醉的時候碰見了一位惡魔少女！在酒精與慾望的驅使下,本就是足控的她竟然對睡著的惡魔少女做出了……",
+      "accessType": "paid",
+      "sourceMakerId": "RG01021853",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html",
+      "adult": true,
+      "releasedOn": "2025-04-26",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "小滷肉",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako、霏筱雨",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "悠井浩",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01380371.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01721597",
+      "title": "讓強勢的女友對你哭著求饒",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01721597.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01722000/RJ01721597_img_main.jpg",
+      "summary": "平時總是對女友唯唯諾諾的你,今天終於受不了她的冷嘲熱諷,向她發起挑戰。「好啊。如果你能讓我舒服,我什麼都聽你——等等！你、你在摸哪裡！」面對那總是板著一張臉的高冷美女,你要用什麼「手法」讓她屈服呢?",
+      "accessType": "paid",
+      "sourceMakerId": "RG01021853",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01721597.html",
+      "adult": true,
+      "releasedOn": "2026-10-15",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01721597.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "伊橙/Kurihara Risako",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01721597.html",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "identityEvidence": "https://x.com/kurihara_mikan"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "Nisusu",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01721597.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01322031",
+      "title": "台灣女大生的口交、親吻、口爆等偽情侶性愛Play",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01323000/RJ01322031_img_main.jpg",
+      "summary": "台灣女孩莉莉的在台灣某妓院所跟來台觀光客或是當地人進行口交、口爆等...偽情侶Play性愛把戲服務。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01034749",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html",
+      "adult": true,
+      "releasedOn": "2025-01-10",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "孩莉莉",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322031.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01322361",
+      "title": "強迫漏尿邊聲援到尿失禁體驗Play",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01323000/RJ01322361_img_main.jpg",
+      "summary": "台灣女孩莉莉,以女性為假設對象,進行邊責罵邊羞恥漏尿、失禁的場景",
+      "accessType": "paid",
+      "sourceMakerId": "RG01034749",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html",
+      "adult": true,
+      "releasedOn": "2025-01-12",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "孩莉莉",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01322361.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01334857",
+      "title": "在自家裡手淫、口交、一直到射精的語音謾罵【SM/調教play】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01335000/RJ01334857_img_main.jpg",
+      "summary": "台灣人陳莉莉姐姐在自家中手淫、口交到射精的調教play語音",
+      "accessType": "paid",
+      "sourceMakerId": "RG01034749",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html",
+      "adult": true,
+      "releasedOn": "2025-02-04",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "孩莉莉",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01334857.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01360388",
+      "title": "孩莉莉D女裝尿失禁○眠房間",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01361000/RJ01360388_img_main.jpg",
+      "summary": "在這邊你將會被○眠術,變成一位穿著很可愛很可愛的女大生衣服,然後慢慢地會變得很想要很想要尿尿,最後會因為無法忍住而尿失禁。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01034749",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html",
+      "adult": true,
+      "releasedOn": "2025-03-22",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "孩莉莉",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01360388.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01389860",
+      "title": "五種失禁情境",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01390000/RJ01389860_img_main.jpg",
+      "summary": "如果喜歡尿失禁時的女性語音,強烈建議服用本次準備的五種不同情境的故事。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01034749",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html",
+      "adult": true,
+      "releasedOn": "2025-05-10",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "孩莉莉",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01389860.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01354703",
+      "title": "ASMR | 與厄倫蒂兒一起度過星光之夜 | 中文音聲",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01354703.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01355000/RJ01354703_img_main.jpg",
+      "summary": "春魚創意【極深空計畫】話題藝人厄倫蒂兒首次演出ASMR作品！?輕柔又有些淘氣可愛的首次挑戰內容絕對不容錯過！",
+      "accessType": "paid",
+      "sourceMakerId": "RG01041304",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01354703.html",
+      "adult": false,
+      "releasedOn": "2025-03-14",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "厄倫蒂兒",
+          "sourceRole": "聲演",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01354703.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01354703.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01354703.html",
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        },
+        {
+          "role": "recording_studio",
+          "creditedAs": "所有聲音製作",
+          "sourceRole": "錄音",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01354703.html",
+          "personaId": "57438e9e-2cab-4a84-8000-8d90ee15aaa0",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "販賣日"
+      ],
+      "sourceCredits": {
+        "聲導": [
+          "葉月"
+        ]
+      }
+    },
+    {
+      "id": "RJ01402910",
+      "title": "【中文音聲】房門沒鎖,在室友快走過來時插入 ─ 新人聲優初解禁 × 忍耐系喘息 × 壓著她從背後…",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01403000/RJ01402910_img_main.jpg",
+      "summary": "對撒嬌女友進行忍耐系PLAY,讓她太舒服了藏不住高潮呻吟,新人聲優「娜瑩」初解禁,從撒嬌到高潮,全程濕潤悶喘＂哈嗯…不可以…會叫出聲音啦！＂",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html",
+      "adult": true,
+      "releasedOn": "2025-06-05",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "苦盡肝來遇見你",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01402910.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01420191",
+      "title": "【中文音聲】媽媽請來幫我私人補習的竟然是黑絲巨乳女家教,用美腿榨精還讓我差點內射【絕頂升天】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01421000/RJ01420191_img_main.jpg",
+      "summary": "黑絲巨乳女家教用肉體幫你補習,筆尖玩奶又舔奶、美腿足交榨精、撕破絲襪無套猛幹,把老師幹到隔壁媽媽都要聽見怎麼辦",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html",
+      "adult": true,
+      "releasedOn": "2025-07-04",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "毒蘑菇精靈",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01420191.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01462074",
+      "title": "【中文音聲】溫柔S姐姐的禁忌性教育,浴巾 x 巨乳 x 忍不住內射【濕身誘惑】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01463000/RJ01462074_img_main.jpg",
+      "summary": "剛出浴、浴巾半掩的溫柔S姐姐,步步教你從偷看、自慰,到被她玩弄、最後禁忌內射的全套課程,甜美又霸道,霸道姐姐愛上我",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html",
+      "adult": true,
+      "releasedOn": "2025-10-02",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01462074.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01502219",
+      "title": "【中文音聲】白天的傻白甜女同事,夜晚竟是S女王,巴掌叱責你,騎乘你還控制你射精",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01503000/RJ01502219_img_main.jpg",
+      "summary": "常覺得傻白甜同事笨到無可救藥,沒想到上網約SM竟碰巧約到她,還是傳說中的S女王,抖M們集合啦",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html",
+      "adult": true,
+      "releasedOn": "2025-11-15",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01502219.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01530226",
+      "title": "【中文音聲】聖誕夜的醉酒巨乳人妻自己送上門來【背德內射】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01531000/RJ01530226_img_main.jpg",
+      "summary": "【曹賊必看】聖誕夜醉酒的巨乳人妻帶著蛋糕自己上門,在丈夫來電的刺激下無情衝撞,用滾燙精液將隔壁人妻徹底染成你的形狀,集合啦曹氏宗親會",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html",
+      "adult": true,
+      "releasedOn": "2025-12-24",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01530226.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01565213",
+      "title": "【中文音聲】性感荷官在線發騷！內射幸運小穴,讓你獎金翻倍【贏了就操】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01566000/RJ01565213_img_main.jpg",
+      "summary": "廣告裡的性感荷官穿過螢幕跳到你面前,只要跟她賭贏了就可以開幹,幸運的小穴越操越開運,聽完記得去買張刮刮樂,中大獎財源滾滾來",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html",
+      "adult": true,
+      "releasedOn": "2026-02-11",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01565213.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01603898",
+      "title": "【中文音聲】姐姐女僕的甜蜜成人獻禮:少爺,您已經這麼大了...【親密奉仕x追擊式連續高潮】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01604000/RJ01603898_img_main.jpg",
+      "summary": "姐姐女僕用絕頂甜蜜的全身奉仕為您慶祝滿十八歲,絕不放過她讓她連續高潮",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html",
+      "adult": true,
+      "releasedOn": "2026-04-09",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01603898.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01651907",
+      "title": "【中文音聲】白毛狐仙的溫泉報恩,你是否在雪山X過一隻狐狸?【交尾發情】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01652000/RJ01651907_img_main.jpg",
+      "summary": "在雪山被你救過的狐狸以身相許來報恩,帶你去神秘的壯陽靈泉快活爽一發。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html",
+      "adult": true,
+      "releasedOn": "2026-06-16",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01651907.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01696124",
+      "title": "【中文音聲】偶像女友約我看七夕午夜場,在電影院掀起她的短裙內射她【情人節特別音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01697000/RJ01696124_img_main.jpg",
+      "summary": "偶像女友的秘密約會,在午夜的電影院與身旁的她玩起了刺激的色色遊戲,誰先叫出來就輸了！",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html",
+      "adult": true,
+      "releasedOn": "2026-08-19",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我（繁体）",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01696124.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01748870",
+      "title": "【中文音聲】又給糖又搗蛋,魅魔的榨精糖果罐【盲盒式榨精】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01749000/RJ01748870_img_main.jpg",
+      "summary": "魅魔出現在你的夢中,還帶著各種奇淫妙效的糖果與你一同品嚐,今宵會如何PLAY,將取決你抽糖果的手氣,魅魔與你的盲盒式榨精,絕贊開抽中！",
+      "accessType": "paid",
+      "sourceMakerId": "RG01048599",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html",
+      "adult": true,
+      "releasedOn": "2026-10-30",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "娜瑩",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
+        },
+        {
+          "role": "scriptwriter",
+          "creditedAs": "菩薩保祐我(繁体)",
+          "sourceRole": "台本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01748870.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01436444",
+      "title": "无知少女的性教育",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01436444.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01437000/RJ01436444_img_main.jpg",
+      "summary": "女儿是个远近闻名的小美女,美中不足的地方是个重度父控。 没有什么性知识的她总是对爸爸展开过度的身体接触,随着女儿的成长,爸爸的理性每天都在经受着考验。 某一天,在与女儿洗澡的过程中,本来只想逗一下女儿的爸爸交给了女儿一堆性知识,女儿则无意识的用软嫩的身体诱惑着爸爸,直到最后爸爸理性决堤。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01052118",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01436444.html",
+      "adult": true,
+      "releasedOn": "2025-07-29",
+      "participants": [],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01480849",
+      "title": "永遠的繁殖契約~妻子與女兒的願望是同時妊娠~【中文音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01481000/RJ01480849_img_main.jpg",
+      "summary": "今天是愛女小楓的生日。 在這個特別的日子裡,我最愛的兩位女性——溫柔的太太與可愛的女兒,為我準備了一份超乎想像的「禮物」。 她們有一個共同的、大膽的願望:希望能在同一天,一起懷上我的孩子。 「爸爸,讓我和媽媽一起為你生孩子吧?」 充滿愛意的誘惑之夜就此展開…這是一個實現家族願望的甜蜜(又背德)的物語。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01052118",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html",
+      "adult": true,
+      "releasedOn": "2025-10-08",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "雲田",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "Kirara、草草龍",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "風蓮",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01480849.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01503808",
+      "title": "永遠的繁殖契約～雙重孕肚,交織的母乳",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01504000/RJ01503808_img_main.jpg",
+      "summary": "我最愛的妻子和女兒,為我同時懷孕了,日益脹大的孕肚、滿溢的母乳——在這幸福的頂點,她們卻說出了更進一步的願望:「想永遠被爸爸的精液灌滿、持續懷孕…」。將妻女的子宮作為「專屬便所」,交換母乳,直至兩人並排分娩。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01052118",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html",
+      "adult": true,
+      "releasedOn": "2025-11-17",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "雲田",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "Kirara、草草龍",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "風蓮",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01503808.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "其他",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01606308",
+      "title": "パパ。今夜、もっとパパを感じたい",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01606308.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01607000/RJ01606308_img_main.jpg",
+      "summary": "毎晩、一人で寝るのが怖い娘が、パパの布団にやってくるところから始まります。  最初はただの「よしよし」だったはずが、娘の「ちゅーして?」という無邪気なおねだりから、少しずつ距離が縮まっていく……。  優しくて、少し戸惑いながらも娘を受け入れるパパ。 娘はそんなパパの愛情を全身で感じたいと、少しずつ大胆になっていく――。  甘くて、背徳的で、それでも愛おしさが勝ってしまうような、父娘の「特別な関係」を描いた作品です。",
+      "accessType": "paid",
+      "sourceMakerId": "RG01052118",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01606308.html",
+      "adult": true,
+      "releasedOn": "2026-07-06",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "早緒きむり",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01606308.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "早緒きむり",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01606308.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "猫崎葵",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01606308.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01701485",
+      "title": "父の日のプレゼントはママの制服を着た娘――隣で寝てるママにバレずに中出しされた夜",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01702000/RJ01701485_img_main.jpg",
+      "summary": "ママが隣で熟睡するベッドの上で、娘がこっそりとパパに身体を寄せる。   ママのすぐ横で、娘はパパのおちんちんをしゃぶり、ママの胸を揉みながら、パパに中出しされる。    ――翌朝。   娘はママの高校時代の制服を着て、パパのベッドにやってくる。   「パパ、見て……これ、父の日のプレゼント。ママの制服、着てみたんだ……」   父の日の朝、娘はママの制服を着て、再びパパに身体を捧げる――",
+      "accessType": "paid",
+      "sourceMakerId": "RG01052118",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html",
+      "adult": true,
+      "releasedOn": "2026-10-03",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "雲田",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "早緒きむり",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "mirai",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01701485.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ325212",
+      "title": "溫柔姊姊對弟弟的惡作劇",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ326000/RJ325212_img_main.jpg",
+      "summary": "正直青春期的弟弟被姊姊發現用自己當作配菜,起壞心的姊姊對弟弟惡作劇的故事",
+      "accessType": "paid",
+      "sourceMakerId": "RG39804",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
+      "adult": true,
+      "releasedOn": "2021-05-09",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "柔依",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "冬瓜冰茶",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
+          "personaId": "b4534f5c-ac87-413a-a79a-be91dcf2da98",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ365425",
+      "title": "學姐的純愛NTR",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ366000/RJ365425_img_main.jpg",
+      "summary": "喜愛的學姐卻一直給自己戴綠帽的純愛故事",
+      "accessType": "paid",
+      "sourceMakerId": "RG39804",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+      "adult": true,
+      "releasedOn": "2021-12-31",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "鍋子",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "冬瓜冰茶",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
+          "personaId": "b4534f5c-ac87-413a-a79a-be91dcf2da98",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ392014",
+      "title": "病懨懨女友",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ393000/RJ392014_img_main.jpg",
+      "summary": "因為打疫苗身體不舒服的女朋友",
+      "accessType": "paid",
+      "sourceMakerId": "RG39804",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html",
+      "adult": true,
+      "releasedOn": "2022-05-25",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "鍋子",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "麵音白湯",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ281108",
+      "title": "完了，發現轉學生有多種人格的我即將被滅口（台灣中文版）",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ282000/RJ281108_img_main.jpg",
+      "summary": "優しいメイン人格はすべてを捧げて俺の欲望を満たしたいが、悪なサブ人格は俺を搾り殺したい?!",
+      "accessType": "paid",
+      "sourceMakerId": "RG50114",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html",
+      "adult": true,
+      "releasedOn": "2020-03-14",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "艾梅",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "床貓",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "唯莎",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ281108.html",
+          "personaId": "14ec8167-c6aa-4952-bbe7-6036a3882f02",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ293957",
+      "title": "姊姊的愛對我而言無法承受 お姉ちゃん愛が重すぎて、僕が耐えられなかった件",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ294000/RJ293957_img_main.jpg",
+      "summary": "從小到大溫柔婉約、體貼動人的姊姊,居然在得知我有喜歡的女生之後性情大變,我不知道是發生了什麼事情,也沒有想到姊姊會這樣子對我,只知道我被迷昏監禁了之後,是永無止境的榨精......",
+      "accessType": "paid",
+      "sourceMakerId": "RG50114",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html",
+      "adult": true,
+      "releasedOn": "2020-07-15",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "艾梅",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "床貓",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "Q.azieru",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ293957.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ297588",
+      "title": "未〇年女高中生的性行為訪談(台灣中文版)",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ298000/RJ297588_img_main.jpg",
+      "summary": "身為一位研究生的畢業論文居然是這麼尷尬的題目,只好透過介紹,邀請了一名現役的女高中生來接受訪談",
+      "accessType": "paid",
+      "sourceMakerId": "RG50114",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html",
+      "adult": true,
+      "releasedOn": "2020-08-22",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "艾梅",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "床貓",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ297588.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01027593",
+      "title": "【真心巧克力】被隱藏的心意,兄控妹妹的情人節告白!處女喔齁聲!給不聽話臭小鬼瘋狂高潮的教訓",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01028000/RJ01027593_img_main.jpg",
+      "summary": "在特別的日子獻給特別的人,濃情苦澀的大人戀愛物語。",
+      "accessType": "paid",
+      "sourceMakerId": "RG64435",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html",
+      "adult": true,
+      "releasedOn": "2023-02-24",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "格琳",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "夢寐愛姆",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "玫臼惹",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01027593.html",
+          "personaId": "b44bb574-85bc-4813-b8fe-4e8ace72d153",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01070231",
+      "title": "【乳頭調教】無法反抗的榨精取材,高冷鄰居姊姊的 SM 射精管理",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01071000/RJ01070231_img_main.jpg",
+      "summary": "暗戀的鄰居姐姐,竟然是個官能小說家?為了取材,你與她建立了肉體關係。然而,這次的主題似乎比較特別而刺激。",
+      "accessType": "paid",
+      "sourceMakerId": "RG64435",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html",
+      "adult": true,
+      "releasedOn": "2024-02-14",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "夢寐愛姆",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "獄犬",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01070231.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01190091",
+      "title": "【監禁日記】惡魔小姆狗的墮落NTR紀錄",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01191000/RJ01190091_img_main.jpg",
+      "summary": "純愛同居的IF線,背德墮落的性愛饗宴。",
+      "accessType": "paid",
+      "sourceMakerId": "RG64435",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html",
+      "adult": true,
+      "releasedOn": "2024-05-20",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "格琳",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "夢寐愛姆",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "Bigfoot",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01190091.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01329133",
+      "title": "【女神前輩】噓!太大聲會被發現,偷偷觸碰她的秘密頂點",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01330000/RJ01329133_img_main.jpg",
+      "summary": "害怕被看見的亢奮感,總是讓我忍不住,一次又一次的……",
+      "accessType": "paid",
+      "sourceMakerId": "RG64435",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html",
+      "adult": true,
+      "releasedOn": "2025-01-27",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "桐真",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "夢寐愛姆",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "萊安",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01329133.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01587217",
+      "title": "【恩愛性處理】不斷榨精!直到契約結束～偶像的貼身服務",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01588000/RJ01587217_img_main.jpg",
+      "summary": "這些年來跟你一起生活的點點滴滴,讓愛姆想成為一名能為更多人帶來幸福的偶像,面對即將到來的分離,你們決定在彼此身上全力留下相愛過的痕跡",
+      "accessType": "paid",
+      "sourceMakerId": "RG64435",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html",
+      "adult": true,
+      "releasedOn": "2026-05-14",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "格琳",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "夢寐愛姆",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "萊安",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01587217.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ398048",
+      "title": "【惡魔女僕】與愛姆訂下契約的代價",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ399000/RJ398048_img_main.jpg",
+      "summary": "與訂下契約的惡魔女僕共同生活,接受療癒與被吸取精氣的日常。",
+      "accessType": "paid",
+      "sourceMakerId": "RG64435",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html",
+      "adult": true,
+      "releasedOn": "2022-06-21",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "凜峰",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "夢寐愛姆",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "雨宮Luky",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ398048.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01058578",
+      "title": "【療癒系音聲】迷糊OL後輩的傻氣治癒",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01058578.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01059000/RJ01058578_img_main.jpg",
+      "summary": "某個平行時空的悠白,她變成了個迷糊需要你幫忙的傻氣後輩。為了報答你對她的照顧,她試圖用掏耳與按摩想讓你在忙碌的工作中也別忘了好好放鬆一下。",
+      "accessType": "paid",
+      "sourceMakerId": "RG65906",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01058578.html",
+      "adult": false,
+      "releasedOn": "2023-05-20",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01058578.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "悠白",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01058578.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "揚欸",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01058578.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01092843",
+      "title": "【ASMR音聲】與妹妹的同居日常【中文音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01092843.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01093000/RJ01092843_img_main.jpg",
+      "summary": "某天你醒來之後發現自己變成了悠白的哥哥,與悠白度過了一個有點日常但又有些異常的日子。",
+      "accessType": "paid",
+      "sourceMakerId": "RG65906",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01092843.html",
+      "adult": false,
+      "releasedOn": "2023-09-06",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "海聶",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01092843.html",
+          "personaId": "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+          "identityEvidence": "https://x.com/nightingalto"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "悠白",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01092843.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "飛天咖哩",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01092843.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ395373",
+      "title": "【療癒系ASMR】讓悠白在雲之國療癒你【中文音聲】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ395373.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ396000/RJ395373_img_main.jpg",
+      "summary": "來自雲之國的Vtuber悠白的第一部ASMR音聲作品,就讓悠白用溫柔的細語來療癒你的身心。",
+      "accessType": "paid",
+      "sourceMakerId": "RG65906",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ395373.html",
+      "adult": false,
+      "releasedOn": "2022-07-02",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "鴒音",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ395373.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "悠白",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ395373.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "裏紅",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ395373.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ430683",
+      "title": "【療癒系音聲】與悠白的午後甜蜜約會",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ430683.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ431000/RJ430683_img_main.jpg",
+      "summary": "跟悠白來場甜蜜的午後約會吧!在忙碌之餘也別忘記要給自己喘口氣呦～",
+      "accessType": "paid",
+      "sourceMakerId": "RG65906",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ430683.html",
+      "adult": false,
+      "releasedOn": "2022-11-11",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "鴒音",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ430683.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "悠白",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ430683.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "冰鮪",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ430683.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ436592",
+      "title": "(ASMR音聲)秋夜的睡衣派對",
+      "url": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ437000/RJ436592_img_main.jpg",
+      "summary": "在楓葉泛紅的秋夜,不小心闖進淑女的房間的你,會遭受到什麼樣的對待呢? 活潑開朗的姊姊 塔芭絲可 溫柔矜持的姊姊 希靈 優雅賢淑的姊姊 黑銀夜烏 在三位大姊姊的包圍下,你...還撐得住嗎?",
+      "accessType": "paid",
+      "sourceMakerId": "RG70686",
+      "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html",
+      "adult": false,
+      "releasedOn": "2022-11-28",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "kao",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "塔巴絲可、希靈、黑銀夜烏",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "穆鈴",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/home/work/=/product_id/RJ436592.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01047019",
+      "title": "讓同居人塔芭絲可溺愛你一番",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01047019.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01048000/RJ01047019_img_main.jpg",
+      "summary": "明明與TAKO同居了,卻因為工作時間錯開不能好好貼貼。某天TAKO見你回家疲憊的的模樣,終於決定把工作排開,空出時間好好寵你一番。",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01047019.html",
+      "adult": true,
+      "releasedOn": "2023-06-10",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "凜峰",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01047019.html",
+          "personaId": "c3fd5edd-98b3-4489-8896-214942281574",
+          "identityEvidence": "https://x.com/rinne_rinkadou"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "tabasuko",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01047019.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "Bigfoot",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01047019.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01047019.html",
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01073703",
+      "title": "汪醬日記-關於我的狗狗居然變成人",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01073703.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01074000/RJ01073703_img_main.jpg",
+      "summary": "一直陪伴在身邊的狗狗 某天回家 居然變成人形 這該如何是好",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01073703.html",
+      "adult": true,
+      "releasedOn": "2023-07-10",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "tabasuko",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01073703.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "tabasuko",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01073703.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "シャケシャケ",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01073703.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01199877",
+      "title": "淫蕩的女人們-學妹要我奪走他的第一次",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01199877.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01200000/RJ01199877_img_main.jpg",
+      "summary": "最後一節體育課的你,與同為值日生的學妹一起清點器材,結束後應要求拉下了百葉窗,伴隨微暗的暮色下抱住你並向你告白,在學妹的的巨乳與輕撫的誘惑下,你的回答將會是.....",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01199877.html",
+      "adult": true,
+      "releasedOn": "2024-06-07",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "毛捲捲",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01199877.html",
+          "personaId": "e29da18d-8f1d-49d3-b614-c503326bfb2b",
+          "identityEvidence": "https://x.com/thesmallmimi123"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "tabasuko",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01199877.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "深海TORO",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01199877.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01199877.html",
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01231682",
+      "title": "淫蕩的女人們-繼母的餐桌禁斷關係",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01231682.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01232000/RJ01231682_img_main.jpg",
+      "summary": "早晨父親出門後,剛睡醒的你等待著熱呼呼的早餐,繼母碩大的胸部配上貼身的圍裙,豐滿的股間不時的輕挑著自己的性慾,隨著早餐的上桌,繼母平常不過的輕吻讓你終於按耐不住.....。",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01231682.html",
+      "adult": true,
+      "releasedOn": "2024-07-27",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "毛捲捲",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01231682.html",
+          "personaId": "e29da18d-8f1d-49d3-b614-c503326bfb2b",
+          "identityEvidence": "https://x.com/thesmallmimi123"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "tabasuko",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01231682.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "深海TORO",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01231682.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01231682.html",
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "系列名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01244259",
+      "title": "【微醺之夜Voice】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01245000/RJ01244259_img_main.jpg",
+      "summary": "不醉不歸 為夜晚乾杯 還是說…其實你在期待發生什麼呢?",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html",
+      "adult": false,
+      "releasedOn": "2024-08-19",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "由良",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "埃爾庫涅",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "夏川糕",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01244259.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01392675",
+      "title": "野外露出:我推居然有這種癖好",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01393000/RJ01392675_img_main.jpg",
+      "summary": "加班後的你難得在附近的公園散心,夜深人靜,路燈下的夜幕悄來一位裹著大衣的女人,流瀉而出的淫靡不禁也讓你跟著興奮了起來,在赤裸的邀約下開始了一場野外激情交尾....",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html",
+      "adult": true,
+      "releasedOn": "2025-05-20",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "毛捲捲",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html",
+          "personaId": "e29da18d-8f1d-49d3-b614-c503326bfb2b",
+          "identityEvidence": "https://x.com/thesmallmimi123"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "tabasuko",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "躺島",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工",
+          "sourceRole": "後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01392675.html",
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    },
+    {
+      "id": "RJ01463252",
+      "title": "『百合雙飛』水乳交融的夜晚~與我最愛的姊姊們一起的溫泉之旅(拾參x塔芭絲可)",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01464000/RJ01463252_img_main.jpg",
+      "summary": "「御姊百合×侍奉雙飛」 你自從大學畢業之後,一直想和關係不錯的姊姊們相約出遊。 然而彼此工作過於繁忙,始終敲定不了時間。 有一天,你安排了數日的休假,幫忙她們提前處理好許多工作。 即便疲累,但終於讓兩位姊姊空出時間,能夠與你來一場水乳交融的溫泉之旅♡",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html",
+      "adult": true,
+      "releasedOn": "2025-09-10",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "毛捲捲",
+          "sourceRole": "劇本",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html",
+          "personaId": "e29da18d-8f1d-49d3-b614-c503326bfb2b",
+          "identityEvidence": "https://x.com/thesmallmimi123"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "tabasuko、拾參",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "躺島",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "韾笙重工(鍋子)",
+          "sourceRole": "音效後製",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html",
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "https://x.com/oseizyuukou"
+        },
+        {
+          "role": "recording_studio",
+          "creditedAs": "感聲錄音室/SenSouns Records",
+          "sourceRole": "錄音室",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01463252.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "分類",
+        "劇本",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ],
+      "sourceCredits": {
+        "聲音導演": [
+          "伊橙"
+        ]
+      }
+    },
+    {
+      "id": "RJ01472497",
+      "title": "【感官饗宴】",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01473000/RJ01472497_img_main.jpg",
+      "summary": "帶你深沉體會庫涅大人的聲線魅力—— 致命誘惑的魅魔、天真爛漫的蘿莉兩種反差一次擁有！",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html",
+      "adult": false,
+      "releasedOn": "2025-09-21",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "由良",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "埃爾庫涅",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "夏川糕",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01472497.html"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日"
+      ]
+    },
+    {
+      "id": "RJ01556107",
+      "title": "醫生遊戲?臉紅心跳的角色扮演 ~異地戀女友波奇的親密貼身調教~",
+      "url": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html",
+      "coverUrl": "https://img.dlsite.jp/modpub/images2/work/doujin/RJ01557000/RJ01556107_img_main.jpg",
+      "summary": "帶著興奮期待又心跳加速的心情,你帶著波奇回到家裡──波奇卡德霍首部成人向音聲問世！",
+      "accessType": "paid",
+      "sourceMakerId": "RG74454",
+      "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html",
+      "adult": true,
+      "releasedOn": "2026-01-30",
+      "participants": [
+        {
+          "role": "scriptwriter",
+          "creditedAs": "由良",
+          "sourceRole": "作者",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "波奇卡德霍",
+          "sourceRole": "聲優",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "布里",
+          "sourceRole": "插畫",
+          "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01556107.html",
+          "personaId": "c6dd79ba-dba5-4cb9-bf2f-b2af64ea1a01",
+          "identityEvidence": "Existing reviewed identity alias in production"
+        }
+      ],
+      "metadataLabels": [
+        "作品形式",
+        "作者",
+        "分類",
+        "對應語言",
+        "年齡指定",
+        "插畫",
+        "檔案容量",
+        "檔案形式",
+        "社團名",
+        "聲優",
+        "販賣日",
+        "音樂"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "makerId": "RG01045202",
+      "productId": "RJ01376934",
+      "reason": "DLsite lists a book / script guide, not an audio work."
+    }
+  ]
+}
