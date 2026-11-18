@@ -2,15 +2,11 @@
 
 import { useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { PublicProfileWorkCard } from "./PublicProfileLayout";
+import { PublicProfileWorkCard, type PublicProfileWorkCardProps } from "./PublicProfileLayout";
 
-export interface PublicWorkLaneItem {
+export interface PublicWorkLaneItem extends Pick<PublicProfileWorkCardProps,
+  "title" | "url" | "coverUrl" | "coverCrop" | "coverDesign" | "workType" | "sourceLabel"> {
   id: string;
-  title: string;
-  url: string;
-  coverUrl?: string | null;
-  workType?: "audio" | "game" | "video" | "other" | "script";
-  sourceLabel?: string;
 }
 
 export function PublicWorkLane({ works, label = "參與作品" }: { works: PublicWorkLaneItem[]; label?: string }) {
@@ -25,8 +21,8 @@ export function PublicWorkLane({ works, label = "參與作品" }: { works: Publi
       </div>}
     </div>
     <div ref={laneRef} className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1" aria-label="橫向瀏覽參與作品">
-      {works.map((work) => <div key={work.id} className="w-20 shrink-0 snap-start sm:w-24">
-        <PublicProfileWorkCard title={work.title} url={work.url} coverUrl={work.coverUrl || undefined} workType={work.workType} sourceLabel={work.sourceLabel} compact />
+      {works.map(({ id, ...work }) => <div key={id} className="w-20 shrink-0 snap-start sm:w-24">
+        <PublicProfileWorkCard {...work} compact />
       </div>)}
     </div>
   </section>;

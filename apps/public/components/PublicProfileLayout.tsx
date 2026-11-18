@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { ArrowUpRight, Clapperboard, FileText, Gamepad2, Headphones } from "lucide-react";
 import { PublicAvatarImage } from "./PublicAvatarImage";
 import type { MediaCropLike } from "@write/media-crop";
+import { CoverPlaceholder, CoverRenderer, type CoverDesign } from "@write/public-ui";
 import { PublicImage } from "./PublicImage";
 
 /** The same profile frame is used by writers, voice actors, and production resources. */
@@ -35,18 +36,36 @@ export function PublicProfileSection({ title, count, children }: { title: string
   </section>;
 }
 
-export function PublicProfileWorkCard({ title, url, coverUrl, subtitle, workType, compact = false, sourceLabel, linkLabel }: {
+export interface PublicProfileWorkCardProps {
   title: string; url: string; coverUrl?: string | null; subtitle?: string;
+  coverCrop?: MediaCropLike | null;
+  coverDesign?: CoverDesign | null;
   workType?: "audio" | "game" | "video" | "other" | "script"; compact?: boolean; sourceLabel?: string; linkLabel?: string;
-}) {
+}
+
+export function PublicProfileWorkCard({
+  title, url, coverUrl, coverCrop, coverDesign, subtitle, workType, compact = false, sourceLabel, linkLabel,
+}: PublicProfileWorkCardProps) {
   const Container = url ? "a" : "article";
-  const Icon = workType === "game" ? Gamepad2 : workType === "video" ? Clapperboard : workType === "other" || workType === "script" ? FileText : Headphones;
+  const Icon = workType === "game" ? Gamepad2 : workType === "video" ? Clapperboard : workType === "other" ? FileText : Headphones;
   return <Container {...(url ? { href: url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${linkLabel || "前往作品"}：${title}` } : {})} className="group block min-w-0">
     <div className="relative aspect-[4/3] overflow-hidden rounded-sm border border-border bg-muted group-hover:opacity-90">
-      {coverUrl ? <PublicImage src={coverUrl} alt={`${title}封面`} preset="script-cover" sizes={compact ? "96px" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"} /> :
-        <div className={`absolute inset-0 flex flex-col ${workType === "script" ? "items-start justify-between bg-card p-2 text-foreground" : "items-center justify-center gap-2 px-2 text-muted-foreground"}`} aria-label={`${title}尚未提供封面`}>
-          {workType === "script" ? <><span className="line-clamp-1 border-b border-border pb-1 text-[10px] font-bold tracking-widest text-muted-foreground">台本{sourceLabel ? ` · ${sourceLabel}` : ""}</span><span className="line-clamp-3 w-full break-words text-xs font-semibold leading-snug">{title}</span><span className="h-px w-6 bg-primary" aria-hidden /></> : <><Icon className={compact ? "h-6 w-6" : "h-9 w-9"} aria-hidden />{sourceLabel && <span className="text-center text-xs">{sourceLabel}</span>}</>}
-        </div>}
+      {coverUrl ? (
+        <PublicImage src={coverUrl} crop={coverCrop} alt={`${title}封面`} preset="script-cover" sizes={compact ? "96px" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"} />
+      ) : coverDesign ? (
+        <div className="absolute inset-0" aria-hidden="true">
+          <CoverRenderer design={coverDesign} title={title} compact responsive responsiveFit="contain" />
+        </div>
+      ) : workType === "script" ? (
+        <div className="absolute inset-0" aria-hidden="true">
+          <CoverPlaceholder title={title} compact />
+        </div>
+      ) : (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-2 text-muted-foreground" aria-label={`${title}尚未提供封面`}>
+          <Icon className={compact ? "h-6 w-6" : "h-9 w-9"} aria-hidden />
+          {sourceLabel && <span className="text-center text-xs">{sourceLabel}</span>}
+        </div>
+      )}
     </div>
     <div className={compact ? "pt-1" : "pt-2"}>
       <h3 className={`line-clamp-2 group-hover:text-link group-hover:underline ${compact ? "text-xs leading-snug" : "text-sm font-bold"}`}>{title}</h3>
