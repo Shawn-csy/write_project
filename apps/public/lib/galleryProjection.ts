@@ -104,6 +104,7 @@ export function toAuthorLike(persona: PublicPersona): AuthorLike {
     displayName: persona.displayName,
     avatarUrl: persona.avatar,
     tags: persona.tags,
+    searchText: [persona.bio, ...(persona.tags ?? []), ...(persona.workParticipations ?? []).map((work) => work.title)].filter(Boolean).join(" "),
   };
 }
 

@@ -189,7 +189,17 @@ export function useGalleryController({
     }
     return Array.from(map.values());
   }, [orgs, publishedExternalPublicScripts]);
-  const galleryAuthors = useMemo(() => scriptwriterAuthors.map(toAuthorLike), [scriptwriterAuthors]);
+  const galleryAuthors = useMemo(() => scriptwriterAuthors.map((author) => {
+    const authorLike = toAuthorLike(author);
+    return {
+      ...authorLike,
+      searchText: [
+        authorLike.searchText,
+        ...rawScripts.filter((script) => script.persona?.id === author.id).map((script) => script.title),
+        ...publishedExternalPublicScripts.filter((script) => script.authorPersonaId === author.id).map((script) => script.title),
+      ].filter(Boolean).join(" "),
+    };
+  }), [scriptwriterAuthors, rawScripts, publishedExternalPublicScripts]);
   const galleryOrgs = useMemo(() => allOrgs.map(toOrgLike), [allOrgs]);
   const filteredExternalPublicScripts = useMemo(
     () => filterExternalPublicScripts(

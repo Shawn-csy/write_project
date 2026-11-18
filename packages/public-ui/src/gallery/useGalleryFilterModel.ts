@@ -131,7 +131,7 @@ export function useGalleryFilterModel({
   const filteredAuthors = useMemo(
     () =>
       authors.filter((a) => {
-        const matchesSearch = String(a.displayName || "")
+        const matchesSearch = `${a.displayName || ""} ${a.searchText || ""}`
           .toLowerCase()
           .includes(searchNeedle);
         const matchesTag =

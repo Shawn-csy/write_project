@@ -11,6 +11,9 @@ import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicAvatarImage } from "@/components/PublicAvatarImage";
 import { publicAvatarColor } from "@/components/publicAvatarColor";
+import { GallerySearchField } from "./GallerySearchField";
+import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
+import type { GalleryViewMode } from "@write/public-ui";
 
 const PEOPLE_TAG_VISIBLE_COUNT = 8;
 const CARD_TAG_VISIBLE_COUNT = 4;
@@ -140,8 +143,16 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 
 // ── Author card ───────────────────────────────────────────────────────────────
 
-function AuthorCard({ author, works, onTagClick }: { author: PublicPersona; works: ReturnType<typeof authorDirectoryWorks>; onTagClick: (tag: string) => void }) {
+function AuthorCard({ author, works, onTagClick, dense = false }: { author: PublicPersona; works: ReturnType<typeof authorDirectoryWorks>; onTagClick: (tag: string) => void; dense?: boolean }) {
   const href = author.externalHref || `/author/${author.id}`;
+  if (dense) return <article className="flex min-w-0 items-center gap-3 border-b border-border py-2">
+    <a href={href} tabIndex={-1} className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md border border-border bg-muted"><PublicAvatarImage src={author.avatar} name={author.displayName} sizes="36px" fallbackClassName={publicAvatarColor(author.displayName)} /></a>
+    <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-3">
+      <a href={href} className="block shrink-0 truncate font-semibold [font-size:var(--public-font-body)] hover:text-link hover:underline">{author.displayName}</a>
+      <p className="truncate [font-size:var(--public-font-caption)] text-muted-foreground">{works.slice(0, 2).map((work) => work.title).join("、") || author.bio || "尚無作品摘要"}</p>
+    </div>
+    <span className="shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)] text-muted-foreground">{works.length} 部</span>
+  </article>;
   const links = (Array.isArray(author.links) ? author.links : []).flatMap((link) =>
     link.url ? [{ label: link.label || "連結", url: link.url, isPublic: (link as { isPublic?: boolean }).isPublic === true, public: (link as { public?: boolean }).public === true }] : []);
   return <PublicIdentityDirectoryRow name={author.displayName} href={href} avatar={author.avatar} bio={author.bio}
@@ -230,6 +241,8 @@ interface GalleryAuthorGridProps {
   selectedTags: string[];
   onToggleTag: (tag: string) => void;
   onResetFilters: () => void;
+  searchTerm?: string;
+  onSearchChange?: (value: string) => void;
 }
 
 export function GalleryAuthorGrid({
@@ -243,7 +256,10 @@ export function GalleryAuthorGrid({
   selectedTags,
   onToggleTag,
   onResetFilters,
+  searchTerm = "",
+  onSearchChange,
 }: GalleryAuthorGridProps) {
+  const [viewMode, setViewMode] = useState<GalleryViewMode>("standard");
   const authorById = useMemo(() => new Map(authors.map((author) => [author.id, author])), [authors]);
   if (peopleStatus === "loading" || peopleStatus === "idle") return <PeopleLoading />;
   if (peopleStatus === "error") return <PeopleError onRetry={onRetry} />;
@@ -251,6 +267,10 @@ export function GalleryAuthorGrid({
   return (
     <div>
       <PublicBrowseHeader title="作者" count={`${filteredAuthors.length} 位`} />
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <GallerySearchField value={searchTerm} onChange={onSearchChange ?? (() => {})} className="min-w-48 flex-1" placeholder="搜尋作者、作品或標籤" />
+        <GalleryViewModeToggle value={viewMode} onChange={setViewMode} />
+      </div>
       <TagFilterChips
         allTags={allTags}
         selectedTags={selectedTags}
@@ -261,7 +281,7 @@ export function GalleryAuthorGrid({
         {filteredAuthors.map((authorLike) => {
           const author = authorLike.id ? authorById.get(authorLike.id) : undefined;
           if (!author) return null;
-          return <AuthorCard key={author.id} author={author} works={authorDirectoryWorks(author, scripts, externalScripts)} onTagClick={onToggleTag} />;
+          return <AuthorCard key={author.id} author={author} works={authorDirectoryWorks(author, scripts, externalScripts)} onTagClick={onToggleTag} dense={viewMode === "compact"} />;
         })}
         {filteredAuthors.length === 0 && (
           <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">
