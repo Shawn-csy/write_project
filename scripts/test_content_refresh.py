@@ -6,6 +6,8 @@ import json
 import io
 from pathlib import Path
 import tempfile
+import threading
+import time
 from unittest.mock import Mock, patch
 import unittest
 from urllib.error import HTTPError
@@ -36,6 +38,34 @@ def snapshot():
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_capture_bounds_parallel_reads_and_keeps_identity_order(self):
+        data = snapshot()
+        personas = [dict(fixture.PERSONA, id=f'person-{index}') for index in range(20)]
+        data['/api/public-bundle']['personas'] = personas
+        data['/api/public-personas'] = personas
+        for person in personas:
+            ident = person['id']
+            data['/api/public-personas/' + ident] = person
+            data['/api/public-scripts?personaId=' + ident] = []
+        active = peak = 0
+        guard = threading.Lock()
+        def reader(path):
+            nonlocal active, peak
+            with guard:
+                active += 1
+                peak = max(peak, active)
+            try:
+                time.sleep(0.01)
+                return data[path]
+            finally:
+                with guard:
+                    active -= 1
+        result = snap.capture(reader)
+        self.assertGreater(peak, 1)
+        self.assertLessEqual(peak, snap.CAPTURE_WORKERS)
+        self.assertEqual([key for key in result if key.startswith('/api/public-personas/')],
+                         ['/api/public-personas/' + person['id'] for person in personas])
+
     def test_tag_relation_order_is_not_content_skew(self):
         tags = [{'id': 'a', 'name': 'A'}, {'id': 'b', 'name': 'B'}]
         snap.require_common_fields({'tags': tags}, {'tags': list(reversed(tags))})

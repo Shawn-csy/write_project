@@ -1,13 +1,16 @@
 """Bounded public build capture and fail-closed frozen HTTP adapter (stdlib only)."""
 import copy
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import html
 import json
 import threading
+import time
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from html.parser import HTMLParser
 from pathlib import Path
+import sys
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 
@@ -15,6 +18,7 @@ API = 'https://api-open-scripts.shawnup.com'
 PUBLIC = 'https://open-scripts.shawnup.com'
 MAX_BYTES = 32 * 1024 * 1024
 MAX_REQUESTS = 20000
+CAPTURE_WORKERS = 8
 USER_AGENT = 'OpenScriptsPublisher/1.0'
 LISTS = ('scripts', 'personas', 'organizations', 'topTags', 'externalPublicScripts', 'demoSubmissions', 'audioWorks', 'activityPages', 'productionResources')
 
@@ -49,6 +53,7 @@ def entities(value):
 
 
 def capture(reader=None):
+    started = time.monotonic()
     reader = reader or (lambda path: read_json(API + path))
     snapshot = {}
     def get(path, kind):
@@ -59,6 +64,20 @@ def capture(reader=None):
             raise ContentError('Unexpected public response shape: ' + path)
         snapshot[path] = copy.deepcopy(value)
         return value
+    def get_many(requests):
+        if len(snapshot) + len(requests) > MAX_REQUESTS:
+            raise ContentError('Public capture request limit exceeded')
+        if not requests:
+            return []
+        # Keep the published snapshot deterministic while bounding the amount
+        # of simultaneous read-only requests sent to the production API.
+        with ThreadPoolExecutor(max_workers=CAPTURE_WORKERS) as pool:
+            values = list(pool.map(lambda request: reader(request[0]), requests))
+        for (path, kind), value in zip(requests, values):
+            if not isinstance(value, kind):
+                raise ContentError('Unexpected public response shape: ' + path)
+            snapshot[path] = copy.deepcopy(value)
+        return values
     bundle = get('/api/public-bundle', dict)
     for key in LISTS:
         if not isinstance(bundle.get(key), list):
@@ -75,24 +94,32 @@ def capture(reader=None):
     bundle_by_id = {item['id']: item for item in bundle['scripts']}
     for record in scripts:
         require_common_fields(bundle_by_id[record['id']], record)
-    for ident in entities(scripts):
-        item = get('/api/public-scripts/' + quote(ident, safe=''), dict)
+    script_ids = entities(scripts)
+    script_details = get_many([('/api/public-scripts/' + quote(ident, safe=''), dict)
+                               for ident in script_ids])
+    scripts_by_id = {record['id']: record for record in scripts}
+    for ident, item in zip(script_ids, script_details):
         if item.get('id') != ident or not isinstance(item.get('content'), str) or not isinstance(item.get('title'), str) or not any(item.get(k) is not None for k in ('lastModified', 'updatedAt')):
             raise ContentError('Incomplete script detail')
         require_common_fields(bundle_by_id[ident], item)
-        require_common_fields(next(record for record in scripts if record['id'] == ident), item)
+        require_common_fields(scripts_by_id[ident], item)
     for route, query in (('public-personas', 'personaId'), ('public-organizations', 'organizationId')):
         items = get('/api/' + route, list)
-        for ident in entities(items):
-            detail = get('/api/' + route + '/' + quote(ident, safe=''), dict)
+        ids = entities(items)
+        requests = [(path, kind) for ident in ids for path, kind in (
+            ('/api/' + route + '/' + quote(ident, safe=''), dict),
+            ('/api/public-scripts?' + urlencode({query: ident}), list))]
+        values = get_many(requests)
+        for ident, detail, filtered in zip(ids, values[::2], values[1::2]):
             if detail.get('id') != ident:
                 raise ContentError('Incomplete identity detail')
-            filtered = get('/api/public-scripts?' + urlencode({query: ident}), list)
             if not set(entities(filtered)).issubset(set(bundle_ids)):
                 raise ContentError('Filtered catalog disagrees')
     entities(get('/api/themes/public', list))
     if set(entities(bundle['personas'])) != set(entities(snapshot['/api/public-personas'])) or set(entities(bundle['organizations'])) != set(entities(snapshot['/api/public-organizations'])):
         raise ContentError('Bundle identities disagree with catalogs')
+    print(f'[content-snapshot] captured {len(snapshot)} endpoints in {time.monotonic() - started:.1f}s '
+          f'({CAPTURE_WORKERS} workers)', file=sys.stderr, flush=True)
     return snapshot
 
 
