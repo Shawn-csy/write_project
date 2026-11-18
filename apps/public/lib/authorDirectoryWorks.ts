@@ -12,7 +12,15 @@ export function authorDirectoryWorks(author: PublicPersona, scripts: PublicScrip
   };
   for (const script of scripts) {
     if (script.persona?.id === author.id && script.isPublic !== false && script.isPublic !== 0) {
-      add({ id: `internal-${script.id}`, title: script.title, url: `/read/${encodeURIComponent(script.id)}`, coverUrl: script.coverUrl, workType: "script" });
+      add({
+        id: `internal-${script.id}`,
+        title: script.title,
+        url: `/read/${encodeURIComponent(script.id)}`,
+        coverUrl: script.coverUrl,
+        coverCrop: script.coverCrop,
+        coverDesign: script.coverDesign,
+        workType: "script",
+      });
     }
   }
   for (const script of externalScripts) {

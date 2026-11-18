@@ -85,6 +85,28 @@ describe("GalleryAuthorGrid", () => {
     expect(image.getAttribute("srcset")).toContain("?w=48 48w");
   });
 
+  it("renders the saved script cover design when there is no uploaded image", () => {
+    const author = { id: "p1", displayName: "作者甲" };
+    render(<GalleryAuthorGrid
+      peopleStatus="loaded" onRetry={noopReset}
+      authors={[author]} filteredAuthors={[author]}
+      scripts={[{
+        id: "s1", title: "微小告白", persona: author, coverUrl: "",
+        coverDesign: {
+          bg: { type: "solid", colorA: "#e9bfaa" },
+          title: {
+            text: "自訂封面文字", direction: "horizontal", font: "serif", size: "md",
+            letterSpacing: 0, effect: "none", color: "#222222", x: 0.5, y: 0.5,
+          },
+        },
+      }]}
+      allTags={[]} selectedTags={[]} onToggleTag={noopTag} onResetFilters={noopReset}
+    />);
+    const work = screen.getByRole("link", { name: "前往作品：微小告白" });
+    expect(work.textContent).toContain("自訂封面文字");
+    expect(work.getAttribute("href")).toBe("/read/s1");
+  });
+
   it("shows the author's initial when an avatar image fails", () => {
     render(
       <GalleryAuthorGrid
