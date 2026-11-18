@@ -1,18 +1,16 @@
-import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import type { PublicPersona } from "@/lib/types";
-import { BASE_URL, SITE_NAME } from "@/lib/seo";
+import { publicDirectoryMetadata, TITLE_SUFFIX } from "@/lib/seo";
 import { ResourcesClient, type ProductionResource } from "./ResourcesClient";
 
 export const dynamic = "force-dynamic";
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const metadata: Metadata = {
-  title: `資源｜${SITE_NAME}`,
-  description: "探索聲演、音聲後製、封面繪製與錄音資源。",
-  alternates: { canonical: `${BASE_URL}/resources` },
-  openGraph: { title: `資源｜${SITE_NAME}`, description: "探索聲演、音聲後製、封面繪製與錄音資源。", url: `${BASE_URL}/resources`, siteName: SITE_NAME, locale: "zh_TW" },
-};
+export const metadata = publicDirectoryMetadata(
+  "/resources",
+  `資源｜${TITLE_SUFFIX}`,
+  "探索聲演、後製、封面繪製、錄音師與錄音室，查看創作者的參與作品與聯絡方式。",
+);
 
 export default async function ResourcesPage() {
   let personas: PublicPersona[] = [];

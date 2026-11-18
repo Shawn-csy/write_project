@@ -226,6 +226,7 @@ export interface PublicWorkParticipation extends Omit<PublicProductionCredit, "c
   characterName?: string;
   description?: string;
   creditRole: PublicIdentityRole;
+  publishedAt?: number | null;
 }
 
 export interface PublicPersona {

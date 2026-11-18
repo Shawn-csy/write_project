@@ -125,6 +125,23 @@ describe("sitemap", () => {
     expect(urls.some((url) => url.includes("/resources/"))).toBe(false);
   });
 
+  it("lists public voice portfolios once, including voice actors without demos", async () => {
+    const publishedAt = Date.parse("2026-10-01T00:00:00Z");
+    const works = [{ id: "voice-work", creditRole: "voice_actor", publishedAt }];
+    vi.mocked(apiFetch).mockImplementation(async (path) => path === "/public-scripts"
+      ? [makeScript()]
+      : { personas: [
+        { id: "voice-only", displayName: "公開聲演", roles: ["voice_actor"], workParticipations: works },
+        { id: "persona-1", displayName: "作者兼聲演", roles: ["scriptwriter", "voice_actor"], workParticipations: works },
+        { id: "hidden", displayName: "隱藏聲演", voiceActorHidden: true, workParticipations: works },
+        { id: "empty", displayName: "尚無作品", roles: ["voice_actor"], workParticipations: [] },
+      ] } as never);
+    const entries = await getSitemap();
+    expect(entries.find((entry) => entry.url === `${BASE}/author/voice-only`)?.lastModified).toBe("2026-10-01T00:00:00.000Z");
+    expect(entries.filter((entry) => entry.url === `${BASE}/author/persona-1`)).toHaveLength(1);
+    expect(entries.some((entry) => /\/author\/(hidden|empty)$/.test(entry.url))).toBe(false);
+  });
+
   it("excludes /gallery", async () => {
     const urls = (await getSitemap()).map((e) => e.url);
     expect(urls.some((u) => u.includes("/gallery"))).toBe(false);
