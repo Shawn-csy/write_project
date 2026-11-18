@@ -12,7 +12,7 @@ export function authorDirectoryWorks(author: PublicPersona, scripts: PublicScrip
   };
   for (const script of scripts) {
     if (script.persona?.id === author.id && script.isPublic !== false && script.isPublic !== 0) {
-      add({ id: `internal-${script.id}`, title: script.title, url: `/read/${encodeURIComponent(script.id)}`, coverUrl: script.coverUrl });
+      add({ id: `internal-${script.id}`, title: script.title, url: `/read/${encodeURIComponent(script.id)}`, coverUrl: script.coverUrl, workType: "script" });
     }
   }
   for (const script of externalScripts) {
@@ -21,7 +21,7 @@ export function authorDirectoryWorks(author: PublicPersona, scripts: PublicScrip
       || (script.authorName || "").trim().normalize("NFKC").toLocaleLowerCase();
     if ((script.authorPersonaId && script.authorPersonaId === author.id)
       || (!script.authorPersonaId && author.id === `external-author:${externalKey}`)) {
-      add({ id: `external-${script.id}`, title: script.title || script.remoteTitle || "未命名台本", url: script.sourceUrl, coverUrl: externalCoverSrc(script), sourceLabel: script.sourceName });
+      add({ id: `external-${script.id}`, title: script.title || script.remoteTitle || "未命名台本", url: script.sourceUrl, coverUrl: externalCoverSrc(script), workType: "script", sourceLabel: script.sourceName });
     }
   }
   for (const work of author.workParticipations || []) {

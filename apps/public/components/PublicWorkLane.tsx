@@ -9,7 +9,7 @@ export interface PublicWorkLaneItem {
   title: string;
   url: string;
   coverUrl?: string | null;
-  workType?: "audio" | "game" | "video" | "other";
+  workType?: "audio" | "game" | "video" | "other" | "script";
   sourceLabel?: string;
 }
 
