@@ -10,17 +10,19 @@ checked against the corresponding DLsite product page on 2026-11-18.
 
 import argparse
 from datetime import datetime
+from itertools import chain
 import json
 import os
 from pathlib import Path
 import re
 import time
+import unicodedata
 from urllib.parse import urlparse
 import uuid
 from zoneinfo import ZoneInfo
 
 from database import SessionLocal
-from models import AudioWorkCredit, Organization, Persona, PersonaCredit, PersonaRole, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, Organization, Persona, PersonaCredit, PersonaCreditName, PersonaRole, PublicAudioWorkSubmission, User
 from routers.public_bundle import invalidate_public_bundle_cache
 from services.work_participations import catalog_participants, finalize_catalog_import, replace_catalog_participants
 
@@ -28,6 +30,53 @@ from services.work_participations import catalog_participants, finalize_catalog_
 SOURCE = "https://www.pttweb.cc/bbs/C_Chat/M.1772807118.A.62B"
 REVIEWER = "ptt-chinese-audio-circles-2026-11-18"
 PRODUCT_ID = re.compile(r"^RJ\d{6,8}$")
+
+
+def identity_name_key(name):
+    normalized = unicodedata.normalize("NFKC", name or "").casefold()
+    return "".join(char for char in normalized if char.isalnum())
+
+
+def profile_url_key(url):
+    parsed = urlparse(url or "")
+    host = (parsed.hostname or "").removeprefix("www.")
+    path = parsed.path.rstrip("/")
+    if host in {"twitter.com", "x.com"}:
+        return ("x.com", path.casefold(), "")
+    return (host, path, parsed.query)
+
+
+def persona_profile_urls(person):
+    return [person.website, *(link.get("url") for link in (person.links or [])
+                              if isinstance(link, dict))]
+
+
+def source_profile_matches(profile, personas, credit_names):
+    """A name match is a review candidate, not permission to link a credit."""
+    key = identity_name_key(profile["displayName"])
+    if not key:
+        return []
+    names = chain(
+        ((person.displayName, person.id) for person in personas),
+        ((alias.creditedAs, alias.personaId) for alias in credit_names),
+    )
+    return sorted({pid for name, pid in names
+                   if pid != profile["id"] and identity_name_key(name) == key})
+
+
+def reviewed_roster(participants, current, pending_profiles):
+    roster = []
+    for participant in participants:
+        if participant.get("personaId") not in pending_profiles:
+            roster.append(participant)
+            continue
+        # Retain any existing link on this exact work/role/credit.
+        retained = [row for row in current if row.get("personaId")
+                    and row["role"] == participant["role"]
+                    and row["creditedAs"] == participant["creditedAs"]]
+        roster.extend([{**participant, "personaId": row["personaId"]} for row in retained]
+                      or [{**participant, "personaId": None}])
+    return roster
 
 
 def validate(snapshot):
@@ -118,23 +167,34 @@ def main():
         created_personas = 0
         created_roles = 0
         existing_personas = db.query(Persona).all()
+        credit_names = db.query(PersonaCreditName).all()
         existing_roles = {(role.personaId, role.role) for role in db.query(PersonaRole).all()}
+        pending_profiles = {}
         for profile in snapshot.get("resourceProfiles", []):
             if profile.get("sourceOnly"):
                 # A source-only card is scoped to one DLsite maker. A same-named
                 # identity elsewhere is not evidence that these people match.
                 collisions = [person for person in existing_personas if person.id == profile["id"]]
+                if not collisions:
+                    matches = source_profile_matches(profile, existing_personas, credit_names)
+                    if matches:
+                        pending_profiles[profile["id"]] = {
+                            "displayName": profile["displayName"],
+                            "sourceUrls": profile["sourceUrls"],
+                            "candidatePersonaIds": matches,
+                        }
+                        continue
             else:
+                website = profile_url_key(profile["website"])
                 collisions = [person for person in existing_personas if person.id not in retired_ids
                               and (
                               person.id == profile["id"] or person.displayName == profile["displayName"]
-                              or person.website == profile["website"])]
+                              or any(profile_url_key(url) == website for url in persona_profile_urls(person)))]
             if len(collisions) > 1 or (collisions and collisions[0].id != profile["id"]):
                 raise ValueError(f"Resource identity conflict: {profile['displayName']}")
             if collisions:
+                # The stable ID is authoritative. Keep later profile enrichment.
                 person = collisions[0]
-                if person.displayName != profile["displayName"] or person.website != profile["website"]:
-                    raise ValueError(f"Resource profile changed: {profile['displayName']}")
             else:
                 person = Persona(id=profile["id"], ownerId=None,
                                  displayName=profile["displayName"], website=profile["website"],
@@ -199,14 +259,25 @@ def main():
         current_rosters = catalog_participants(db, work_ids)
         by_url = {work.url: work for work in db.query(PublicAudioWorkSubmission).filter(
             PublicAudioWorkSubmission.id.in_(work_ids)).all()}
+        source_items = []
         for item in snapshot["items"]:
             work = by_url[item["url"]]
+            current_participants = current_rosters.get(work.id, [])
+            participants = reviewed_roster(item.get("participants", []), current_participants, pending_profiles)
+            source_items.append({**item, "participants": participants})
             expected = {(p["role"], p["creditedAs"], p.get("personaId"))
-                        for p in item.get("participants", [])}
+                        for p in participants}
             current = {(p["role"], p["creditedAs"], p.get("personaId"))
-                       for p in current_rosters.get(work.id, [])}
-            if current != expected:
-                replace_catalog_participants(db, work, item.get("participants", []), reviewed=True)
+                       for p in current_participants}
+            snapshot_keys = {(role, name) for role, name, _ in expected}
+            comparable_current = {
+                (role, name, pid) for role, name, pid in current
+                if (role, name) in snapshot_keys or pid in retired_ids
+            }
+            # Rerunning a complete snapshot must preserve later credits added
+            # to a work whose reviewed source roster is already present.
+            if comparable_current != expected:
+                replace_catalog_participants(db, work, participants, reviewed=True)
                 replaced_rosters += 1
             for bad_name in ("伊橙 (", "小語 ("):
                 for source in db.query(AudioWorkCredit).filter_by(
@@ -214,7 +285,7 @@ def main():
                         provenance="source_import").all():
                     db.delete(source)
                     removed_bad_source_credits += 1
-        report = finalize_catalog_import(db, work_ids=work_ids, source_items=snapshot["items"])
+        report = finalize_catalog_import(db, work_ids=work_ids, source_items=source_items)
         retired_personas = 0
         for retired_id in snapshot.get("retiredResourceIds", []):
             person = db.get(Persona, retired_id)
@@ -231,8 +302,9 @@ def main():
                           "worksUpdated": updated_works, "rostersCorrected": replaced_rosters,
                           "invalidSourceCreditsRemoved": removed_bad_source_credits,
                           "linkedCreditsInSnapshot": sum(bool(p.get("personaId"))
-                                                          for item in snapshot["items"]
+                                                          for item in source_items
                                                           for p in item.get("participants", [])),
+                          "identityProfilesPendingReview": list(pending_profiles.values()),
                           "additionalLinksFromFinalization": report["newIdentityLinks"],
                           "unresolvedCredits": len(report["unresolved"])}, ensure_ascii=False))
         if args.apply:
