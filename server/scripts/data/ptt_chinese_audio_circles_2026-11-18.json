@@ -1427,8 +1427,8 @@
           "creditedAs": "赤赤",
           "sourceRole": "音效後製",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
-          "personaId": "a56c34cf-2046-556d-aa91-d49e86c70491",
-          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
+          "personaId": "c8b732b3-a32d-4303-9860-380dc8708780",
+          "identityEvidence": "2026-11-18 管理者確認赤赤與赤赤AkaA為同一人。"
         },
         {
           "role": "recording_studio",
@@ -4667,19 +4667,6 @@
       "scopeMakerId": "RG01012472"
     },
     {
-      "id": "a56c34cf-2046-556d-aa91-d49e86c70491",
-      "displayName": "赤赤",
-      "website": "",
-      "roles": [
-        "post_production"
-      ],
-      "sourceUrls": [
-        "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html"
-      ],
-      "sourceOnly": true,
-      "scopeMakerId": "RG01012472"
-    },
-    {
       "id": "c1ea875e-bd87-5a07-b4a0-0d7866c65514",
       "displayName": "猫屋(NEKOYA)",
       "website": "",
@@ -5054,7 +5041,8 @@
     "5bb26b01-9112-5866-a754-83263621df60",
     "7a2b9735-91c0-5e7f-9baf-cb1ee871eb33",
     "ec026bb8-ade2-53ff-a584-e5a837318c9a",
-    "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5"
+    "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5",
+    "a56c34cf-2046-556d-aa91-d49e86c70491"
   ],
   "identityReviews": [
     {
@@ -5135,6 +5123,14 @@
       "toId": "1c97a57d-056b-426d-923e-95f4d870a2e7",
       "evidenceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
       "reason": "管理者確認 CxC 與 DLsite 的汁慾為同一聲演",
+      "creditsMoved": 1
+    },
+    {
+      "fromId": "a56c34cf-2046-556d-aa91-d49e86c70491",
+      "fromName": "赤赤AkaA",
+      "toId": "c8b732b3-a32d-4303-9860-380dc8708780",
+      "evidenceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01478029.html",
+      "reason": "管理者確認赤赤與赤赤AkaA為同一人",
       "creditsMoved": 1
     }
   ]
