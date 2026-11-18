@@ -20,7 +20,7 @@ import uuid
 from zoneinfo import ZoneInfo
 
 from database import SessionLocal
-from models import AudioWorkCredit, Organization, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, Organization, Persona, PersonaCredit, PersonaRole, PublicAudioWorkSubmission, User
 from routers.public_bundle import invalidate_public_bundle_cache
 from services.work_participations import catalog_participants, finalize_catalog_import, replace_catalog_participants
 
@@ -43,6 +43,16 @@ def validate(snapshot):
             raise ValueError(f"Invalid circle: {maker_id}")
         if len(circle["productIds"]) != len(set(circle["productIds"])):
             raise ValueError(f"Duplicate circle products: {maker_id}")
+    profiles = snapshot.get("resourceProfiles", [])
+    retired_ids = set(snapshot.get("retiredResourceIds", []))
+    profile_ids = set()
+    for profile in profiles:
+        if (profile["id"] in profile_ids or profile["id"] in retired_ids or not profile["displayName"]
+                or (not profile.get("sourceOnly") and not profile["website"].startswith("https://"))
+                or (profile.get("sourceOnly") and (profile["website"] or not profile.get("scopeMakerId")))
+                or not profile["roles"] or not profile["sourceUrls"]):
+            raise ValueError(f"Invalid resource profile: {profile}")
+        profile_ids.add(profile["id"])
     for item in snapshot["items"]:
         product_id = item["id"]
         circle = circles.get(item["sourceMakerId"])
@@ -76,6 +86,7 @@ def main():
         raise SystemExit("Refusing to modify a database other than production write_project")
     snapshot = json.loads(args.snapshot.read_text())
     circles = validate(snapshot)
+    retired_ids = set(snapshot.get("retiredResourceIds", []))
     now = int(time.time() * 1000)
     with SessionLocal() as db:
         platform = db.query(Organization).filter_by(name="泛用型產品作坊").one()
@@ -103,6 +114,47 @@ def main():
                 db.add(org)
                 existing_orgs.append(org)
                 created_orgs += 1
+        db.flush()
+        created_personas = 0
+        created_roles = 0
+        existing_personas = db.query(Persona).all()
+        existing_roles = {(role.personaId, role.role) for role in db.query(PersonaRole).all()}
+        for profile in snapshot.get("resourceProfiles", []):
+            if profile.get("sourceOnly"):
+                # A source-only card is scoped to one DLsite maker. A same-named
+                # identity elsewhere is not evidence that these people match.
+                collisions = [person for person in existing_personas if person.id == profile["id"]]
+            else:
+                collisions = [person for person in existing_personas if person.id not in retired_ids
+                              and (
+                              person.id == profile["id"] or person.displayName == profile["displayName"]
+                              or person.website == profile["website"])]
+            if len(collisions) > 1 or (collisions and collisions[0].id != profile["id"]):
+                raise ValueError(f"Resource identity conflict: {profile['displayName']}")
+            if collisions:
+                person = collisions[0]
+                if person.displayName != profile["displayName"] or person.website != profile["website"]:
+                    raise ValueError(f"Resource profile changed: {profile['displayName']}")
+            else:
+                person = Persona(id=profile["id"], ownerId=None,
+                                 displayName=profile["displayName"], website=profile["website"],
+                                 avatar="", bannerUrl="", bio="", links=[], organizationIds=[],
+                                 tags=[], voiceActorHidden=False, createdAt=now, updatedAt=now)
+                db.add(person)
+                existing_personas.append(person)
+                created_personas += 1
+            for role_name in profile["roles"]:
+                if (person.id, role_name) not in existing_roles:
+                    role_profile = {}
+                    if role_name == "recording_studio" and profile.get("recordingEntityType"):
+                        role_profile = {"entityType": profile["recordingEntityType"],
+                                        "entityTypeSourceUrl": profile["sourceUrls"][0]}
+                    db.add(PersonaRole(id=str(uuid.uuid5(uuid.NAMESPACE_URL, person.id + ':' + role_name)),
+                                       personaId=person.id, role=role_name, isVisible=True,
+                                       sourceTypes=["catalog_import"], profile=role_profile,
+                                       createdAt=now, updatedAt=now))
+                    existing_roles.add((person.id, role_name))
+                    created_roles += 1
         db.flush()
         created_works = 0
         updated_works = 0
@@ -163,7 +215,19 @@ def main():
                     db.delete(source)
                     removed_bad_source_credits += 1
         report = finalize_catalog_import(db, work_ids=work_ids, source_items=snapshot["items"])
-        print(json.dumps({"organizationsCreated": created_orgs, "worksCreated": created_works,
+        retired_personas = 0
+        for retired_id in snapshot.get("retiredResourceIds", []):
+            person = db.get(Persona, retired_id)
+            if not person:
+                continue
+            if (person.ownerId or person.website or db.query(PersonaCredit).filter_by(personaId=retired_id).first()):
+                raise ValueError(f"Retired resource has independent content: {retired_id}")
+            db.query(PersonaRole).filter_by(personaId=retired_id).delete(synchronize_session=False)
+            db.delete(person)
+            retired_personas += 1
+        print(json.dumps({"organizationsCreated": created_orgs, "resourcesCreated": created_personas,
+                          "resourceRolesCreated": created_roles, "resourcesRetired": retired_personas,
+                          "worksCreated": created_works,
                           "worksUpdated": updated_works, "rostersCorrected": replaced_rosters,
                           "invalidSourceCreditsRemoved": removed_bad_source_credits,
                           "linkedCreditsInSnapshot": sum(bool(p.get("personaId"))
