@@ -1,12 +1,15 @@
+import type { Metadata } from "next";
+
 const BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://open-scripts.shawnup.com").replace(/\/$/, "");
 
 export const SITE_BRAND_NAME = "泛用型產品作坊";
 export const PRODUCT_NAME = "Screenplay Reader";
 export const SITE_NAME = SITE_BRAND_NAME;
+export const SITE_SEARCH_NAME = "公開台本";
 export const TITLE_SUFFIX = SITE_BRAND_NAME;
-export const SITE_TITLE = `免費台本 · 音聲台本線上閱讀｜${TITLE_SUFFIX}`;
+export const SITE_TITLE = `${SITE_SEARCH_NAME}｜免費音聲、ASMR 與配音台本`;
 export const SITE_DESCRIPTION =
-  "泛用型產品作坊提供免費台本、音聲台本與配音台本線上閱讀、發布與分享，探索公開作品、作者頁面與系列作品。";
+  "公開台本平台能提供公開、免費音聲、ASMR 與配音台本，可按作者或系列找作品，也能試聽演出 Demo、查詢聲演與製作資源。";
 export const SITE_KEYWORDS = [
   "免費台本",
   "音聲台本",
@@ -45,6 +48,30 @@ export function absoluteUrl(pathOrUrl: string): string {
 export function pickPreviewImage(entityImage?: string | null): string {
   if (entityImage) return absoluteUrl(entityImage);
   return DEFAULT_OG_IMAGE_URL;
+}
+
+export function publicDirectoryMetadata(path: string, title: string, description: string): Metadata {
+  const url = absoluteUrl(path);
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      title,
+      description,
+      url,
+      siteName: SITE_SEARCH_NAME,
+      locale: "zh_TW",
+      images: [{ url: DEFAULT_OG_IMAGE_URL, alt: SITE_SEARCH_NAME }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [DEFAULT_OG_IMAGE_URL],
+    },
+  };
 }
 
 export { jsonLdSafe } from "./jsonLd";

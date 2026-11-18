@@ -108,9 +108,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   }
   for (const persona of externalBundle?.personas || []) {
-    const isVoiceActor = (persona.tags || []).some((tag) => /聲演|配音|voice[\s-]?actor/i.test(String(tag)));
-    if (isVoiceActor && demoVoiceActorIds.has(persona.id) && !personaMap.has(persona.id)) {
-      personaMap.set(persona.id, demoVoiceActorDates.get(persona.id) || now);
+    if (!persona.displayName?.trim() || persona.voiceActorHidden || !isPersonaSitemapEligible(persona.id, persona.ownerId)) continue;
+    const voiceWorks = (persona.workParticipations || []).filter((work) => work.creditRole === "voice_actor");
+    const isVoiceActor = persona.roles?.includes("voice_actor")
+      || (persona.tags || []).some((tag) => /聲演|配音|voice[\s-]?actor/i.test(String(tag)));
+    if (voiceWorks.length || (isVoiceActor && demoVoiceActorIds.has(persona.id))) {
+      const newest = Math.max(0, ...voiceWorks.map((work) => work.publishedAt || 0));
+      const dates = [personaMap.get(persona.id), demoVoiceActorDates.get(persona.id), newest ? toSitemapDate(newest, now) : undefined];
+      const latest = dates.filter((date): date is string => Boolean(date)).sort().at(-1);
+      personaMap.set(persona.id, latest || now);
     }
   }
   // External writers linked to an identity and production people share the identity page.

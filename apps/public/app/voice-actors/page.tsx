@@ -1,18 +1,16 @@
-import type { Metadata } from "next";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
-import { BASE_URL, SITE_NAME } from "@/lib/seo";
+import { publicDirectoryMetadata, TITLE_SUFFIX } from "@/lib/seo";
 import { VoiceActorDirectoryClient } from "./VoiceActorDirectoryClient";
 
 export const dynamic = "force-dynamic";
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
-export const metadata: Metadata = {
-  title: `聲演名錄｜${SITE_NAME}`,
-  description: "瀏覽聲演身份與公開演出 Demo。",
-  alternates: { canonical: `${BASE_URL}/voice-actors` },
-  openGraph: { title: `聲演名錄｜${SITE_NAME}`, description: "瀏覽聲演身份與公開演出 Demo。", url: `${BASE_URL}/voice-actors`, siteName: SITE_NAME, locale: "zh_TW" },
-};
+export const metadata = publicDirectoryMetadata(
+  "/voice-actors",
+  `聲演名錄｜${TITLE_SUFFIX}`,
+  "查找聲演的公開個人頁、參演作品與演出 Demo。",
+);
 
 async function getDirectoryData(): Promise<{ personas: PublicPersona[]; demos: PublicDemoSubmission[]; scripts: PublicScript[]; externalScripts: ExternalPublicScript[] }> {
   try {
