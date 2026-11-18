@@ -20,13 +20,15 @@ ASSETS = DATA_DIR / "public_avatar_assets_2026-11-12"
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true", help="Write images and database updates")
+    parser.add_argument("--manifest", type=Path, default=MANIFEST, help="Reviewed avatar manifest")
+    parser.add_argument("--assets-dir", type=Path, default=ASSETS, help="Directory containing reviewed images")
     args = parser.parse_args()
 
     database_name = urlparse(os.environ.get("DATABASE_URL", "")).path
     if database_name not in ("/write_project", "/write_project_dev"):
         raise SystemExit(f"Unexpected database name: {database_name!r}")
     media_root = Path(os.getenv("MEDIA_STORAGE_ROOT", "/data/media"))
-    entries = json.loads(MANIFEST.read_text())["profiles"]
+    entries = json.loads(args.manifest.read_text())["profiles"]
     pending = []
     skipped = []
 
@@ -38,7 +40,7 @@ def main() -> None:
             if persona.ownerId or persona.avatar:
                 skipped.append(entry["name"])
                 continue
-            source = ASSETS / entry["assetFile"]
+            source = args.assets_dir / entry["assetFile"]
             if not source.is_file() or source.stat().st_size < 1000:
                 raise ValueError(f"Image missing or too small: {source}")
             expected_url = "/media/public-avatar-curation/" + source.name

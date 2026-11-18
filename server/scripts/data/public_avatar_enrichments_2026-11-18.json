@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-18",
+  "description": "Official X profile avatars matched by the persona website URL and profile display name; 方所長 is the user-confirmed alias for 方婷.",
+  "profiles": [
+    {
+      "personaId": "d24d9b53-779d-5612-ad49-4bd43438a364",
+      "name": "格琳",
+      "avatarUrl": "/media/public-avatar-curation/d24d9b53-779d-5612-ad49-4bd43438a364.jpg",
+      "sourceUrl": "https://x.com/luweijiala1",
+      "sourceImageUrl": "https://pbs.twimg.com/profile_images/1539579319844245505/HBaflAxm_400x400.jpg",
+      "assetFile": "d24d9b53-779d-5612-ad49-4bd43438a364.jpg"
+    },
+    {
+      "personaId": "98817d8d-c66b-5e92-a292-21cb5084118b",
+      "name": "鴒音",
+      "avatarUrl": "/media/public-avatar-curation/98817d8d-c66b-5e92-a292-21cb5084118b.jpg",
+      "sourceUrl": "https://x.com/reion_iyashi",
+      "sourceImageUrl": "https://pbs.twimg.com/profile_images/1430854139999784963/3aPlhu3L_400x400.jpg",
+      "assetFile": "98817d8d-c66b-5e92-a292-21cb5084118b.jpg"
+    },
+    {
+      "personaId": "fd736d3d-0263-587a-85f7-cfbeb6bb8320",
+      "name": "老雲",
+      "avatarUrl": "/media/public-avatar-curation/fd736d3d-0263-587a-85f7-cfbeb6bb8320.jpg",
+      "sourceUrl": "https://x.com/LaoYun817",
+      "sourceImageUrl": "https://pbs.twimg.com/profile_images/1588344985786535936/1ziLAamd_400x400.jpg",
+      "assetFile": "fd736d3d-0263-587a-85f7-cfbeb6bb8320.jpg"
+    },
+    {
+      "personaId": "5e157c27-844f-5426-9c7b-417aad8fe309",
+      "name": "舒米",
+      "avatarUrl": "/media/public-avatar-curation/5e157c27-844f-5426-9c7b-417aad8fe309.jpg",
+      "sourceUrl": "https://x.com/sumizome63125",
+      "sourceImageUrl": "https://pbs.twimg.com/profile_images/2083887490507694080/AwopkBYh_400x400.jpg",
+      "assetFile": "5e157c27-844f-5426-9c7b-417aad8fe309.jpg"
+    },
+    {
+      "personaId": "d0e261a7-0fc0-5a0a-9dda-d590ab9fa1ec",
+      "name": "羊羽",
+      "avatarUrl": "/media/public-avatar-curation/d0e261a7-0fc0-5a0a-9dda-d590ab9fa1ec.jpg",
+      "sourceUrl": "https://x.com/siang323",
+      "sourceImageUrl": "https://pbs.twimg.com/profile_images/1644691908390948864/7viijm4z_400x400.jpg",
+      "assetFile": "d0e261a7-0fc0-5a0a-9dda-d590ab9fa1ec.jpg"
+    },
+    {
+      "personaId": "d4ae9e17-931e-55fb-977d-4a26a7d43acc",
+      "name": "方所長",
+      "avatarUrl": "/media/public-avatar-curation/d4ae9e17-931e-55fb-977d-4a26a7d43acc.jpg",
+      "sourceUrl": "https://x.com/FontineLeng",
+      "sourceImageUrl": "https://pbs.twimg.com/profile_images/1693956057692024832/AIL2HO81_400x400.jpg",
+      "assetFile": "d4ae9e17-931e-55fb-977d-4a26a7d43acc.jpg"
+    }
+  ]
+}
