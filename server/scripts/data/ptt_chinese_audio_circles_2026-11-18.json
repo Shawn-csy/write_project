@@ -548,8 +548,8 @@
           "sourceRole": "聲優",
           "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
           "originalCreditedAs": "陳彥鈞、王辰驊、莊汶錡、錢欣郁、晚晚、靳遠、郭璨華、葛晨【隆中閣】、琦米、一介、K某、周景",
-          "personaId": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
-          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
+          "personaId": "5ca0f485-e5c1-49c1-95dc-e4ce402b9f2c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
           "role": "voice_actor",
@@ -639,7 +639,7 @@
           "sourceRole": "聲優",
           "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
           "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
-          "personaId": "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
+          "personaId": "ad7e39fe-5894-4a71-8d4b-43f457d279d9",
           "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
@@ -648,7 +648,7 @@
           "sourceRole": "聲優",
           "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
           "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
-          "personaId": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
+          "personaId": "5ca0f485-e5c1-49c1-95dc-e4ce402b9f2c",
           "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
@@ -711,8 +711,8 @@
           "sourceRole": "聲優",
           "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
           "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
-          "personaId": "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
-          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+          "personaId": "ad7e39fe-5894-4a71-8d4b-43f457d279d9",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
           "role": "voice_actor",
@@ -720,8 +720,8 @@
           "sourceRole": "聲優",
           "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html",
           "originalCreditedAs": "司鳳【隆中閣】、葛晨【隆中閣】",
-          "personaId": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
-          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
+          "personaId": "5ca0f485-e5c1-49c1-95dc-e4ce402b9f2c",
+          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html"
         },
         {
           "role": "cover_art",
@@ -2590,8 +2590,8 @@
           "creditedAs": "韾笙重工",
           "sourceRole": "作者",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
-          "personaId": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
-          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html"
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "https://x.com/oseizyuukou"
         },
         {
           "role": "voice_actor",
@@ -2641,8 +2641,8 @@
           "creditedAs": "韾笙重工",
           "sourceRole": "作者",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
-          "personaId": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
-          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html"
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "https://x.com/oseizyuukou"
         },
         {
           "role": "voice_actor",
@@ -2692,8 +2692,8 @@
           "creditedAs": "韾笙重工",
           "sourceRole": "作者",
           "sourceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html",
-          "personaId": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
-          "identityEvidence": "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
+          "personaId": "bf57e72c-8f4e-4157-bc69-0c57fcd39188",
+          "identityEvidence": "https://x.com/oseizyuukou"
         },
         {
           "role": "voice_actor",
@@ -4635,21 +4635,6 @@
       "scopeMakerId": "RG01006415"
     },
     {
-      "id": "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
-      "displayName": "葛晨【隆中閣】",
-      "website": "",
-      "roles": [
-        "voice_actor"
-      ],
-      "sourceUrls": [
-        "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html",
-        "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
-        "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
-      ],
-      "sourceOnly": true,
-      "scopeMakerId": "RG01006415"
-    },
-    {
       "id": "52e79a6c-7e49-5973-bb25-d86614b22d35",
       "displayName": "一介",
       "website": "",
@@ -4685,20 +4670,6 @@
       ],
       "sourceUrls": [
         "https://www.dlsite.com/bl/work/=/product_id/RJ01395416.html"
-      ],
-      "sourceOnly": true,
-      "scopeMakerId": "RG01006415"
-    },
-    {
-      "id": "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
-      "displayName": "司鳳【隆中閣】",
-      "website": "",
-      "roles": [
-        "voice_actor"
-      ],
-      "sourceUrls": [
-        "https://www.dlsite.com/bl/work/=/product_id/RJ01593965.html",
-        "https://www.dlsite.com/bl/work/=/product_id/RJ01610079.html"
       ],
       "sourceOnly": true,
       "scopeMakerId": "RG01006415"
@@ -4950,21 +4921,6 @@
       "scopeMakerId": "RG01052118"
     },
     {
-      "id": "ad8403fc-3073-5213-9e9f-3795a01d64dd",
-      "displayName": "韾笙重工",
-      "website": "",
-      "roles": [
-        "scriptwriter"
-      ],
-      "sourceUrls": [
-        "https://www.dlsite.com/maniax/work/=/product_id/RJ325212.html",
-        "https://www.dlsite.com/maniax/work/=/product_id/RJ365425.html",
-        "https://www.dlsite.com/maniax/work/=/product_id/RJ392014.html"
-      ],
-      "sourceOnly": true,
-      "scopeMakerId": "RG39804"
-    },
-    {
       "id": "510689ce-721d-5da4-9db7-8f4b6c24bce0",
       "displayName": "鍋子",
       "website": "",
@@ -5213,6 +5169,9 @@
     }
   ],
   "retiredResourceIds": [
-    "f74e7209-e4d5-5801-b842-39f9591728f7"
+    "f74e7209-e4d5-5801-b842-39f9591728f7",
+    "10c1938e-4ef2-5c13-9fa1-b0fc68965f81",
+    "e070f762-f2e7-5f58-bd88-d7de7a48f8b1",
+    "ad8403fc-3073-5213-9e9f-3795a01d64dd"
   ]
 }
