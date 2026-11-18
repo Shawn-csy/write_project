@@ -2,6 +2,7 @@ import pytest
 
 import models
 from routers.public import _public_identity_projection
+from scripts.import_ptt_chinese_audio_circles import reviewed_roster, source_profile_matches
 from services.work_participations import (
     catalog_participants, finalize_catalog_import, participations_by_persona,
     record_catalog_participant, record_participation, replace_catalog_participants,
@@ -21,6 +22,29 @@ def setup(db, status='approved'):
 
 def participant(role='scriptwriter', pid='p'):
     return dict(role=role, personaId=pid, creditedAs='舊署名', sourceUrl='https://example.com/source')
+
+
+def test_catalog_import_defers_name_collision_and_preserves_reviewed_credit(db_session):
+    work = setup(db_session)
+    db_session.add(models.PersonaCreditName(personaId='p', role='voice_actor', creditedAs='ＡＫＡ－赤赤'))
+    db_session.flush()
+    candidate = dict(id='new-source-id', displayName='aka 赤赤')
+    matches = source_profile_matches(candidate, db_session.query(models.Persona).all(),
+                                     db_session.query(models.PersonaCreditName).all())
+    assert matches == ['p']
+
+    incoming = participant(role='voice_actor', pid=candidate['id'])
+    pending = {candidate['id']: matches}
+    roster = reviewed_roster([incoming], [], pending)
+    replace_catalog_participants(db_session, work, roster, reviewed=True)
+    report = finalize_catalog_import(db_session, work_ids=[work.id],
+                                    source_items=[dict(url=work.url, participants=roster)])
+    assert [(p['creditedAs'], p['personaId']) for p in report['unresolved']] == [('舊署名', None)]
+    assert db_session.get(models.Persona, candidate['id']) is None
+
+    record_catalog_participant(db_session, work, {**incoming, 'personaId': 'p'})
+    current = catalog_participants(db_session, [work.id])[work.id]
+    assert reviewed_roster([incoming], current, pending) == [{**incoming, 'personaId': 'p'}]
 
 
 def test_identity_links_survive_renames_and_do_not_link_same_name(db_session):
