@@ -177,6 +177,7 @@ export function useGalleryController({
     return allAuthors.filter((author) => author.externalHref
       || rawScripts.some((script) => script.persona?.id === author.id)
       || publishedExternalPublicScripts.some((script) => script.authorPersonaId === author.id)
+      || author.workParticipations?.some((work) => work.creditRole === "scriptwriter")
       || (author.roles?.includes("scriptwriter") && Array.isArray(author.roleProfiles?.scriptwriter?.commissionOffers)
         && author.roleProfiles.scriptwriter.commissionOffers.length > 0));
   }, [allAuthors, rawScripts, publishedExternalPublicScripts]);
