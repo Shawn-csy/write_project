@@ -6,13 +6,18 @@
  *   BASE_URL=https://open-scripts.shawnup.com node scripts/verify-public-seo.mjs
  *
  * Optional env vars:
+ *   API_BASE_URL — API origin when it differs from the public site
  *   KNOWN_SCRIPT_ID   — a public script ID with a cover image (for DB image checks)
  *   KNOWN_SCRIPT_NO_COVER_ID — a public script ID without a cover image
  *
  * Defaults to https://open-scripts.shawnup.com if BASE_URL is not set.
  */
 
-const BASE_URL = (process.env.BASE_URL ?? "https://open-scripts.shawnup.com").replace(/\/$/, "");
+const PRODUCTION_PUBLIC_URL = "https://open-scripts.shawnup.com";
+const BASE_URL = (process.env.BASE_URL ?? PRODUCTION_PUBLIC_URL).replace(/\/$/, "");
+const API_BASE_URL = (process.env.API_BASE_URL ?? (
+  BASE_URL === PRODUCTION_PUBLIC_URL ? "https://api-open-scripts.shawnup.com" : BASE_URL
+)).replace(/\/$/, "");
 const KNOWN_SCRIPT_ID = process.env.KNOWN_SCRIPT_ID ?? "";
 const KNOWN_SCRIPT_NO_COVER_ID = process.env.KNOWN_SCRIPT_NO_COVER_ID ?? "";
 const STALE_TITLE = "公開台本 · 免費台本線上閱讀";
@@ -69,7 +74,7 @@ function checkCanonical(text, expectedUrl) {
 }
 
 function checkNoGalleryInSitemap(sitemapText) {
-  sitemapText.includes("/gallery") ? fail("sitemap contains /gallery (redirected URL)") : ok("sitemap does not contain /gallery");
+  sitemapText.includes("/gallery") ? fail("sitemap contains retired /gallery") : ok("sitemap does not contain /gallery");
 }
 
 /** Extract og:image content value from HTML. Returns null if absent. */
@@ -118,11 +123,11 @@ console.log(`\nChecking: ${BASE_URL}/ (Googlebot UA)`);
   text.includes("og:title") ? ok("og:title present for Googlebot") : fail("og:title missing for Googlebot");
 }
 
-// ── /gallery — retired, must return 410 (not redirect, not 200) ───────────────
+// ── /gallery — static Pages serves 404; legacy gateways may serve 410 ──
 console.log(`\nChecking: ${BASE_URL}/gallery`);
 {
   const { status } = await fetchHead(`${BASE_URL}/gallery`);
-  status === 410 ? ok(`/gallery returns 410 Gone`) : fail(`expected 410, got ${status}`);
+  (status === 404 || status === 410) ? ok(`/gallery returns ${status}`) : fail(`expected 404 or 410, got ${status}`);
 }
 
 // ── Unknown routes — must be real 404s, never the Vite SPA shell ──────────────
@@ -231,8 +236,9 @@ if (KNOWN_SCRIPT_ID) {
   gbot.text.includes("og:title") ? ok("Googlebot sees og:title") : fail("Googlebot: og:title missing");
 
   // Verify /api/public-scripts/{id}/raw returns markdown
-  console.log(`\nChecking: ${BASE_URL}/api/public-scripts/${KNOWN_SCRIPT_ID}/raw`);
-  const raw = await fetchText(`${BASE_URL}/api/public-scripts/${KNOWN_SCRIPT_ID}/raw`);
+  const rawUrl = `${API_BASE_URL}/api/public-scripts/${encodeURIComponent(KNOWN_SCRIPT_ID)}/raw`;
+  console.log(`\nChecking: ${rawUrl}`);
+  const raw = await fetchText(rawUrl);
   raw.status === 200 ? ok("raw endpoint status 200") : fail(`raw endpoint status ${raw.status}`);
   (raw.contentType.includes("text/markdown") || raw.contentType.includes("text/plain"))
     ? ok(`raw content-type: ${raw.contentType}`) : fail(`raw unexpected content-type: ${raw.contentType}`);
