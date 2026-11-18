@@ -68,6 +68,24 @@ it("lists a scriptwriter with a sourced commission profile", () => {
   expect(result.current.authors.some((author) => author.id === "wind")).toBe(true);
 });
 
+it("lists an audio-only scriptwriter from a confirmed work participation", () => {
+  const options = {
+    ...baseOptions,
+    initialPersonas: [{
+      id: "audio-writer", displayName: "方所長", roles: ["scriptwriter"],
+      workParticipations: [{
+        id: "audio-work", audioWorkId: "audio-work", title: "音聲作品",
+        url: "https://example.com/audio-work", creditRole: "scriptwriter",
+        creditedAs: "方所長", workType: "audio", publishedAt: 0,
+      }],
+    }] as PublicPersona[],
+    initialOrganizations: [],
+    initialUrlState: { ...DEFAULT_URL_STATE, view: "authors" as const },
+  };
+  const { result } = renderHook(() => useGalleryController(options));
+  expect(result.current.authors.map((author) => author.id)).toContain("audio-writer");
+});
+
 it("shows a retry state when the identity projection is incomplete", async () => {
   mockReadBundle.mockResolvedValue({ data: { personas: [] }, source: "primary" });
   const { result } = renderHook(() => useGalleryController({

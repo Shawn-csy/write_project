@@ -176,6 +176,7 @@ export function PublicShellTopBar({
 
   return (
     <header
+      data-public-topbar
       className="sticky top-0 z-40 bg-background text-foreground"
       style={BAND_STYLE}
     >

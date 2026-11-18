@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     /* Font variables — controlled by next/font; CJK system stack as fallback */
     --font-sans: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", "蘋方-繁", "微軟正黑體", system-ui, sans-serif;
     --font-serif: "Songti TC", "Noto Serif TC", "Source Han Serif TC", "Source Han Serif", "PMingLiU", "新細明體", serif;
@@ -57,6 +58,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 215 10% 13%;
     --foreground: 215 10% 86%;
     --card: 215 9% 16%;

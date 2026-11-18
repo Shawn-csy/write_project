@@ -53,6 +53,7 @@ export default function RootLayout({
       data-deploy-environment={deployEnvironment}
     >
       <head>
+        <meta name="color-scheme" content="light dark" />
         {/* Blocking script: apply dark class before first paint to prevent flash */}
         <script
           dangerouslySetInnerHTML={{
