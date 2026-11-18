@@ -143,16 +143,21 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
 
 // ── Author card ───────────────────────────────────────────────────────────────
 
-function AuthorCard({ author, works, onTagClick, dense = false }: { author: PublicPersona; works: ReturnType<typeof authorDirectoryWorks>; onTagClick: (tag: string) => void; dense?: boolean }) {
+function AuthorAvatarTile({ author, workCount }: { author: PublicPersona; workCount: number }) {
   const href = author.externalHref || `/author/${author.id}`;
-  if (dense) return <article className="flex min-w-0 items-center gap-3 border-b border-border py-2">
-    <a href={href} tabIndex={-1} className="relative h-9 w-9 shrink-0 overflow-hidden rounded-md border border-border bg-muted"><PublicAvatarImage src={author.avatar} name={author.displayName} sizes="36px" fallbackClassName={publicAvatarColor(author.displayName)} /></a>
-    <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-3">
-      <a href={href} className="block shrink-0 truncate font-semibold [font-size:var(--public-font-body)] hover:text-link hover:underline">{author.displayName}</a>
-      <p className="truncate [font-size:var(--public-font-caption)] text-muted-foreground">{works.slice(0, 2).map((work) => work.title).join("、") || author.bio || "尚無作品摘要"}</p>
-    </div>
-    <span className="shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)] text-muted-foreground">{works.length} 部</span>
-  </article>;
+  return <a href={href} title={author.displayName} className="group min-w-0 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-link">
+    <article className="min-w-0">
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[3px] border border-border bg-muted group-hover:opacity-90">
+        <PublicAvatarImage src={author.avatar} name={author.displayName} sizes="(min-width: 640px) 108px, 25vw" fallbackClassName={publicAvatarColor(author.displayName)} />
+      </div>
+      <h2 className="mt-1.5 line-clamp-2 min-h-[2.5em] break-words [font-size:var(--public-font-meta)] font-semibold leading-tight text-foreground group-hover:text-link">{author.displayName}</h2>
+      <p className="mt-0.5 truncate [font-size:var(--public-font-caption)] text-muted-foreground">{workCount} 部作品</p>
+    </article>
+  </a>;
+}
+
+function AuthorCard({ author, works, onTagClick }: { author: PublicPersona; works: ReturnType<typeof authorDirectoryWorks>; onTagClick: (tag: string) => void }) {
+  const href = author.externalHref || `/author/${author.id}`;
   const links = (Array.isArray(author.links) ? author.links : []).flatMap((link) =>
     link.url ? [{ label: link.label || "連結", url: link.url, isPublic: (link as { isPublic?: boolean }).isPublic === true, public: (link as { public?: boolean }).public === true }] : []);
   return <PublicIdentityDirectoryRow name={author.displayName} href={href} avatar={author.avatar} bio={author.bio}
@@ -277,11 +282,14 @@ export function GalleryAuthorGrid({
         onToggleTag={onToggleTag}
         onResetFilters={onResetFilters}
       />
-      <div>
+      <div className={viewMode === "compact" ? "grid grid-cols-4 gap-x-2 gap-y-4 min-[480px]:grid-cols-5 sm:grid-cols-[repeat(auto-fill,minmax(104px,1fr))] sm:gap-x-3 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(108px,1fr))] [&>*]:min-w-0" : undefined}>
         {filteredAuthors.map((authorLike) => {
           const author = authorLike.id ? authorById.get(authorLike.id) : undefined;
           if (!author) return null;
-          return <AuthorCard key={author.id} author={author} works={authorDirectoryWorks(author, scripts, externalScripts)} onTagClick={onToggleTag} dense={viewMode === "compact"} />;
+          const works = authorDirectoryWorks(author, scripts, externalScripts);
+          return viewMode === "compact"
+            ? <AuthorAvatarTile key={author.id} author={author} workCount={works.length} />
+            : <AuthorCard key={author.id} author={author} works={works} onTagClick={onToggleTag} />;
         })}
         {filteredAuthors.length === 0 && (
           <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">
