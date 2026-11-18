@@ -2,7 +2,8 @@ import pytest
 
 import models
 from routers.public import _public_identity_projection
-from scripts.import_ptt_chinese_audio_circles import reviewed_roster, source_profile_matches
+from scripts.import_ptt_chinese_audio_circles import reviewed_roster
+from services.catalog_identities import existing_catalog_actors, identity_candidates, require_new_catalog_identity
 from services.work_participations import (
     catalog_participants, finalize_catalog_import, participations_by_persona,
     record_catalog_participant, record_participation, replace_catalog_participants,
@@ -29,7 +30,7 @@ def test_catalog_import_defers_name_collision_and_preserves_reviewed_credit(db_s
     db_session.add(models.PersonaCreditName(personaId='p', role='voice_actor', creditedAs='ＡＫＡ－赤赤'))
     db_session.flush()
     candidate = dict(id='new-source-id', displayName='aka 赤赤')
-    matches = source_profile_matches(candidate, db_session.query(models.Persona).all(),
+    matches = identity_candidates(candidate, db_session.query(models.Persona).all(),
                                      db_session.query(models.PersonaCreditName).all())
     assert matches == ['p']
 
@@ -45,6 +46,27 @@ def test_catalog_import_defers_name_collision_and_preserves_reviewed_credit(db_s
     record_catalog_participant(db_session, work, {**incoming, 'personaId': 'p'})
     current = catalog_participants(db_session, [work.id])[work.id]
     assert reviewed_roster([incoming], current, pending) == [{**incoming, 'personaId': 'p'}]
+
+
+def test_legacy_catalog_requires_existing_work_link_or_verified_account(db_session):
+    work = setup(db_session)
+    person = db_session.get(models.Persona, 'p')
+    person.links = [{'url': 'https://twitter.com/VoiceHandle/'}]
+    db_session.add(models.PersonaCreditName(personaId='p', role='voice_actor', creditedAs='舊署名'))
+    db_session.flush()
+
+    with pytest.raises(ValueError, match='Review identity'):
+        require_new_catalog_identity(db_session, display_name='舊 署名')
+    with pytest.raises(ValueError, match='Review identity'):
+        existing_catalog_actors(db_session, '同名', organization_id='org')
+    assert existing_catalog_actors(db_session, '新顯示名', organization_id='org',
+                                   website='https://x.com/voicehandle')[0].id == 'p'
+
+    record_catalog_participant(db_session, work, participant(role='voice_actor'))
+    db_session.query(models.PersonaCreditName).filter_by(creditedAs='舊署名').delete()
+    assert existing_catalog_actors(db_session, '舊署名', organization_id='org')[0].id == 'p'
+    with pytest.raises(ValueError, match='Review identity'):
+        existing_catalog_actors(db_session, '舊署名', organization_id='another-org')
 
 
 def test_identity_links_survive_renames_and_do_not_link_same_name(db_session):

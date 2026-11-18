@@ -13,6 +13,7 @@ import time
 import uuid
 from zoneinfo import ZoneInfo
 
+from services.catalog_identities import existing_catalog_actors
 from database import SessionLocal
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission
 from routers.public_bundle import invalidate_public_bundle_cache
@@ -76,7 +77,7 @@ def main():
             changed += 1
         actor_ids = {}
         for name in sorted({name for work in works for name in work["actors"]}):
-            found = db.query(Persona).filter_by(displayName=name).all()
+            found = existing_catalog_actors(db, name, organization_id=ORG_ID)
             if len(found) > 1:
                 raise SystemExit(f"Ambiguous actor identity: {name}")
             if found:

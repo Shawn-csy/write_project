@@ -371,8 +371,8 @@
           "sourceRole": "聲優",
           "sourceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
           "originalCreditedAs": "汁慾、琦米",
-          "personaId": "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5",
-          "identityEvidence": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
+          "personaId": "1c97a57d-056b-426d-923e-95f4d870a2e7",
+          "identityEvidence": "2026-11-18 管理者確認 CxC 與 DLsite 的汁慾為同一聲演"
         },
         {
           "role": "voice_actor",
@@ -4436,19 +4436,6 @@
       "scopeMakerId": "RG01006415"
     },
     {
-      "id": "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5",
-      "displayName": "汁慾",
-      "website": "",
-      "roles": [
-        "voice_actor"
-      ],
-      "sourceUrls": [
-        "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html"
-      ],
-      "sourceOnly": true,
-      "scopeMakerId": "RG01006415"
-    },
-    {
       "id": "b94eee83-9bcd-5e8e-bde1-8b94f9d6f8eb",
       "displayName": "琦米",
       "website": "",
@@ -5066,7 +5053,8 @@
     "547072e2-e009-50d8-ac2b-aa5ff4be941d",
     "5bb26b01-9112-5866-a754-83263621df60",
     "7a2b9735-91c0-5e7f-9baf-cb1ee871eb33",
-    "ec026bb8-ade2-53ff-a584-e5a837318c9a"
+    "ec026bb8-ade2-53ff-a584-e5a837318c9a",
+    "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5"
   ],
   "identityReviews": [
     {
@@ -5139,6 +5127,14 @@
       "toId": "387d1ac4-bfab-4789-bb64-a28883543068",
       "evidenceUrl": "https://www.dlsite.com/maniax/work/=/product_id/RJ01437906.html",
       "reason": "作品署名以括號指定 TAKA，既有 Taka 為後製身份",
+      "creditsMoved": 1
+    },
+    {
+      "fromId": "7f5dc0c6-2f2b-513c-b6ca-a378fceb82d5",
+      "fromName": "汁慾",
+      "toId": "1c97a57d-056b-426d-923e-95f4d870a2e7",
+      "evidenceUrl": "https://www.dlsite.com/bl/work/=/product_id/RJ01147122.html",
+      "reason": "管理者確認 CxC 與 DLsite 的汁慾為同一聲演",
       "creditsMoved": 1
     }
   ]

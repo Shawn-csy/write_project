@@ -14,6 +14,7 @@ import time
 import uuid
 from pathlib import Path
 
+from services.catalog_identities import existing_catalog_actors
 from database import SessionLocal
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission
 
@@ -44,7 +45,7 @@ def main() -> None:
         changed = 0
         actor_ids = {}
         for name in sorted({name for work in WORKS for name in work["voiceActors"]}):
-            matches = db.query(Persona).filter(Persona.displayName == name).all()
+            matches = existing_catalog_actors(db, name, organization_id=ORG_ID)
             if len(matches) > 1:
                 raise SystemExit(f"Multiple existing personas named {name}")
             if matches:

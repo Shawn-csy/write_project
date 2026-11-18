@@ -10,58 +10,25 @@ checked against the corresponding DLsite product page on 2026-11-18.
 
 import argparse
 from datetime import datetime
-from itertools import chain
 import json
 import os
 from pathlib import Path
 import re
 import time
-import unicodedata
 from urllib.parse import urlparse
 import uuid
 from zoneinfo import ZoneInfo
 
 from database import SessionLocal
-from models import AudioWorkCredit, Organization, Persona, PersonaCredit, PersonaCreditName, PersonaRole, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, Organization, Persona, PersonaCredit, PersonaRole, PublicAudioWorkSubmission, User
 from routers.public_bundle import invalidate_public_bundle_cache
+from services.catalog_identities import catalog_credit_names, identity_candidates
 from services.work_participations import catalog_participants, finalize_catalog_import, replace_catalog_participants
 
 
 SOURCE = "https://www.pttweb.cc/bbs/C_Chat/M.1772807118.A.62B"
 REVIEWER = "ptt-chinese-audio-circles-2026-11-18"
 PRODUCT_ID = re.compile(r"^RJ\d{6,8}$")
-
-
-def identity_name_key(name):
-    normalized = unicodedata.normalize("NFKC", name or "").casefold()
-    return "".join(char for char in normalized if char.isalnum())
-
-
-def profile_url_key(url):
-    parsed = urlparse(url or "")
-    host = (parsed.hostname or "").removeprefix("www.")
-    path = parsed.path.rstrip("/")
-    if host in {"twitter.com", "x.com"}:
-        return ("x.com", path.casefold(), "")
-    return (host, path, parsed.query)
-
-
-def persona_profile_urls(person):
-    return [person.website, *(link.get("url") for link in (person.links or [])
-                              if isinstance(link, dict))]
-
-
-def source_profile_matches(profile, personas, credit_names):
-    """A name match is a review candidate, not permission to link a credit."""
-    key = identity_name_key(profile["displayName"])
-    if not key:
-        return []
-    names = chain(
-        ((person.displayName, person.id) for person in personas),
-        ((alias.creditedAs, alias.personaId) for alias in credit_names),
-    )
-    return sorted({pid for name, pid in names
-                   if pid != profile["id"] and identity_name_key(name) == key})
 
 
 def reviewed_roster(participants, current, pending_profiles):
@@ -167,29 +134,22 @@ def main():
         created_personas = 0
         created_roles = 0
         existing_personas = db.query(Persona).all()
-        credit_names = db.query(PersonaCreditName).all()
+        credit_names = catalog_credit_names(db)
         existing_roles = {(role.personaId, role.role) for role in db.query(PersonaRole).all()}
         pending_profiles = {}
         for profile in snapshot.get("resourceProfiles", []):
-            if profile.get("sourceOnly"):
-                # A source-only card is scoped to one DLsite maker. A same-named
-                # identity elsewhere is not evidence that these people match.
-                collisions = [person for person in existing_personas if person.id == profile["id"]]
-                if not collisions:
-                    matches = source_profile_matches(profile, existing_personas, credit_names)
-                    if matches:
-                        pending_profiles[profile["id"]] = {
-                            "displayName": profile["displayName"],
-                            "sourceUrls": profile["sourceUrls"],
-                            "candidatePersonaIds": matches,
-                        }
-                        continue
-            else:
-                website = profile_url_key(profile["website"])
-                collisions = [person for person in existing_personas if person.id not in retired_ids
-                              and (
-                              person.id == profile["id"] or person.displayName == profile["displayName"]
-                              or any(profile_url_key(url) == website for url in persona_profile_urls(person)))]
+            collisions = [person for person in existing_personas if person.id == profile["id"]]
+            if not collisions:
+                matches = identity_candidates(
+                    profile, [p for p in existing_personas if p.id not in retired_ids], credit_names,
+                )
+                if matches:
+                    pending_profiles[profile["id"]] = {
+                        "displayName": profile["displayName"],
+                        "sourceUrls": profile["sourceUrls"],
+                        "candidatePersonaIds": matches,
+                    }
+                    continue
             if len(collisions) > 1 or (collisions and collisions[0].id != profile["id"]):
                 raise ValueError(f"Resource identity conflict: {profile['displayName']}")
             if collisions:

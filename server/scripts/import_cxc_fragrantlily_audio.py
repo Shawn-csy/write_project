@@ -13,6 +13,7 @@ import time
 import uuid
 
 from database import SessionLocal
+from services.catalog_identities import require_new_catalog_identity
 from models import Organization, Persona, PersonaRole, PublicAudioWorkSubmission
 from routers.public_bundle import invalidate_public_bundle_cache
 
@@ -91,6 +92,7 @@ def main() -> None:
             raise SystemExit("莉莉Lily identity conflicts with an existing record")
         collaborator = db.get(Persona, collaborator_id)
         if not collaborator:
+            require_new_catalog_identity(db, display_name="莉莉Lily", persona_id=collaborator_id)
             collaborator = Persona(
                 id=collaborator_id, ownerId=None, displayName="莉莉Lily",
                 avatar="", bannerUrl="", bio="", website="", links=[],
