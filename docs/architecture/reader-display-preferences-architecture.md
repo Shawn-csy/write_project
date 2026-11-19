@@ -7,9 +7,9 @@ Scope: Vite workspace editor preview, shared script reader renderer, and future 
 
 Reader display preferences currently cross several boundaries:
 
-- Vite workspace settings live in `src/contexts/SettingsContext.tsx`.
-- Editor preview reads those settings through `src/hooks/useReaderPreferences.ts`.
-- Vite renderer entry is `src/components/renderer/ScriptViewer.tsx`.
+- Vite workspace settings live in `apps/studio/src/contexts/SettingsContext.tsx`.
+- Editor preview reads those settings through `apps/studio/src/hooks/useReaderPreferences.ts`.
+- Vite renderer entry is `apps/studio/src/components/renderer/ScriptViewer.tsx`.
 - Legacy/render-model output lives in `ScriptRenderer` and `RenderBlockRenderer`.
 - Presentation output lives in `@write/script-reader-renderer`.
 - Public reader preferences live in `@write/script-reader-ui` and the Next public app.
@@ -199,7 +199,7 @@ Completion notes:
   (`AggregateCapability`) rather than a flat union, to preserve conditional
   `showLineUnderline` semantics across columns / timeline / linear paths.
 - Host-owned renderer branches (ScriptRenderer, RenderBlockRenderer) are described
-  in `src/types/rendererCapabilityMatrix.ts` (Vite app), not in the shared package.
+  in `apps/studio/src/types/rendererCapabilityMatrix.ts` (Vite app), not in the shared package.
 - Decisions: Timeline and Linear do not support `showLineUnderline` (explicit,
   tested). Column dividers, line numbers, and track headers remain fixed
   presentation structure; no user preferences added.
@@ -236,7 +236,7 @@ Completion notes:
   `normalizeReaderDisplayPreferences` — invalid values from either source are
   caught by the same rules. SettingsContext remains the storage/orchestration
   layer; this hook is the adapter.
-- The old flat `src/types/readerPreferences.ts` file has been removed.
+- The old flat `apps/studio/src/types/readerPreferences.ts` file has been removed.
 - Consumers (`PreviewPanel`, `ScriptMetadataDialog`) flatten the nested model
   to ScriptViewer flat props at the call site; ScriptViewer API stays flat
   until Phase 3.

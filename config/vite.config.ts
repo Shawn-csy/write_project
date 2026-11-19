@@ -4,13 +4,14 @@ import path from "path";
 import fs from "fs";
 
 const repoRoot = path.resolve(__dirname, "..");
+const studioRoot = path.join(repoRoot, "apps/studio");
 const packageJson = JSON.parse(
   fs.readFileSync(path.join(repoRoot, "package.json"), "utf-8")
 );
 const APP_VERSION = packageJson.version || "0.0.0";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, repoRoot, '');
   const apiUrl = env.VITE_API_URL || "/api";
   const isAbsoluteApiUrl = /^https?:\/\//i.test(apiUrl);
   const proxyTarget =
@@ -18,15 +19,38 @@ export default defineConfig(({ mode }) => {
     (isAbsoluteApiUrl ? apiUrl : "http://localhost:1091");
 
   return {
-    root: repoRoot,
-    plugins: [react()],
+    root: studioRoot,
+    envDir: repoRoot,
+    plugins: [
+      react(),
+      {
+        name: "studio-build-output",
+        apply: "build",
+        config({ build }) {
+          if (build?.emptyOutDir !== undefined) return;
+          const relativeOutDir = path.relative(
+            repoRoot,
+            path.resolve(studioRoot, build?.outDir ?? "dist"),
+          );
+          // Preserve Vite's cleanup for repo-local outputs after changing its root.
+          if (
+            relativeOutDir &&
+            relativeOutDir !== ".." &&
+            !relativeOutDir.startsWith(`..${path.sep}`) &&
+            !path.isAbsolute(relativeOutDir)
+          ) {
+            return { build: { emptyOutDir: true } };
+          }
+        },
+      },
+    ],
     css: { postcss: __dirname },
     define: {
       __APP_VERSION__: JSON.stringify(APP_VERSION),
     },
     resolve: {
       alias: {
-        "@": path.join(repoRoot, "src"),
+        "@": path.join(studioRoot, "src"),
       },
     },
     server: {
@@ -60,6 +84,7 @@ export default defineConfig(({ mode }) => {
     ],
   },
   build: {
+    outDir: path.join(repoRoot, 'dist'),
     target: 'esnext',
     chunkSizeWarningLimit: 600,
     rollupOptions: {

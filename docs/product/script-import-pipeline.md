@@ -19,13 +19,13 @@ flowchart TD
 ```
 
 ## 主要檔案
-- `src/components/dashboard/write/ImportScriptDialog.tsx`
-- `src/components/dashboard/write/import/ImportStagePreview.tsx`
-- `src/lib/importPipeline/textPreprocessor.ts`
-- `src/lib/importPipeline/metadataExtractor.ts`
-- `src/lib/importPipeline/markerGuideStripper.ts`
-- `src/lib/importPipeline/tagSync.ts`
-- `src/components/dashboard/WriteTab.tsx`
+- `apps/studio/src/components/dashboard/write/ImportScriptDialog.tsx`
+- `apps/studio/src/components/dashboard/write/import/ImportStagePreview.tsx`
+- `apps/studio/src/lib/importPipeline/textPreprocessor.ts`
+- `apps/studio/src/lib/importPipeline/metadataExtractor.ts`
+- `apps/studio/src/lib/importPipeline/markerGuideStripper.ts`
+- `apps/studio/src/lib/importPipeline/tagSync.ts`
+- `apps/studio/src/components/dashboard/WriteTab.tsx`
 
 ## 階段說明
 1. 輸入與預處理
@@ -48,12 +48,12 @@ flowchart TD
 - `tagSync` 解析匯入標籤並同步到「實體 tag 關聯」
 
 ## 與舊版流程差異
-- 不再使用 `src/lib/metadataParser.ts`
+- 不再使用 `apps/studio/src/lib/metadataParser.ts`
 - 匯入流程不使用 `markerDiscoverer.ts`（該規劃稿未採用）
 - `Tags` 匯入後優先同步為 script tags，不再混入 custom metadata
 
 ## 相關測試
-- `src/lib/importPipeline/metadataExtractor.test.ts`
-- `src/lib/importPipeline/tagSync.test.ts`
-- `src/components/dashboard/write/ImportScriptDialog.metadata.test.ts`
-- `src/components/dashboard/WriteTab.test.tsx`
+- `apps/studio/src/lib/importPipeline/metadataExtractor.test.ts`
+- `apps/studio/src/lib/importPipeline/tagSync.test.ts`
+- `apps/studio/src/components/dashboard/write/ImportScriptDialog.metadata.test.ts`
+- `apps/studio/src/components/dashboard/WriteTab.test.tsx`

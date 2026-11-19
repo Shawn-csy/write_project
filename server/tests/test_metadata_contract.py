@@ -7,7 +7,7 @@ Verifies the single-track metadata invariants for the API layer:
   3. Response always exposes structured fields at top-level
   4. All 7 structured content fields (E1-E6) covered
 
-Mirrors the frontend contract suite at src/lib/metadataContract.test.ts.
+Mirrors the frontend contract suite at apps/studio/src/lib/metadataContract.test.ts.
 """
 
 import json

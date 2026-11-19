@@ -182,13 +182,13 @@ S02 的畫面矛盾已確認，根因待查。須檢查分頁、快取、資料�
 
 | 區域 | 現有入口／元件 | 策略 |
 |---|---|---|
-| 導覽與路由 | `src/components/layout/`、`src/routes/WorkspaceRoutes.tsx` | 整理導覽，保留舊深連結可抵達對應新畫面 |
-| 文件與編輯入口 | `src/pages/DashboardPage.tsx`、`src/components/dashboard/HybridDashboard.tsx`、`src/components/dashboard/write/` | 明確編輯／檢視，保留資料夾與列表狀態 |
-| 發布管理 | `src/pages/PublisherDashboard.tsx`、`src/hooks/publisher/usePublisherDashboardState.ts`、`src/components/dashboard/publisher/WorkScript*` | 統一列表投影、計數、狀態與主要操作 |
-| 公開資訊 | `src/components/dashboard/ScriptMetadataDialog.tsx`、`src/components/dashboard/metadata/` | 簡化導覽與欄位層級，保留資料讀寫契約 |
-| 系列／身份 | `src/components/dashboard/publisher/PublisherEntityLayout.tsx`、`PublisherSeriesTab.tsx`、`PublisherProfileTab.tsx`、`src/pages/CommunityWorkbenchPage.tsx` | 共用版面與手機流程，先確認既有依賴 |
-| 外部作品 | `src/components/dashboard/publisher/StudioExternalScriptsTab.tsx`、`src/lib/api/studioExternalScripts.ts` | 整合發布體驗，保留來源與後端權限 |
-| 視覺 | `src/index.css`、`src/components/ui/`、共用工作室元件 | 延伸現有 token，避免散落頁面覆寫 |
+| 導覽與路由 | `apps/studio/src/components/layout/`、`apps/studio/src/routes/WorkspaceRoutes.tsx` | 整理導覽，保留舊深連結可抵達對應新畫面 |
+| 文件與編輯入口 | `apps/studio/src/pages/DashboardPage.tsx`、`apps/studio/src/components/dashboard/HybridDashboard.tsx`、`apps/studio/src/components/dashboard/write/` | 明確編輯／檢視，保留資料夾與列表狀態 |
+| 發布管理 | `apps/studio/src/pages/PublisherDashboard.tsx`、`apps/studio/src/hooks/publisher/usePublisherDashboardState.ts`、`apps/studio/src/components/dashboard/publisher/WorkScript*` | 統一列表投影、計數、狀態與主要操作 |
+| 公開資訊 | `apps/studio/src/components/dashboard/ScriptMetadataDialog.tsx`、`apps/studio/src/components/dashboard/metadata/` | 簡化導覽與欄位層級，保留資料讀寫契約 |
+| 系列／身份 | `apps/studio/src/components/dashboard/publisher/PublisherEntityLayout.tsx`、`PublisherSeriesTab.tsx`、`PublisherProfileTab.tsx`、`apps/studio/src/pages/CommunityWorkbenchPage.tsx` | 共用版面與手機流程，先確認既有依賴 |
+| 外部作品 | `apps/studio/src/components/dashboard/publisher/StudioExternalScriptsTab.tsx`、`apps/studio/src/lib/api/studioExternalScripts.ts` | 整合發布體驗，保留來源與後端權限 |
+| 視覺 | `apps/studio/src/index.css`、`apps/studio/src/components/ui/`、共用工作室元件 | 延伸現有 token，避免散落頁面覆寫 |
 
 清單為修改定位，非全部檔案的刪除或重寫指令。現有未提交的投稿與外部發布功能須保留，實作前先核對差異。
 

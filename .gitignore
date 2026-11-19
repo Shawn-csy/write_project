@@ -59,7 +59,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-# lib/  <-- REPLACED: Removed broad lib/ ignore to protect src/lib
+# lib/  <-- REPLACED: Removed broad lib/ ignore to protect apps/studio/src/lib
 lib64/
 parts/
 sdist/

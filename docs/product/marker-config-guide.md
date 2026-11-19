@@ -4,8 +4,8 @@
 ## 設定面板位置
 
 設定面板組件位於：
-- `src/components/settings/marker/MarkerDetailEditor.tsx`
-- `src/components/settings/marker/configs/MarkerLogicSettings.tsx`
+- `apps/studio/src/components/settings/marker/MarkerDetailEditor.tsx`
+- `apps/studio/src/components/settings/marker/configs/MarkerLogicSettings.tsx`
 
 ---
 
@@ -131,7 +131,7 @@ flowchart TD
 
 | 檔案 | 說明 |
 |------|------|
-| `src/lib/importPipeline/directASTBuilder.ts` | 解析器核心 |
-| `src/constants/defaultMarkerRules.ts` | 預設 marker 設定 |
-| `src/components/settings/marker/configs/ModeSelector.tsx` | 模式選擇器 UI |
-| `src/components/settings/marker/configs/MarkerPreview.tsx` | 即時預覽組件 |
+| `apps/studio/src/lib/importPipeline/directASTBuilder.ts` | 解析器核心 |
+| `apps/studio/src/constants/defaultMarkerRules.ts` | 預設 marker 設定 |
+| `apps/studio/src/components/settings/marker/configs/ModeSelector.tsx` | 模式選擇器 UI |
+| `apps/studio/src/components/settings/marker/configs/MarkerPreview.tsx` | 即時預覽組件 |

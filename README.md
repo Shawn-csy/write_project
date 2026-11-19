@@ -4,7 +4,7 @@
 
 本專案是一個台本創作、發布與公開閱讀平台。公開網站與工作室分別由兩個前端提供：
 
-- `src/`：Vite 工作室/editor。負責創作、發布工作室、後台管理、匯入匯出與編輯器預覽。
+- `apps/studio/`：Vite 工作室/editor。負責創作、發布工作室、後台管理、匯入匯出與編輯器預覽。
 - `apps/public/`：Next.js 公開站原始碼。正式公開入口採 Cloudflare Pages 靜態匯出，瀏覽器向 Tunnel 主 API 取得即時公開資料，失聯時使用 D1／R2 唯讀備援。SEO HTML、metadata 與 sitemap 是建置快照；正式環境不再啟動 Next server，公開 JSON 與封面統一由 FastAPI 提供。Next.js 保留為 Pages 建置工具與本機開發服務。
 
 共享的解析、渲染、公開 UI、媒體裁切與 PDF 匯出能力放在 `packages/*`，避免 Vite 與 Next 重複實作。
@@ -67,10 +67,10 @@ apps/public/              Next.js public frontend
   components/             public app adapters and shell actions
   lib/                    API/BFF adapters, SEO models, public projections
 
-src/                      Vite studio/editor frontend
-  components/             editor, dashboard, reader preview, metadata UI
-  hooks/                  studio/editor state and API hooks
-  lib/                    Vite app adapters and compatibility shims
+apps/studio/              Vite studio/editor frontend
+  index.html              Vite entry point
+  public/                 static assets served by Studio
+  src/                    editor, dashboard, reader preview, and API adapters
 
 packages/
   script-engine/          marker config normalization, parser, AST, render model
@@ -108,7 +108,7 @@ config/                   Studio build, styling and repository test config
 ## 架構邊界
 
 - `apps/public` owns public routes, build-time metadata, public URL behavior, and browser primary/fallback adapters. Production APIs and media belong to FastAPI.
-- `src` owns studio/editor workflows. Vite public-looking modules that remain are editor preview code or compatibility facades.
+- `apps/studio` owns studio/editor workflows. Vite public-looking modules that remain are editor preview code or compatibility facades.
 - `packages/script-engine` is the single source for parser/AST/render model logic.
 - `packages/script-reader-renderer` owns canonical script rendering and marker-driven presentation layout. Legacy `v2` names are compatibility aliases.
 - `packages/public-ui` owns router-neutral public models and UI components. It exports a client barrel (`index.ts`) and a server-safe barrel (`server.ts`).

@@ -293,7 +293,7 @@ class CommandBoundaryTests(unittest.TestCase):
 
     def test_real_guard_refuses_untracked_inputs_and_non_main(self):
         commands = release.Commands()
-        with patch.object(commands, 'output', return_value='?? src/untracked.ts') as output:
+        with patch.object(commands, 'output', return_value='?? apps/studio/src/untracked.ts') as output:
             with self.assertRaisesRegex(release.ReleaseError, 'uncommitted'):
                 commands.guard()
             self.assertIn('--untracked-files=all', output.call_args.args[0])

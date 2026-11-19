@@ -414,7 +414,7 @@ Long-term rule:
 - marker display semantics
 - hidden marker behavior
 
-The old Vite `src/components/renderer/v2/*` and `src/lib/v2/*` paths are
+The old Vite `apps/studio/src/components/renderer/v2/*` and `apps/studio/src/lib/v2/*` paths are
 compatibility facades only. New read-page work should use the `Presentation*`
 API from `@write/script-reader-renderer`; `V2*` names are legacy aliases, not
 the canonical architecture.
@@ -657,7 +657,7 @@ Completed:
   orchestration, row grouping, and table export.
 - Next read page now passes parsed AST into `ScriptPresentationRenderer` instead
   of precomputing `RenderBlock[]` for the linear block renderer.
-- `src/components/renderer/v2/*` and `src/lib/v2/*` are compatibility facades
+- `apps/studio/src/components/renderer/v2/*` and `apps/studio/src/lib/v2/*` are compatibility facades
   around `@write/script-reader-renderer`; they no longer contain independent
   presentation implementation.
 - Canonical DOM contract is `data-presentation-mode`; `data-v2-presentation`

@@ -19,7 +19,7 @@
     /* 路徑 */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./apps/studio/src/*"]
     },
 
     /* 輸出：Vite 處理，tsc 只做型別檢查 */
@@ -30,14 +30,14 @@
     "resolveJsonModule": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["src", "packages/script-engine/src"],
+  "include": ["apps/studio/src", "packages/script-engine/src"],
   "exclude": [
     "node_modules",
     "dist",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/__tests__/**",
-    "src/test/**",
-    "src/tests/**"
+    "apps/studio/src/**/*.test.ts",
+    "apps/studio/src/**/*.test.tsx",
+    "apps/studio/src/**/__tests__/**",
+    "apps/studio/src/test/**",
+    "apps/studio/src/tests/**"
   ]
 }

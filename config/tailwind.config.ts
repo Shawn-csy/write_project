@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
-  content: { relative: true, files: ['../index.html', '../src/**/*.{js,jsx,ts,tsx}'] },
+  content: { relative: true, files: ['../apps/studio/index.html', '../apps/studio/src/**/*.{js,jsx,ts,tsx}'] },
   darkMode: ['class'],
   theme: {
     container: {
