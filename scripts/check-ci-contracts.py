@@ -72,7 +72,7 @@ class CIContracts(unittest.TestCase):
             "src/main.tsx", "src/lib/example.ts", "packages/script-engine/src/index.ts",
             "apps/public/app/page.tsx", "server/main.py", "public/favicon.svg",
             "deploy/nginx/default.conf", "nginx.conf", ".dockerignore", "docker-compose.prod.yml",
-            "docs/example.py", "docs/config.json", "scripts/release.sh", "scripts/deploy.sh", ".github/workflows/deploy.yml",
+            "docs/example.py", "docs/config.json", "scripts/release.sh", "scripts/site-release.py", ".github/workflows/deploy.yml",
             ".github/workflows/public-read-security.yml", ".github/workflows/submission-workflows.yml",
             "package.json", "package-lock.json", "tsconfig.json", "vite.config.ts",
             "vitest.config.ts", "tailwind.config.ts", "postcss.config.ts", "index.html",

@@ -60,8 +60,3 @@ fi
 (cd server && "$BACKEND_PYTHON" -m pytest -q)
 
 echo "\n✅ CI checks passed"
-
-if [ "${AUTO_DEPLOY:-0}" = "1" ]; then
-  echo "\n🚀 Auto deploy (docker-compose.prod.yml)"
-  RUN_CI=0 bash "$ROOT_DIR/scripts/deploy.sh"
-fi
