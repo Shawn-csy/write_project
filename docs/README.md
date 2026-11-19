@@ -19,7 +19,7 @@
 4. `architecture/public-homepage-architecture.md`：Next public homepage 架構、URL state、資料契約
 5. `engineering/testing.md`：測試策略與指令
 
-> ⚠️ 現有 `scripts/safe-deploy.sh` 會停止 PostgreSQL 與所有服務，預設拒絕執行；僅在停機維護時設定 `ALLOW_SERVICE_DOWNTIME=1` 使用。日常網站發布使用 [持續部署與發布程序](engineering/continuous-deployment.md)，不停止 PostgreSQL；入口交接仍需依程序驗證。
+> 正式網站請依照 [持續部署與發布程序](engineering/continuous-deployment.md) 發布與回滾。
 
 ## 工程操作
 

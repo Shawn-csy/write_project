@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from database import SessionLocal
+from scripts.backfill_snapshots import read_backfill_snapshot
 import models
 from routers.public import _production_credits_by_persona
 from scripts.import_work_participations import import_snapshot
@@ -57,7 +58,7 @@ def main():
     if urlparse(os.environ.get('DATABASE_URL', '')).path != '/' + args.database_name:
         raise SystemExit('Database target mismatch')
     with SessionLocal() as db:
-        result = audit(db, json.loads(args.snapshot.read_text()))
+        result = audit(db, read_backfill_snapshot(args.snapshot, "honglianScriptwriterLinks"))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         if args.apply:
             db.commit()

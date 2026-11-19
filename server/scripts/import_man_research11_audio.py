@@ -31,13 +31,7 @@ def work_url(work):
 
 
 def work_description(work):
-    lines = ["內容簡介", work["summary"], "", "製作資訊"]
-    if work["actors"]:
-        lines.append("聲演：" + "、".join(work["actors"]))
-    lines.extend(f"{key}：{value}" for key, value in work["credits"].items())
-    lines.append("分級：" + work["rating"])
-    lines.append("CxC " + ("最後更新日" if work["kind"] == "album" else "上架日") + "：" + work["date"])
-    return "\n".join(lines)
+    return work["summary"].strip() + "\n分級：" + work["rating"]
 
 
 def main():

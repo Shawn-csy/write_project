@@ -55,7 +55,7 @@ python3 scripts/benchmark-public-reads.py --base-url http://127.0.0.1:1090 --pat
 
 候選服務與來源站入口不同，請求數也太少，不足以宣稱延遲改善倍率。實際首頁 HTML 只減少 2,792 B gzip（約 3.6%），比 props 的 21.4% 小：首頁仍在 HTML 中提供完整台本卡片及 110 筆外部台本。瀏覽器唯讀煙霧測試確認 `/`、`/authors`、`/?view=orgs` 均回 200、有內容連結、無頁面例外。候選服務測完即停止。
 
-現有 `safe-deploy.sh` 先停 PostgreSQL，`deploy.sh` 又執行 `docker compose down`；此發布路徑會中斷所有服務，不可用於不中斷發布。下一步應先建立獨立候選容器及可回滾切換機制，再以相同線上入口、資料量和瀏覽器互動量測；首頁接著需處理外部台本清單的首屏傳輸與渲染成本。
+當時的停機部署先停止 PostgreSQL，再執行 `docker compose down`；此發布路徑會中斷所有服務，不可用於不中斷發布。下一步應先建立獨立候選容器及可回滾切換機制，再以相同線上入口、資料量和瀏覽器互動量測；首頁接著需處理外部台本清單的首屏傳輸與渲染成本。
 
 ## 瀏覽器首屏基線
 
@@ -92,7 +92,7 @@ node scripts/benchmark-public-browser.mjs \
 
 ## 同正式資料的唯讀候選站（2026-11-10）
 
-正式資料庫完成增量 schema 遷移後，以 `scripts/stage-prod-candidate-readonly.sh` 在正式 Docker 網路另起候選 API、公開站與 Nginx，僅發布隨機 IPv4 loopback 埠；候選 API 設定 PostgreSQL 唯讀交易。正式入口仍使用舊容器。兩者透過同一正式資料庫讀取，順序為舊版、候選版、舊版、候選版；每組路徑暖機後 25 次、併發 3。數值是兩組 p50 的範圍：
+正式資料庫完成增量 schema 遷移後，當時用唯讀排練腳本在正式 Docker 網路另起候選 API、公開站與 Nginx，僅發布隨機 IPv4 loopback 埠；候選 API 設定 PostgreSQL 唯讀交易。正式入口仍使用舊容器。兩者透過同一正式資料庫讀取，順序為舊版、候選版、舊版、候選版；每組路徑暖機後 25 次、併發 3。數值是兩組 p50 的範圍：
 
 | 路徑 | 舊版 p50 | 候選 p50 | 舊版 gzip | 候選 gzip |
 |---|---:|---:|---:|---:|

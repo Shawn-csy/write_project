@@ -149,10 +149,6 @@ Production Compose 預設 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=
 
 歷史排練或某次 `--apply` 成功不能證明目前線上 schema 完整。2026-11-16 正常發布已完成 schema 驗證；每次發布仍需重新檢查，版本庫行為與限制見 [Database Runtime](database-runtime.md)。
 
-### 舊整組部署（只限停機維護）
-
-`safe-deploy.sh` 與 `deploy.sh` 會停止正式 PostgreSQL／整組服務，預設拒絕執行。僅在已安排整組停機維護時使用 `ALLOW_SERVICE_DOWNTIME=1 bash scripts/safe-deploy.sh`；不要直接執行 `deploy.sh`。這是維護入口，不是日常網站發布流程；停機前須檢查備份、容器 stop grace period 與 schema 作業安排。
-
 ### 資料庫備份
 
 ```bash
@@ -169,9 +165,8 @@ bash scripts/backup-db.sh
 
 ```bash
 export CLOUDFLARE_API_TOKEN='...'   # 權限：Zone / Cache Purge / Purge
-bash scripts/cf-purge.sh            # 預設清除事故受影響的頁面
+bash scripts/cf-purge.sh https://open-scripts.shawnup.com/authors
 bash scripts/cf-purge.sh --all      # 清除整個 zone
-bash scripts/cf-purge.sh <url>...   # 清除指定網址
 ```
 
 Token 只從環境變數讀取，不會出現在指令參數或任何輸出中。

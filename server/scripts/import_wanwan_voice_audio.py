@@ -26,10 +26,7 @@ PLATFORM_OWNER_ID = "FBP0FGybEscMUlfl2uRTUxfq0ZT2"
 
 
 def description(work):
-    lines = ["內容簡介", work["summary"], "", "製作資訊", "聲演：" + "、".join(work["voiceActors"])]
-    lines.extend(f"{role}：{names}" for role, names in work["credits"].items())
-    lines.append("分級：" + work["rating"])
-    return "\n".join(lines)
+    return work["summary"].strip() + "\n分級：" + work["rating"]
 
 
 def main():

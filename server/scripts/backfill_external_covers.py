@@ -6,6 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from database import SessionLocal
+from scripts.backfill_snapshots import read_backfill_snapshot
 from models import ExternalPublicScript
 
 
@@ -41,7 +42,7 @@ def main():
     if urlparse(os.environ.get("DATABASE_URL", "")).path != "/" + args.database_name:
         raise SystemExit("Database name does not match the explicitly selected target")
     with SessionLocal() as db:
-        changes = apply_snapshot(db, json.loads(args.snapshot.read_text()))
+        changes = apply_snapshot(db, read_backfill_snapshot(args.snapshot, "haineCxcCoverOverrides"))
         print(json.dumps({"count": len(changes), "changes": changes}, ensure_ascii=False, indent=2))
         if args.apply:
             db.commit()

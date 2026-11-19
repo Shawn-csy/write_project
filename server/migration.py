@@ -215,86 +215,6 @@ def _backfill_content_fields(conn):
         print(f"Migrating: backfilled structured content fields for {migrated} scripts")
 
 
-def _backfill_canonical_metadata_fields(conn):
-    """Backfill targetAudience, contentRating, license, licenseSpecialTerms,
-    authorDisplayMode, authorOverrideName from customMetadata.
-
-    Only fills when the column is NULL. Never overwrites existing values.
-    Idempotent — safe to re-run.
-    """
-    rows = conn.execute(text(
-        'SELECT id, "customMetadata", "targetAudience", "contentRating", "license", '
-        '"licenseSpecialTerms", "authorDisplayMode", "authorOverrideName" FROM scripts'
-    )).fetchall()
-    migrated = 0
-    for row in rows:
-        raw_custom = row[1]
-        if not raw_custom:
-            continue
-        if isinstance(raw_custom, str):
-            try:
-                raw_custom = json.loads(raw_custom)
-            except Exception:
-                continue
-        if not isinstance(raw_custom, list):
-            continue
-        meta_map = {
-            "".join(str(item.get("key") or "").strip().lower().split()): str(item.get("value") or "").strip()
-            for item in raw_custom if isinstance(item, dict)
-        }
-        current = {
-            "targetAudience": row[2],
-            "contentRating": row[3],
-            "license": row[4],
-            "licenseSpecialTerms": row[5],
-            "authorDisplayMode": row[6],
-            "authorOverrideName": row[7],
-        }
-        updates = {}
-        if not current["targetAudience"]:
-            val = meta_map.get("targetaudience") or meta_map.get("觀眾取向") or ""
-            if val:
-                updates["targetAudience"] = val
-        if not current["contentRating"]:
-            val = meta_map.get("contentrating") or meta_map.get("內容分級") or ""
-            if val:
-                updates["contentRating"] = val
-        if not current["license"]:
-            val = meta_map.get("license") or meta_map.get("授權") or ""
-            if val:
-                updates["license"] = val
-        if not current["licenseSpecialTerms"]:
-            val = meta_map.get("licensespecialterms") or ""
-            if val:
-                # Store as JSON array string; if already JSON array keep as-is, else wrap in array
-                try:
-                    parsed = json.loads(val)
-                    if isinstance(parsed, list):
-                        updates["licenseSpecialTerms"] = val
-                    else:
-                        updates["licenseSpecialTerms"] = json.dumps([str(parsed)])
-                except Exception:
-                    updates["licenseSpecialTerms"] = json.dumps([val])
-        if not current["authorDisplayMode"]:
-            val = meta_map.get("authordisplaymode") or meta_map.get("authordisplay") or ""
-            if val:
-                updates["authorDisplayMode"] = val
-        if not current["authorOverrideName"]:
-            mode = updates.get("authorDisplayMode") or current["authorDisplayMode"] or ""
-            if mode == "override":
-                val = meta_map.get("author") or ""
-                if val:
-                    updates["authorOverrideName"] = val
-        if not updates:
-            continue
-        set_clause = ", ".join(f'"{k}" = :{k}' for k in updates)
-        updates["_id"] = row[0]
-        conn.execute(text(f"UPDATE scripts SET {set_clause} WHERE id = :_id"), updates)
-        migrated += 1
-    if migrated:
-        print(f"Migrating: backfilled canonical metadata fields for {migrated} scripts")
-
-
 def _metadata_entries_to_map(entries):
     if isinstance(entries, str):
         try:
@@ -942,9 +862,6 @@ def _run_postgres_migrations():
                 conn.execute(text(f'ALTER TABLE scripts ADD COLUMN "{col}" {col_type}'))
         conn.commit()
         _backfill_publish_state(conn)
-        # NOTE: canonical metadata backfill is NOT run automatically here.
-        # Run scripts/backfill_canonical_metadata.py --dry-run first to review,
-        # then --write to apply. See docs/public-metadata-contract-migration-plan.md Phase 2.
         conn.execute(text(
             'CREATE INDEX IF NOT EXISTS ix_scripts_owner_sort_modified '
             'ON scripts ("ownerId", "sortOrder", "lastModified" DESC)'
@@ -1629,9 +1546,6 @@ def run_migrations():
                     print(f"Migrating: Adding '{col}' column to scripts")
                     conn.execute(text(f"ALTER TABLE scripts ADD COLUMN {col} TEXT DEFAULT NULL"))
             _backfill_publish_state(conn)
-            # NOTE: canonical metadata backfill is NOT run automatically here.
-            # Run scripts/backfill_canonical_metadata.py --dry-run first to review,
-            # then --write to apply. See docs/public-metadata-contract-migration-plan.md Phase 2.
             conn.execute(text(
                 "CREATE INDEX IF NOT EXISTS ix_scripts_owner_sort_modified "
                 "ON scripts (ownerId, sortOrder, lastModified DESC)"

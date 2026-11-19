@@ -6,9 +6,9 @@
 
 來源：被談聲聆與風橙實驗室的 CxC 公開目錄；風橙與雪白薄紗的官方 Portaly 頁；NEON VOICE 的官方 YouTube 動態。官網中的商品連結只作為比對線索，不抓取其目標網站內容。來源讀取失敗會列入報告並讓執行程序以非零狀態結束。
 
-程式：`server/scripts/check_audio_work_releases.py`。執行腳本：`scripts/run-audio-work-discovery-dev.sh`。排程：`scripts/com.shawnup.write-project-audio-discovery.plist`。狀態檔存於 Dev API 的 `/data/audio-discovery/state.json`，避免重複通知。報告存於 `~/Library/Logs/write-project-audio-discovery/latest.json`；有新候選或錯誤時，也會保留在 `history/` 並發出本機通知。
+程式：`server/scripts/check_audio_work_releases.py`。執行腳本：`scripts/run-audio-work-discovery-dev.sh`。本機排程設定在 `~/Library/LaunchAgents/com.shawnup.write-project-audio-discovery.plist`。狀態檔存於 Dev API 的 `/data/audio-discovery/state.json`，避免重複通知。報告存於 `~/Library/Logs/write-project-audio-discovery/latest.json`；有新候選或錯誤時，也會保留在 `history/` 並發出本機通知。
 
-變更程式後，先重建映像：
+恢復本機 Dev 掃描時，使用這台 Mac 保存的 Compose 設定重建映像：
 
 ```sh
 docker compose -p write-project-dev-api-8891 -f docker-compose.dev-api-8891.yml build dev-api-8891

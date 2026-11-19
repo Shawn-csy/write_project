@@ -4,9 +4,6 @@
 #
 # 為什麼需要這支腳本：
 # 源站修好後，Cloudflare 邊緣仍會依當初快取時的 s-maxage 繼續供應舊回應。
-# 2026-08-20 資料庫事故期間，三篇台本頁的 404 被快取住，源站恢復正常後訪客
-# 仍持續看到錯誤頁 —— 唯一的解法是主動 purge。
-#
 # Token 只從環境變數讀取，不會出現在指令參數或任何輸出中。
 #
 # 準備 Token（約兩分鐘）：
@@ -16,25 +13,28 @@
 #
 # 用法：
 #   export CLOUDFLARE_API_TOKEN='貼在這裡'
-#   bash scripts/cf-purge.sh              # 清這次事故受影響的三篇台本頁
 #   bash scripts/cf-purge.sh --all        # 清整個 zone
 #   bash scripts/cf-purge.sh <url> [url…] # 清指定網址
 
 set -Eeuo pipefail
 
 ZONE_NAME="${ZONE_NAME:-shawnup.com}"
-SITE="${SITE:-https://open-scripts.shawnup.com}"
 API="https://api.cloudflare.com/client/v4"
-
-# 這次事故被快取住的頁面
-DEFAULT_URLS=(
-  "${SITE}/read/b33ad38a-a1b9-400f-8569-16a8bad5c593"
-  "${SITE}/read/17d3b2c4-2314-4016-9c35-5288b804a02b"
-  "${SITE}/read/735875e4-d7bf-4b26-8aed-7921db2646a1"
-)
 
 step() { printf '\n\033[1m==> %s\033[0m\n' "$*"; }
 die()  { printf '\n\033[31m中止：%s\033[0m\n' "$*" >&2; exit 1; }
+
+[ "$#" -gt 0 ] || die "用法：$0 <url> [url…] 或 $0 --all"
+if [ "$1" = "--all" ]; then
+  [ "$#" -eq 1 ] || die "--all 不可和個別網址一起使用"
+else
+  for url in "$@"; do
+    case "$url" in
+      http://?*|https://?*) ;;
+      *) die "請提供完整 HTTP 或 HTTPS 網址" ;;
+    esac
+  done
+fi
 
 [ -n "${CLOUDFLARE_API_TOKEN:-}" ] || die "請先設定 CLOUDFLARE_API_TOKEN（見本檔開頭說明）"
 command -v python3 >/dev/null || die "需要 python3 解析回應"
@@ -82,12 +82,11 @@ print(res[0]["id"] if d.get("success") and res else "")
 echo "Zone ID: ${ZONE_ID:0:8}…（已遮蔽）"
 
 # ------------------------------------------------------------------ 3. 清除
-if [ "${1:-}" = "--all" ]; then
+if [ "$1" = "--all" ]; then
   step "3/4 清除整個 zone"
   BODY='{"purge_everything":true}'
-  TARGETS=()
 else
-  if [ $# -gt 0 ]; then TARGETS=("$@"); else TARGETS=("${DEFAULT_URLS[@]}"); fi
+  TARGETS=("$@")
   step "3/4 清除 ${#TARGETS[@]} 個網址"
   for u in "${TARGETS[@]}"; do echo "  $u"; done
   BODY=$(printf '%s\n' "${TARGETS[@]}" | python3 -c '
@@ -103,19 +102,28 @@ case "$v" in
   *)  die "清除失敗 — $v" ;;
 esac
 
+if [ "$1" = "--all" ]; then
+  echo "可執行 bash scripts/release.sh verify 驗證正式站。"
+  exit 0
+fi
+
 # ------------------------------------------------------------------ 4. 驗證
 step "4/4 驗證（等 5 秒讓邊緣節點同步）"
 sleep 5
 
-CHECK=("${TARGETS[@]:-}")
-[ ${#CHECK[@]} -eq 0 ] || [ -z "${CHECK[0]}" ] && CHECK=("${DEFAULT_URLS[@]}")
-
 fail=0
-for u in "${CHECK[@]}"; do
-  h=$(curl -s -D- -o /tmp/cf-purge-check.html -m 25 "$u")
-  cf=$(grep -i '^cf-cache-status' <<<"$h" | tr -d '\r' | awk '{print $2}')
-  code=$(head -1 <<<"$h" | awk '{print $2}')
-  bad=$(grep -c '找不到台本' /tmp/cf-purge-check.html || true)
+check_body="$(mktemp)"
+trap 'rm -f "$check_body"' EXIT
+for u in "${TARGETS[@]}"; do
+  if ! h=$(curl -sS -D- -o "$check_body" -m 25 -- "$u"); then
+    printf '  FAIL  %s（無法讀取）\n' "$u"
+    fail=1
+    continue
+  fi
+  h=$(tr -d '\r' <<<"$h")
+  cf=$(awk 'tolower($1) == "cf-cache-status:" { result = $2 } END { print result }' <<<"$h")
+  code=$(awk '/^HTTP\// { result = $2 } END { print result }' <<<"$h")
+  bad=$(grep -c '找不到台本' "$check_body" || true)
   if [ "$bad" = "0" ] && [ "$code" = "200" ]; then
     printf '  \033[32mOK\033[0m    %s  CF=%s  %s\n' "$code" "${cf:-?}" "$u"
   else
@@ -123,7 +131,6 @@ for u in "${CHECK[@]}"; do
     fail=1
   fi
 done
-rm -f /tmp/cf-purge-check.html
 
 if [ "$fail" = "0" ]; then
   printf '\n\033[32m全部恢復正常。\033[0m\n'

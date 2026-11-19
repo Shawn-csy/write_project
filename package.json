@@ -21,9 +21,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "typecheck": "tsc --noEmit",
-    "script:gen-file-meta": "tsx scripts/gen-file-meta.ts",
-    "script:verify-stats": "tsx scripts/verify_stats.ts",
-    "script:test-parsing": "tsx scripts/test_parsing.ts"
+    "script:gen-file-meta": "tsx scripts/gen-file-meta.ts"
   },
   "dependencies": {
     "@codemirror/theme-one-dark": "^6.1.3",

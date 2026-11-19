@@ -40,7 +40,7 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 
 ## 本機檢查
 
-可逐項執行上述指令；僅檢查 workflow 契約不需要安裝任何依賴。`bash scripts/ci.sh` 是既有的本機前後端測試、型別及依賴稽核工具，並未等同所有 Actions 建置步驟。其 `AUTO_DEPLOY=1` 會另外呼叫部署腳本，單純驗證時不要設定此變數。
+可逐項執行上述指令；僅檢查 workflow 契約不需要安裝任何依賴。`bash scripts/ci.sh` 是既有的本機前後端測試、型別及依賴稽核工具，並未等同所有 Actions 建置步驟。正式部署由 GitHub Actions 的發布流程執行。
 
 端對端測試仍可另外執行 `npx playwright test`；目前不是這兩個工作流程的必要閘門。
 
