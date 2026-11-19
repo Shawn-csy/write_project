@@ -2,7 +2,10 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+const repoRoot = path.resolve(__dirname, "..");
+
 export default defineConfig({
+  root: repoRoot,
   test: {
     pool: 'forks',
     maxWorkers: '50%',
@@ -26,7 +29,7 @@ export default defineConfig({
         },
         resolve: {
           alias: {
-            '@': path.resolve(__dirname, './src'),
+            '@': path.join(repoRoot, 'src'),
           },
         },
       },
@@ -43,7 +46,7 @@ export default defineConfig({
         },
         resolve: {
           alias: {
-            '@': path.resolve(__dirname, './apps/public'),
+            '@': path.join(repoRoot, 'apps/public'),
           },
         },
       },

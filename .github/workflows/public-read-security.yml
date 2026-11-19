@@ -14,11 +14,8 @@ on:
       - 'package-lock.json'
       - 'index.html'
       - 'tsconfig*.json'
-      - 'jsconfig.json'
-      - 'vite.config.*'
-      - 'vitest.config.*'
-      - 'tailwind.config.*'
-      - 'postcss.config.*'
+      - 'config/**'
+      - 'components.json'
       - 'Dockerfile*'
       - 'scripts/**'
       - '.github/workflows/**'
@@ -38,11 +35,8 @@ on:
       - 'package-lock.json'
       - 'index.html'
       - 'tsconfig*.json'
-      - 'jsconfig.json'
-      - 'vite.config.*'
-      - 'vitest.config.*'
-      - 'tailwind.config.*'
-      - 'postcss.config.*'
+      - 'config/**'
+      - 'components.json'
       - 'Dockerfile*'
       - 'scripts/**'
       - '.github/workflows/**'
@@ -92,11 +86,11 @@ jobs:
       - name: Check durable sync status receipts
         run: node --test scripts/tests/test_sync_status.mjs
       - name: Check studio and shared package contracts
-        run: npx vitest run --project main
+        run: npm test -- --project main
       - name: Build studio
         run: npm run build
       - name: Check public app contracts
-        run: npx vitest run apps/public
+        run: npm test -- apps/public
       - name: Check public app types
         run: npx tsc --noEmit -p apps/public/tsconfig.json
       - name: Build production Pages exports

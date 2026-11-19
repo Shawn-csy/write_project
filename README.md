@@ -85,6 +85,7 @@ packages/
 server/                   FastAPI backend
 docs/                     architecture, SEO, reader, security, migration notes
 scripts/                  development and maintenance scripts
+config/                   Studio build, styling and repository test config
 ```
 
 ## 公開站路由

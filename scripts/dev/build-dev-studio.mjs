@@ -7,7 +7,7 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..")
 const outputRoot = join(repositoryRoot, "dist-dev-studio-8890");
 const viteBin = join(repositoryRoot, "node_modules/vite/bin/vite.js");
 
-const result = spawnSync(process.execPath, [viteBin, "build", "--mode", "production", "--outDir", outputRoot], {
+const result = spawnSync(process.execPath, [viteBin, "build", "--config", "config/vite.config.ts", "--mode", "production", "--outDir", outputRoot], {
   cwd: repositoryRoot,
   stdio: "inherit",
   env: {

@@ -3,8 +3,9 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "fs";
 
+const repoRoot = path.resolve(__dirname, "..");
 const packageJson = JSON.parse(
-  fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8")
+  fs.readFileSync(path.join(repoRoot, "package.json"), "utf-8")
 );
 const APP_VERSION = packageJson.version || "0.0.0";
 
@@ -17,13 +18,15 @@ export default defineConfig(({ mode }) => {
     (isAbsoluteApiUrl ? apiUrl : "http://localhost:1091");
 
   return {
+    root: repoRoot,
     plugins: [react()],
+    css: { postcss: __dirname },
     define: {
       __APP_VERSION__: JSON.stringify(APP_VERSION),
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.join(repoRoot, "src"),
       },
     },
     server: {

@@ -74,8 +74,8 @@ class CIContracts(unittest.TestCase):
             "deploy/nginx/default.conf", "deploy/launchd/example.plist", ".dockerignore", "deploy/compose.prod.yml",
             "docs/example.py", "docs/config.json", "scripts/release/release.sh", "scripts/release/site-release.py", ".github/workflows/deploy.yml",
             ".github/workflows/public-read-security.yml", ".github/workflows/submission-workflows.yml",
-            "package.json", "package-lock.json", "tsconfig.json", "vite.config.ts",
-            "vitest.config.ts", "tailwind.config.ts", "postcss.config.ts", "index.html",
+            "package.json", "package-lock.json", "tsconfig.json",
+            "config/vitest.config.ts", "config/tailwind.config.ts", "config/postcss.config.ts", "config/playwright.config.ts", "config/vite.config.ts", "components.json", "index.html",
         ]
         all_paths = []
         for workflow in WORKFLOWS:
@@ -118,8 +118,8 @@ class CIContracts(unittest.TestCase):
         source = (ROOT / ".github/workflows/public-read-security.yml").read_text()
         actual = {a or b for a, b in commands(source)}
         for command in (
-            "npm ci", "npm run typecheck", "npx vitest run --project main", "npm run build",
-            "npx vitest run apps/public", "npx tsc --noEmit -p apps/public/tsconfig.json",
+            "npm ci", "npm run typecheck", "npm test -- --project main", "npm run build",
+            "npm test -- apps/public", "npx tsc --noEmit -p apps/public/tsconfig.json",
             "python3 scripts/checks/check-public-builds.py", "python3 scripts/checks/check-ci-contracts.py",
             "python3 scripts/checks/check-prod-network-boundary.py", "python -m pytest -q tests",
             "RUN_NGINX_INTEGRATION=1 python3 -m unittest discover -s scripts/tests -p 'test_site_release_nginx.py'",

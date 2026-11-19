@@ -1,10 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
+import { fileURLToPath } from 'node:url';
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:1090';
 const useExternalServer = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 
 export default defineConfig({
-  testDir: './tests-e2e',
+  testDir: '../tests-e2e',
+  outputDir: '../test-results',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -17,6 +19,7 @@ export default defineConfig({
   webServer: useExternalServer
     ? undefined
     : {
+        cwd: fileURLToPath(new URL('..', import.meta.url)),
         command: 'npm run dev -- --host 127.0.0.1 --port 1090 --strictPort',
         url: baseURL,
         reuseExistingServer: !process.env.CI,
