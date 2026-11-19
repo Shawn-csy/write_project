@@ -38,21 +38,22 @@ python3 main.py
 server/venv/bin/pip install -r server/mcp_server/requirements.txt
 ```
 
-MCP client 應執行 `scripts/run-local-external-script-mcp.sh`。它使用 `stdio`，
+MCP client 應執行 `scripts/dev/run-local-external-script-mcp.sh`。它使用 `stdio`，
 不會開啟 HTTP port；完整工具、預覽／確認流程與安全邊界見
 `docs/architecture/local-external-script-mcp.md`。
 
 ## 3. Compose 檔案分工
 
-專案有三份 compose，用途不同，**混用會出事**：
+Compose 設定集中在 `deploy/`，每個用途使用獨立的 project name。
 
 | 檔案 | 用途 | Postgres | 資料目錄 |
 |---|---|---|---|
-| `docker-compose.prod.yml` | 正式站 | ✅ 有 | `server/data/postgres` |
-| `docker-compose.yml` | 完整本機環境（含 DB） | ✅ 有 | `server/data/postgres-dev`（埠 `15432`） |
-| `docker-compose.dev.yml` | 輕量開發（backend + Vite dev server） | ❌ 無 | 依 `DATABASE_URL` / `DB_PATH` 外部提供 |
+| `deploy/compose.prod.yml` | 正式站 | ✅ 有 | `server/data/postgres` |
+| `deploy/compose.local.yml` | 完整本機環境（含 DB） | ✅ 有 | `server/data/postgres-dev`（埠 `15432`） |
+| `deploy/compose.dev.yml` | 輕量開發（backend + Vite dev server） | ❌ 無 | 依 `DATABASE_URL` / `DB_PATH` 外部提供 |
+| `deploy/compose.api.yml` | 單獨啟動 API，使用 reload | ❌ 無 | 依 `DATABASE_URL` / `DB_PATH` 外部提供 |
 
-> ⚠️ **2026-08-17 之前 `docker-compose.yml` 與 `docker-compose.prod.yml` 共用
+> ⚠️ **2026-08-17 之前，本機與正式 Compose 共用
 > `server/data/postgres`**。在跑著正式站的機器上執行前者的 `docker compose down`，
 > 等同對正式資料庫強制關機 —— 這是那次 WAL 遺失事故最可能的觸發原因。
 > 現已分離，且 dev 的對外埠改為 `15432`，避免本機 `psql` 連錯資料庫。
@@ -60,16 +61,15 @@ MCP client 應執行 `scripts/run-local-external-script-mcp.sh`。它使用 `std
 ### 完整本機環境（含獨立 DB）
 
 ```bash
-docker compose up --build
+docker compose -f deploy/compose.local.yml up --build
 ```
 
-首次啟動會在 `server/data/postgres-dev` 建立**空的**資料庫，與正式資料完全分離。
-需要測試資料請自行灌入。
+完整本機環境使用 `write-project-local`，資料庫掛載原有的 `server/data/postgres-dev`。首次啟動才會建立空資料庫。輕量開發與 API 單獨啟動分別用 `write-project-dev` 和 `write-project-api`。正式 project name 仍為 `write_project`。舊本機容器若占用了連接埠，請先停止舊本機容器再啟動。
 
 ### 輕量開發（backend + Vite dev server）
 
 ```bash
-docker compose -f docker-compose.dev.yml up --build
+docker compose -f deploy/compose.dev.yml up --build
 ```
 
 此組合不含 Postgres，需自行以 `DATABASE_URL` 指向可用的資料庫。
@@ -85,12 +85,12 @@ docker compose -f docker-compose.dev.yml up --build
 - `DATABASE_URL`：後端 DB 連線字串
 
 ```bash
-POSTGRES_PASSWORD=yourpassword DATABASE_URL=postgresql+psycopg://... docker compose -f docker-compose.prod.yml up --build -d
+POSTGRES_PASSWORD=yourpassword DATABASE_URL=postgresql+psycopg://... docker compose -f deploy/compose.prod.yml up --build -d
 ```
 
 或在 `.env` 設定後再執行：
 ```bash
-docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f deploy/compose.prod.yml up --build -d
 ```
 
 服務組成（checked-in production Compose defaults）：
@@ -139,20 +139,20 @@ bash scripts/ci.sh
 
 ### 網站發布與回滾
 
-日常網站發布以 [持續部署與發布程序](continuous-deployment.md) 為準。`scripts/release.sh` 協調建置、schema 驗證、候選準備、入口切換、Pages 部署及驗證；`scripts/site-release.py` 留住 PostgreSQL 與其他服務，只管理本站候選及 loopback 入口交接。入口切換仍須驗證，不能由「不停止 DB」推論完全無中斷。
+日常網站發布以 [持續部署與發布程序](continuous-deployment.md) 為準。`scripts/release/release.sh` 協調建置、schema 驗證、候選準備、入口切換、Pages 部署及驗證；`scripts/release/site-release.py` 留住 PostgreSQL 與其他服務，只管理本站候選及 loopback 入口交接。入口切換仍須驗證，不能由「不停止 DB」推論完全無中斷。
 
 API／本機入口回滾與 Pages 回滾分開；schema 與切換後資料作業不隨映像回滾。Pages 資源、D1／R2 同步與備援驗證見 [正式公開站操作](public-pages-production.md)。CI 與 release reliability 的後續驗收見 [維護路線圖](../pending/architecture-maintenance-roadmap.md)。
 
 ### Schema 作業
 
-Production Compose 預設 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=0`。環境值可覆蓋，須核對實際設定；啟動 API 不替代 schema 作業。`scripts/migrate-prod-schema.sh --verify` 檢查目標完整性，`--plan` 列缺口，`--apply` 經備份、隔離排練與受限作業連線後修改。候選 readiness 仍須通過。
+Production Compose 預設 `DB_AUTO_CREATE_TABLES=0`、`DB_RUN_LEGACY_MIGRATIONS=0`。環境值可覆蓋，須核對實際設定；啟動 API 不替代 schema 作業。`scripts/release/migrate-prod-schema.sh --verify` 檢查目標完整性，`--plan` 列缺口，`--apply` 經備份、隔離排練與受限作業連線後修改。候選 readiness 仍須通過。
 
 歷史排練或某次 `--apply` 成功不能證明目前線上 schema 完整。2026-11-16 正常發布已完成 schema 驗證；每次發布仍需重新檢查，版本庫行為與限制見 [Database Runtime](database-runtime.md)。
 
 ### 資料庫備份
 
 ```bash
-bash scripts/backup-db.sh
+bash scripts/ops/backup-db.sh
 ```
 
 新版產生 PostgreSQL custom dump + media 私有 bundle，保留 14 天；舊 `.sql.gz` 不轉換、不刪除。外接碟副本不代表異地備份。正式排程已完成本機與 Horcrux 副本；沒有異地備份目的地。
@@ -165,8 +165,8 @@ bash scripts/backup-db.sh
 
 ```bash
 export CLOUDFLARE_API_TOKEN='...'   # 權限：Zone / Cache Purge / Purge
-bash scripts/cf-purge.sh https://open-scripts.shawnup.com/authors
-bash scripts/cf-purge.sh --all      # 清除整個 zone
+bash scripts/ops/cf-purge.sh https://open-scripts.shawnup.com/authors
+bash scripts/ops/cf-purge.sh --all      # 清除整個 zone
 ```
 
 Token 只從環境變數讀取，不會出現在指令參數或任何輸出中。
@@ -244,7 +244,7 @@ heap 有 84 列而索引只認得 69 列、主鍵出現重複值，4 篇公開�
 **注意**：
 - 端點會跑全表掃描，結果以 60 秒 TTL 快取，避免公開輪詢放大成 DB 負載。
 - 規劃器提示（`enable_seqscan` 等）是 Postgres 專屬；其他 dialect 回 `status: skipped`。
-- `scripts/backup-bundle.py drill` 在隔離還原資料庫執行 `pg_amcheck`，驗證資料列與索引；每日備份本身不等同完成還原演練。見 [備份與還原](backup-restore.md)。
+- `scripts/ops/backup-bundle.py drill` 在隔離還原資料庫執行 `pg_amcheck`，驗證資料列與索引；每日備份本身不等同完成還原演練。見 [備份與還原](backup-restore.md)。
 
 Public server adapters（Next.js container internal port 3000；不適用 Pages 靜態入口）：
 

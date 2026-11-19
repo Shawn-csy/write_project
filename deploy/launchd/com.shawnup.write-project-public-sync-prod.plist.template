@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Production D1/R2 snapshot sync (macOS launchd). Reads the live API from the API host (api-open-scripts, which has no
+  dynamic-read limit; the 1090 ingress returns 429 to a full sync) and writes
+  the production fallback D1 and R2 bucket.
+
+  Replace the runtime and log paths before installing a copy as a LaunchAgent.
+  See docs/engineering/public-pages-production.md for the upgrade procedure.
+
+  Run now / check / stop:
+    launchctl kickstart gui/$(id -u)/com.shawnup.write-project-public-sync-prod
+    launchctl list | grep write-project-public-sync-prod
+    launchctl bootout gui/$(id -u)/com.shawnup.write-project-public-sync-prod
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.shawnup.write-project-public-sync-prod</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>/ABSOLUTE/OPS-RUNTIME/scripts/ops/sync-public-cloudflare.mjs</string>
+        <string>--production</string>
+        <string>--scheduled</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/ABSOLUTE/OPS-RUNTIME</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PUBLIC_SYNC_API_ORIGIN</key>
+        <string>https://api-open-scripts.shawnup.com</string>
+        <key>PUBLIC_SYNC_MEDIA_ORIGIN</key>
+        <string>https://api-open-scripts.shawnup.com</string>
+        <key>PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN</key>
+        <string>https://api-open-scripts.shawnup.com</string>
+        <key>PUBLIC_SYNC_R2_PUBLIC_ORIGIN</key>
+        <string>https://media-open-scripts.shawnup.com</string>
+    </dict>
+
+    <key>StartInterval</key>
+    <integer>900</integer>
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>/ABSOLUTE/HOME/Library/Logs/write-project-public-sync-prod/stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/ABSOLUTE/HOME/Library/Logs/write-project-public-sync-prod/stderr.log</string>
+</dict>
+</plist>

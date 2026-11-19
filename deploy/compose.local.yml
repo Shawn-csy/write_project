@@ -1,0 +1,113 @@
+name: write-project-local
+
+services:
+  write_project-postgres:
+    image: postgres:16-alpine
+    # 開發環境必須使用獨立的資料目錄。
+    #
+    # 2026-08-17 之前這裡與 deploy/compose.prod.yml 共用 ./server/data/postgres，
+    # 於是在跑著正式站的機器上執行 `docker compose down`（dev）就等同對正式資料庫
+    # 強制關機。當時 Docker 預設 10s 寬限期送出 SIGKILL，關機 checkpoint 未完成，
+    # WAL 遺失導致 scripts 表 15 筆列從索引消失、主鍵出現重複值，4 篇公開台本損毀。
+    #
+    # 埠號也錯開，避免本機 psql 連錯資料庫。
+    stop_grace_period: 120s
+    environment:
+      POSTGRES_USER: write_project
+      POSTGRES_PASSWORD: write_project
+      POSTGRES_DB: write_project
+    ports:
+      - "15432:5432"
+    volumes:
+      - ../server/data/postgres-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "write_project"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+
+  write_project-backend:
+    env_file:
+      - ../.env
+    build:
+      context: ../server
+    ports:
+      - "1091:1091"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_PATH=/data/scripts.db
+      - DB_AUTO_CREATE_TABLES=${DB_AUTO_CREATE_TABLES:-1}
+      - DB_RUN_LEGACY_MIGRATIONS=${DB_RUN_LEGACY_MIGRATIONS:-1}
+      - PORT=1091
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
+      - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
+      - ADMIN_USER_IDS=${ADMIN_USER_IDS}
+      - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
+      - FEEDBACK_NOTIFICATION_EMAIL=${FEEDBACK_NOTIFICATION_EMAIL:-silence0603@gmail.com}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-1}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-0}
+      - MCP_LOCAL_API_KEY=${MCP_LOCAL_API_KEY:-}
+      - MCP_OWNER_ID=${MCP_OWNER_ID:-}
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - ../server/data:/data
+      - ../server/secrets:/secrets:ro
+      - ../dist:/app/dist:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:1091/api/health/ready', timeout=3); raise SystemExit(0 if response.status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      write_project-postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+
+  write_project-frontend-build:
+    image: node:20-alpine
+    working_dir: /app
+    env_file:
+      - ../.env
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - ..:/app
+    command: sh -c "npm install && npm run build"
+
+  write_project-frontend:
+    image: nginx:alpine
+    ports:
+      - "1090:80"
+    volumes:
+      - ../dist:/usr/share/nginx/html:ro
+      - ./nginx:/etc/nginx/conf.d:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      write_project-frontend-build:
+        condition: service_completed_successfully
+      write_project-backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 128m

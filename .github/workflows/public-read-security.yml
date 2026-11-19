@@ -9,7 +9,6 @@ on:
       - 'packages/**'
       - 'public/**'
       - 'deploy/**'
-      - 'nginx.conf'
       - '.dockerignore'
       - 'package.json'
       - 'package-lock.json'
@@ -21,7 +20,6 @@ on:
       - 'tailwind.config.*'
       - 'postcss.config.*'
       - 'Dockerfile*'
-      - 'docker-compose*.yml'
       - 'scripts/**'
       - '.github/workflows/**'
       - 'docs/**'
@@ -35,7 +33,6 @@ on:
       - 'packages/**'
       - 'public/**'
       - 'deploy/**'
-      - 'nginx.conf'
       - '.dockerignore'
       - 'package.json'
       - 'package-lock.json'
@@ -47,7 +44,6 @@ on:
       - 'tailwind.config.*'
       - 'postcss.config.*'
       - 'Dockerfile*'
-      - 'docker-compose*.yml'
       - 'scripts/**'
       - '.github/workflows/**'
       - 'docs/**'
@@ -69,13 +65,13 @@ jobs:
           python -m pip install pip-audit==2.10.1
           python -m pip_audit -r server/requirements.txt --strict
       - name: Check CI workflow contracts
-        run: python3 scripts/check-ci-contracts.py
+        run: python3 scripts/checks/check-ci-contracts.py
       - name: Check release orchestration contracts
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+        run: python3 -m unittest discover -s scripts/tests -p 'test_*.py'
       - name: Check production network boundary
-        run: python3 scripts/check-prod-network-boundary.py
+        run: python3 scripts/checks/check-prod-network-boundary.py
       - name: Check isolated production ingress routing and limits
-        run: RUN_NGINX_INTEGRATION=1 python3 -m unittest discover -s scripts -p 'test_site_release_nginx.py'
+        run: RUN_NGINX_INTEGRATION=1 python3 -m unittest discover -s scripts/tests -p 'test_site_release_nginx.py'
       - name: Check backend contracts
         run: python -m pytest -q tests
         working-directory: server
@@ -94,7 +90,7 @@ jobs:
       - name: Check studio and shared package types
         run: npm run typecheck
       - name: Check durable sync status receipts
-        run: node --test scripts/test_sync_status.mjs
+        run: node --test scripts/tests/test_sync_status.mjs
       - name: Check studio and shared package contracts
         run: npx vitest run --project main
       - name: Build studio
@@ -104,4 +100,4 @@ jobs:
       - name: Check public app types
         run: npx tsc --noEmit -p apps/public/tsconfig.json
       - name: Build production Pages exports
-        run: python3 scripts/check-public-builds.py
+        run: python3 scripts/checks/check-public-builds.py

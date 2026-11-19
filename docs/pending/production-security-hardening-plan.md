@@ -16,8 +16,8 @@
 
 包含：
 
-- `docker-compose.prod.yml`
-- `nginx.conf`
+- `deploy/compose.prod.yml`
+- `deploy/nginx/default.conf`
 - FastAPI backend public/private API 邊界
 - Next.js public BFF / revalidation route（舊 server-mode 修補歷史，非目前正式 runtime）
 - 公開寫入 API：view、like、terms acceptance、訪客投稿與聲演資料補充
@@ -105,11 +105,11 @@ write_project-backend:
 
 ### P1 — 公開寫入 API 需要防濫用
 
-2026-11-10 補強：公開回饋、Demo／音聲投稿、外部作者與聲演資料補充、聲演認領、我的 Demo 修改，以及公開 view／like 已在 FastAPI JSON 解析前按路由限制 body。Nginx 對上述表單與互動路由另設 128 KiB／4 KiB 入口上限，terms acceptance 維持 4 KiB；媒體上傳維持 12 MiB 額度。`scripts/security-check.sh` 納入一般與串流超限、正常小型回饋與未受表單上限約束的私人台本路由測試。候選與正式入口均驗證超限回 413，健康檢查及公開頁回 200；正式站只在 `127.0.0.1:1090` 和 `[::1]:1090` 發布。
+2026-11-10 補強：公開回饋、Demo／音聲投稿、外部作者與聲演資料補充、聲演認領、我的 Demo 修改，以及公開 view／like 已在 FastAPI JSON 解析前按路由限制 body。Nginx 對上述表單與互動路由另設 128 KiB／4 KiB 入口上限，terms acceptance 維持 4 KiB；媒體上傳維持 12 MiB 額度。`scripts/checks/security-check.sh` 納入一般與串流超限、正常小型回饋與未受表單上限約束的私人台本路由測試。候選與正式入口均驗證超限回 413，健康檢查及公開頁回 200；正式站只在 `127.0.0.1:1090` 和 `[::1]:1090` 發布。
 
 同日再將上限擴為整個 `/api/` 寫入邊界：FastAPI 對 POST／PUT／PATCH 預設 1 MiB，Nginx 一般 `/api/` 入口也設 1 MiB。長篇台本、文件匯出、媒體上傳維持 12 MiB；外部台本的封面資料可用 4 MiB；較小的公開表單與互動路由仍以原有精細上限為準。後端測試含未來新增 API 路由、串流超限與超過 1 MiB 的真實台本儲存；完整後端 405 項與資安回歸 99／66 項通過。候選及正式入口以無效大內容驗證一般路由 413、例外路由進入原有驗證流程，沒有寫入正式資料。`api-default-limit-20261110` 已上線，主要頁面及 readiness 回 200，其他服務未重啟。
 
-`api-ingress-guard-v2-20261110` 在 Nginx 共用入口對 POST／PUT／PATCH／DELETE 依來源 IP 設每秒 10 次、突發 24 次及同時 8 條連線的上限，超出回 429；GET 不佔此額度。這在較大的已驗證路由到達後端前限制單一來源的突發與慢速併發，但不取代 Firebase 權限驗證，也不保證能阻止分散來源攻擊。隔離入口以 `scripts/check-ingress-write-limits.py` 對一般 API、台本與公開表單各送 50 個無效寫入請求，三者均觸發 429；50 個讀取請求全數成功，額度恢復後寫入再次進入原有驗證，8 條未完成寫入時第 9 條回 429。既有 1／4／12 MiB 大小界線、99／66 項資安回歸與網站專用切流檢查通過。正式入口主要頁面、readiness 及 Nginx 語法均正常，僅保留直接回滾版的本站 API／公開站運作。
+`api-ingress-guard-v2-20261110` 在 Nginx 共用入口對 POST／PUT／PATCH／DELETE 依來源 IP 設每秒 10 次、突發 24 次及同時 8 條連線的上限，超出回 429；GET 不佔此額度。這在較大的已驗證路由到達後端前限制單一來源的突發與慢速併發，但不取代 Firebase 權限驗證，也不保證能阻止分散來源攻擊。隔離入口以 `scripts/checks/check-ingress-write-limits.py` 對一般 API、台本與公開表單各送 50 個無效寫入請求，三者均觸發 429；50 個讀取請求全數成功，額度恢復後寫入再次進入原有驗證，8 條未完成寫入時第 9 條回 429。既有 1／4／12 MiB 大小界線、99／66 項資安回歸與網站專用切流檢查通過。正式入口主要頁面、readiness 及 Nginx 語法均正常，僅保留直接回滾版的本站 API／公開站運作。
 
 確認路由：
 
@@ -220,11 +220,11 @@ if (typeof path === "string" && path.startsWith("/")) {
 
 驗收：
 
-- [x] `docker-compose.prod.yml` 只對外 publish nginx。
+- [x] `deploy/compose.prod.yml` 只對外 publish nginx。
 - [x] Postgres 只在 internal network 可達。
 - [x] Backend 不直接 publish 到 host；當時可由 nginx／public Next container 內部呼叫。目前正式請求由 Nginx 轉送，沒有 public Next container。
 - [x] production 未提供 DB secret 時 fail fast（`${POSTGRES_PASSWORD:?...}`）。
-- [x] 當時候選 Compose 的 Nginx 僅綁 `127.0.0.1:1090` 與 `[::1]:1090`；`scripts/check-prod-network-boundary.py` 在安全測試、CI 與部署前檢查此界線。Tunnel 實際曾透過 `::1:1090` 連入。
+- [x] 當時候選 Compose 的 Nginx 僅綁 `127.0.0.1:1090` 與 `[::1]:1090`；`scripts/checks/check-prod-network-boundary.py` 在安全測試、CI 與部署前檢查此界線。Tunnel 實際曾透過 `::1:1090` 連入。
 - [x] 網站專用切流後，實際 `wp-prod-live-edge` 僅綁 `127.0.0.1:1090` 與 `[::1]:1090`；公開入口與雙 loopback `/healthz` 均回 200。舊容器仍保留但已停止，其他服務未重啟。
 
 ### Phase 2 — Public Write Rate Limits
@@ -322,7 +322,7 @@ if (typeof path === "string" && path.startsWith("/")) {
 Security test command：
 
 ```bash
-bash scripts/security-check.sh
+bash scripts/checks/security-check.sh
 ```
 
 涵蓋範圍：
@@ -336,7 +336,7 @@ bash scripts/security-check.sh
 
 驗收：
 
-- [x] local security test command 文件化（`bash scripts/security-check.sh`）。
+- [x] local security test command 文件化（`bash scripts/checks/security-check.sh`）。
 - [x] 最小安全測試集合可由 CI 呼叫（script 含 backend + frontend security tests；CI wiring 另行接入）。
 - [x] 新增 public write endpoint 時需附 rate limit 測試（script header 有明確說明規定）。
 

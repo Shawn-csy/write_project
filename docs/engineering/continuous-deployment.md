@@ -11,7 +11,7 @@
 main 有新的 push，而且這個 commit 觸發的 CI workflow（`Public read and security contracts`、`Submission workflows`）**全部完成且通過**時，`.github/workflows/deploy.yml` 會在正式機器上的自架 runner 執行：
 
 ```
-scripts/release.sh auto
+scripts/release/release.sh auto
   build     建 API 映像與工作室靜態檔（tag：auto-<commit 前 7 碼>）
   schema    有缺口就自動套用：先在正式資料副本排練讀寫、完整備份，再遷移
   prepare   候選 API／入口在現行網站旁啟動，驗證工作室、API、媒體路由、公開站轉址、IPv4／IPv6 與讀寫限流
@@ -35,8 +35,8 @@ scripts/release.sh auto
 手動執行：
 
 ```bash
-bash scripts/release.sh prune --dry-run   # 先看會刪什麼
-bash scripts/release.sh prune
+bash scripts/release/release.sh prune --dry-run   # 先看會刪什麼
+bash scripts/release/release.sh prune
 ```
 
 刪掉的版本無法再用 `rollback` 接回；需要時從對應 commit 重新建置。
@@ -51,13 +51,13 @@ bash scripts/release.sh prune
 
 ## 中斷後續跑
 
-`all`、`auto`、`resume` 由 `scripts/release-workflow.py` 持有整段流程的非阻塞 `flock`，macOS/Linux 都支援。鎖檔位於 `$WP_RELEASE_ROOT/.release-workflow/.lock`，與 site-release 的鎖獨立，檔案存在不代表被鎖住；不用刪鎖檔。鎖 FD 不傳給子程序。每次執行（含已完成的 no-op）都重新檢查乾淨工作樹、pushed main 和 CI。
+`all`、`auto`、`resume` 由 `scripts/release/release-workflow.py` 持有整段流程的非阻塞 `flock`，macOS/Linux 都支援。鎖檔位於 `$WP_RELEASE_ROOT/.release-workflow/.lock`，與 site-release 的鎖獨立，檔案存在不代表被鎖住；不用刪鎖檔。鎖 FD 不傳給子程序。每次執行（含已完成的 no-op）都重新檢查乾淨工作樹、pushed main 和 CI。
 
 控制 journal 是 `$WP_RELEASE_ROOT/.release-workflow/<tag>.json`，不在可公開讀取的靜態目錄內。內容包括完整 commit SHA、tag、phase、入口 ID、時間戳與失敗的 phase/exit code，不保存命令輸出或秘密。寫入採暫存檔、fsync、原子 replace。phase 依序為 `preparing` → `activation-intent` → `activated` → `converged` → `pages` → `verified` → `complete`；只有命令成功才推進。API 已上線仍不代表整體完成。
 
 ```bash
-bash scripts/release.sh status auto-<sha前7碼>
-bash scripts/release.sh resume auto-<sha前7碼>
+bash scripts/release/release.sh status auto-<sha前7碼>
+bash scripts/release/release.sh resume auto-<sha前7碼>
 ```
 
 - 收斂失敗：重跑收斂，再部署 Pages、驗證。
@@ -111,7 +111,7 @@ runner 從自己的 checkout 建置，但兩樣東西必須用正式位置：
 
 ## 回滾
 
-與手動發布相同：`python3 scripts/site-release.py rollback --tag auto-<sha>` 接回上一版入口；Cloudflare Pages 從部署記錄回滾。schema 遷移與身份收斂寫入的資料不會回滾，需要時從 `~/write_project_backups/` 的備份還原。
+與手動發布相同：`python3 scripts/release/site-release.py rollback --tag auto-<sha>` 接回上一版入口；Cloudflare Pages 從部署記錄回滾。schema 遷移與身份收斂寫入的資料不會回滾，需要時從 `~/write_project_backups/` 的備份還原。
 
 ### 內容更新與程式發布的分工
 

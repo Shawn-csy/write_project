@@ -41,7 +41,7 @@ write_project/
 │   │   └── api_keys.py      ← 新增：API key 管理端點
 │   ├── models.py            ← 新增 ApiKey model
 │   ├── schemas.py           ← 新增 ApiKey schemas
-│   └── docker-compose.yml   ← 新增 mcp service
+│   └── deploy/compose.local.yml   ← 新增 mcp service
 ```
 
 ---

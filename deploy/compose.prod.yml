@@ -1,0 +1,117 @@
+name: write_project
+
+services:
+  write_project-postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    # 2026-08-17 事故：Docker 預設只給 10s 寬限期就 SIGKILL，關機 checkpoint 沒
+    # 做完就被砍，WAL 遺失導致 scripts 表索引與 heap 不同步（15 筆列從索引消失、
+    # 主鍵出現重複值）。image 的 STOPSIGNAL 已是 SIGINT（fast shutdown），
+    # 缺的是足夠的時間把 checkpoint 寫完。
+    stop_grace_period: 120s
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-write_project}
+      - POSTGRES_USER=${POSTGRES_USER:-write_project}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in production}
+    volumes:
+      - ../server/data/postgres:/var/lib/postgresql/data
+    # 實測 ~34M；預留 shared_buffers 與查詢期間的 work_mem
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-write_project} -d ${POSTGRES_DB:-write_project}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  write_project-backend:
+    image: write_project-backend:${DEPLOY_TAG:-latest}
+    build:
+      context: ../server
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL must be set in production}
+      - DB_PATH=/data/scripts.db
+      - WP_PUBLICATION_STATE_DIR=/run/wp-publication
+      # Production schema changes run as a separate, reviewed release step.
+      - DB_AUTO_CREATE_TABLES=${DB_AUTO_CREATE_TABLES:-0}
+      - DB_RUN_LEGACY_MIGRATIONS=${DB_RUN_LEGACY_MIGRATIONS:-0}
+      - PORT=1091
+      - ENVIRONMENT=production
+      - ALLOW_X_USER_ID=0
+      - TRUSTED_PROXY_HOSTNAME=write_project-frontend
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-https://open-scripts.shawnup.com}
+      - GOOGLE_API_KEY=${VITE_GOOGLE_API_KEY:-}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_CREDENTIALS=/secrets/firebase-service-account.json
+      - FIREBASE_CREDENTIALS_JSON=${FIREBASE_CREDENTIALS_JSON}
+      - ADMIN_USER_IDS=${ADMIN_USER_IDS}
+      - ADMIN_USER_EMAILS=${ADMIN_USER_EMAILS}
+      - FEEDBACK_NOTIFICATION_EMAIL=${FEEDBACK_NOTIFICATION_EMAIL:-silence0603@gmail.com}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-1}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-0}
+      - MCP_LOCAL_API_KEY=${MCP_LOCAL_API_KEY:-}
+      - MCP_OWNER_ID=${MCP_OWNER_ID:-}
+      - VITE_API_URL=${VITE_API_URL}
+      - PUBLIC_ENGAGEMENT_SECRET=${PUBLIC_ENGAGEMENT_SECRET:-}
+    volumes:
+      - ../server/data:/data
+      - ../server/secrets:/secrets:ro
+      - ${WP_RELEASE_ROOT:-../releases}/.content-refresh:/run/wp-publication:ro
+      - ../dist:/app/dist:ro
+    # 實測 ~86M；PDF / docx / xlsx 匯出會短時間衝高
+    deploy:
+      resources:
+        limits:
+          memory: 768m
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; response = urllib.request.urlopen('http://127.0.0.1:1091/api/health/ready', timeout=3); raise SystemExit(0 if response.status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    depends_on:
+      write_project-postgres:
+        condition: service_healthy
+
+  write_project-frontend-build:
+    image: node:22-alpine
+    working_dir: /app
+    environment:
+      - VITE_API_URL=${VITE_API_URL}
+    volumes:
+      - ..:/app
+    command: sh -c "npm install && npm run build"
+
+  write_project-frontend:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1090:80"
+      - "[::1]:1090:80"
+    volumes:
+      - ../dist:/usr/share/nginx/html:ro
+      - ./nginx:/etc/nginx/conf.d:ro
+    # 實測 ~9M；nginx 僅代理與靜態檔
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      write_project-frontend-build:
+        condition: service_completed_successfully
+      write_project-backend:
+        condition: service_healthy

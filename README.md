@@ -151,7 +151,7 @@ npm run test             # Vitest multi-project suite
 npm run build            # Vite studio build
 npm run build:public     # Next public build
 npm run test:e2e         # Playwright E2E
-python3 scripts/check-docs.py  # Markdown 本機連結與程式碼區塊閉合檢查
+python3 scripts/checks/check-docs.py  # Markdown 本機連結與程式碼區塊閉合檢查
 ```
 
 後端測試請在 `server/` 內使用 Pytest。
@@ -161,9 +161,9 @@ python3 scripts/check-docs.py  # Markdown 本機連結與程式碼區塊閉合�
 ## 部署
 
 - 正式公開入口為 Cloudflare Pages 靜態檔；工作室與主 API 經 Tunnel 連到本機入口。D1／R2 是公開資料與媒體唯讀備援，不接管寫入。
-- 網站發布以 [持續部署與發布程序](./docs/engineering/continuous-deployment.md) 為準；`scripts/release.sh` 協調建置、獨立 schema 檢查、候選準備、入口切換、Pages 上傳及驗證。
-- `scripts/site-release.py` 管理網站候選與回滾，不停止 PostgreSQL；API／入口回滾與 Pages 靜態檔回滾分開，資料變更不隨之回復。
-- `docker-compose.prod.yml` 是本機服務設定基線，並非目前線上 release tag 的證據。Pages 資源與快照限制見 [正式公開站操作](./docs/engineering/public-pages-production.md)。
+- 網站發布以 [持續部署與發布程序](./docs/engineering/continuous-deployment.md) 為準；`scripts/release/release.sh` 協調建置、獨立 schema 檢查、候選準備、入口切換、Pages 上傳及驗證。
+- `scripts/release/site-release.py` 管理網站候選與回滾，不停止 PostgreSQL；API／入口回滾與 Pages 靜態檔回滾分開，資料變更不隨之回復。
+- `deploy/compose.prod.yml` 是本機服務設定基線，並非目前線上 release tag 的證據。Pages 資源與快照限制見 [正式公開站操作](./docs/engineering/public-pages-production.md)。
 
 ## 主要文件入口
 

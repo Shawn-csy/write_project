@@ -35,7 +35,7 @@ server/venv/bin/pip install -r server/mcp_server/requirements.txt
 {
   "mcpServers": {
     "write-project-content": {
-      "command": "/Users/shanti/Desktop/write_project/scripts/run-local-external-script-mcp.sh"
+      "command": "/Users/shanti/Desktop/write_project/scripts/dev/run-local-external-script-mcp.sh"
     }
   }
 }
@@ -62,6 +62,6 @@ Demo 管理：
 
 本機 MCP 使用 `.env` 中的 API 基址；未設定時連到正式站 API。新的 Demo 管理路由需隨後端部署才可從本機 MCP 使用。
 
-若要先管理 Dev 站，使用 `scripts/run-local-demo-mcp-dev.sh` 作為 MCP client 的 `command`。它使用獨立的 `MCP_DEV_LOCAL_API_KEY`，連到 Dev API；不要把正式站的密鑰拿來測試 Dev。
+若要先管理 Dev 站，使用 `scripts/dev/run-local-demo-mcp-dev.sh` 作為 MCP client 的 `command`。它使用獨立的 `MCP_DEV_LOCAL_API_KEY`，連到 Dev API；不要把正式站的密鑰拿來測試 Dev。
 
 MCP 維持本機 stdio 執行；不要改成公開 SSE 或 Streamable HTTP 服務，除非另行設計 OAuth 與網路存取控制。
