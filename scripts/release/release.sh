@@ -54,7 +54,7 @@ cmd_build() {
   log "building write_project-backend:$tag"
   docker build -t "write_project-backend:$tag" server
   log "building studio static files into dist/releases/$tag"
-  npx vite build --mode production --outDir "dist/releases/$tag" --emptyOutDir
+  npm run build -- --mode production --outDir "dist/releases/$tag" --emptyOutDir
   [ -f "dist/releases/$tag/index.html" ] || die "studio build produced no index.html"
 }
 

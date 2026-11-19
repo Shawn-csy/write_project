@@ -14,11 +14,8 @@ on:
       - 'package-lock.json'
       - 'index.html'
       - 'tsconfig*.json'
-      - 'jsconfig.json'
-      - 'vite.config.*'
-      - 'vitest.config.*'
-      - 'tailwind.config.*'
-      - 'postcss.config.*'
+      - 'config/**'
+      - 'components.json'
       - 'Dockerfile*'
       - 'scripts/**'
       - '.github/workflows/**'
@@ -38,11 +35,8 @@ on:
       - 'package-lock.json'
       - 'index.html'
       - 'tsconfig*.json'
-      - 'jsconfig.json'
-      - 'vite.config.*'
-      - 'vitest.config.*'
-      - 'tailwind.config.*'
-      - 'postcss.config.*'
+      - 'config/**'
+      - 'components.json'
       - 'Dockerfile*'
       - 'scripts/**'
       - '.github/workflows/**'
@@ -76,4 +70,4 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Check public submission forms
-        run: npx vitest run src/components/admin/PublicAudioWorkSubmissionInbox.test.tsx packages/public-ui/src/WorkParticipantEditor.test.tsx apps/public/lib/audioScriptWorks.test.ts apps/public/app/author/\[id\]/AuthorPageClient.test.tsx apps/public/components/SubmissionDialogs.test.tsx apps/public/components/PublicFeedbackDialog.test.tsx
+        run: npm test -- src/components/admin/PublicAudioWorkSubmissionInbox.test.tsx packages/public-ui/src/WorkParticipantEditor.test.tsx apps/public/lib/audioScriptWorks.test.ts apps/public/app/author/\[id\]/AuthorPageClient.test.tsx apps/public/components/SubmissionDialogs.test.tsx apps/public/components/PublicFeedbackDialog.test.tsx

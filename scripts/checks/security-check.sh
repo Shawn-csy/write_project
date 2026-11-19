@@ -77,7 +77,7 @@ if ! command -v npx &>/dev/null; then
   fail "npx not found"
   OVERALL=1
 else
-  if (cd "$ROOT_DIR" && npx vitest run \
+  if (cd "$ROOT_DIR" && npm test -- \
     apps/public/securityHeaders.test.ts \
     apps/public/app/api/revalidate/route.test.ts \
     apps/public/app/api/public-bundle/route.test.ts \

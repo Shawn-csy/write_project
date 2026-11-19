@@ -9,7 +9,7 @@ echo "🚀 Starting Full Test Suite..."
 # Frontend Tests
 echo ""
 echo "--- Running Frontend Tests (Vitest) ---"
-npx vitest run
+npm test
 
 # Backend Tests
 echo ""

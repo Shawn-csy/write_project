@@ -21,7 +21,7 @@
  * Vite admin dev server.
  *
  * To run:
- *   PUBLIC_APP_URL=http://localhost:3000 npx playwright test hero-banner-ultra-wide
+ *   PUBLIC_APP_URL=http://localhost:3000 npm run test:e2e -- hero-banner-ultra-wide
  */
 
 import { test, expect } from '@playwright/test';

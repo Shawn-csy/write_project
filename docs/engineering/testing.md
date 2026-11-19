@@ -12,7 +12,7 @@
 PYTHONPATH=. python -m pytest -q tests/test_submission_workflow_contract.py
 ```
 
-公開表單測試位於 `apps/public/components/SubmissionDialogs.test.tsx` 和 `apps/public/components/PublicFeedbackDialog.test.tsx`，可從專案根目錄以 `npx vitest run` 執行。GitHub Actions 的 `Submission workflows` 會在後端、公開頁或管理介面變更時執行這兩組測試。新增投稿種類時，請同時補上從建立到審核結果的資料生命週期檢查，並使用測試資料庫；不要對 Dev 或正式站送出測試投稿。
+公開表單測試位於 `apps/public/components/SubmissionDialogs.test.tsx` 和 `apps/public/components/PublicFeedbackDialog.test.tsx`，可從專案根目錄以 `npm test` 執行。GitHub Actions 的 `Submission workflows` 會在後端、公開頁或管理介面變更時執行這兩組測試。新增投稿種類時，請同時補上從建立到審核結果的資料生命週期檢查，並使用測試資料庫；不要對 Dev 或正式站送出測試投稿。
 最後更新：2026-03-11
 
 本專案採用 Vitest 進行單元測試，Playwright 進行統合測試 (E2E)。本文件旨在協助開發者了解如何執行與撰寫測試。
@@ -32,7 +32,7 @@ PYTHONPATH=. python -m pytest -q tests/test_submission_workflow_contract.py
 單元測試與 CI 指令請參考：`docs/engineering/ci-process.md`  
 本地開發可使用：
 ```
-npx vitest
+npm run test:watch
 ```
 
 ### 關鍵測試檔案
@@ -56,16 +56,16 @@ npx vitest
 npx playwright install
 
 # 執行所有 E2E 測試 (Headless Mode)
-npx playwright test
+npm run test:e2e
 
 # 開啟 UI 模式 (推薦用於除錯)
-npx playwright test --ui
+npm run test:e2e:ui
 
 # 產出 HTML 報告
 npx playwright show-report
 ```
 
-> 預設會自動啟動前端 `http://127.0.0.1:1090`（由 `playwright.config.ts` 的 `webServer` 啟動 `vite dev`）。  
+> 預設會自動啟動前端 `http://127.0.0.1:1090`（由 `config/playwright.config.ts` 的 `webServer` 啟動 `vite dev`）。
 > 若自行指定 `PLAYWRIGHT_BASE_URL`，請指向可提供前端頁面的服務（例如 `1090`），不要指向僅後端 API 的位址（例如 `1091`），否則會看到 `Frontend not built`。
 
 ### 測試場景 (Scenarios)

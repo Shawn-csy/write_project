@@ -8,7 +8,7 @@
 
 ## 變更範圍
 
-工作流程涵蓋 `src/**`、`packages/**`、`apps/public/**`、`server/**`、`public/**`、`deploy/**`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、HTML、TypeScript、Vite/Vitest、Tailwind/PostCSS、Dockerfile 和 Docker Compose 設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。兩組 paths 最後以 `!**/*.md` 排除根目錄及任意子目錄的 Markdown，包括 README、CHANGELOG 與 scripts 內的文件；`docs/**` 的非 Markdown 檔案仍屬程式 CI 範圍。文件與程式混合修改仍會啟動兩組完整 CI。新增、刪除 Markdown 同樣適用，重新命名須留意來源與目的路徑；程式移入 docs 也不會變成文件例外。
+工作流程涵蓋 `src/**`、`packages/**`、`apps/public/**`、`server/**`、`public/**`、`deploy/**`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、HTML、TypeScript 設定，以及 `config/**` 內的 Vite、Vitest、Playwright 與樣式工具設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。兩組 paths 最後以 `!**/*.md` 排除根目錄及任意子目錄的 Markdown，包括 README、CHANGELOG 與 scripts 內的文件；`docs/**` 的非 Markdown 檔案仍屬程式 CI 範圍。文件與程式混合修改仍會啟動兩組完整 CI。新增、刪除 Markdown 同樣適用，重新命名須留意來源與目的路徑；程式移入 docs 也不會變成文件例外。
 
 獨立的 `Documentation checks` 在 Markdown、檢查器、測試或 workflow 修改時執行，不安裝應用程式依賴。它檢查所有 tracked Markdown 的相對連結／本機圖片目標、reference link 與未關閉的 fenced code block，忽略 URL、頁內 anchor、inline code 與 fenced code 範例，不依賴網路。只改 Markdown 不會產生兩個程式 CI 的 completion，因此不觸發自動部署。目前 tracked Markdown 都是文件或 agent 指引，沒有 runtime Markdown 資料；未來新增此類資料必須在兩組 paths 排除後加入明確正向例外及契約測試。
 
@@ -25,9 +25,9 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 - 後端依賴稽核、production network boundary、後端完整契約測試。
 - CI 工作流程契約回歸檢查：`python3 scripts/checks/check-ci-contracts.py`。
 - 根目錄型別檢查：`npm run typecheck`。
-- studio 與共用套件測試：`npx vitest run --project main`。
+- studio 與共用套件測試：`npm test -- --project main`。
 - studio 正式建置：`npm run build`。
-- public 測試與獨立型別檢查：`npx vitest run apps/public`、`npx tsc --noEmit -p apps/public/tsconfig.json`。
+- public 測試與獨立型別檢查：`npm test -- apps/public`、`npx tsc --noEmit -p apps/public/tsconfig.json`。
 - 正式 Pages 靜態建置：`python3 scripts/checks/check-public-builds.py`，使用本機唯讀 API fixture，不依賴 production API。
 
 `Submission workflows` 另外執行投稿、審核與回饋的後端契約及 public 表單測試。以上步驟失敗會使工作流程失敗。
@@ -42,6 +42,6 @@ Actions 使用 Node.js 22、Python 3.13，並以 `npm ci` 安裝鎖定的前端�
 
 可逐項執行上述指令；僅檢查 workflow 契約不需要安裝任何依賴。`bash scripts/ci.sh` 是既有的本機前後端測試、型別及依賴稽核工具，並未等同所有 Actions 建置步驟。正式部署由 GitHub Actions 的發布流程執行。
 
-端對端測試仍可另外執行 `npx playwright test`；目前不是這兩個工作流程的必要閘門。
+端對端測試仍可另外執行 `npm run test:e2e`；目前不是這兩個工作流程的必要閘門。
 
 內容更新沿用 Python 標準函式庫測試探索，驗證公開資料擷取、內容指紋、固定快照服務、鎖、正式版本解析與失敗重試。`check-public-builds.py` 實際匯出「新增／修改／下架」和「公開目錄完全清空」兩份 Pages 產物；匯出前關閉原始 fixture API，只讓建置讀快照。內容排程只有 schedule／manual 事件，與程式發布互斥，第二次 checkout 綁定解析出的正式 SHA，不接受 PR 事件或修改 API／資料庫。
