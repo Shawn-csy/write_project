@@ -19,7 +19,7 @@ jobs:
     env:
       WP_RELEASE_ROOT: /Users/shanti/Desktop/write_project/releases
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
           fetch-depth: 0
@@ -28,7 +28,7 @@ jobs:
         run: |
           sha=$(python3 scripts/release/content-refresh.py resolve-source)
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: ${{ steps.live.outputs.sha }}
           fetch-depth: 0
