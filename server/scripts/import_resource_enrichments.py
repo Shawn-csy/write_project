@@ -1,15 +1,13 @@
 """Import reviewed resource profile details into the dev database."""
 
-import json
 import os
-from pathlib import Path
 from urllib.parse import urlparse
 
 from database import SessionLocal, engine
+from scripts.backfill_snapshots import ARCHIVE, read_backfill_snapshot
 from models import Base, ProductionResourceEnrichment
 
 
-SNAPSHOT = Path(__file__).parent / "data" / "production_resource_enrichments_2026-11-10.json"
 
 
 def valid_https(url):
@@ -20,7 +18,7 @@ def valid_https(url):
 def main():
     if "write_project_dev" not in os.getenv("DATABASE_URL", ""):
         raise SystemExit("Refusing to import outside the dev database")
-    rows = json.loads(SNAPSHOT.read_text())["enrichments"]
+    rows = read_backfill_snapshot(ARCHIVE, "productionResourceEnrichments")["enrichments"]
     Base.metadata.create_all(bind=engine, tables=[ProductionResourceEnrichment.__table__])
     with SessionLocal() as db:
         for item in rows:

@@ -8,6 +8,6 @@
 
 未連結的台本署名保留為待核：ami亞海（2 件）、キノR（2 件）、一ノ清カズスケ（2 件）、方所長（2 件）、淼龍頭（1 件）、釉子酒（2 件）、陌上商行（1 件）。這些原本就沒有同名身份或已確認別名，沒有擅自建立或合併人物。
 
-可重跑入口：`python -m scripts.audit_legacy_work_participations scripts/data/honglian_confirmed_participation_ids_2026-11-16.json --database-name write_project`。預設回滾；`--apply` 只有在集合比對一致時才提交。
+可重跑入口：`python -m scripts.audit_legacy_work_participations scripts/data/public_catalog_backfills.json --database-name write_project`。預設回滾；`--apply` 只有在集合比對一致時才提交。
 
 正式備份保存在主機的私人備份目錄，不進版本庫。本次不包含完整歷史資料遷移或舊表淘汰。

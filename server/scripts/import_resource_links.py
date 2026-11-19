@@ -1,21 +1,19 @@
 """Import reviewed extra resource contact links into the dev database."""
 
-import json
 import os
-from pathlib import Path
 
 from database import SessionLocal, engine
+from scripts.backfill_snapshots import ARCHIVE, read_backfill_snapshot
 from models import Base, ProductionResourceLink
 from scripts.import_resource_enrichments import valid_https
 
 
-SNAPSHOT = Path(__file__).parent / "data" / "production_resource_links_2026-11-10.json"
 
 
 def main():
     if "write_project_dev" not in os.getenv("DATABASE_URL", ""):
         raise SystemExit("Refusing to import outside the dev database")
-    links = json.loads(SNAPSHOT.read_text())["links"]
+    links = read_backfill_snapshot(ARCHIVE, "productionResourceLinks")["links"]
     Base.metadata.create_all(bind=engine, tables=[ProductionResourceLink.__table__])
     with SessionLocal() as db:
         for item in links:

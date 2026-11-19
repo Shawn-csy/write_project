@@ -1,7 +1,6 @@
 """Incrementally fill blank public persona avatars from reviewed source images."""
 
 import argparse
-import json
 import os
 import shutil
 import time
@@ -10,25 +9,30 @@ from urllib.parse import urlparse
 
 from database import SessionLocal
 from models import Persona, ProductionResourceEnrichment
+from scripts.backfill_snapshots import ARCHIVE, read_backfill_snapshot
 
 
 DATA_DIR = Path(__file__).parent / "data"
-MANIFEST = DATA_DIR / "public_avatar_enrichments_2026-11-12.json"
-ASSETS = DATA_DIR / "public_avatar_assets_2026-11-12"
+AVATAR_BATCHES = {
+    "2026-11-12": "publicAvatars20261112",
+    "2026-11-18": "publicAvatars20261118",
+}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--apply", action="store_true", help="Write images and database updates")
-    parser.add_argument("--manifest", type=Path, default=MANIFEST, help="Reviewed avatar manifest")
-    parser.add_argument("--assets-dir", type=Path, default=ASSETS, help="Directory containing reviewed images")
+    parser.add_argument("--manifest", type=Path, default=ARCHIVE, help="Backfill archive or standalone avatar manifest")
+    parser.add_argument("--batch", choices=AVATAR_BATCHES, default="2026-11-12", help="Avatar batch in the archive")
+    parser.add_argument("--assets-dir", type=Path, help="Directory containing reviewed images")
     args = parser.parse_args()
 
     database_name = urlparse(os.environ.get("DATABASE_URL", "")).path
     if database_name not in ("/write_project", "/write_project_dev"):
         raise SystemExit(f"Unexpected database name: {database_name!r}")
     media_root = Path(os.getenv("MEDIA_STORAGE_ROOT", "/data/media"))
-    entries = json.loads(args.manifest.read_text())["profiles"]
+    entries = read_backfill_snapshot(args.manifest, AVATAR_BATCHES[args.batch])["profiles"]
+    assets_dir = args.assets_dir or (DATA_DIR / f"public_avatar_assets_{args.batch}")
     pending = []
     skipped = []
 
@@ -48,7 +52,7 @@ def main() -> None:
                 enrichment = db.get(ProductionResourceEnrichment, entry["enrichmentId"])
                 if enrichment is None or enrichment.avatarUrl != expected_current:
                     raise ValueError(f"Resource avatar changed: {entry['name']}")
-            source = args.assets_dir / entry["assetFile"]
+            source = assets_dir / entry["assetFile"]
             if not source.is_file() or source.stat().st_size < 1000:
                 raise ValueError(f"Image missing or too small: {source}")
             expected_url = "/media/public-avatar-curation/" + source.name

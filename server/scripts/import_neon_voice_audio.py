@@ -73,8 +73,7 @@ def main() -> None:
             url = f"https://www.dlsite.com/maniax/work/=/product_id/{product_id}.html"
             credited_ids = [actor_ids[name] for name in work["voiceActors"]]
             published_at = int(datetime.strptime(work["releasedOn"], "%Y-%m-%d").replace(tzinfo=timezone.utc).timestamp() * 1000)
-            credit_lines = [f"{role}：{'、'.join(names)}" for role, names in work["credits"].items()]
-            description = "內容簡介\n" + work["summary"] + "\n\n製作資訊\n" + "\n".join(credit_lines) + "\n成人向・R18"
+            description = work["summary"].strip() + "\n分級：R18"
             matches = db.query(PublicAudioWorkSubmission).filter(
                 PublicAudioWorkSubmission.url.contains(product_id)
             ).all()

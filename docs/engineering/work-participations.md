@@ -55,7 +55,7 @@
 
 本階段沒有新增 DB 表，也沒有全庫資料遷移。不能先部署移除名稱比對的前端、卻仍使用缺少 `workParticipations` 的舊後端／備援快照。
 
-發布前先在測試環境匯入有明確身份證據的參與關聯，逐人比對舊台本作品與新輸出；未連結的舊台本署名必須在審核頁或經查核的快照中確認，不能以同名自動認領。風蓮已核對的 39 件台本身份關聯已整理成 `server/scripts/data/honglian_confirmed_participation_ids_2026-11-16.json`，供上述通用工具在目標環境預檢；本分支尚未執行正式寫入。其他作者仍需逐筆核對未連結項目。
+發布前先在測試環境匯入有明確身份證據的參與關聯，逐人比對舊台本作品與新輸出；未連結的舊台本署名必須在審核頁或經查核的快照中確認，不能以同名自動認領。風蓮已核對的 39 件台本身份關聯已整理成 `server/scripts/data/public_catalog_backfills.json` 的 `honglianScriptwriterLinks` 批次，供上述通用工具在目標環境預檢；本分支尚未執行正式寫入。其他作者仍需逐筆核對未連結項目。
 
 正式發布應依序準備已確認關聯、更新後端、同步公開備援、確認 API，再更新前端。第三階段才進行全面去重、舊欄位淘汰與全庫遷移。
 
@@ -85,6 +85,6 @@ Skill 的版控副本在 `docs/workflows/open-scripts-audio-catalog/SKILL.md`；
 
 新資源投稿必填分類，審核舊 pending 投稿時管理員須補分類，否則回 400 並保持待審。新上架角色記錄分類與投稿的核實網址。既有身份可在管理端「新資源投稿審核 → 既有錄音身份分類」填來源並更正，API `GET /api/admin/recording-identities`、`PATCH /api/admin/recording-identities/{id}/entity-type` 均需管理權限；修改後失效 bundle 並重新驗證資源與個人頁。
 
-首次發布前，用 `server/scripts/data/recording_entity_types_2026-11-17.json` 的逐人來源快照執行 `python -m scripts.backfill_recording_entity_types <snapshot> --database-name <目標DB>`。預設 dry run 與 rollback；核對目標環境 ID、來源和變更清單後才在已授權的發布流程加 `--apply`。此腳本只改角色 profile 分類，不寫 production credit。部署新版後端與公開站時，先完成回填、再讀 API 確認五筆分類及無待分類身份；同步備援 bundle 並重新驗證頁面。正式站尚未在本分支寫入。
+首次發布前，用 `recordingEntityTypes` 批次執行 `python -m scripts.backfill_recording_entity_types scripts/data/public_catalog_backfills.json --database-name <目標DB>`。預設 dry run 與 rollback；核對目標環境 ID、來源和變更清單後才在已授權的發布流程加 `--apply`。此腳本只改角色 profile 分類，不寫 production credit。部署新版後端與公開站時，先完成回填、再讀 API 確認五筆分類及無待分類身份；同步備援 bundle 並重新驗證頁面。正式站尚未在本分支寫入。
 
-海聶 7 件 CxC 作品封面另有來源核實快照 `server/scripts/data/haine_cxc_cover_overrides_2026-11-17.json`。其 work ID 與作品網址及封面網址逐筆對應；`scripts.backfill_external_covers` 預設 dry run，僅補空的 `coverUrlOverride`，有既有覆寫時會停止，避免覆蓋編輯。隔離預覽資料庫已回填並由公開 API 讀回 7/7；正式站尚未回填。正式流程需先核對正式資料 ID 和目前 cover，再透過外部台本管理入口或經批准的 dry-run／apply 腳本更新，失效公開 bundle、重新驗證作者頁與外部作品圖片，並同步備援。其餘 17 件 Google Docs 沒有核實可作作品封面的圖片，不以內文截圖填補。
+海聶 7 件 CxC 作品封面另有來源核實快照 `public_catalog_backfills.json` 的 `haineCxcCoverOverrides` 批次。其 work ID 與作品網址及封面網址逐筆對應；`scripts.backfill_external_covers` 預設 dry run，僅補空的 `coverUrlOverride`，有既有覆寫時會停止，避免覆蓋編輯。隔離預覽資料庫已回填並由公開 API 讀回 7/7；正式站尚未回填。正式流程需先核對正式資料 ID 和目前 cover，再透過外部台本管理入口或經批准的 dry-run／apply 腳本更新，失效公開 bundle、重新驗證作者頁與外部作品圖片，並同步備援。其餘 17 件 Google Docs 沒有核實可作作品封面的圖片，不以內文截圖填補。
