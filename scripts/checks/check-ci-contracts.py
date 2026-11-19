@@ -69,13 +69,13 @@ def commands(source):
 class CIContracts(unittest.TestCase):
     def test_trigger_coverage_and_docs_exclusion(self):
         samples = [
-            "src/main.tsx", "src/lib/example.ts", "packages/script-engine/src/index.ts",
-            "apps/public/app/page.tsx", "server/main.py", "public/favicon.svg",
+            "apps/studio/src/main.tsx", "apps/studio/src/lib/example.ts", "packages/script-engine/src/index.ts",
+            "apps/public/app/page.tsx", "server/main.py", "apps/studio/public/favicon.svg",
             "deploy/nginx/default.conf", "deploy/launchd/example.plist", ".dockerignore", "deploy/compose.prod.yml",
             "docs/example.py", "docs/config.json", "scripts/release/release.sh", "scripts/release/site-release.py", ".github/workflows/deploy.yml",
             ".github/workflows/public-read-security.yml", ".github/workflows/submission-workflows.yml",
             "package.json", "package-lock.json", "tsconfig.json",
-            "config/vitest.config.ts", "config/tailwind.config.ts", "config/postcss.config.ts", "config/playwright.config.ts", "config/vite.config.ts", "components.json", "index.html",
+            "config/vitest.config.ts", "config/tailwind.config.ts", "config/postcss.config.ts", "config/playwright.config.ts", "config/vite.config.ts", "apps/studio/index.html",
         ]
         all_paths = []
         for workflow in WORKFLOWS:
@@ -88,10 +88,10 @@ class CIContracts(unittest.TestCase):
                         self.assertTrue(triggered([sample], paths))
                 for doc in ("README.md", "CHANGELOG.md", "docs/engineering/ci-process.md", "docs/product/guide.md", "apps/public/README.md", "packages/script-engine/README.md", "scripts/README.md"):
                     self.assertFalse(triggered([doc], paths))
-                self.assertTrue(triggered(['apps/public/README.md', 'src/main.tsx'], paths))
+                self.assertTrue(triggered(['apps/public/README.md', 'apps/studio/src/main.tsx'], paths))
                 # For renames, conservatively model both old and new paths.
                 self.assertTrue(triggered(['docs/old.md', 'docs/new.py'], paths))
-                self.assertTrue(triggered(['src/old.ts', 'docs/new.md'], paths))
+                self.assertTrue(triggered(['apps/studio/src/old.ts', 'docs/new.md'], paths))
                 self.assertFalse(triggered(['docs/old.md', 'docs/new.md'], paths))
                 self.assertFalse(triggered(['LICENSE', 'notes.txt'], paths))
             self.assertRegex(source, r"(?m)^    branches: \[main\]$")

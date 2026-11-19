@@ -3,11 +3,11 @@ import path from "path";
 import {
   splitTitleAndBody,
   extractTitleEntries,
-} from "../../src/lib/parsers/titlePageParser";
+} from "../../apps/studio/src/lib/parsers/titlePageParser";
 
 // Adjust paths based on where the script is run from (usually root)
-const scriptsDir = path.resolve(process.cwd(), "src/scripts_file");
-const outputFile = path.resolve(process.cwd(), "src/constants/fileMeta.generated.json");
+const scriptsDir = path.resolve(process.cwd(), "apps/studio/src/scripts_file");
+const outputFile = path.resolve(process.cwd(), "apps/studio/src/constants/fileMeta.generated.json");
 
 const entries: Record<string, { mtime: string; title: string; summary: string }> = {};
 
@@ -84,7 +84,7 @@ const walk = (dir: string) => {
 
 if (!fs.existsSync(scriptsDir)) {
   console.warn(`scripts directory not found: ${scriptsDir}`);
-  console.warn("跳過產生檔案中繼資料（找不到 src/scripts_file/）");
+  console.warn("跳過產生檔案中繼資料（找不到 apps/studio/src/scripts_file/）");
   fs.writeFileSync(outputFile, JSON.stringify({}, null, 2));
   process.exit(0);
 }

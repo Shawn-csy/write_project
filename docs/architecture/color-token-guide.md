@@ -4,7 +4,7 @@
 This project uses semantic color tokens so light/dark themes stay consistent and maintainable.
 
 ## Source Of Truth
-1. `src/index.css`: defines CSS variables in `:root` and `.dark`.
+1. `apps/studio/src/index.css`: defines CSS variables in `:root` and `.dark`.
 2. `config/tailwind.config.ts`: maps semantic Tailwind color names to CSS variables.
 
 ## Core Semantic Tokens
@@ -47,7 +47,7 @@ Every newly added token must be defined in both:
 If a token is missing in either side, UI may appear black/white or lose contrast.
 
 ## Migration Checklist
-1. Add token in `src/index.css` (`:root` + `.dark`).
+1. Add token in `apps/studio/src/index.css` (`:root` + `.dark`).
 2. If used as semantic class (`bg-primary` etc.), map in `config/tailwind.config.ts`.
 3. Replace any old usage:
    - `text-[var(--x)]` -> `text-[color:var(--x)]`

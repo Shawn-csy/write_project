@@ -8,7 +8,7 @@
 
 ## 變更範圍
 
-工作流程涵蓋 `src/**`、`packages/**`、`apps/public/**`、`server/**`、`public/**`、`deploy/**`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、HTML、TypeScript 設定，以及 `config/**` 內的 Vite、Vitest、Playwright 與樣式工具設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。兩組 paths 最後以 `!**/*.md` 排除根目錄及任意子目錄的 Markdown，包括 README、CHANGELOG 與 scripts 內的文件；`docs/**` 的非 Markdown 檔案仍屬程式 CI 範圍。文件與程式混合修改仍會啟動兩組完整 CI。新增、刪除 Markdown 同樣適用，重新命名須留意來源與目的路徑；程式移入 docs 也不會變成文件例外。
+工作流程涵蓋 `apps/studio/**`、`packages/**`、`apps/public/**`、`server/**`、`deploy/**`、`.dockerignore`、`scripts/**`、所有 `.github/workflows/**`，以及根目錄的 package/lock、TypeScript 設定，以及 `config/**` 內的 Vite、Vitest、Playwright 與樣式工具設定。因此僅修改 studio、共用套件、nginx 或 release/deploy 設定也會執行檢查。兩組 paths 最後以 `!**/*.md` 排除根目錄及任意子目錄的 Markdown，包括 README、CHANGELOG 與 scripts 內的文件；`docs/**` 的非 Markdown 檔案仍屬程式 CI 範圍。文件與程式混合修改仍會啟動兩組完整 CI。新增、刪除 Markdown 同樣適用，重新命名須留意來源與目的路徑；程式移入 docs 也不會變成文件例外。
 
 獨立的 `Documentation checks` 在 Markdown、檢查器、測試或 workflow 修改時執行，不安裝應用程式依賴。它檢查所有 tracked Markdown 的相對連結／本機圖片目標、reference link 與未關閉的 fenced code block，忽略 URL、頁內 anchor、inline code 與 fenced code 範例，不依賴網路。只改 Markdown 不會產生兩個程式 CI 的 completion，因此不觸發自動部署。目前 tracked Markdown 都是文件或 agent 指引，沒有 runtime Markdown 資料；未來新增此類資料必須在兩組 paths 排除後加入明確正向例外及契約測試。
 

@@ -13,8 +13,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       all: true,
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.{test,spec}.{ts,tsx}', 'src/test/**', 'src/tests/**', 'src/main.tsx'],
+      include: ['apps/studio/src/**/*.{ts,tsx}'],
+      exclude: ['apps/studio/src/**/*.{test,spec}.{ts,tsx}', 'apps/studio/src/test/**', 'apps/studio/src/tests/**', 'apps/studio/src/main.tsx'],
     },
     projects: [
       // Main app + packages — @/ resolves to ./src
@@ -22,14 +22,14 @@ export default defineConfig({
         plugins: [react()],
         test: {
           name: 'main',
-          include: ['src/**/*.{test,spec}.{ts,tsx}', 'packages/**/*.{test,spec}.{ts,tsx}'],
+          include: ['apps/studio/src/**/*.{test,spec}.{ts,tsx}', 'packages/**/*.{test,spec}.{ts,tsx}'],
           environment: 'jsdom',
           globals: true,
-          setupFiles: ['./src/test/setup.ts'],
+          setupFiles: ['./apps/studio/src/test/setup.ts'],
         },
         resolve: {
           alias: {
-            '@': path.join(repoRoot, 'src'),
+            '@': path.join(repoRoot, 'apps/studio/src'),
           },
         },
       },
@@ -42,7 +42,7 @@ export default defineConfig({
           exclude: ['apps/public/.pages-build/**', 'apps/public/node_modules/**'],
           environment: 'jsdom',
           globals: true,
-          setupFiles: ['./src/test/setup.ts'],
+          setupFiles: ['./apps/studio/src/test/setup.ts'],
         },
         resolve: {
           alias: {

@@ -71,7 +71,7 @@ npm 因而巢狀安裝。統一到 **React 19.2.4** 後 `apps/public` 不再有�
 這一類問題從源頭消失。
 
 唯一的阻擋是 **`react-helmet-async` 不支援 React 19**（peer 僅到 `^18.0.0`）。
-已以 `src/lib/useHeadTags.ts` 取代 —— 命令式套用 title 與 head 標籤、卸載時還原，
+已以 `apps/studio/src/lib/useHeadTags.ts` 取代 —— 命令式套用 title 與 head 標籤、卸載時還原，
 輸出與原本完全一致並於正式站實測比對。唯一使用處 `EditorShell` 是純 client、
 登入後的工作區路由，用不到 helmet 的巢狀覆寫 / SSR 收集 / 優先序合併。
 
@@ -119,7 +119,7 @@ vitest 4.1 起 `Assertion` 型別收斂，不再隱式套用 matcher，也讓原
 | `postcss` (root devDep) | moderate | 升到 ^8.5.10 | 2026-06-30 |
 | `next` → `postcss` / `sharp` | XSS, libvips CVE (high) | 升 next 到 16.3.1 | 2026-08-20 |
 | `brace-expansion` / `nanoid` | DoS (high) | npm audit fix | 2026-08-20 |
-| `react-helmet-async` | 不支援 React 19，阻擋版本統一 | **移除**：以 `src/lib/useHeadTags.ts` 取代 | 2026-08-21 |
+| `react-helmet-async` | 不支援 React 19，阻擋版本統一 | **移除**：以 `apps/studio/src/lib/useHeadTags.ts` 取代 | 2026-08-21 |
 
 ## 每季 Audit 流程
 

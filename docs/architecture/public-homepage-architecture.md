@@ -48,7 +48,7 @@ This document defines the long-term architecture and execution plan for the publ
 ### Remaining structural gaps
 
 - `lane` URL param is parsed, serialized, and wired through `useGalleryUrlState` → `useGalleryController` → `buildPublicHomepageModel`. `ScriptLanes.ordered` is a ranked `LaneDescriptor[]` where active lane is always first; render layer for-loops over it. `setLaneMode` is exposed from the controller for a future lane switcher UI (not yet rendered). Lane UI switcher (tab/button to change `lane` param) is the remaining gap.
-- Next production banner fallback is clean: missing backend banner data does not render placeholder slides. By default, the app-owned brand hero still renders unless superadmin config disables it. Vite legacy `src/components/public/PublicHeroMarquee.tsx` still contains old placeholder fallback and should be treated as non-canonical until Vite public gallery retires or imports `@write/public-ui`.
+- Next production banner fallback is clean: missing backend banner data does not render placeholder slides. By default, the app-owned brand hero still renders unless superadmin config disables it. Vite legacy `apps/studio/src/components/public/PublicHeroMarquee.tsx` still contains old placeholder fallback and should be treated as non-canonical until Vite public gallery retires or imports `@write/public-ui`.
 - Homepage hero pipeline: `buildHomepageHeroSlides(bannerSlides?, showBrandHero?)` is the single composition point. Brand slide is always index 0 when enabled. Data flow is strictly one-way:
   ```
   superadmin settings
@@ -377,7 +377,7 @@ Completion standard met:
 
 Known caveat:
 
-- Vite legacy `src/components/public/PublicHeroMarquee.tsx` still has embedded placeholder fallback. This is not the canonical public homepage path; do not copy it forward. Either retire the Vite public gallery or make it import `@write/public-ui` before treating Vite as parity evidence again.
+- Vite legacy `apps/studio/src/components/public/PublicHeroMarquee.tsx` still has embedded placeholder fallback. This is not the canonical public homepage path; do not copy it forward. Either retire the Vite public gallery or make it import `@write/public-ui` before treating Vite as parity evidence again.
 - Superadmin UI and backend persistence for `homepageConfig.showBrandHero` must be implemented in the homepage settings surface. Do not expose this control in normal public appearance settings.
 
 ### Phase 4: Public Homepage Model ✓ Done
@@ -489,20 +489,20 @@ Completion standard:
 All Phases 1–7 are implemented. **Batch 2 Vite public surface deletion is complete** (2026-06-17).
 
 Deleted in Batch 2:
-- `src/pages/PublicReaderPage.tsx`, `PublicSeriesPage.tsx`, `AuthorProfilePage.tsx`, `OrganizationPage.tsx`
-- `src/hooks/public/usePublicReaderScript.ts`, `usePublicTerms.ts`
-- `src/components/public/TermsConsentDialog.tsx`, `R18ConsentDialog.tsx`, `PublicTopBar.tsx`, `PublicHeroMarquee.tsx`
+- `apps/studio/src/pages/PublicReaderPage.tsx`, `PublicSeriesPage.tsx`, `AuthorProfilePage.tsx`, `OrganizationPage.tsx`
+- `apps/studio/src/hooks/public/usePublicReaderScript.ts`, `usePublicTerms.ts`
+- `apps/studio/src/components/public/TermsConsentDialog.tsx`, `R18ConsentDialog.tsx`, `PublicTopBar.tsx`, `PublicHeroMarquee.tsx`
 - `/read/:id`, `/author/:id`, `/org/:id`, `/series/:seriesName` routes removed from `PublicRoutes.tsx`
 - `PublicRoutesProps` type removed; `renderPublicRoutes()` now takes no args
 
 Post-deletion verification (2026-06-17):
 - `npx tsc --noEmit` — clean
 - `npx vitest run` — 143 files, 1380 tests pass (as of batch 2; 177 files / 1849 tests as of 2026-06-25)
-- `src/components/reader/*` and `usePublicReaderLayoutState.ts` retained (editor preview surface)
+- `apps/studio/src/components/reader/*` and `usePublicReaderLayoutState.ts` retained (editor preview surface)
 
 Next boundary-enforcement actions:
 - Enforce that no new Vite routes are added for paths owned by `apps/public`
-- Any new public content pages go into `apps/public/app/` (Next.js App Router), not `src/pages/`
+- Any new public content pages go into `apps/public/app/` (Next.js App Router), not `apps/studio/src/pages/`
 - `docs/vite-public-surface-audit.md` remains source of truth for surface ownership
 - Keep editor-owned reader preview files out of future public-surface cleanup.
 

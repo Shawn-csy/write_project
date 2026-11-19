@@ -11,7 +11,7 @@ Production uses Pages static export with browser live reads to FastAPI. Next ser
 The product has these ownership boundaries:
 
 - `apps/public` owns public pages, build-time SEO snapshots, canonical metadata, stable URLs, browser primary/fallback API adapters, and local development page rendering. Production JSON/media routes are owned by FastAPI. Pages does not execute ISR. D1/R2 are read-only public fallbacks; writes remain with the primary API.
-- `src/` exists to serve authenticated editor and workspace workflows.
+- `apps/studio/src/` exists to serve authenticated editor and workspace workflows.
 - `packages/*` exists to hold product semantics that must be shared by both runtimes without copying behavior.
 
 The goal is not to gradually duplicate Vite in Next.js. The goal is to make public behavior canonical in Next.js, keep editor behavior in Vite, and move cross-runtime product rules into shared packages.
@@ -19,10 +19,10 @@ The goal is not to gradually duplicate Vite in Next.js. The goal is to make publ
 ## Non-Negotiable Principles
 
 - Public pages are owned by `apps/public`.
-- Editor, dashboard, and authenticated workspace flows are owned by the Vite app under `src/`.
+- Editor, dashboard, and authenticated workspace flows are owned by the Vite app under `apps/studio/src/`.
 - Shared product semantics belong in `packages/*`, not in app-local page components.
-- Next.js code must not import from `src/*`.
-- Shared packages must not import from `apps/public/*` or `src/*`.
+- Next.js code must not import from `apps/studio/src/*`.
+- Shared packages must not import from `apps/public/*` or `apps/studio/src/*`.
 - Public behavior must not depend on Vite-only contexts, React Router, browser-only globals during render, or Vite dev server behavior.
 - Vite may consume shared packages for editor preview and marker behavior, but Vite public pages are not canonical.
 - Placeholder production behavior is not acceptable. Loading, empty, unavailable, and error states must be explicit.
@@ -57,14 +57,14 @@ May import:
 
 Must not import:
 
-- `src/*`
+- `apps/studio/src/*`
 - Vite-only hooks, contexts, router code, or environment helpers
 - editor/dashboard components
 - backend implementation modules
 
-### `src/`
+### `apps/studio/`
 
-`src/` is the Vite editor and workspace runtime.
+`apps/studio/` contains the Vite editor entry point, source, and static assets.
 
 Owns:
 
@@ -95,9 +95,9 @@ Any remaining Vite public-looking component must be classified as one of:
 - compatibility wrapper around a shared package
 
 Batch 2 deletion (2026-06-17) removed all deprecated public surface from Vite:
-pages, hooks, and components. `src/hooks/public/usePublicReaderLayoutState.ts`
-and `src/components/reader/*` are retained as editor preview implementation.
-The old Vite `src/components/renderer/v2/*` and `src/lib/v2/*` modules are
+pages, hooks, and components. `apps/studio/src/hooks/public/usePublicReaderLayoutState.ts`
+and `apps/studio/src/components/reader/*` are retained as editor preview implementation.
+The old Vite `apps/studio/src/components/renderer/v2/*` and `apps/studio/src/lib/v2/*` modules are
 compatibility facades around `@write/script-reader-renderer`; the canonical
 presentation implementation now lives in the shared package.
 
@@ -142,14 +142,14 @@ Allowed dependency direction:
 ```text
 apps/public ─────────────┐
                          ├── packages/*
-src/ Vite editor ────────┘
+apps/studio/src/ Vite editor ────────┘
 
 packages/* ──X──> apps/public
 packages/* ──X──> src
 apps/public ──X──> src
 ```
 
-When code needs to be shared between `apps/public` and `src/`, move it into the smallest appropriate package under `packages/*`.
+When code needs to be shared between `apps/public` and `apps/studio/src/`, move it into the smallest appropriate package under `packages/*`.
 
 When code needs routing, backend fetches, auth context, or deployment configuration, keep it in the app layer and pass stable data into shared packages.
 
@@ -175,8 +175,8 @@ Retirement does not mean deleting the entire Vite app. It means public ownership
 | `/org/[id]` | `apps/public` | retired as canonical after link/content QA |
 | `/series/[name]` | `apps/public` | retired as canonical |
 | `/tag/[name]` | `apps/public` | retired as canonical |
-| editor preview | `src/` | remains Vite-owned |
-| dashboard/workspace | `src/` | remains Vite-owned |
+| editor preview | `apps/studio/src/` | remains Vite-owned |
+| dashboard/workspace | `apps/studio/src/` | remains Vite-owned |
 
 If a Vite route still presents public content, it should either:
 
@@ -201,11 +201,11 @@ Completion standard:
 
 Scan and classify:
 
-- `src/components/public/*`
-- `src/components/gallery/*`
-- `src/components/reader/*`
-- `src/hooks/public/*`
-- public-looking Vite routes under `src/routes` and `src/pages`
+- `apps/studio/src/components/public/*`
+- `apps/studio/src/components/gallery/*`
+- `apps/studio/src/components/reader/*`
+- `apps/studio/src/hooks/public/*`
+- public-looking Vite routes under `apps/studio/src/routes` and `apps/studio/src/pages`
 - any imports of public route components from editor/dashboard surfaces
 
 Each item must be labeled:
@@ -217,7 +217,7 @@ Each item must be labeled:
 
 ### Vite → Next Handoff Helper
 
-All navigation from the Vite SPA to a Next.js public route must go through `src/lib/publicNavigation.ts`.
+All navigation from the Vite SPA to a Next.js public route must go through `apps/studio/src/lib/publicNavigation.ts`.
 
 Never write `window.location.href = "/public-path"` directly at call sites.
 
@@ -261,11 +261,11 @@ Behavior that is only layout composition or route wiring stays app-local.
 
 Add automated checks that fail CI when:
 
-- `apps/public` imports `src/*`
+- `apps/public` imports `apps/studio/src/*`
 - `packages/*` imports `apps/public/*`
-- `packages/*` imports `src/*`
+- `packages/*` imports `apps/studio/src/*`
 - shared packages import Next.js, Vite router, React Router, app auth contexts, or app environment helpers
-- public route components are created under `src/` without an explicit editor-preview classification
+- public route components are created under `apps/studio/src/` without an explicit editor-preview classification
 
 The guard should be treated as architecture protection, not style linting.
 
@@ -339,7 +339,7 @@ Use these rules when deciding where new code belongs:
 | Question | Destination |
 |---|---|
 | Does it affect public SEO, public route metadata, or public URL behavior? | `apps/public` |
-| Is it editor-only interaction or authenticated workspace UI? | `src/` |
+| Is it editor-only interaction or authenticated workspace UI? | `apps/studio/src/` |
 | Is it marker parsing, render model, or script semantics? | `@write/script-engine` or reader packages |
 | Is it router-neutral public discovery behavior? | `@write/public-ui` |
 | Does it need app router, backend fetch, auth, or env vars? | app layer |

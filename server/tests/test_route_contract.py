@@ -78,7 +78,7 @@ def test_backend_returns_gone_for_retired_gallery(client, monkeypatch, tmp_path)
 
 def test_nginx_and_frontend_share_the_workspace_route_contract():
     nginx = (REPO_ROOT / "deploy/nginx/default.conf").read_text(encoding="utf-8")
-    workspace_routes = (REPO_ROOT / "src/routes/WorkspaceRoutes.tsx").read_text(encoding="utf-8")
+    workspace_routes = (REPO_ROOT / "apps/studio/src/routes/WorkspaceRoutes.tsx").read_text(encoding="utf-8")
 
     declared_paths = set(re.findall(r'<Route\s+path="([^"]+)"', workspace_routes))
     frontend_exact_paths = {path.lstrip("/") for path in declared_paths if path not in {"*", "/*", "edit/:id", "works/:id"}}

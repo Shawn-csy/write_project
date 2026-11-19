@@ -26,7 +26,7 @@ PYTHONPATH=. python -m pytest -q tests/test_submission_workflow_contract.py
 
 ## 2. 單元測試 (Unit Tests)
 
-主要針對 `src/lib/` 下的核心邏輯進行驗證，包含 Parser、AST Builder 與 Statistics 模組。
+主要針對 `apps/studio/src/lib/` 下的核心邏輯進行驗證，包含 Parser、AST Builder 與 Statistics 模組。
 
 ### 執行指令
 單元測試與 CI 指令請參考：`docs/engineering/ci-process.md`  
@@ -37,11 +37,11 @@ npm run test:watch
 
 ### 關鍵測試檔案
 
-- `src/lib/importPipeline/metadataExtractor.test.ts`: 驗證匯入 metadata 解析與邊界條件。
-- `src/lib/importPipeline/tagSync.test.ts`: 驗證匯入標籤同步到 script tags。
-- `src/lib/importPipeline/directASTBuilder.test.ts`: 驗證原始 Fountain 到 AST 的轉換邏輯。
-- `src/components/dashboard/ScriptMetadataDialog.test.tsx`: 驗證 metadata checklist/區塊同步邏輯。
-- `src/lib/statistics/`: 包含各項統計指標 (Duration, Dialogue Count) 的測試。
+- `apps/studio/src/lib/importPipeline/metadataExtractor.test.ts`: 驗證匯入 metadata 解析與邊界條件。
+- `apps/studio/src/lib/importPipeline/tagSync.test.ts`: 驗證匯入標籤同步到 script tags。
+- `apps/studio/src/lib/importPipeline/directASTBuilder.test.ts`: 驗證原始 Fountain 到 AST 的轉換邏輯。
+- `apps/studio/src/components/dashboard/ScriptMetadataDialog.test.tsx`: 驗證 metadata checklist/區塊同步邏輯。
+- `apps/studio/src/lib/statistics/`: 包含各項統計指標 (Duration, Dialogue Count) 的測試。
 
 > **注意**: 專案已從 Node Native Test (`node:test`) 遷移至 Vitest。應用程式測試使用 Vitest；獨立 `scripts/tests/test_*.mjs` 工具測試仍使用 Node 的 `node --test`，依各維運文件指令執行。
 

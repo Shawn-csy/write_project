@@ -8,7 +8,7 @@
 | Entry point | Reader toolbar only. Not in `ReadWorkHeader`. |
 | Implementation source | Reuse Vite `scriptExportBasic.ts` / `scriptExportShared.ts` logic, extracted to a shared package. No second implementation in `apps/public`. |
 | Rendered HTML source | Live DOM snapshot of `.script-renderer` via `pickRenderedRoot()`. Same mechanism as Vite. Works client-side in Next.js (same renderer package used). |
-| New package | `packages/reader-export` — extracts the pure PDF/print logic from Vite's `src/lib/`. |
+| New package | `packages/reader-export` — extracts the pure PDF/print logic from Vite's `apps/studio/src/lib/`. |
 
 Related design: `docs/architecture/read-page-export-metadata-projection.md` defines how PDF
 metadata rows must stay aligned with the visible public reader metadata model.
@@ -57,7 +57,7 @@ before the export surface is fully accepted.
 - `ReadWorkHeader` — standalone actions bar removed. Props: `{ onLike }` only.
 - `ReaderToolbar` — `endSlot` with 分享 + PDF buttons; PDF disabled until `pdfReady`.
 - `apps/public/package.json` + root `package.json` — `@write/reader-export: "*"` declared.
-- Vite `src/lib/scriptExportBasic.ts` — re-exports `exportScriptAsPdf` from `@write/reader-export`.
+- Vite `apps/studio/src/lib/scriptExportBasic.ts` — re-exports `exportScriptAsPdf` from `@write/reader-export`.
 
 ### Phase 6 additions (2026-06-18 to 2026-06-22)
 
@@ -65,7 +65,7 @@ before the export surface is fully accepted.
 - `packages/reader-export/src/publicMetadataProjection.ts` — canonical public metadata alias/formatter contract shared by PDF export and the on-screen Next public overlay projection. Owns preface aliases, structured `multi` / `chapter_multi` formatting, and reserved system-key filtering.
 - `packages/reader-export/src/customMetadata.ts` — pure helpers (`customMetadataEntriesToMeta`, `normalizeCustomMetadataEntries`).
 - `apps/public/lib/scriptProjection.ts` — uses shared `publicMetadataProjection` helpers instead of maintaining its own preface key table.
-- `src/lib/exportMetadata.ts` — reduced to re-export shim. Vite call sites unchanged.
+- `apps/studio/src/lib/exportMetadata.ts` — reduced to re-export shim. Vite call sites unchanged.
 - `apps/public/lib/publicReaderExportMetadata.ts` — `buildPublicReaderExportMetadata(script)` adapter; passes activityName, activityContent, activityDemoLinks from PublicScript top-level fields.
 - `apps/public/app/read/[id]/usePublicExport.ts` — uses `buildPublicReaderPrintSnapshot()` and passes sanitized `bodyHtml` + shared `headerHtml` into `exportScriptAsPdf`. No longer uses `ReadWorkHeaderModel` as PDF source.
 - `apps/public/lib/pdfHeaderModel.ts` — deleted (replaced by shared model).
@@ -170,7 +170,7 @@ It should not be the PDF export metadata source.
 
    Source to migrate:
 
-   - `src/lib/exportMetadata.ts`
+   - `apps/studio/src/lib/exportMetadata.ts`
 
    Public exports:
 
@@ -184,7 +184,7 @@ It should not be the PDF export metadata source.
 
 2. Keep Vite compatibility through a thin re-export.
 
-   `src/lib/exportMetadata.ts` should re-export from `@write/reader-export`
+   `apps/studio/src/lib/exportMetadata.ts` should re-export from `@write/reader-export`
    after migration, so existing Vite call sites do not fork.
 
 3. Replace the Next app-local PDF header builder.
