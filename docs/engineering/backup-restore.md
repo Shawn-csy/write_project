@@ -8,7 +8,7 @@ The installed `com.shawnup.write-project-backup` LaunchAgent now runs daily at 0
 
 ## Backup format and compatibility
 
-`bash scripts/backup-db.sh` remains the CLI entry point. It now delegates to adjacent `backup-bundle.py` (Python 3.9+, standard library, Docker CLI) and creates a private `write_project_<timestamp>_<random>/` directory containing `database.dump` (PostgreSQL custom format), `media.tar.gz` and `manifest.json`. Existing `.sql.gz` backups remain untouched; consumers expecting that filename must migrate. The former `backup.log` is replaced by stdout/stderr; launchd still captures these. Old heap/index log checks are replaced by the explicit restore drill's `pg_amcheck` validation.
+`bash scripts/ops/backup-db.sh` remains the CLI entry point. It now delegates to adjacent `backup-bundle.py` (Python 3.9+, standard library, Docker CLI) and creates a private `write_project_<timestamp>_<random>/` directory containing `database.dump` (PostgreSQL custom format), `media.tar.gz` and `manifest.json`. Existing `.sql.gz` backups remain untouched; consumers expecting that filename must migrate. The former `backup.log` is replaced by stdout/stderr; launchd still captures these. Old heap/index log checks are replaced by the explicit restore drill's `pg_amcheck` validation.
 
 `PG_CONTAINER`, `DB_USER`, `DB_NAME`, `BACKUP_DIR`, `KEEP_DAYS` (14), `BACKUP_MIRROR_DIR`, `MIRROR_KEEP_DAYS` (180) remain supported. New-format complete bundles alone participate in retention. A configured external mirror is required and failures exit nonzero. Local completion may precede a mirror failure; it never means external delivery succeeded. Partial mirror directories are left for operator inspection, never reported complete. Atomic rename finalizes each copy only after checksum verification. An advisory lock prevents overlapping backup/retention in the same local directory.
 
@@ -22,14 +22,14 @@ The user selected `/Volumes/Horcrux/write_project_backups`. Read-only inspection
 
 ## Installed helpers and future updates
 
-Install both helpers together into `~/bin`, retain executable permissions, set an absolute `MEDIA_STORAGE_ROOT` and ensure launchd's Python/Docker PATH works. Review `scripts/com.shawnup.write-project-backup.plist` before installing it. Desktop/media access may require macOS privacy authorization for the scheduled interpreter. Do not copy just the shell wrapper. The template retains the existing Horcrux destination. The updated helpers and schedule were activated on 2026-11-16 and passed a manual backup and isolated restore drill. Future updates must repeat that verification.
+Install both helpers together into `~/bin`, retain executable permissions, set an absolute `MEDIA_STORAGE_ROOT` and ensure launchd's Python/Docker PATH works. Review `deploy/launchd/com.shawnup.write-project-backup.plist` before installing it. Desktop/media access may require macOS privacy authorization for the scheduled interpreter. Do not copy just the shell wrapper. The template retains the existing Horcrux destination. The updated helpers and schedule were activated on 2026-11-16 and passed a manual backup and isolated restore drill. Future updates must repeat that verification.
 
 ## Verify and disposable restore drill
 
 ```bash
-python3 scripts/backup-bundle.py verify /absolute/path/to/bundle
-python3 scripts/backup-bundle.py drill /absolute/path/to/bundle
-python3 -m unittest discover -s scripts -p test_backup_bundle.py -v
+python3 scripts/ops/backup-bundle.py verify /absolute/path/to/bundle
+python3 scripts/ops/backup-bundle.py drill /absolute/path/to/bundle
+python3 -m unittest discover -s scripts/tests -p test_backup_bundle.py -v
 ```
 
 Only use trusted locally acquired bundles. The drill accepts no destination/container override: it creates a random `wp-restore-drill-*` container and internal network, tmpfs database, temporary media directory, no host ports and no production mounts. It verifies hashes and safe archive members before provisioning, restores with errors fatal, compares all public-table counts to source evidence, requires populated records, and runs `pg_amcheck --heapallindexed`. Media extraction occurs only into a disposable temporary directory. Container/network/temp media cleanup runs on success and exceptions. SIGKILL or machine loss can leave resources; inspect only resources with the generated `wp-restore-drill-*` name before manual cleanup. Never substitute a production container into a restore command.

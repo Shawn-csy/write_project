@@ -29,6 +29,6 @@
 - 現有 `migration.py` 包含 `_run_postgres_migrations()`；在 Postgres 上會執行新增欄位、索引、外鍵調整與資料回填，並非跳過。
 - PostgreSQL legacy migration 已在主要 schema 變更與資料回填之間分段提交，以縮短舊服務讀取被 DDL 鎖住的時間；它仍包含非 concurrent 索引與其他可能阻塞寫入的操作，不能只靠本機讀取探針宣稱正式環境零中斷。
 - PostgreSQL 缺表建立改由 `schema_bootstrap.create_missing_tables()` 依缺表的外鍵相依順序逐表提交，避免一筆交易跨越整個 ORM catalog；production Compose 仍預設不在 Backend 啟動時自動執行這一步。
-- 正式 schema 的獨立作業入口是 `scripts/migrate-prod-schema.sh`；`--plan` 只檢查、`--verify` 要求完整，`--apply` 先排練與備份再修改。作業連線有鎖／單句時間上限及 advisory lock，且與 API 啟動分開。目標 schema 是否完整須在發布時執行 `--verify`，本文不宣稱目前線上狀態。
+- 正式 schema 的獨立作業入口是 `scripts/release/migrate-prod-schema.sh`；`--plan` 只檢查、`--verify` 要求完整，`--apply` 先排練與備份再修改。作業連線有鎖／單句時間上限及 advisory lock，且與 API 啟動分開。目標 schema 是否完整須在發布時執行 `--verify`，本文不宣稱目前線上狀態。
 - 工作區的 production Compose 已將兩個初始化開關預設設為 `0`，候選 Backend 啟動不會自行改動 schema。使用新版服務前，須獨立驗證 schema，必要時完成受控遷移，再以候選 readiness 驗證，最後才切換流量。正式 `.env` 若明確把開關設為 `1`，仍會覆蓋 Compose 預設；發布前須檢查實際解析結果。
 - 2026-11-10 的缺表檢查與複本排練是歷史觀察，不代表目前線上 schema。發布仍須驗證並發寫入、鎖等待上限與目標 `--verify`；canonical procedure 見 [發布程序](continuous-deployment.md)。

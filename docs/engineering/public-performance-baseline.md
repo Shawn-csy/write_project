@@ -14,7 +14,7 @@
 本機量測指令：
 
 ```bash
-python3 scripts/benchmark-public-reads.py --base-url http://127.0.0.1:1090 --path / --path /api/public-bundle --requests 15 --concurrency 3
+python3 scripts/dev/benchmark-public-reads.py --base-url http://127.0.0.1:1090 --path / --path /api/public-bundle --requests 15 --concurrency 3
 ```
 
 公開網址量測使用 `--base-url https://open-scripts.shawnup.com --requests 12 --concurrency 2`。量測時首頁回應為 Cloudflare `HIT`；公開網址的時間包含網路與邊緣服務，不能直接歸因於源站。首頁未壓縮約 536 KiB。
@@ -59,7 +59,7 @@ python3 scripts/benchmark-public-reads.py --base-url http://127.0.0.1:1090 --pat
 
 ## 瀏覽器首屏基線
 
-`scripts/benchmark-public-browser.mjs` 使用 Chromium、1365×900 視窗，每次以全新 context 載入頁面，記錄 TTFB、FCP、LCP、長任務和各類資源傳輸量。2026-11-10 以現行來源站 `127.0.0.1:1090` 執行三次，頁面載入後再等 2 秒；僅供定位，樣本數不足以宣稱倍率：
+`scripts/dev/benchmark-public-browser.mjs` 使用 Chromium、1365×900 視窗，每次以全新 context 載入頁面，記錄 TTFB、FCP、LCP、長任務和各類資源傳輸量。2026-11-10 以現行來源站 `127.0.0.1:1090` 執行三次，頁面載入後再等 2 秒；僅供定位，樣本數不足以宣稱倍率：
 
 | 路徑 | p50 TTFB | p50 FCP | p50 LCP | p50 總傳輸 | 主要負擔 |
 |---|---:|---:|---:|---:|---|
@@ -69,7 +69,7 @@ python3 scripts/benchmark-public-reads.py --base-url http://127.0.0.1:1090 --pat
 首頁三次圖片傳輸分別為 2.06、2.78、3.90 MB，受卡片載入與快取狀態影響很大。單次樣本中最大的兩張外部封面為 372 KB、240 KB；目前線上舊版仍下載原圖，工作區的新媒體代理支援受限寬度的縮圖，發布後應以同一工具比較實際節省量。現行來源站的外部台本已達 125 筆，與上文 Dev 快照的 110 筆不同；部署前後比較應固定同一資料集。
 
 ```bash
-node scripts/benchmark-public-browser.mjs \
+node scripts/dev/benchmark-public-browser.mjs \
   --base-url http://127.0.0.1:1090 --path / --path '/?view=orgs' \
   --runs 5 --settle-ms 2000
 ```

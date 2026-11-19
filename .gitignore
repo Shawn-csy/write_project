@@ -128,7 +128,7 @@ mobile-*.png
 # Claude Code local settings
 .claude/settings.local.json
 
-# Local Mac preview configuration (shared development uses docker-compose.dev.yml)
+# Local Mac preview configuration (shared development uses deploy/compose.dev.yml)
 /.claude/launch.json
 /docker-compose.dev-api-8891.yml
 /docker-compose.dev-studio-8890.yml

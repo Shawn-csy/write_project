@@ -2,7 +2,7 @@
 
 正式服務拓樸、發布流程與維運總覽見 [正式架構](../architecture/production-architecture.md)。
 
-`scripts/monitor-production.py --config /absolute/private/monitor.json` prints one sanitized JSON object. Exit 0 means all configured checks healthy, 1 means a measured failure (including stale data), and 2 means incomplete/unknown coverage with no measured failure. Failed checks take precedence over unknown checks. The command itself installs no schedules or notifications. Production now has an installed `com.shawnup.write-project-monitor` LaunchAgent every 300 seconds, independent of the repository template; the genuine scheduled run observed on 2026-11-16 was all healthy. No new email or Slack alert service is installed.
+`scripts/ops/monitor-production.py --config /absolute/private/monitor.json` prints one sanitized JSON object. Exit 0 means all configured checks healthy, 1 means a measured failure (including stale data), and 2 means incomplete/unknown coverage with no measured failure. Failed checks take precedence over unknown checks. The command itself installs no schedules or notifications. Production now has an installed `com.shawnup.write-project-monitor` LaunchAgent every 300 seconds, independent of the repository template; the genuine scheduled run observed on 2026-11-16 was all healthy. No new email or Slack alert service is installed.
 
 Example configuration (replace the media token with a known published local image token; the installed job probes the primary FastAPI thumbnail, not only its R2 fallback):
 
@@ -37,7 +37,7 @@ The sync script atomically writes `.public-sync/production.json` (preview uses `
 
 Failure emits a fixed `error_code: sync_failed` and preserves `last_success_at` and prior skipped-media count; status is failed regardless of a previous success. Unchanged sync refreshes the successful check timestamp and preserves prior skipped-media count. Missing prior media health stays null/unknown. Nonzero skipped objects remain failed until a publication with verified media clears them; scheduled sync retries all referenced media rather than taking the unchanged/delta shortcut when the prior receipt records skipped objects. This receipt proves the sync job completed (or source snapshots matched D1), **not independent D1/R2 availability, object completeness, or repair**. Unchanged runs skip R2. Invalid command-line/origin configuration occurs before the sync job and does not produce a new receipt; freshness eventually exposes a stalled job. Existing sync stderr is separate and may contain operational error details; do not publish it.
 
-Verification: `python3 -m unittest discover -s scripts -p test_monitor_production.py` , `node --test scripts/test_sync_status.mjs`, and `node --check scripts/sync-public-cloudflare.mjs` require no production access.
+Verification: `python3 -m unittest discover -s scripts/tests -p test_monitor_production.py` , `node --test scripts/tests/test_sync_status.mjs`, and `node --check scripts/ops/sync-public-cloudflare.mjs` require no production access.
 
 ## Installed runtime and operator commands
 

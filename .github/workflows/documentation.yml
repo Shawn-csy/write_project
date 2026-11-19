@@ -4,17 +4,17 @@ on:
   pull_request:
     paths:
       - '**/*.md'
-      - 'scripts/check-docs.py'
-      - 'scripts/test_check_docs.py'
-      - 'scripts/check-ci-contracts.py'
+      - 'scripts/checks/check-docs.py'
+      - 'scripts/tests/test_check_docs.py'
+      - 'scripts/checks/check-ci-contracts.py'
       - '.github/workflows/**'
   push:
     branches: [main]
     paths:
       - '**/*.md'
-      - 'scripts/check-docs.py'
-      - 'scripts/test_check_docs.py'
-      - 'scripts/check-ci-contracts.py'
+      - 'scripts/checks/check-docs.py'
+      - 'scripts/tests/test_check_docs.py'
+      - 'scripts/checks/check-ci-contracts.py'
       - '.github/workflows/**'
 
 permissions:
@@ -28,6 +28,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - run: python3 scripts/check-ci-contracts.py
-      - run: python3 -m unittest discover -s scripts -p 'test_check_docs.py'
-      - run: python3 scripts/check-docs.py
+      - run: python3 scripts/checks/check-ci-contracts.py
+      - run: python3 -m unittest discover -s scripts/tests -p 'test_check_docs.py'
+      - run: python3 scripts/checks/check-docs.py

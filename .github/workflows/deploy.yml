@@ -44,7 +44,7 @@ jobs:
       - name: Release
         run: |
           set +e
-          bash scripts/release.sh auto
+          bash scripts/release/release.sh auto
           status=$?
           # 3: another workflow for this commit is still running; its completion deploys.
           if [ "$status" -eq 3 ]; then exit 0; fi

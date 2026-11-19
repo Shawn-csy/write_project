@@ -21,11 +21,11 @@
 
 程式本身的 `DB_AUTO_CREATE_TABLES`、`DB_RUN_LEGACY_MIGRATIONS` 預設為 `1`；production Compose 將兩者預設覆蓋為 `0`，明確的環境值仍可覆蓋。啟用時，PostgreSQL 缺表建立由 `schema_bootstrap.create_missing_tables()` 逐表提交；`migration.run_migrations()` 會執行 PostgreSQL migration，並非跳過非 SQLite 資料庫。
 
-Schema 作業與 API 啟動分離。以 `scripts/migrate-prod-schema.sh --verify` 檢查目標 schema 完整性，不以本文或歷史紀錄推定線上已就緒；`--plan` 列缺口，`--apply` 經隔離排練及備份後才修改。程序與限制見 [runtime notes](database-runtime.md) 和 [發布程序](continuous-deployment.md)。
+Schema 作業與 API 啟動分離。以 `scripts/release/migrate-prod-schema.sh --verify` 檢查目標 schema 完整性，不以本文或歷史紀錄推定線上已就緒；`--plan` 列缺口，`--apply` 經隔離排練及備份後才修改。程序與限制見 [runtime notes](database-runtime.md) 和 [發布程序](continuous-deployment.md)。
 
 ## 模型與維護入口
 
 - ORM：`server/models.py`；連線：`server/database.py`。
-- 目前 schema 遷移由 `scripts/migrate-prod-schema.sh` 執行 `server/migration.py`。
-- 網站發布由 `scripts/release.sh`／`scripts/site-release.py` 管理，不停止 PostgreSQL。
+- 目前 schema 遷移由 `scripts/release/migrate-prod-schema.sh` 執行 `server/migration.py`。
+- 網站發布由 `scripts/release/release.sh`／`scripts/release/site-release.py` 管理，不停止 PostgreSQL。
 - 版本化 migration 仍是 [待辦路線圖](../pending/architecture-maintenance-roadmap.md)，不代表已完成。備份的隔離還原驗收已於 2026-11-16 完成（40 表、2,375 筆、208 個媒體），見 [備份與還原](backup-restore.md)。

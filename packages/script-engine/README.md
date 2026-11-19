@@ -102,4 +102,4 @@ interface ScriptDocument {
 
 ## Documentation checks
 
-Markdown-only changes, including this package README, run `Documentation checks` without triggering production deployment. Run `python3 scripts/check-docs.py` from the repository root before submitting; parser code changes still use the full CI pipeline. See the [CI guide](../../docs/engineering/ci-process.md).
+Markdown-only changes, including this package README, run `Documentation checks` without triggering production deployment. Run `python3 scripts/checks/check-docs.py` from the repository root before submitting; parser code changes still use the full CI pipeline. See the [CI guide](../../docs/engineering/ci-process.md).

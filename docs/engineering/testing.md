@@ -43,7 +43,7 @@ npx vitest
 - `src/components/dashboard/ScriptMetadataDialog.test.tsx`: 驗證 metadata checklist/區塊同步邏輯。
 - `src/lib/statistics/`: 包含各項統計指標 (Duration, Dialogue Count) 的測試。
 
-> **注意**: 專案已從 Node Native Test (`node:test`) 遷移至 Vitest。應用程式測試使用 Vitest；獨立 `scripts/test_*.mjs` 工具測試仍使用 Node 的 `node --test`，依各維運文件指令執行。
+> **注意**: 專案已從 Node Native Test (`node:test`) 遷移至 Vitest。應用程式測試使用 Vitest；獨立 `scripts/tests/test_*.mjs` 工具測試仍使用 Node 的 `node --test`，依各維運文件指令執行。
 
 ## 3. 統合測試 (E2E Tests)
 

@@ -26,13 +26,25 @@ jobs:
       - name: Resolve complete live release
         id: live
         run: |
-          sha=$(python3 scripts/content-refresh.py resolve-source)
+          sha=$(python3 scripts/release/content-refresh.py resolve-source)
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
         with:
           ref: ${{ steps.live.outputs.sha }}
           fetch-depth: 0
-      - name: Require bootstrapped live code
-        run: test -f scripts/content-refresh.py || { echo 'Deploy a normal complete release containing content-refresh.py before enabling refresh'; exit 1; }
+      - name: Locate the refresh command in the live checkout
+        id: refresh
+        run: |
+          if test -f scripts/release/content-refresh.py; then
+            entry=scripts/release/content-refresh.py
+          elif test -f scripts/content-refresh.py; then
+            entry=scripts/content-refresh.py
+          else
+            echo 'Deploy a complete release containing the content refresh command before enabling refresh'
+            exit 1
+          fi
+          echo "entry=$entry" >> "$GITHUB_OUTPUT"
       - run: npm ci
-      - run: python3 scripts/content-refresh.py run
+      - run: python3 "$REFRESH_ENTRY" run
+        env:
+          REFRESH_ENTRY: ${{ steps.refresh.outputs.entry }}

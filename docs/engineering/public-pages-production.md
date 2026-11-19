@@ -39,8 +39,8 @@ Tunnel 是與其他網站共用的 `91d6eb76-bd34-4655-94b3-a30b62f7eb89`（遠�
 
 ```bash
 export WP_RELEASE_ROOT="$HOME/Desktop/write_project/releases"
-bash scripts/release.sh pages
-bash scripts/release.sh verify
+bash scripts/release/release.sh pages
+bash scripts/release/release.sh verify
 ```
 
 此入口固定擷取公開內容，建置後再次比對，才上傳，另以 verify 做正式入口煙霧驗證；不要以直接 `build:pages` 加 `wrangler pages deploy` 取代。`pages-build`／`pages-upload` 是內部步驟，不具完整發布保護。內容刷新工作另核對公開 `/content-version.json` 與 durable receipt 的 commit／digest；單獨 `pages` 不會更新內容刷新 journal，UI 可能暫時顯示未知或舊狀態，下一次刷新會重新核對。僅上傳成功不足以完成驗收。
@@ -51,16 +51,18 @@ Pages 保留每次部署。到 Cloudflare 後台的 `write-project-public-site` 
 
 ## 備援資料與媒體的同步
 
-launchd 工作每 900 秒從獨立不可變的 ops runtime 執行 `scripts/sync-public-cloudflare.mjs --production --scheduled`；資料沒變時略過寫入。不是從工作區 checkout 執行。日誌在 `~/Library/Logs/write-project-public-sync-prod/`。
+launchd 工作每 900 秒從獨立的 ops runtime 執行同步。已安裝的舊版 runtime 使用 `scripts/sync-public-cloudflare.mjs`，新 checkout 的入口位於 `scripts/ops/sync-public-cloudflare.mjs`；資料沒變時略過寫入。不是從工作區 checkout 執行。日誌在 `~/Library/Logs/write-project-public-sync-prod/`。
 
 手動同步（先確認目前同步已結束，再 bootout 同步排程，並切換至下文的可信任 ops runtime 目錄；完成後恢復原 plist）：
 
 ```bash
+entry=scripts/ops/sync-public-cloudflare.mjs
+[ -f "$entry" ] || entry=scripts/sync-public-cloudflare.mjs
 PUBLIC_SYNC_API_ORIGIN=https://api-open-scripts.shawnup.com \
 PUBLIC_SYNC_MEDIA_ORIGIN=https://api-open-scripts.shawnup.com \
 PUBLIC_SYNC_EXTERNAL_COVER_ORIGIN=https://api-open-scripts.shawnup.com \
 PUBLIC_SYNC_R2_PUBLIC_ORIGIN=https://media-open-scripts.shawnup.com \
-node scripts/sync-public-cloudflare.mjs --production
+node "$entry" --production
 ```
 
 - 外部封面（`/api/public-media/external/<id>`）由 FastAPI 提供，可與資料使用相同 API 網域。既有排程若仍指定本機 `127.0.0.1:1090`，也會經 Nginx 轉交 FastAPI；不依賴 Next server。
@@ -68,7 +70,7 @@ node scripts/sync-public-cloudflare.mjs --production
 - 封面檔名來自作品標題，可能含空格、逗號、括號；同步對「整個欄位就是媒體網址」的值整串處理，不能只靠空白斷詞。
 - 修改備援 Worker（`apps/public/worker/`）後重新部署：`npm run deploy:api-fallback -w apps/public`。D1 的 schema 定義在 `worker/schema.sql`，新資料庫要先套用再同步。
 
-同步 runtime 安裝於 `$HOME/Library/Application Support/write-project-ops/<runtime-source-sha>/`，內含 manifest、獨立鎖定 Wrangler 4.153.0 的依賴與操作 README。2026-11-16 runtime source 為 `8c78355bc64429a3b220cfa5bdb0234338491236`；同步／監控程式已驗證與正式 `6b32f07` 相同。升級須校驗 manifest，等待執行中的同步完成，再僅 bootout 對應 label，保留舊 plist，再複製準備好的 plist 並 bootstrap；不可直接用指向開發 checkout 的 repository plist 覆蓋。手動強制同步前先確認同步已結束並卸載該排程，避免重疊或中斷寫入。回復則 bootout、恢復前一版 plist、bootstrap。指令與監控見 [監控手冊](production-monitoring.md)。
+同步 runtime 安裝於 `$HOME/Library/Application Support/write-project-ops/<runtime-source-sha>/`，內含 manifest、獨立鎖定 Wrangler 4.153.0 的依賴與操作 README。2026-11-16 runtime source 為 `8c78355bc64429a3b220cfa5bdb0234338491236`；同步／監控程式已驗證與正式 `6b32f07` 相同。升級須校驗 manifest，等待執行中的同步完成，再僅 bootout 對應 label，保留舊 plist，再複製準備好的 plist 並 bootstrap；安裝時使用 [launchd 範本](../../deploy/launchd/com.shawnup.write-project-public-sync-prod.plist.template)，填入新 runtime 的絕對路徑。手動強制同步前先確認同步已結束並卸載該排程，避免重疊或中斷寫入。回復則 bootout、恢復前一版 plist、bootstrap。指令與監控見 [監控手冊](production-monitoring.md)。
 
 ## 主 API 的 nginx 注意事項
 
@@ -79,7 +81,7 @@ node scripts/sync-public-cloudflare.mjs --production
 
 - `/media/*.webp` 另有規則把 `Content-Type` 改成 `image/webp`：FastAPI 的靜態檔以 `application/octet-stream` 加 `nosniff` 回應 `.webp`，同網域沒事，但跨網域 `<img>` 會被瀏覽器（ORB）擋下。後端已在 `v0-7-4-r8` 補上 `.webp` 的 MIME 對照（`services/media_types.py`），這條 nginx 規則現在只是第二道保險，可以保留。若改動了 `/media/` 的標頭，要到 Cloudflare 對 `api-open-scripts.shawnup.com` 做「依主機名稱」清除快取（最長 4 小時的舊標頭會留在邊緣）。
 
-修改 nginx 設定要走 `scripts/site-release.py` 的新 release（`prepare`、檢查、`activate`），詳見 `operations.md`。`site-release.py` 會把兩個 server block 的上游一併改寫；新版只有 API 上游，舊版紀錄仍支援 API／Next 雙上游供回滾。
+修改 nginx 設定要走 `scripts/release/site-release.py` 的新 release（`prepare`、檢查、`activate`），詳見 `operations.md`。`site-release.py` 會把兩個 server block 的上游一併改寫；新版只有 API 上游，舊版紀錄仍支援 API／Next 雙上游供回滾。
 
 ## 驗證備援切換
 
@@ -112,7 +114,7 @@ sessionStorage.removeItem('public-api:primary-down-until');
 
 內容更新流程位於 `.github/workflows/content-refresh.yml`，設定每小時第 7、22、37、52 分鐘執行，也可在 Actions 手動執行 **Refresh published content**。GitHub 可能延後排程，另需加上排隊、建置和上傳時間；這不是立即發布的時效保證。緊急下架可手動觸發，不必等待下一次排程。
 
-**啟用前提**：先合併並正常發布一個包含 `scripts/content-refresh.py` 的完整版本，留下 `complete` 發布紀錄。排程設定合併到預設分支後才會由 GitHub 啟用；未具備完整版本紀錄時會停止並顯示初始化說明。此初始化已於 2026-11-16 完成；內容刷新使用 GitHub Actions 排程，沒有另裝本機內容刷新排程。
+**啟用前提**：先合併並正常發布一個包含 `scripts/release/content-refresh.py` 的完整版本，留下 `complete` 發布紀錄。排程設定合併到預設分支後才會由 GitHub 啟用；未具備完整版本紀錄時會停止並顯示初始化說明。此初始化已於 2026-11-16 完成；內容刷新使用 GitHub Actions 排程，沒有另裝本機內容刷新排程。
 
 流程先從 main checkout 唯讀解析目前入口與發布紀錄中的完整 commit SHA，再 checkout 該 SHA 執行。較新的 main 即使已有其他尚未發布的程式或文件，也不會混入內容發布。缺少舊版本紀錄、commit 不符或工作目錄不乾淨時會停止。
 
@@ -120,9 +122,9 @@ sessionStorage.removeItem('public-api:primary-down-until');
 
 ```sh
 # WP_RELEASE_ROOT 必須與正式發布使用同一個持久目錄
-python3 scripts/content-refresh.py resolve-source
-python3 scripts/content-refresh.py status
-python3 scripts/content-refresh.py run
+python3 scripts/release/content-refresh.py resolve-source
+python3 scripts/release/content-refresh.py status
+python3 scripts/release/content-refresh.py run
 ```
 
 內容流程只讀取公開 API，更新 Pages；不啟動 API 映像、不遷移資料庫、不執行身份收斂或舊版本清理。D1／R2 仍由既有同步排程獨立更新，失敗不會直接阻擋 Pages 的內容更新。
