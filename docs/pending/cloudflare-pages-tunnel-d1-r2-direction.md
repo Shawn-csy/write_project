@@ -132,7 +132,7 @@ macOS LaunchAgent `com.shawnup.write-project-public-sync` 已安裝，每 900 �
 
 需要立即同步時，執行上方的手動同步指令。
 
-LaunchAgent 設定檔在 `scripts/com.shawnup.write-project-public-sync.plist`；執行記錄寫入 `~/Library/Logs/write-project-public-sync/`。排程依賴這台 Mac 登入、網路可用、Wrangler 授權有效及本機 API 可連線；電腦休眠或登出期間不會即時同步，恢復登入與網路後的下一輪才會比對。`X-Data-Synced-At` 是 D1 快照最後更新時間；內容未變的檢查不會推進這個時間。
+原本機 LaunchAgent 設定檔在 `~/Library/LaunchAgents/com.shawnup.write-project-public-sync.plist`；執行記錄寫入 `~/Library/Logs/write-project-public-sync/`。排程依賴這台 Mac 登入、網路可用、Wrangler 授權有效及本機 API 可連線；電腦休眠或登出期間不會即時同步，恢復登入與網路後的下一輪才會比對。`X-Data-Synced-At` 是 D1 快照最後更新時間；內容未變的檢查不會推進這個時間。
 
 同步順序固定為：先把公開媒體上傳 R2，再切換 D1 快照。已發布台本被編輯、改封面、改作者頭像、改系列名或改橫幅後，排程會在下一輪檢查並同步；如需立即更新，可手動執行上方指令。
 
@@ -203,7 +203,7 @@ preview 已配置 Dev API、API 備援 Worker／D1 和媒體 R2。下表為預�
 
 Dev API 的 Postgres 與媒體 volume 完全獨立於正式容器。Dev Studio 是另一份 Vite build，服務在 `127.0.0.1:8890`，並透過 Docker network 反向代理到 Dev API 的 8891 容器；不使用正式的 `dist`。`com.shawnup.write-project-public-sync` launchd job 每 15 分鐘從 `http://127.0.0.1:8891` 同步公開資料和媒體到 preview D1/R2。
 
-重新建置並啟動 Dev Studio：
+本機 Dev Studio 暫停中。需要重新啟動時，使用該機保存的 Compose 設定：
 
 ```bash
 npm run build:dev-studio

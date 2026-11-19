@@ -127,3 +127,12 @@ mobile-*.png
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Local Mac preview configuration (shared development uses docker-compose.dev.yml)
+/.claude/launch.json
+/docker-compose.dev-api-8891.yml
+/docker-compose.dev-studio-8890.yml
+/nginx.dev-studio-8890.conf
+/scripts/com.shawnup.write-project-dev-api-8891-tunnel.plist
+/scripts/com.shawnup.write-project-public-sync.plist
+/scripts/com.shawnup.write-project-audio-discovery.plist
