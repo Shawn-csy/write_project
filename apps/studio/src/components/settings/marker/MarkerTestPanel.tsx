@@ -1,93 +1,93 @@
 import React from "react";
-import { RotateCcw } from "lucide-react";
 import { Button } from "../../ui/button";
-import ScriptViewer from "../../renderer/ScriptViewer";
+import { MarkerOutputPreview } from "./MarkerOutputPreview";
 import { useI18n } from "../../../contexts/I18nContext";
-import { buildMarkerSample, findMarkerMatchLines, type MarkerMatchShape } from "../../../lib/markerMatchPreview";
+import { findMarkerMatchLines, type MarkerMatchShape } from "../../../lib/markerMatchPreview";
+import { MarkerPaneDivider } from "./layout/MarkerPaneDivider";
+import { useMarkerRulePanes } from "./layout/useMarkerRulePanes";
+import { getMarkerStudioSample, readMarkerStudioSample, storeMarkerStudioSample } from "./markerStudioSample";
+import { readProductionWordRule, type ProductionMarkerMapping } from "../../../lib/productionScriptExport";
 import type { MarkerConfig } from "../../../types/script";
 import type { LayoutConfig } from "../../../lib/v2";
 
-const STORAGE_KEY = "marker-test-panel-text-v2";
-const DEFAULT_SAMPLE = ["#C 小雨", "#D (喘氣)……末班車呢？", "#SE 列車進站聲", ">>SE 雨聲", "#C 阿哲", "#D 剛走。【回音】", "<<SE"].join("\n");
-
-const readStoredText = (): string => {
-  try {
-    return window.sessionStorage.getItem(STORAGE_KEY) || DEFAULT_SAMPLE;
-  } catch {
-    return DEFAULT_SAMPLE;
-  }
-};
 
 interface MarkerTestPanelProps {
+  children?: React.ReactNode;
   markerConfigs: MarkerConfig[];
   selectedConfig: MarkerMatchShape | null;
   usePresentationRenderer?: boolean;
   layoutConfig?: LayoutConfig;
-  className?: string;
+  mapping?: ProductionMarkerMapping;
 }
 
-/**
- * Lets the author type a few lines of script and see them rendered with the
- * unsaved draft rules, so a rule's effect is visible while editing it.
- */
-export function MarkerTestPanel({ markerConfigs, selectedConfig, usePresentationRenderer = false, layoutConfig, className = "" }: MarkerTestPanelProps): React.JSX.Element {
+export function MarkerTestPanel({ markerConfigs, selectedConfig, usePresentationRenderer = false, layoutConfig, mapping, children }: MarkerTestPanelProps): React.JSX.Element {
   const { t } = useI18n();
-  const [text, setText] = React.useState<string>(readStoredText);
-
+  const ruleId = selectedConfig?.id;
+  const selectedRule = markerConfigs.find((rule) => rule.id === ruleId);
+  const target = readProductionWordRule(selectedRule).target ?? (ruleId ? mapping?.[ruleId] : undefined);
+  const sample = selectedConfig ? getMarkerStudioSample(selectedRule ?? selectedConfig, t, target) : "";
+  const [customText, setCustomText] = React.useState<string | null>(() => readMarkerStudioSample(ruleId));
+  const text = customText ?? sample;
+  const showMismatch = customText !== null && Boolean(text.trim()) && Boolean(selectedConfig) &&
+    selectedConfig?.matchMode !== "none" && selectedConfig?.matchMode !== "virtual" &&
+    findMarkerMatchLines(text, selectedConfig).length === 0;
+  const [proof, setProof] = React.useState(false);
+  const sourceId = React.useId();
+  const outputId = React.useId();
+  const { workspace, ranges, resize, defaults } = useMarkerRulePanes();
   React.useEffect(() => {
-    try {
-      window.sessionStorage.setItem(STORAGE_KEY, text);
-    } catch {
-      // Storage can be unavailable (private mode); the panel still works for this visit.
-    }
-  }, [text]);
-
-  const matchedLines = React.useMemo(() => findMarkerMatchLines(text, selectedConfig), [text, selectedConfig]);
-  const sample = buildMarkerSample(selectedConfig);
-  const ruleName = selectedConfig?.label || t("markerStudio.thisRule", "這條規則");
+    storeMarkerStudioSample(ruleId, customText);
+  }, [ruleId, customText]);
 
   return (
-    <aside aria-label={t("markerStudio.testTitle", "試寫")} className={`flex min-h-0 min-w-0 flex-col gap-3 overflow-y-auto bg-muted/30 p-4 ${className}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[15px] font-semibold">{t("markerStudio.testTitle", "試寫")}</h2>
-        <div className="flex items-center gap-1">
-          {sample ? (
-            <Button type="button" variant="outline" size="sm" onClick={() => setText((prev) => `${prev.trimEnd()}\n${sample}`)}>
-              {t("markerStudio.insertSample", "加入範例")}
+    <div ref={workspace} className="marker-inspector" style={{ "--rule-preview-width": `${ranges.preview.value}px` } as React.CSSProperties}>
+      <div className="marker-inspector-settings">{children}</div>
+      <MarkerPaneDivider className="marker-inspector-divider" label={t("markerStudio.resizeRulePreview")}
+        controls={outputId} direction={-1} range={ranges.preview}
+        onResize={value => resize("preview", value)} onReset={() => resize("preview", defaults.preview)} />
+      <div id={outputId} className="marker-inspector-preview">
+      <section id={sourceId} className="overflow-hidden rounded-lg border border-border bg-background">
+        <header className="flex min-h-11 flex-wrap items-center justify-between gap-2 border-b border-border px-3">
+          <label className="text-sm font-semibold" htmlFor={`${sourceId}-input`}>
+            {t("markerStudio.testInput", "試寫原稿")}
+          </label>
+          {customText !== null && sample && (
+            <Button type="button" variant="ghost" size="sm" onClick={() => setCustomText(null)}>
+              {t("markerStudio.resetSample")}
             </Button>
-          ) : null}
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setText(DEFAULT_SAMPLE)} aria-label={t("markerStudio.resetSample", "還原範例文字")} title={t("markerStudio.resetSample", "還原範例文字")}>
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <textarea
-        value={text}
-        onChange={(event) => setText(event.target.value)}
-        aria-label={t("markerStudio.testInput", "試寫原稿")}
-        spellCheck={false}
-        className="min-h-[150px] w-full resize-y rounded-md border border-input bg-background p-3 font-mono text-base leading-6 text-foreground focus:outline-none focus:ring-1 focus:ring-ring sm:text-xs"
-      />
-      <p className="text-xs text-muted-foreground" role="status">
-        {selectedConfig
-          ? matchedLines.length > 0
-            ? t("markerStudio.matchedLines", "「{name}」比對到第 {lines} 行").replace("{name}", ruleName).replace("{lines}", matchedLines.join("、"))
-            : t("markerStudio.noMatch", "「{name}」在這段文字裡沒有比對到，可以按「加入範例」試試。").replace("{name}", ruleName)
-          : t("markerStudio.selectRuleToTest", "選擇左側規則，就能看到它比對到哪些行。")}
-      </p>
-      <h3 className="pt-1 text-[15px] font-semibold">{t("markerStudio.readingPreview", "閱讀時的樣子")}</h3>
-      <div data-testid="marker-test-preview" className="marker-test-paper max-h-[60vh] min-h-[160px] overflow-auto rounded-md border border-border px-3 py-2 text-sm">
-        <ScriptViewer
-          text={text}
-          fontSize={14}
-          bodyFontSize={14}
-          dialogueFontSize={14}
-          markerConfigs={markerConfigs as Array<{ id?: string; [key: string]: unknown }>}
-          usePresentationRenderer={usePresentationRenderer}
-          presentationLayoutConfig={layoutConfig}
+          )}
+        </header>
+        <textarea id={`${sourceId}-input`}
+          value={text}
+          onChange={(event) => setCustomText(event.target.value)}
+          aria-label={t("markerStudio.testInput", "試寫原稿")}
+          placeholder={t("markerStudio.sourcePlaceholder")}
+          rows={Math.min(6, Math.max(2, text.split("\n").length))}
+          spellCheck={false}
+          className="block w-full resize-y bg-muted/30 px-3 py-2 font-mono text-base leading-6 text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring sm:text-sm"
         />
+        {showMismatch && (
+          <p role="status" className="border-t border-border px-3 py-1.5 text-xs text-muted-foreground">
+            {t("markerStudio.sampleNoMatch")}
+          </p>
+        )}
+      </section>
+      <section aria-label={t("markerStudio.previewMode")} className="grid min-w-0 gap-3">
+        {(["word", "reader"] as const).map(mode => (
+          <section key={mode} className="min-w-0 overflow-hidden rounded-lg border border-border" data-word-proof={mode === "word" && proof || undefined}>
+            <header className="flex min-h-9 flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/40 px-3 py-1 text-xs">
+              <h3 className="font-semibold">{t(mode === "word" ? "markerStudio.wordResult" : "markerStudio.readingPreview")}</h3>
+              {mode === "word" && <label className="inline-flex items-center gap-1">
+                <input type="checkbox" checked={proof} onChange={event => setProof(event.target.checked)} />
+                {t("markerStudio.originalPaper")}
+              </label>}
+            </header>
+            <MarkerOutputPreview mode={mode} text={text} markerConfigs={markerConfigs} mapping={mapping}
+              layoutConfig={layoutConfig} usePresentationRenderer={usePresentationRenderer} />
+          </section>
+        ))}
+      </section>
       </div>
-      <p className="text-xs text-muted-foreground">{t("markerStudio.previewUsesDraft", "預覽使用尚未儲存的規則；儲存後才會套用到作品。")}{" "}{t("markerStudio.previewPaperNote", "預覽固定使用淺色紙面，深色模式下也能看清規則顏色。")}</p>
-    </aside>
+    </div>
   );
 }

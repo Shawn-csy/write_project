@@ -7,6 +7,7 @@ import { PresentationEventText, applyDisplayTemplate } from './PresentationEvent
 interface LinearPresentationRendererProps {
   doc: OrchestratedDocument;
   fontSize?: number;
+  dialogueFontSize?: number;
   lineHeight?: number;
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
@@ -27,6 +28,7 @@ const shouldShowTrackBadge = (track: TrackConfig, event: ScriptEvent): boolean =
 export const LinearPresentationRenderer = ({
   doc,
   fontSize = 14,
+  dialogueFontSize = fontSize,
   lineHeight = 1.4,
   markerConfigs = [],
   hiddenMarkerIds = [],
@@ -111,7 +113,7 @@ export const LinearPresentationRenderer = ({
                   {event.speakerId ? <span>{event.speakerId}</span> : null}
                 </div>
               ) : null}
-              <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
+              <p className="whitespace-pre-wrap" style={{ fontSize: event.kind === 'speech' ? dialogueFontSize : fontSize, lineHeight }}>
                 <PresentationEventText
                   text={applyDisplayTemplate(event.text, mCfg)}
                   markerConfigs={markerConfigs}

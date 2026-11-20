@@ -226,6 +226,7 @@ function ScriptViewer({
           layoutConfig={presentationLayoutConfig || cloneDefaultLayoutConfig()}
           markerConfigs={markerConfigs as any}
           fontSize={effectiveBodyFontSize}
+          dialogueFontSize={effectiveDialogueFontSize}
           lineHeight={_lineHeight}
           readingFontFamily={_readingFontFamily}
           hiddenMarkerIds={effectiveHiddenMarkerIds}
@@ -358,7 +359,7 @@ function ScriptViewer({
       onPointerLeave={handleV2PointerLeave}
     >
       {renderScriptNode(ast)}
-      {usePresentationRenderer && markerTooltip && typeof document !== "undefined"
+      {usePresentationRenderer && _showMarkers && markerTooltip && typeof document !== "undefined"
         ? createPortal(
             <div
               className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"

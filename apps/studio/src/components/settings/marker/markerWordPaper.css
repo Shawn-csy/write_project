@@ -1,0 +1,41 @@
+/* Word's production-script template uses a 13.9% cue column and 12pt Calibri. */
+.marker-word-paper {
+  color: var(--preview-ink);
+  background: var(--preview-fill);
+  font: normal 12pt/1.5 Calibri, Arial, sans-serif;
+  text-align: start;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  min-inline-size: 0;
+}
+
+.marker-word-paper[data-compact] { font-size: .8rem; }
+.marker-word-paper section + section { margin-block-start: 1em; }
+
+.marker-word-heading {
+  background: var(--preview-heading);
+  border: 1px solid var(--preview-rule);
+  border-block-end: 2px solid var(--preview-rule);
+  padding: .15em .45em;
+  font-weight: bold;
+  font-size: 1.167em;
+  text-align: center;
+}
+
+.marker-word-row {
+  display: grid;
+  grid-template-columns: minmax(3.2em, 13.9%) minmax(0, 1fr);
+  border: 1px solid var(--preview-rule);
+}
+
+.marker-word-row + .marker-word-row { border-block-start: 0; }
+.marker-word-label, .marker-word-body { padding: .1em .45em; min-block-size: 1.65em; }
+.marker-word-label { text-align: end; border-inline-end: 1px solid var(--preview-rule); }
+.marker-word-row[data-appearance="cue"] { color: var(--preview-caption); }
+.marker-word-row[data-appearance="cue"] .marker-word-label,
+.marker-word-row[data-appearance="pause"] .marker-word-body { color: var(--preview-label); }
+.marker-word-row[data-appearance="position"], .marker-word-paper [data-inline-cue="position"] { background: var(--preview-position); }
+.marker-word-row[data-appearance="continuousEffect"] { background: var(--preview-effect); }
+.marker-word-row[data-appearance="background"] { background: var(--preview-background); }
+.marker-word-row[data-appearance="end"] { background: var(--preview-end); color: var(--preview-end-ink); }
+.marker-word-paper [data-inline-cue="post"] { color: var(--preview-caption); }

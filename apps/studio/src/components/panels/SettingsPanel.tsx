@@ -68,7 +68,7 @@ function SettingsPanel({ onClose, activeTab, onTabChange, headerLeading }: Setti
       contentClassName={cn(
         currentTab === "markers"
           ? "h-full"
-          : "overflow-y-auto px-4 py-6 sm:px-6 lg:pr-10",
+          : "overflow-y-auto px-4 py-4 sm:px-6 lg:px-10",
       )}
     >
       <Suspense fallback={<TabFallback />}>

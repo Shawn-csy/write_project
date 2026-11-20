@@ -7,6 +7,7 @@ import { PresentationEventText, applyDisplayTemplate } from './PresentationEvent
 interface ColumnsPresentationRendererProps {
   doc: OrchestratedDocument;
   fontSize?: number;
+  dialogueFontSize?: number;
   lineHeight?: number;
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
@@ -17,6 +18,7 @@ interface ColumnsPresentationRendererProps {
 export const ColumnsPresentationRenderer = ({
   doc,
   fontSize = 14,
+  dialogueFontSize = fontSize,
   lineHeight = 1.4,
   markerConfigs = [],
   hiddenMarkerIds = [],
@@ -110,14 +112,19 @@ export const ColumnsPresentationRenderer = ({
 
         {/* Content rows */}
         <div
-          className={cn(showLineUnderline && "divide-y divide-border/10")}
           data-line-underlines={showLineUnderline ? "true" : "false"}
         >
-          {lineRows.map((row) => (
+          {lineRows.map((row, index) => (
             <div
               key={row.line}
               className="grid"
-              style={{ gridTemplateColumns: fullTemplateColumns, minHeight: rowMinHeight }}
+              style={{
+                gridTemplateColumns: fullTemplateColumns,
+                minHeight: rowMinHeight,
+                borderBlockStart: showLineUnderline && index > 0
+                  ? "1px solid hsl(var(--muted-foreground) / 0.42)"
+                  : undefined,
+              }}
               data-v2-line-row={row.line}
             >
               {/* Line number gutter */}
@@ -205,7 +212,7 @@ export const ColumnsPresentationRenderer = ({
                             {event.speakerId && (
                               <div className="mb-0.5 text-[11px] text-muted-foreground/70">{event.speakerId}</div>
                             )}
-                            <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
+                            <p className="whitespace-pre-wrap" style={{ fontSize: event.kind === 'speech' ? dialogueFontSize : fontSize, lineHeight }}>
                               <PresentationEventText
                                 text={applyDisplayTemplate(event.text, mCfg)}
                                 markerConfigs={markerConfigs}

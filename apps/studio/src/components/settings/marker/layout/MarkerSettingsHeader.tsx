@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, ChevronDown, Columns3, Ellipsis, Loader2, Plus } from "lucide-react";
+import { Check, ChevronDown, Ellipsis, Loader2, Plus } from "lucide-react";
 import { Button } from "../../../ui/button";
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ interface MarkerSettingsHeaderProps {
   viewMode: MarkerViewMode;
   setViewMode: (mode: MarkerViewMode) => void;
   statusText: string;
+  hasDraftChanges: boolean;
   canSave: boolean;
   isSaving?: boolean;
   onSave: () => void;
@@ -46,6 +47,7 @@ export function MarkerSettingsHeader({
   viewMode,
   setViewMode,
   statusText,
+  hasDraftChanges,
   canSave,
   isSaving = false,
   onSave,
@@ -64,11 +66,6 @@ export function MarkerSettingsHeader({
   onToggleMultiColumn,
 }: MarkerSettingsHeaderProps): React.JSX.Element {
   const { t } = useI18n();
-  const modes: Array<{ id: MarkerViewMode; label: string }> = [
-    { id: "ui", label: t("markerSettingsHeader.viewRules") },
-    { id: "json", label: "JSON" },
-  ];
-
   return (
     <header className="shrink-0 border-b border-border px-3 py-2 sm:px-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -101,27 +98,6 @@ export function MarkerSettingsHeader({
         </div>
 
         <div className="flex flex-wrap items-center justify-end gap-1.5 sm:gap-2">
-          <div role="tablist" aria-label={t("markerStudio.viewMode", "檢視方式")} className="inline-flex gap-0.5 rounded-lg bg-muted p-[3px]">
-            {modes.map((mode) => (
-              <button
-                key={mode.id}
-                type="button"
-                role="tab"
-                aria-selected={viewMode === mode.id}
-                onClick={() => setViewMode(mode.id)}
-                className={cn(
-                  "h-8 rounded-md px-2.5 text-[13px] transition-colors",
-                  viewMode === mode.id ? "bg-background font-semibold text-foreground shadow-[0_0_0_1px_hsl(var(--border))]" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
-          <Button variant="outline" className="h-8 px-2.5" onClick={onOpenLayout} aria-label={t("markerSettingsHeader.viewLayout")}>
-            <Columns3 className="h-4 w-4" />
-            <span className="hidden lg:inline">{t("markerSettingsHeader.viewLayout")}</span>
-          </Button>
           <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={t("markerThemeHeader.moreSettings")}>
@@ -129,12 +105,16 @@ export function MarkerSettingsHeader({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem onClick={onOpenThemeDetails}>{t("markerStudio.themeDetails", "主題名稱與說明…")}</DropdownMenuItem>
-              {onOpenPublicity ? <DropdownMenuItem onClick={onOpenPublicity}>{publicityLabel}</DropdownMenuItem> : null}
-              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem checked={viewMode === "json"} onCheckedChange={(checked) => setViewMode(checked ? "json" : "ui")}>
+                {t("markerStudio.jsonEditor")}
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuItem onClick={onOpenLayout}>{t("markerSettingsHeader.viewLayout")}</DropdownMenuItem>
               <DropdownMenuCheckboxItem checked={multiColumn} onCheckedChange={(value) => onToggleMultiColumn(Boolean(value))}>
                 {t("appearance.multiTrackRenderer")}
               </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onOpenThemeDetails}>{t("markerStudio.themeDetails", "主題名稱與說明…")}</DropdownMenuItem>
+              {onOpenPublicity ? <DropdownMenuItem onClick={onOpenPublicity}>{publicityLabel}</DropdownMenuItem> : null}
               {onDeleteTheme ? (
                 <>
                   <DropdownMenuSeparator />
@@ -145,7 +125,7 @@ export function MarkerSettingsHeader({
               ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
-          <span className="hidden text-xs text-muted-foreground xl:inline" role="status">{statusText}</span>
+          <span className={cn("text-xs text-muted-foreground", !hasDraftChanges && !isSaving && "sr-only xl:not-sr-only")} role="status">{statusText}</span>
           <Button className="h-8 min-w-[4.5rem] px-3" onClick={onSave} disabled={!canSave || isSaving}>
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {t("common.save")}

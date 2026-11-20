@@ -1,4 +1,5 @@
 import React from "react";
+import "./settingsMedia.css";
 import { Image } from "lucide-react";
 import { useI18n } from "../../contexts/I18nContext";
 import { useAuth } from "../../contexts/AuthContext";
@@ -37,9 +38,10 @@ export function MediaLibrarySettings() {
       icon={<Image className="w-4 h-4" />}
       title={t("settings.media")}
       description={t("mediaLibrary.subtitle", "管理封面、頭像與 Logo 圖片，點擊縮圖可預覽。")}
-      contentClassName="space-y-3"
+      contentClassName="p-3.5"
     >
       <MediaLibraryBrowser
+        className="settings-media-library"
         items={items}
         organization={organization}
         onOrganizationChange={(nextOrganization) => { void updateOrganization(nextOrganization); }}

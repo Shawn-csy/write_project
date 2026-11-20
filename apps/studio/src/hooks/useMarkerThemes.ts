@@ -139,19 +139,19 @@ export function useMarkerThemes(
             if (!isAdmin) {
                 throw new Error("只有超級管理員可以修改系統預設設定");
             }
+            const result = await apiCall('/admin/default-marker-configs', 'PUT', normalizedConfigs);
+            if (result === null) throw new Error("系統預設儲存失敗，請重試");
             setSystemDefaultConfigs(normalizedConfigs);
-            await apiCall('/admin/default-marker-configs', 'PUT', normalizedConfigs);
             return;
         }
-        const newThemes = markerThemes.map(t => 
-            t.id === currentThemeId ? { ...t, configs: normalizedConfigs } : t
-        );
-        setMarkerThemes(newThemes);
-        
-        if (currentUser && currentThemeId !== 'default') {
-            await apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizedConfigs });
+        if (currentUser) {
+            const result = await apiCall(`/themes/${currentThemeId}`, 'PUT', { configs: normalizedConfigs });
+            if (result === null) throw new Error("主題儲存失敗，請重試");
         }
-    }, [apiCall, currentThemeId, currentUser, isAdmin, markerThemes, setMarkerThemes]);
+        setMarkerThemesState(previous => previous.map(theme =>
+            theme.id === currentThemeId ? { ...theme, configs: normalizedConfigs } : theme
+        ));
+    }, [apiCall, currentThemeId, currentUser, isAdmin]);
 
     const addTheme = useCallback(async (name: string, initialOrOptions: MarkerConfig[] | ThemeCreateOptions | null = null, legacyOptions: ThemeCreateOptions | null = null) => {
         const initialConfigs = Array.isArray(initialOrOptions)

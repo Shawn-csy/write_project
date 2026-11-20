@@ -1,7 +1,7 @@
 import React from "react";
 import { MarkerStyleSettings } from "./configs/MarkerStyleSettings";
 import { MarkerAnalysisSettings } from "./configs/MarkerAnalysisSettings";
-import { AlertCircle, Check, Maximize2, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Maximize2 } from "lucide-react";
 import { Input } from "../../ui/input";
 import { Button } from "../../ui/button";
 import { Switch } from "../../ui/switch";
@@ -14,32 +14,20 @@ interface MarkerDetailEditorProps {
     config: EditableMarkerConfig | null;
     idx: number;
     updateMarker: UpdateMarkerFn;
-    readOnly?: boolean;
     tracks?: TrackConfig[];
     layoutConfig?: LayoutConfig;
     onLayoutChange?: (config: LayoutConfig) => void;
     onOpenFullLayoutEditor?: () => void;
-    onDelete?: () => void;
 }
 
 const TYPE_OPTIONS = ["inline", "block"] as const;
 
-const MATCH_MODES = [
-    { id: "enclosure", example: "（小聲）" },
-    { id: "prefix", example: "#SE 敲門聲" },
-    { id: "range", example: ">>SE … <<SE" },
-] as const;
+const MATCH_MODES = ["enclosure", "prefix", "range", "regex"] as const;
 
-function Step({ number, title, description, children }: { number: number; title: string; description?: string; children: React.ReactNode }) {
+function RuleSection({ title, children }: { title: string; children: React.ReactNode }) {
     return (
-        <section className="space-y-4 border-t border-border/70 py-6 first:border-t-0 first:pt-2">
-            <div>
-                <h3 className="flex items-center gap-2 text-[15px] font-semibold">
-                    <span className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary" aria-hidden="true">{number}</span>
-                    {title}
-                </h3>
-                {description ? <p className="mt-1 pl-[30px] text-xs text-muted-foreground">{description}</p> : null}
-            </div>
+        <section className="space-y-2 pb-3">
+            <h3 className="text-sm font-semibold">{title}</h3>
             {children}
         </section>
     );
@@ -47,7 +35,7 @@ function Step({ number, title, description, children }: { number: number; title:
 
 function FieldRow({ label, children, hint }: { label: string; children: React.ReactNode; hint?: React.ReactNode }) {
     return (
-        <div className="grid gap-2 sm:grid-cols-[6.5rem_minmax(0,1fr)] sm:items-start">
+        <div className="marker-rule-form-row grid gap-2">
             <span className="pt-2 text-[13px] font-medium text-foreground/85">{label}</span>
             <div className="min-w-0">
                 {children}
@@ -59,7 +47,7 @@ function FieldRow({ label, children, hint }: { label: string; children: React.Re
 
 function SymbolInput({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (value: string) => void; placeholder: string }) {
     return (
-        <label className="flex flex-col gap-1.5">
+        <label className="flex min-w-0 flex-col gap-1">
             <span className="text-xs text-muted-foreground">{label}</span>
             <Input
                 value={value}
@@ -85,7 +73,7 @@ function ToggleRow({ checked, onChange, label, description }: { checked: boolean
     );
 }
 
-export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false, tracks = [], layoutConfig, onLayoutChange, onOpenFullLayoutEditor, onDelete }: MarkerDetailEditorProps): React.JSX.Element {
+export function MarkerDetailEditor({ config, idx, updateMarker, tracks = [], layoutConfig, onLayoutChange, onOpenFullLayoutEditor }: MarkerDetailEditorProps): React.JSX.Element {
     const { t } = useI18n();
     if (!config) {
         return (
@@ -98,19 +86,17 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
 
     const rawType = config.type === "block" || config.isBlock ? "block" : "inline";
     const matchMode = config.matchMode || "enclosure";
-    const currentType = matchMode === "prefix" ? "inline" : rawType;
+    const currentType = rawType;
     const isBlock = currentType === "block";
     const enabledTracks = tracks.filter((tr) => tr.enabled).sort((a, b) => a.order - b.order);
-    const availableTypeOptions = matchMode === "prefix"
-        ? TYPE_OPTIONS.filter((opt) => opt === "inline")
-        : TYPE_OPTIONS;
+    const availableTypeOptions = matchMode === "range" ? TYPE_OPTIONS.filter((opt) => opt === "block") : TYPE_OPTIONS;
     const groupingEnabled = Boolean((config.v2SyncRows || config.enableColumnGrouping) && config.matchMode === "range");
     const isMarkerDialogueGrouping = layoutConfig?.rowGrouping === "marker_dialogue";
     const typeLabel = (opt: typeof TYPE_OPTIONS[number]) => (opt === "block"
         ? t("markerStudio.displayBlock", "獨立一行")
         : t("markerStudio.displayInline", "嵌在句子裡"));
 
-    const updateMatchMode = (mode: typeof MATCH_MODES[number]["id"]) => {
+    const updateMatchMode = (mode: typeof MATCH_MODES[number]) => {
         if (mode === "prefix") {
             updateMarker(idx, {
                 matchMode: mode,
@@ -124,57 +110,30 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
     };
 
     return (
-        <div className="px-4 pb-10 pt-4 sm:px-6 lg:px-8">
-            <div className="mb-2 flex flex-wrap items-center gap-3">
-                <span
-                    className="h-4 w-4 shrink-0 rounded border border-border"
-                    style={{ backgroundColor: String(config.style?.color || "hsl(var(--foreground))") }}
-                    aria-hidden="true"
-                />
-                <Input
-                    value={config.label || ""}
-                    onChange={(e) => updateMarker(idx, "label", e.target.value)}
-                    aria-label={t("markerGeneral.name")}
-                    placeholder={t("markerDetailEditor.unnamedMarker")}
-                    className={cn(
-                        "h-10 min-w-0 flex-1 border-transparent px-2 text-lg font-bold shadow-none hover:border-input focus:border-input",
-                        !config.label && "border-destructive"
+        <div className="min-w-0">
+            <RuleSection title={t("markerStudio.stepSyntax")}>
+                <div className="flex flex-wrap items-end gap-2">
+                <label className="grid gap-1 text-xs text-muted-foreground">{t("markerLogic.matchMode")}
+                <select
+                    aria-label={t("markerLogic.matchMode")}
+                    value={MATCH_MODES.find((mode) => mode === matchMode) ?? ""}
+                    onChange={(event) => updateMatchMode(event.target.value as typeof MATCH_MODES[number])}
+                    className="h-9 max-w-full rounded-md border border-input bg-background px-2 text-sm"
+                >
+                    {!MATCH_MODES.some((mode) => mode === matchMode) && (
+                        <option value="" disabled>{t("markerStudio.chooseSyntax")}</option>
                     )}
-                />
-                {onDelete && !readOnly ? (
-                    <Button type="button" variant="ghost" size="sm" onClick={onDelete} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                        {t("markerStudio.deleteRule", "刪除規則")}
-                    </Button>
-                ) : null}
-            </div>
-
-            <Step number={1} title={t("markerStudio.stepSyntax", "原稿裡怎麼寫")}>
-                <div role="radiogroup" aria-label={t("markerLogic.matchMode")} className="grid max-w-2xl grid-cols-3 gap-1 rounded-lg bg-muted p-1">
-                    {MATCH_MODES.map((mode) => {
-                        const isActive = matchMode === mode.id;
-                        return (
-                            <button
-                                key={mode.id}
-                                type="button"
-                                role="radio"
-                                aria-checked={isActive}
-                                onClick={() => updateMatchMode(mode.id)}
-                                className={cn(
-                                    "flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-md px-2 py-1.5 text-center transition-colors",
-                                    isActive ? "bg-background font-semibold text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                <span className="text-xs">{t(`modeSelector.${mode.id}`)}</span>
-                                <code className="max-w-full truncate font-mono text-[10px] text-muted-foreground">{mode.example}</code>
-                            </button>
-                        );
-                    })}
-                </div>
+                    {MATCH_MODES.map((mode) => (
+                        <option key={mode} value={mode}>
+                            {mode === "regex" ? t("markerLogic.regexLabel") : t(`modeSelector.${mode}`)}
+                        </option>
+                    ))}
+                </select></label>
 
                 {matchMode === "regex" ? (
                     <FieldRow label={t("markerLogic.regexLabel")} hint={t("markerStudio.regexHint", "每一行分別比對；右側試寫區會標出比對到的行。")}>
                         <Input
+                            aria-label={t("markerLogic.regexLabel")}
                             value={config.regex || ""}
                             onChange={(e) => updateMarker(idx, "regex", e.target.value)}
                             className={cn("h-9 font-mono text-sm", !config.regex && "border-destructive")}
@@ -189,11 +148,9 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                         </div>
                     </FieldRow>
                 ) : matchMode === "prefix" ? (
-                    <FieldRow label={t("markerLogic.prefixSymbolLabel")} hint={t("markerStudio.prefixHint", "一行以這個符號開頭就會觸發，後面的文字是內容。")}>
-                        <div className="max-w-[12rem]">
-                            <SymbolInput label={t("markerLogic.prefixSymbolLabel")} value={config.start || ""} onChange={(value) => updateMarker(idx, "start", value)} placeholder="#SE" />
-                        </div>
-                    </FieldRow>
+                    <div className="w-28 max-w-full">
+                        <SymbolInput label={t("markerStudio.sourceSymbol")} value={config.start || ""} onChange={(value) => updateMarker(idx, "start", value)} placeholder="#SE" />
+                    </div>
                 ) : (
                     <FieldRow label={t("markerLogic.symbolPair")} hint={t("markerLogic.enclosedContentHint")}>
                         <div className="grid max-w-md grid-cols-2 gap-3">
@@ -202,10 +159,13 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                         </div>
                     </FieldRow>
                 )}
-            </Step>
+                </div>
+            </RuleSection>
 
-            <Step number={2} title={t("markerStudio.stepDisplay", "閱讀時怎麼顯示")} description={t("markerStudio.stepDisplayDesc", "讀者在作品頁看到的樣子；右側預覽會即時更新。")}>
-                <FieldRow label={t("markerStudio.position", "位置")} hint={matchMode === "prefix" ? t("markerLogic.prefixNoBlockHint") : undefined}>
+            <details className="border-t border-border py-3">
+                <summary className="cursor-pointer text-sm font-semibold">{t("markerStudio.readerSettings")}</summary>
+                <div className="mt-4 space-y-4">
+                <FieldRow label={t("markerStudio.position", "位置")}>
                     <div role="radiogroup" aria-label={t("markerStudio.position", "位置")} className="inline-flex gap-0.5 rounded-lg bg-muted p-[3px]">
                         {availableTypeOptions.map((opt) => {
                             const isActive = currentType === opt;
@@ -228,9 +188,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                     </div>
                 </FieldRow>
 
-                <FieldRow label={t("markerStudio.style", "樣式")}>
-                    <MarkerStyleSettings config={config} idx={idx} updateMarker={updateMarker} />
-                </FieldRow>
+                <MarkerStyleSettings config={config} idx={idx} updateMarker={updateMarker} />
 
                 {matchMode !== "regex" && (
                     <FieldRow
@@ -249,7 +207,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                     </FieldRow>
                 )}
 
-                <div className="space-y-3 sm:pl-[7.5rem]">
+                <div className="marker-rule-form-indent space-y-3">
                     {matchMode !== "regex" && (
                         <ToggleRow
                             checked={!!config.showDelimiters}
@@ -265,12 +223,15 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                         />
                     )}
                 </div>
-            </Step>
+                </div>
+            </details>
 
-            <Step number={3} title={t("markerStudio.stepColumn", "多欄模式放在哪一欄")} description={t("markerStudio.stepColumnDesc", "開啟多欄模式時，這種內容要出現在哪一欄。")}>
+            <details className="border-t border-border py-3">
+                <summary className="cursor-pointer text-sm font-semibold">{t("markerStudio.stepColumn")}</summary>
+                <div className="mt-4 space-y-4">
                 {enabledTracks.length > 0 ? (
                     <div>
-                        <div role="radiogroup" aria-label={t("markerStudio.stepColumn", "多欄模式放在哪一欄")} className="grid max-w-2xl gap-2" style={{ gridTemplateColumns: `repeat(${enabledTracks.length + 1}, minmax(0, 1fr))` }}>
+                        <div role="radiogroup" aria-label={t("markerStudio.stepColumn", "多欄模式放在哪一欄")} className="flex flex-wrap gap-1">
                             {[{ id: "", name: t("markerLogic.trackAuto") }, ...enabledTracks].map((track) => {
                                 const isTarget = track.id ? config.v2TrackId === track.id : !config.v2TrackId;
                                 return (
@@ -282,7 +243,7 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                                         onClick={() => updateMarker(idx, "v2TrackId", track.id || undefined)}
                                         title={track.id ? track.id : t("markerDetailEditor.trackAutoHint")}
                                         className={cn(
-                                            "flex h-11 items-center justify-center gap-1 truncate rounded-lg border px-2 text-[13px] transition-colors",
+                                            "flex h-8 items-center justify-center gap-1 truncate rounded-md border px-2 text-[13px] transition-colors",
                                             isTarget ? "border-primary bg-primary/5 font-semibold text-foreground ring-1 ring-primary" : "border-border text-muted-foreground hover:border-foreground/25 hover:text-foreground"
                                         )}
                                     >
@@ -343,7 +304,8 @@ export function MarkerDetailEditor({ config, idx, updateMarker, readOnly = false
                         ) : null}
                     </div>
                 )}
-            </Step>
+                </div>
+            </details>
 
             <details className="group border-t border-border/70 pt-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-muted-foreground hover:text-foreground">

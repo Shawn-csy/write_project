@@ -21,6 +21,7 @@ interface ScriptPresentationRendererProps {
   layoutConfig?: LayoutConfig;
   markerConfigs?: MarkerConfig[];
   fontSize?: number;
+  dialogueFontSize?: number;
   lineHeight?: number;
   readingFontFamily?: string;
   hiddenMarkerIds?: string[];
@@ -35,6 +36,7 @@ export const ScriptPresentationRenderer = ({
   layoutConfig,
   markerConfigs = [],
   fontSize = 14,
+  dialogueFontSize = fontSize,
   lineHeight = 1.4,
   readingFontFamily = 'serif',
   hiddenMarkerIds = [],
@@ -74,6 +76,7 @@ export const ScriptPresentationRenderer = ({
       <LinearPresentationRenderer
         doc={orchestrated}
         fontSize={fontSize}
+        dialogueFontSize={dialogueFontSize}
         lineHeight={lineHeight}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds}
@@ -85,6 +88,7 @@ export const ScriptPresentationRenderer = ({
       <TimelinePresentationRenderer
         doc={orchestrated}
         fontSize={fontSize}
+        dialogueFontSize={dialogueFontSize}
         lineHeight={lineHeight}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds}
@@ -96,6 +100,7 @@ export const ScriptPresentationRenderer = ({
       <ColumnsPresentationRenderer
         doc={orchestrated}
         fontSize={fontSize}
+        dialogueFontSize={dialogueFontSize}
         lineHeight={lineHeight}
         markerConfigs={markerConfigs}
         hiddenMarkerIds={hiddenMarkerIds}
@@ -112,7 +117,7 @@ export const ScriptPresentationRenderer = ({
       onPointerLeave={handlePointerLeave}
     >
       {content}
-      {markerTooltip && (
+      {markerTooltipPrefix !== null && markerTooltip && (
         <div
           className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"
           style={markerTooltipStyle || undefined}

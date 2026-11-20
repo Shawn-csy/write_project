@@ -91,11 +91,9 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
     isDirty,
     isSaving,
     lastSavedAt,
-    existingIds,
     updateMarker,
     addMarker,
     removeMarker,
-    applyJson,
     save: saveMarkerConfigs,
   } = markerState;
 
@@ -123,15 +121,18 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
   const anyDirty = isDirty || layoutDirty;
   const canSave = anyDirty && !isSaving && !readOnly && !parseError;
 
+  const [saveError, setSaveError] = useState("");
+  useEffect(() => setSaveError(""), [currentThemeId]);
   const handleSave = useCallback(async () => {
     if (!canSave) return;
-    if (layoutDirty) {
-      setPresentationLayoutConfig(localLayoutConfig);
+    setSaveError("");
+    try {
+      if (isDirty) await saveMarkerConfigs();
+      if (layoutDirty) setPresentationLayoutConfig(localLayoutConfig);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : t("scriptMetadataDialog.saveFailed"));
     }
-    if (isDirty) {
-      await saveMarkerConfigs();
-    }
-  }, [canSave, layoutDirty, isDirty, localLayoutConfig, setPresentationLayoutConfig, saveMarkerConfigs]);
+  }, [canSave, layoutDirty, isDirty, localLayoutConfig, setPresentationLayoutConfig, saveMarkerConfigs, t]);
 
   const selectedConfig = useMemo<MarkerConfig | null>(
     () => localConfigs.find((c) => (c.id || c._tempId) === expandedId) || null,
@@ -179,6 +180,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           viewMode={viewMode}
           setViewMode={setViewMode}
           statusText={statusText}
+          hasDraftChanges={anyDirty}
           canSave={canSave}
           onSave={handleSave}
           isSaving={isSaving}
@@ -186,7 +188,10 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           currentThemeId={currentThemeId}
           currentThemeLabel={themeLabel(currentTheme)}
           themeBadge={themeBadge}
-          onSwitchTheme={switchTheme}
+          onSwitchTheme={(id) => {
+            if (id !== currentThemeId) setExpandedId(null);
+            switchTheme(id);
+          }}
           onCreateTheme={() => setThemeCreateOpen(true)}
           onOpenThemeDetails={() => setThemeMoreOpen(true)}
           onOpenPublicity={currentUser && currentTheme ? () => setThemePublicityOpen(true) : undefined}
@@ -197,6 +202,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
           onToggleMultiColumn={setUsePresentationRenderer}
         />
 
+        {saveError && <p role="alert" className="px-4 py-2 text-sm text-destructive">{saveError}</p>}
         <MarkerThemeHeader
           markerThemes={markerThemes}
           currentThemeId={currentThemeId}
@@ -238,22 +244,20 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
         )}
 
         <div className="min-h-0 flex-1">
-          <MarkerSettingsModeContent
+          <MarkerSettingsModeContent key={currentThemeId}
             viewMode={viewMode}
             localConfigs={localConfigs}
             setLocalConfigs={setLocalConfigs}
             updateMarker={updateMarker}
             removeMarker={removeMarker}
-            expandedId={expandedId}
             setExpandedId={setExpandedId}
             selectedConfig={selectedConfig}
             selectedIndex={selectedIndex}
-            existingIds={existingIds}
             onAddMarker={addMarker}
             jsonText={jsonText}
             setJsonText={setJsonText}
             parseError={parseError}
-            applyJson={applyJson}
+            applyJson={handleSave}
             isDirty={isDirty}
             isSaving={isSaving}
             readOnly={readOnly}
@@ -266,13 +270,14 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
         </div>
 
       <Sheet open={layoutEditorOpen} onOpenChange={setLayoutEditorOpen}>
-        <SheetContent side="right" className="flex w-[min(96vw,1040px)] flex-col p-0 sm:max-w-none">
+        <SheetContent side="right" className="flex w-[min(100vw,52rem)] flex-col gap-0 p-0 sm:max-w-none">
           <SheetHeader className="border-b px-5 py-4">
             <SheetTitle>{t("markerSettingsHeader.viewLayout")}</SheetTitle>
             <SheetDescription>{t("markerLayoutContext.fullEditorDescription")}</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             <React.Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">{t("common.loading", "載入中...")}</div>}>
+              <fieldset disabled={readOnly} className="min-w-0">
               <V2LayoutPreviewEditor
                 layoutConfig={localLayoutConfig}
                 onChange={handleLayoutChange}
@@ -280,6 +285,7 @@ export function MarkerSettings({ sectionRef }: MarkerSettingsProps): React.JSX.E
                 selectedConfig={selectedConfig}
                 t={t}
               />
+              </fieldset>
             </React.Suspense>
           </div>
         </SheetContent>

@@ -176,13 +176,30 @@ export function MediaLibraryBrowser({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="media-library-toolbar flex flex-col gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label={t("common.search", "搜尋")}
+              placeholder={t("common.search", "搜尋")}
+              className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-2 text-xs outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </div>
+          <select aria-label={t("mediaLibrary.sort", "排序")} value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
+            <option value="newest">{t("common.latest", "最新")}</option>
+            <option value="name">{t("common.name", "名稱")}</option>
+            <option value="size">{t("common.size", "大小")}</option>
+          </select>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {onUploadChange && (
-            <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium transition-colors hover:bg-muted">
+            <label className="relative inline-flex h-8 cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium transition-colors hover:bg-muted">
               <ImageIcon className="h-3.5 w-3.5" />
               {isUploading ? t("mediaLibrary.uploading", "上傳中...") : t("mediaLibrary.addToLibrary", "新增到媒體庫")}
-              <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="hidden" onChange={onUploadChange} disabled={isUploading || isLoading || !!deletingUrl} />
+              <input type="file" accept={MEDIA_FILE_ACCEPT} multiple className="absolute inset-0 w-full cursor-pointer opacity-0" onChange={onUploadChange} disabled={isUploading || isLoading || !!deletingUrl} />
             </label>
           )}
           {onClearAll && (
@@ -192,25 +209,8 @@ export function MediaLibraryBrowser({
           )}
           {rightTopActions}
         </div>
-        {error && <span role="alert" className="text-xs text-destructive">{error}</span>}
       </div>
-
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t("common.search", "搜尋")}
-            className="h-8 w-full rounded-md border border-input bg-background pl-8 pr-2 text-xs outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </div>
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className="h-8 rounded-md border border-input bg-background px-2 text-xs">
-          <option value="newest">{t("common.latest", "最新")}</option>
-          <option value="name">{t("common.name", "名稱")}</option>
-          <option value="size">{t("common.size", "大小")}</option>
-        </select>
-      </div>
+      {error && <span role="alert" className="text-xs text-destructive">{error}</span>}
 
       {organization && onOrganizationChange && (
         <div className="flex flex-wrap items-center gap-1.5 border-b pb-2">

@@ -50,12 +50,11 @@ function renderWithRouter(ui) {
 }
 
 describe("SettingsPanel", () => {
-  // Tab buttons render in both the mobile bar and the desktop sidebar, so use getAllByRole.
   it("shows only display tab for unauthenticated users", async () => {
     useAuth.mockReturnValue({ currentUser: null });
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
-    expect(screen.getAllByRole("button", { name: "外觀與閱讀" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("tab", { name: "外觀與閱讀" })).toBeInTheDocument();
     expect(screen.queryByText("自訂標記")).toBeNull();
     expect(screen.queryByText("身份設定")).toBeNull();
     // Tab content is lazy-loaded, wait for the Suspense resolve.
@@ -67,10 +66,10 @@ describe("SettingsPanel", () => {
     renderWithRouter(<SettingsPanel onClose={() => {}} />);
 
     expect(screen.queryByRole("button", { name: "平台管理" })).toBeNull();
-    expect(screen.getAllByRole("button", { name: "外觀與閱讀" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "媒體庫" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "自訂標記" }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("button", { name: "身份設定" }).length).toBeGreaterThan(0);
+    expect(screen.getByRole("tab", { name: "外觀與閱讀" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "媒體庫" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "自訂標記" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "身份設定" })).toBeInTheDocument();
   });
 
   it("uses activeTab and onTabChange callback when controlled", async () => {
@@ -86,7 +85,7 @@ describe("SettingsPanel", () => {
 
     expect(await screen.findByTestId("marker-settings")).toBeDefined();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "身份設定" })[0]);
+    fireEvent.mouseDown(screen.getByRole("tab", { name: "身份設定" }), { button: 0 });
     expect(onTabChange).toHaveBeenCalledWith("profile");
   });
 

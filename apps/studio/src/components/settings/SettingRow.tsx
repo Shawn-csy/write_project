@@ -18,10 +18,10 @@ export function SettingRow({ label, description, stacked, className, children }:
   return (
     <div
       className={cn(
-        "py-3.5 first:pt-0 last:pb-0",
+        "min-w-0 py-2",
         stacked
           ? "space-y-2.5"
-          : "flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6",
+          : "flex min-h-11 items-center justify-between gap-3",
         className
       )}
     >
@@ -29,7 +29,7 @@ export function SettingRow({ label, description, stacked, className, children }:
         <div className="text-sm font-medium text-foreground">{label}</div>
         {description && <div className="text-xs text-muted-foreground">{description}</div>}
       </div>
-      <div className={cn(!stacked && "sm:shrink-0")}>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

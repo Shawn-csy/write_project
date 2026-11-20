@@ -13,7 +13,7 @@
 
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AppearanceSettings } from "./AppearanceSettings";
 
@@ -113,7 +113,7 @@ vi.mock("@write/script-reader-renderer", async (importOriginal) => {
 });
 
 import { useSettings } from "../../contexts/SettingsContext";
-import { useIsMobileViewport } from "@write/script-reader-renderer";
+import { cloneDefaultLayoutConfig, useIsMobileViewport } from "@write/script-reader-renderer";
 const mockUseSettings = vi.mocked(useSettings);
 const mockUseIsMobileViewport = vi.mocked(useIsMobileViewport);
 
@@ -178,4 +178,68 @@ describe("AppearanceSettings — Phase 6 capability gating", () => {
     await userEvent.click(getLineGuideSwitch());
     expect(mockSetShowLineUnderline).not.toHaveBeenCalled();
   });
+});
+
+it("previews the real marker hint, column layout, and row guides as their switches change", async () => {
+  const user = userEvent.setup();
+  mockUseSettings.mockImplementation(() => {
+    const [showMarkers, setShowMarkers] = React.useState(true);
+    const [showLineUnderline, setShowLineUnderline] = React.useState(false);
+    const [usePresentationRenderer, setUsePresentationRenderer] = React.useState(false);
+    return {
+      ...makeSettings(),
+      showMarkers, setShowMarkers,
+      showLineUnderline, setShowLineUnderline,
+      usePresentationRenderer, setUsePresentationRenderer,
+      presentationLayoutConfig: cloneDefaultLayoutConfig(),
+      bodyFontSize: 14,
+      dialogueFontSize: 21,
+    } as ReturnType<typeof useSettings>;
+  });
+
+  const { container } = render(<AppearanceSettings />);
+  const marker = () => container.querySelector('[data-marker-id="appearance-preview-cue"]');
+  const hint = () => screen.queryByText("appearance.showMarkers · appearance.previewMarkerLabel");
+  expect(marker()).toBeInTheDocument();
+  expect(hint()).toBeInTheDocument();
+
+  fireEvent.pointerMove(marker()!);
+  expect(screen.getByText("scriptRenderer.markerTooltipPrefix: appearance.previewMarkerLabel")).toBeInTheDocument();
+  await user.click(screen.getByRole("switch", { name: "appearance.showMarkers" }));
+  expect(hint()).not.toBeInTheDocument();
+  expect(marker()).toBeInTheDocument();
+  fireEvent.pointerMove(marker()!);
+  expect(screen.queryByText("scriptRenderer.markerTooltipPrefix: appearance.previewMarkerLabel")).not.toBeInTheDocument();
+
+  await user.click(getLineGuideSwitch());
+  expect(container.querySelector(".script-renderer")).toHaveClass("show-line-underline");
+
+  await user.click(screen.getByRole("switch", { name: "appearance.presentationLayoutEnabled" }));
+  expect(container.querySelector('[data-presentation-mode="columns"]')).toBeInTheDocument();
+  expect(container.querySelector('[data-line-underlines="true"]')).toBeInTheDocument();
+  expect(screen.getByText("appearance.previewBody").closest("p")).toHaveStyle({ fontSize: "14px" });
+  expect(screen.getByText("appearance.previewDialogue").closest("p")).toHaveStyle({ fontSize: "21px" });
+  expect(marker()).toBeInTheDocument();
+
+  await user.click(getLineGuideSwitch());
+  expect(container.querySelector('[data-line-underlines="false"]')).toBeInTheDocument();
+});
+
+it("uses the mobile linear layout and leaves the unavailable line guide disabled", () => {
+  mockUseIsMobileViewport.mockReturnValue(true);
+  const mobileMediaQuery = window.matchMedia("(max-width: 767px)");
+  const media = vi.spyOn(window, "matchMedia").mockReturnValue({ ...mobileMediaQuery, matches: true });
+  mockUseSettings.mockReturnValue({
+    ...makeSettings({ usePresentationRenderer: true, showLineUnderline: true }),
+    presentationLayoutConfig: cloneDefaultLayoutConfig(),
+  } as ReturnType<typeof useSettings>);
+
+  try {
+    const { container } = render(<AppearanceSettings />);
+    expect(container.querySelector('[data-presentation-mode="linear"]')).toBeInTheDocument();
+    expect(container.querySelector("[data-line-underlines]")).not.toBeInTheDocument();
+    expect(getLineGuideSwitch()).toBeDisabled();
+  } finally {
+    media.mockRestore();
+  }
 });

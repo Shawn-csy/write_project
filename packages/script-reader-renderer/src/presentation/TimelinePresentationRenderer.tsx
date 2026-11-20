@@ -6,6 +6,7 @@ import { PresentationEventText, applyDisplayTemplate } from './PresentationEvent
 interface TimelinePresentationRendererProps {
   doc: OrchestratedDocument;
   fontSize?: number;
+  dialogueFontSize?: number;
   lineHeight?: number;
   markerConfigs?: MarkerConfig[];
   hiddenMarkerIds?: string[];
@@ -21,6 +22,7 @@ interface TimelineRow {
 export const TimelinePresentationRenderer = ({
   doc,
   fontSize = 14,
+  dialogueFontSize = fontSize,
   lineHeight = 1.4,
   markerConfigs = [],
   hiddenMarkerIds = [],
@@ -84,7 +86,7 @@ export const TimelinePresentationRenderer = ({
             <span>L{row.event.lineSpan.start}</span>
             {row.event.speakerId ? <span>{row.event.speakerId}</span> : null}
           </div>
-          <p className="whitespace-pre-wrap" style={{ fontSize, lineHeight }}>
+          <p className="whitespace-pre-wrap" style={{ fontSize: row.event.kind === 'speech' ? dialogueFontSize : fontSize, lineHeight }}>
             <PresentationEventText
               text={applyDisplayTemplate(row.event.text, mCfg)}
               markerConfigs={markerConfigs}

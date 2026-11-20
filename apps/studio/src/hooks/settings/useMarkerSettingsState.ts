@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type React from "react";
 import { safeParseThemeConfigsText } from "../../lib/markerThemeCodec";
 import type { MarkerConfig } from "../../types/script";
-import { useDebouncedAutosave } from "../useDebouncedAutosave";
 
 interface MarkerSettingsStateProps {
   markerConfigs: MarkerConfig[];
@@ -26,7 +25,6 @@ interface UseMarkerSettingsStateResult {
   updateMarker: (index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => void;
   addMarker: () => void;
   removeMarker: (index: number) => void;
-  applyJson: () => void;
   save: () => Promise<void>;
 }
 
@@ -125,12 +123,6 @@ export function useMarkerSettingsState({
     }
   }, [readOnly, isSaving, viewMode, parseError, markerConfigsSignature, localConfigsSignature, localConfigs, setMarkerConfigs]);
 
-  useDebouncedAutosave({
-    enabled: isDirty && !readOnly && !isSaving && !(viewMode === "json" && Boolean(parseError)),
-    delayMs: 900,
-    save,
-  });
-
   const updateMarker = useCallback((index: number, field: keyof MarkerConfig | Partial<MarkerConfig>, value?: unknown) => {
     if (readOnly) return;
     setLocalConfigs((prev) => {
@@ -202,15 +194,6 @@ export function useMarkerSettingsState({
     [localConfigs, expandedId, readOnly]
   );
 
-  const applyJson = useCallback(() => {
-    if (readOnly) return;
-    if (parseError) return;
-    const { value, error } = safeParseThemeConfigsText(jsonText);
-    if (error || !value) return;
-    setLocalConfigs(normalizeMarkerConfigsForEditor(value));
-    setIsDirty(true);
-  }, [jsonText, parseError, readOnly]);
-
   return {
     localConfigs,
     setLocalConfigs,
@@ -226,7 +209,6 @@ export function useMarkerSettingsState({
     updateMarker,
     addMarker,
     removeMarker,
-    applyJson,
     save,
   };
 }

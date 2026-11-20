@@ -1,4 +1,5 @@
 import React from "react";
+import { Content, Root } from "@radix-ui/react-tabs";
 import { X } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { useI18n } from "../../contexts/I18nContext";
@@ -45,12 +46,13 @@ export function SettingsWorkspaceLayout({
         <LanguageSwitcher />
       </header>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
-        <SettingsNavigation activeTab={activeTab} onTabChange={onTabChange} />
-        <div ref={contentRef} className={cn("min-h-0 min-w-0 flex-1", contentClassName)}>
+      <Root value={activeTab} onValueChange={tab => onTabChange(tab as SettingsTabKey)} activationMode="manual"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <SettingsNavigation />
+        <Content value={activeTab} ref={contentRef} className={cn("min-h-0 min-w-0 flex-1", contentClassName)}>
           {children}
-        </div>
-      </div>
+        </Content>
+      </Root>
     </div>
   );
 }

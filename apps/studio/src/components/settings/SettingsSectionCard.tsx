@@ -20,21 +20,17 @@ export function SettingsSectionCard({
   contentClassName,
 }: SettingsSectionCardProps): React.JSX.Element {
   return (
-    <Card className={cn("border border-border/60 bg-card/50 shadow-sm", className)}>
-      <CardHeader className="pb-3 px-5 pt-5">
-        <div className="flex items-center gap-2">
-          {icon ? (
-            <div className="p-1.5 rounded-md bg-primary/10 text-primary">
-              {icon}
-            </div>
-          ) : null}
-          <div>
-            <CardTitle className="text-base">{title}</CardTitle>
-            {description ? <CardDescription className="text-xs mt-0.5">{description}</CardDescription> : null}
+    <Card className={cn("min-w-0 rounded-lg border-border bg-card shadow-none", className)}>
+      <CardHeader className="rounded-t-lg border-b bg-muted/30 px-3.5 py-2.5">
+        <div className="flex items-baseline gap-2">
+          {icon && <span aria-hidden="true" className="shrink-0 self-start pt-0.5 text-muted-foreground">{icon}</span>}
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
+            <CardTitle className="text-sm leading-5">{title}</CardTitle>
+            {description && <CardDescription className="text-xs leading-5">{description}</CardDescription>}
           </div>
         </div>
       </CardHeader>
-      <CardContent className={cn("px-5 pb-5", contentClassName)}>
+      <CardContent className={cn("px-3.5 py-0", contentClassName)}>
         {children}
       </CardContent>
     </Card>

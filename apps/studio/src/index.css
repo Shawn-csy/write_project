@@ -29,6 +29,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --background: 40 18% 97%;
     --foreground: 220 15% 12%;
     --card: 0 0% 100%;
@@ -93,6 +94,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222 12% 8%;
     --foreground: 210 14% 91%;
     --card: 222 10% 11%;
@@ -385,19 +387,6 @@
   background: color-mix(in srgb, hsl(var(--background)) 70%, hsl(var(--muted)) 30%);
 }
 
-/* Marker rules ship with literal dark ink (#000, #333 ...) meant for a light page.
-   The test panel previews them on a fixed light paper so they stay readable in dark mode. */
-.marker-test-paper {
-  --background: 40 18% 97%;
-  --foreground: 220 15% 12%;
-  --muted: 220 10% 95%;
-  --muted-foreground: 220 8% 46%;
-  --border: 220 9% 88%;
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  color-scheme: light;
-}
-
 .cm-highlight-line {
   background: color-mix(in srgb, hsl(var(--accent)) 16%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, hsl(var(--accent)) 28%, transparent);
@@ -516,7 +505,7 @@ html.transparent-mode {
 }
 
 .script-renderer.show-line-underline .script-line {
-  border-bottom: 1px solid hsl(var(--border) / 0.55);
+  border-bottom: 1px solid hsl(var(--muted-foreground) / 0.42);
 }
 
 /* Range pause line connector mask:
@@ -773,4 +762,47 @@ html.transparent-mode {
 
 @media (prefers-reduced-motion: reduce) {
   .sp-status-dot { animation: none; }
+}
+
+/* Shared studio preview palette. The proof override is limited to Word output. */
+.marker-preview-surface {
+  --preview-ink: hsl(var(--foreground));
+  --preview-fill: hsl(var(--card));
+  --preview-rule: hsl(var(--border));
+  --preview-caption: hsl(var(--muted-foreground));
+  --preview-label: var(--preview-caption);
+  --preview-ink-mix: 0%;
+  --preview-fill-mix: 0%;
+  --preview-position: hsl(var(--muted));
+  --preview-heading: color-mix(in srgb, #4381b5 17%, var(--preview-fill));
+  --preview-effect: color-mix(in srgb, #b78a28 17%, var(--preview-fill));
+  --preview-background: color-mix(in srgb, #658851 17%, var(--preview-fill));
+  --preview-end: hsl(var(--foreground));
+  --preview-end-ink: hsl(var(--background));
+  background-color: var(--preview-fill);
+  color: var(--preview-ink);
+  color-scheme: light;
+}
+.dark .marker-preview-surface {
+  color-scheme: dark;
+  --preview-ink-mix: 75%;
+  --preview-fill-mix: 88%;
+}
+.marker-preview-surface[data-mode] { min-width: 0; min-height: 0; flex: 1; overflow: auto; padding: .85rem; }
+.marker-preview-surface[data-compact] { max-height: 10rem; border: 1px solid var(--preview-rule); border-radius: .375rem; padding: .35rem; }
+[data-word-proof="true"] .marker-preview-surface[data-mode="word"] {
+  color-scheme: light;
+  --preview-ink: #000;
+  --preview-fill: #fff;
+  --preview-rule: #555;
+  --preview-caption: #808080;
+  --preview-label: #7f7f7f;
+  --preview-position: #e7e6e6;
+  --preview-heading: #deebf6;
+  --preview-effect: #fff2cc;
+  --preview-background: #e2efd9;
+  --preview-end: #808080;
+  --preview-end-ink: #fff;
+  --preview-ink-mix: 0%;
+  --preview-fill-mix: 0%;
 }

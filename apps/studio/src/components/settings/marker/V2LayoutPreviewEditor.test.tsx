@@ -4,16 +4,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { V2LayoutPreviewEditor } from "./V2LayoutPreviewEditor";
 import { normalizeLayoutConfig } from "../../../lib/v2";
 
-vi.mock("../../renderer/v2/EventTextV2", () => ({
-  EventTextV2: ({ text }: { text: string }) => <span>{text}</span>,
-}));
-// Radix slider needs ResizeObserver, which jsdom lacks.
-vi.mock("../../ui/slider", () => ({
-  Slider: ({ value, onValueChange, ...rest }: { value: number[]; onValueChange: (v: number[]) => void }) => (
-    <input type="range" value={value[0]} onChange={(e) => onValueChange([Number(e.target.value)])} aria-label={(rest as { "aria-label"?: string })["aria-label"]} />
-  ),
-}));
-
 const t = (key: string) => key;
 
 function setup() {
@@ -28,21 +18,30 @@ describe("V2LayoutPreviewEditor", () => {
     const { base } = setup();
     const list = screen.getByRole("region", { name: "欄位" });
     base.tracks.forEach((track) => {
-      expect(list.querySelector(`input[aria-label="${track.id} name"]`)).not.toBeNull();
-      expect(screen.getByRole("switch", { name: `${track.name} enabled` })).toBeInTheDocument();
+      expect(list.querySelector(`input[aria-label="${track.name} · markerLayoutEditor.name"]`)).not.toBeNull();
+      expect(screen.getByRole("switch", { name: `${track.name} · markerLayoutEditor.visible` })).toBeInTheDocument();
     });
     const preview = screen.getByRole("region", { name: "預覽" });
-    expect(preview.querySelector("input")).toBeNull();
+    expect(preview.querySelector("[data-presentation-mode=columns] input")).toBeNull();
     expect(preview.querySelector("button")).toBeNull();
   });
 
   it("emits a layout change when a column is toggled off", () => {
     const { base, onChange } = setup();
     const first = base.tracks[0];
-    fireEvent.click(screen.getByRole("switch", { name: `${first.name} enabled` }));
+    fireEvent.click(screen.getByRole("switch", { name: `${first.name} · markerLayoutEditor.visible` }));
     expect(onChange).toHaveBeenCalled();
     const next = onChange.mock.calls[0][0];
     expect(next.tracks.find((tr: { id: string }) => tr.id === first.id).enabled).toBe(false);
+  });
+
+  it("regroups the sample dialogue with the same layout used for reading", () => {
+    const base = normalizeLayoutConfig({});
+    const view = render(<V2LayoutPreviewEditor layoutConfig={base} onChange={vi.fn()} markerConfigs={[]} t={t} />);
+    const count = () => view.container.querySelectorAll("[data-v2-line-row]").length;
+    const separate = count();
+    view.rerender(<V2LayoutPreviewEditor layoutConfig={{ ...base, rowGrouping: "adjacent_dialogue" }} onChange={vi.fn()} markerConfigs={[]} t={t} />);
+    expect(count()).toBe(separate - 1);
   });
 
   it("swaps order with the move buttons", () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Mail } from 'lucide-react';
+import { User } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useI18n } from '../../contexts/I18nContext';
 import { Input } from '../ui/input';
@@ -54,60 +54,44 @@ export function ProfileSettings() {
             icon={<User className="w-4 h-4" />}
             title={t("profile.title")}
             description={t("profile.accountSource")}
-            contentClassName="space-y-6"
+            contentClassName="divide-y divide-border/60"
         >
-                <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg border border-border/50">
-                    {currentUser.photoURL ? (
-                        <img 
-                            src={currentUser.photoURL} 
-                            alt={currentDisplayName} 
-                            className="w-16 h-16 rounded-full border-2 border-background shadow-sm"
-                        />
-                    ) : (
-                        <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-bold">
-                            {currentDisplayName?.[0] || currentUser.email?.[0] || "?"}
-                        </div>
+            <div className="flex items-center gap-3 py-3">
+                {currentUser.photoURL ? (
+                    <img src={currentUser.photoURL} alt="" className="size-10 shrink-0 rounded-full object-cover" />
+                ) : (
+                    <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full bg-muted font-semibold">
+                        {currentDisplayName?.[0] || currentUser.email?.[0] || "?"}
+                    </span>
+                )}
+                <span className="min-w-0 break-words text-sm font-semibold">{currentDisplayName || t("profile.defaultUser")}</span>
+            </div>
+            <SettingRow label={<label htmlFor="profile-display-name">{t("profile.displayName")}</label>}>
+                <form className="flex min-w-0 flex-wrap justify-end gap-2" onSubmit={event => { event.preventDefault(); void handleSave(); }}>
+                    <Input
+                        id="profile-display-name"
+                        value={displayName}
+                        onChange={event => setDisplayName(event.target.value)}
+                        placeholder={t("profile.displayNamePlaceholder")}
+                        maxLength={60}
+                        className="h-8 w-28 min-w-0 flex-auto text-sm sm:w-52"
+                        aria-invalid={!normalizedDisplayName}
+                        aria-describedby={!normalizedDisplayName ? "profile-name-error" : undefined}
+                    />
+                    <Button type="submit" size="sm" className="h-8" disabled={!canSave || isSaving}>
+                        {isSaving ? t("profile.saving") : t("profile.saveChanges")}
+                    </Button>
+                    {!normalizedDisplayName && (
+                        <p id="profile-name-error" className="basis-full text-xs text-destructive">{t("profile.displayNameRequired")}</p>
                     )}
-                    <div>
-                        <h4 className="font-semibold text-lg">{currentDisplayName || t("profile.defaultUser")}</h4>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {currentUser.email}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="divide-y divide-border/40">
-                    <SettingRow
-                        label={t("profile.displayName")}
-                        description={t("profile.accountSource")}
-                    >
-                        <div className="grid w-full gap-2 sm:w-72">
-                            <Input
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
-                                placeholder={t("profile.displayNamePlaceholder")}
-                                maxLength={60}
-                            />
-                            {normalizedDisplayName.length === 0 && (
-                                <p className="text-xs text-destructive">{t("profile.displayNameRequired")}</p>
-                            )}
-                            <div>
-                                <Button onClick={handleSave} disabled={!canSave || isSaving}>
-                                    {isSaving ? t("profile.saving") : t("profile.saveChanges")}
-                                </Button>
-                            </div>
-                        </div>
-                    </SettingRow>
-
-                    <SettingRow label={t("profile.email")}>
-                        <Input value={currentUser.email || ""} readOnly disabled className="w-full sm:w-72" />
-                    </SettingRow>
-
-                    <SettingRow label={t("profile.userId")}>
-                        <Input value={currentUser.uid} readOnly disabled className="w-full font-mono text-xs sm:w-72" />
-                    </SettingRow>
-                </div>
+                </form>
+            </SettingRow>
+            <SettingRow label={t("profile.email")}>
+                <span className="block break-all text-right text-sm">{currentUser.email}</span>
+            </SettingRow>
+            <SettingRow label={t("profile.userId")}>
+                <span className="block break-all text-right font-mono text-xs text-muted-foreground">{currentUser.uid}</span>
+            </SettingRow>
         </SettingsSectionCard>
     );
 }

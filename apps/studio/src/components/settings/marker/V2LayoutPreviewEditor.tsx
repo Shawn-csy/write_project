@@ -1,74 +1,43 @@
+import { previewMarkerConfigs } from "./markerPreviewColors";
 import React, { useCallback, useMemo } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { Input } from "../../ui/input";
 import { Switch } from "../../ui/switch";
-import { Slider } from "../../ui/slider";
 import { Button } from "../../ui/button";
-import { EventTextV2 } from "../../renderer/v2/EventTextV2";
-import { cn } from "../../../lib/utils";
 import {
   applyMarkerSemanticRoutes,
   buildScriptDocumentV2FromAst,
   normalizeLayoutConfig,
   orchestrateDocument,
   type LayoutConfig,
-  type ScriptEvent,
+  ColumnsPresentationRenderer,
   type TrackConfig,
   type TrackRole,
 } from "../../../lib/v2";
 import type { MarkerConfig } from "../../../types/script";
 
-const SAMPLE_AST = {
-  type: "root",
-  children: [
-    {
-      type: "speech",
-      character: "角色 A",
-      lineStart: 1,
-      lineEnd: 1,
-      children: [{ type: "dialogue", text: "這是對白範例文字，會出現在對白欄位。", lineStart: 1, lineEnd: 1 }],
-    },
-    { type: "layer", layerType: "rule-se-single", text: "SE: 門關上聲", lineStart: 2, lineEnd: 2 },
-    {
-      type: "speech",
-      character: "角色 B",
-      lineStart: 3,
-      lineEnd: 3,
-      children: [{ type: "dialogue", text: "這是副對白，通常在第二對白欄位。", lineStart: 3, lineEnd: 3 }],
-    },
-    { type: "layer", layerType: "rule-bg-start", text: "BGM: 背景音樂開始", lineStart: 4, lineEnd: 4 },
-  ],
-};
-
-// Build a range-marker sample AST: start(L2) + mid dialogue(L3) + end(L4)
-const buildRangeAst = (markerId: string, label: string) => ({
-  type: "root",
-  children: [
-    {
-      type: "speech",
-      character: "角色 A",
-      lineStart: 1,
-      lineEnd: 1,
-      children: [{ type: "dialogue", text: "這是對白範例文字，會出現在對白欄位。", lineStart: 1, lineEnd: 1 }],
-    },
-    { type: "layer", layerType: markerId, text: `${label} 開始`, lineStart: 2, lineEnd: 2 },
-    {
-      type: "speech",
-      character: "角色 A",
-      lineStart: 3,
-      lineEnd: 3,
-      children: [{ type: "dialogue", text: "範圍中的對白內容。", lineStart: 3, lineEnd: 3 }],
-    },
-    { type: "layer", layerType: markerId, text: `${label} 結束`, lineStart: 4, lineEnd: 4 },
-    {
-      type: "speech",
-      character: "角色 B",
-      lineStart: 5,
-      lineEnd: 5,
-      children: [{ type: "dialogue", text: "這是副對白，通常在第二對白欄位。", lineStart: 5, lineEnd: 5 }],
-    },
-  ],
-});
+function layoutSample(selected: MarkerConfig | null, range?: MarkerConfig) {
+  const speech = (character: string, text: string, line: number, markerId?: string) => ({
+    type: "speech", character, children: [{ type: "dialogue", markerId, text, lineStart: line, lineEnd: line }],
+  });
+  const spoken = selected?.v2EventKind === "speech" || selected?.parseAs === "dialogue";
+  const dialogue = {
+    type: "dual_dialogue",
+    left: [speech("小雨", spoken ? String(selected?.label || "對白") + "。" : "你聽見了嗎？", 2, spoken ? selected?.id : undefined)],
+    right: [speech("阿岑", "是窗外的雨。", 3)],
+  };
+  const layer = (id: string, text: string, line: number) => ({
+    type: "layer", layerType: id, text, lineStart: line, lineEnd: line,
+  });
+  const cue = selected && !spoken && selected.matchMode !== "range" ? selected : null;
+  const start = layer(cue?.id || "rule-se-single", cue ? String(cue.label || cue.id) : "門鎖輕響", 1);
+  const end = layer("rule-bg-start", "遠處傳來音樂", 4);
+  if (!range) return { children: [start, dialogue, end] };
+  return { children: [{
+    type: "range", markerId: range.id, startNode: layer(range.id, String(range.label || "雨聲"), 1),
+    children: [dialogue], endNode: layer(range.id, "漸弱", 4),
+  }] };
+}
 
 interface V2LayoutPreviewEditorProps {
   layoutConfig: LayoutConfig;
@@ -80,10 +49,6 @@ interface V2LayoutPreviewEditorProps {
 
 const MIN_SHARE = 0.08;
 const MAX_SHARE = 0.8;
-
-// Neutral tints from tokens; alternating so neighbouring columns stay distinguishable.
-const TRACK_TINTS = ["bg-primary/5", "bg-accent/10", "bg-muted/50"];
-const TRACK_HEAD_TINTS = ["bg-primary/10", "bg-accent/15", "bg-muted"];
 
 const weightOf = (track: TrackConfig): number => {
   const w = Number(track.desktopWidth);
@@ -98,10 +63,11 @@ const weightOf = (track: TrackConfig): number => {
 export function V2LayoutPreviewEditor({
   layoutConfig,
   onChange,
-  markerConfigs,
+  markerConfigs: sourceConfigs,
   selectedConfig = null,
   t,
 }: V2LayoutPreviewEditorProps): React.JSX.Element {
+  const markerConfigs = useMemo(() => previewMarkerConfigs(sourceConfigs), [sourceConfigs]);
   const tr = useCallback((key: string, fallback: string) => {
     const value = t(key);
     return value && value !== key ? value : fallback;
@@ -113,41 +79,13 @@ export function V2LayoutPreviewEditor({
     [config.tracks]
   );
 
-  // Which sample line gets replaced when a marker is selected
-  // L1 = speech (dialogue), L2 = sfx/layer
-  const selectedLine = useMemo<number | null>(() => {
-    if (!selectedConfig?.id) return null;
-    const isDialogue = selectedConfig.v2EventKind === "speech"
-      || (!selectedConfig.v2EventKind && selectedConfig.matchMode === "enclosure");
-    return isDialogue ? 1 : 2;
-  }, [selectedConfig]);
-
   const ast = useMemo(() => {
-    if (!selectedConfig?.id || selectedLine === null) return SAMPLE_AST;
-    const markerId = selectedConfig.id;
-    const label = selectedConfig.label || markerId;
-    const isRange = selectedConfig.matchMode === "range";
-    if (isRange) return buildRangeAst(markerId, label);
-    const sampleText = `${label} 範例`;
-    const isDialogue = selectedLine === 1;
-    const newChildren = SAMPLE_AST.children.map((node) => {
-      if (isDialogue && node.type === "speech" && node.lineStart === 1) {
-        return {
-          ...node,
-          character: label,
-          markerId,
-          children: node.children?.map((c) =>
-            c.lineStart === 1 ? { ...c, text: sampleText, markerId } : c
-          ),
-        };
-      }
-      if (!isDialogue && node.type === "layer" && node.lineStart === 2) {
-        return { ...node, layerType: markerId, text: sampleText };
-      }
-      return node;
-    });
-    return { ...SAMPLE_AST, children: newChildren };
-  }, [selectedConfig, selectedLine]);
+    const range = selectedConfig?.matchMode === "range" ? selectedConfig
+      : config.rowGrouping === "marker_dialogue" && !selectedConfig
+        ? markerConfigs.find(rule => rule.matchMode === "range" && (rule.v2SyncRows || rule.enableColumnGrouping))
+        : undefined;
+    return layoutSample(selectedConfig, range);
+  }, [selectedConfig, config.rowGrouping, markerConfigs]);
 
   const orchestrated = useMemo(() => {
     const effective = applyMarkerSemanticRoutes(normalizeLayoutConfig(layoutConfig), markerConfigs);
@@ -157,40 +95,11 @@ export function V2LayoutPreviewEditor({
 
   const enabledTracks = useMemo(() => tracks.filter((track) => track.enabled), [tracks]);
 
-  const markerConfigById = useMemo(
-    () => new Map(markerConfigs.filter((m) => m.id).map((m) => [m.id, m])),
-    [markerConfigs]
-  );
-
   const totalWeight = useMemo(
     () => enabledTracks.reduce((sum, track) => sum + weightOf(track), 0) || enabledTracks.length || 1,
     [enabledTracks]
   );
   const shareOf = useCallback((track: TrackConfig) => weightOf(track) / totalWeight, [totalWeight]);
-
-  // Gutter + one column per enabled track; columns keep a readable minimum and the preview scrolls sideways.
-  const templateColumns = `2rem ${enabledTracks.map((track) => `minmax(9rem, ${Math.max(0.12, shareOf(track)).toFixed(4)}fr)`).join(" ") || "minmax(9rem, 1fr)"}`;
-
-  const lineRows = useMemo(() => {
-    const rows = new Map<number, Map<string, ScriptEvent[]>>();
-    let minLine = Infinity;
-    let maxLine = 0;
-    orchestrated.lanes.forEach((lane) => {
-      lane.events.forEach((event) => {
-        const line = Number.isFinite(event.lineSpan?.start) ? Number(event.lineSpan.start) : 1;
-        minLine = Math.min(minLine, line);
-        maxLine = Math.max(maxLine, line);
-        if (!rows.has(line)) rows.set(line, new Map());
-        const row = rows.get(line)!;
-        row.set(lane.trackId, [...(row.get(lane.trackId) ?? []), event]);
-      });
-    });
-    if (!Number.isFinite(minLine) || maxLine <= 0) return [];
-    return Array.from({ length: maxLine - minLine + 1 }, (_, i) => ({
-      line: minLine + i,
-      eventsByTrackId: rows.get(minLine + i) ?? new Map<string, ScriptEvent[]>(),
-    }));
-  }, [orchestrated]);
 
   const emit = useCallback((next: LayoutConfig) => onChange(normalizeLayoutConfig(next)), [onChange]);
 
@@ -262,196 +171,70 @@ export function V2LayoutPreviewEditor({
     updateTrack(track.id, { desktopWidth: parseFloat(((clamped * others) / (1 - clamped)).toFixed(3)) });
   }, [enabledTracks, updateTrack]);
 
-  const groupingOptions: Array<{ value: LayoutConfig["rowGrouping"]; label: string; title: string; active: boolean }> = [
-    { value: "line", label: t("appearance.dialogueRowNormal"), title: t("appearance.dialogueRowLayoutDesc"), active: config.rowGrouping !== "adjacent_dialogue" && config.rowGrouping !== "marker_dialogue" },
-    { value: "adjacent_dialogue", label: t("appearance.dialogueRowSideBySide"), title: t("appearance.dialogueRowLayoutDesc"), active: config.rowGrouping === "adjacent_dialogue" },
-    { value: "marker_dialogue", label: t("appearance.dialogueRowMarkerBased"), title: t("appearance.dialogueRowMarkerBasedDesc"), active: config.rowGrouping === "marker_dialogue" },
+  const groupingOptions = [
+    { value: "line", label: t("appearance.dialogueRowNormal") },
+    { value: "adjacent_dialogue", label: t("appearance.dialogueRowSideBySide") },
+    { value: "marker_dialogue", label: t("appearance.dialogueRowMarkerBased") },
   ];
 
   return (
-    <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
-      {/* Field list */}
-      <section aria-label={tr("markerLayoutEditor.fields", "欄位")} className="min-w-0 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h3 className="text-[15px] font-semibold">{tr("markerLayoutEditor.fields", "欄位")}</h3>
-            <p className="text-xs text-muted-foreground">{tr("markerLayoutEditor.fieldsHint", "調整名稱、順序與寬度，右側即時預覽。")}</p>
-          </div>
-          <Button type="button" variant="outline" size="sm" className="h-10 shrink-0 sm:h-8" onClick={addTrack} aria-label={t("appearance.addTrack")}>
-            <Plus className="h-4 w-4" />
-            {t("appearance.addTrack")}
+    <div className="space-y-5 p-3 sm:p-5">
+      <section aria-label={tr("markerLayoutEditor.fields", "欄位")} className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold">{tr("markerLayoutEditor.fields", "欄位")}</h3>
+          <Button type="button" variant="outline" size="sm" onClick={addTrack}>
+            <Plus className="h-4 w-4" />{t("appearance.addTrack")}
           </Button>
         </div>
-
-        <ul className="space-y-2">
-          {tracks.map((track, index) => {
-            const share = Math.round(shareOf(track) * 100);
-            return (
-              <li key={track.id} className={cn("rounded-[10px] border border-border bg-card p-3", !track.enabled && "opacity-70")}>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={track.name}
-                    onChange={(e) => updateTrack(track.id, { name: e.target.value })}
-                    className="h-10 min-w-0 flex-1 text-sm font-medium sm:h-9"
-                    aria-label={`${track.id} name`}
-                  />
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Switch
-                      checked={track.enabled}
-                      onCheckedChange={(checked) => updateTrack(track.id, { enabled: checked })}
-                      aria-label={`${track.name} enabled`}
-                    />
-                  </div>
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
-                  {track.enabled && enabledTracks.length > 1 ? (
-                    <label className="flex min-w-[10rem] flex-1 items-center gap-2 text-xs text-muted-foreground">
-                      <span className="shrink-0">{tr("markerLayoutEditor.width", "寬度")}</span>
-                      <Slider
-                        min={Math.round(MIN_SHARE * 100)}
-                        max={Math.round(MAX_SHARE * 100)}
-                        step={1}
-                        value={[Math.min(Math.round(MAX_SHARE * 100), Math.max(Math.round(MIN_SHARE * 100), share))]}
-                        onValueChange={([value]) => setShare(track, (value ?? share) / 100)}
-                        aria-label={`${track.name} ${tr("markerLayoutEditor.width", "寬度")}`}
-                      />
-                      <span className="w-9 shrink-0 text-right tabular-nums text-foreground">{share}%</span>
-                    </label>
-                  ) : (
-                    <span className="flex-1 text-xs text-muted-foreground">
-                      {track.enabled ? tr("markerLayoutEditor.onlyColumn", "唯一的顯示欄位，寬度自動填滿。") : tr("markerLayoutEditor.hidden", "已隱藏，不會出現在預覽與閱讀頁。")}
-                    </span>
-                  )}
-                  <div className="ml-auto flex items-center gap-1">
-                    <Button type="button" variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" disabled={index === 0} onClick={() => moveTrack(index, -1)} aria-label={`${track.name} ${tr("markerLayoutEditor.moveUp", "上移")}`}>
-                      <ArrowUp className="h-4 w-4" />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon" className="h-10 w-10 sm:h-8 sm:w-8" disabled={index === tracks.length - 1} onClick={() => moveTrack(index, 1)} aria-label={`${track.name} ${tr("markerLayoutEditor.moveDown", "下移")}`}>
-                      <ArrowDown className="h-4 w-4" />
-                    </Button>
-                    {tracks.length > 1 ? (
-                      <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive sm:h-8 sm:w-8" onClick={() => removeTrack(track.id)} aria-label={`${track.name} remove`}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    ) : null}
-                  </div>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-
-        <div>
-          <div className="mb-1.5 text-xs font-medium text-muted-foreground">{tr("markerLayoutEditor.rowGrouping", "對白排列")}</div>
-          <div role="radiogroup" aria-label={tr("markerLayoutEditor.rowGrouping", "對白排列")} className="grid grid-cols-3 gap-0.5 rounded-lg bg-muted p-[3px]">
-            {groupingOptions.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                role="radio"
-                aria-checked={option.active}
-                title={option.title}
-                onClick={() => updateRowGrouping(option.value)}
-                className={cn(
-                  "min-h-10 rounded-md px-1.5 text-xs transition-colors sm:min-h-8",
-                  option.active ? "bg-background font-semibold text-foreground shadow-[0_0_0_1px_hsl(var(--border))]" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        <div className="overflow-x-auto rounded-lg border border-border">
+          <table className="marker-track-table w-full text-start text-sm">
+            <thead className="bg-muted/60 text-xs text-muted-foreground"><tr>
+              {["name", "width", "visible", "order"].map(key => <th key={key} scope="col">{t(`markerLayoutEditor.${key}`)}</th>)}
+            </tr></thead>
+            <tbody>{tracks.map((track, index) => {
+              const share = Math.round(shareOf(track) * 100);
+              return <tr key={track.id} className="border-t border-border">
+                <td><Input aria-label={`${track.name} · ${t("markerLayoutEditor.name")}`} value={track.name}
+                  onChange={e => updateTrack(track.id, { name: e.target.value })} className="h-8 min-w-0 bg-background text-sm" /></td>
+                <td>{track.enabled && enabledTracks.length > 1 ? (
+                  <label className="flex items-center gap-2">
+                    <input type="range" min={MIN_SHARE * 100} max={MAX_SHARE * 100} value={share} step={1}
+                      aria-label={`${track.name} · ${t("markerLayoutEditor.width")}`} aria-valuetext={`${share}%`}
+                      className="h-8 w-full min-w-0 accent-primary" onChange={e => setShare(track, Number(e.target.value) / 100)} />
+                    <span className="w-9 shrink-0 text-end text-xs tabular-nums">{share}%</span>
+                  </label>
+                ) : <span className="text-xs text-muted-foreground">{track.enabled ? "100%" : "—"}</span>}</td>
+                <td><Switch checked={track.enabled} aria-label={`${track.name} · ${t("markerLayoutEditor.visible")}`}
+                  onCheckedChange={enabled => updateTrack(track.id, { enabled })} /></td>
+                <td><div className="flex items-center">
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={index === 0}
+                    aria-label={`${track.name} ${tr("markerLayoutEditor.moveUp", "上移")}`} onClick={() => moveTrack(index, -1)}><ArrowUp className="h-4 w-4" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8" disabled={index === tracks.length - 1}
+                    aria-label={`${track.name} ${tr("markerLayoutEditor.moveDown", "下移")}`} onClick={() => moveTrack(index, 1)}><ArrowDown className="h-4 w-4" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" disabled={tracks.length <= 1}
+                    aria-label={`${t("common.remove")} · ${track.name}`} onClick={() => removeTrack(track.id)}><Trash2 className="h-4 w-4" /></Button>
+                </div></td>
+              </tr>;
+            })}</tbody>
+          </table>
         </div>
       </section>
-
-      {/* Preview */}
-      <section aria-label={tr("markerLayoutEditor.preview", "預覽")} className="min-w-0 lg:sticky lg:top-3">
-        <h3 className="mb-2 text-[15px] font-semibold">{tr("markerLayoutEditor.preview", "預覽")}</h3>
-        {enabledTracks.length === 0 ? (
-          <div className="rounded-[10px] border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
-            {tr("markerLayoutEditor.noEnabled", "沒有顯示中的欄位，開啟左側任一欄位即可預覽。")}
-          </div>
-        ) : (
-          <div className="marker-test-paper overflow-x-auto rounded-[10px] border border-border">
-            <div className="min-w-max">
-              <div className="grid border-b border-border" style={{ gridTemplateColumns: templateColumns }}>
-                <div className="border-r border-border bg-muted" />
-                {enabledTracks.map((track, idx) => (
-                  <div key={track.id} className={cn("truncate border-r border-border px-2 py-1.5 text-xs font-semibold last:border-r-0", TRACK_HEAD_TINTS[idx % TRACK_HEAD_TINTS.length])} title={track.name}>
-                    {track.name}
-                  </div>
-                ))}
-              </div>
-              <div className="divide-y divide-border/60">
-                {lineRows.map((row) => {
-                  const isRange = selectedConfig?.matchMode === "range";
-                  const isMarkerRow = selectedLine !== null && (
-                    isRange ? (row.line === 2 || row.line === 4) : row.line === selectedLine
-                  );
-                  const isRangeInside = isRange && row.line === 3;
-                  const isRangeStart = isRange && row.line === 2;
-                  const isRangeEnd = isRange && row.line === 4;
-                  return (
-                    <div key={row.line} className={cn("grid", isMarkerRow && "bg-primary/5")} style={{ gridTemplateColumns: templateColumns }}>
-                      <div className={cn("flex min-h-[2rem] items-start justify-center border-r border-border/60 bg-muted/40 pt-2", isMarkerRow && "bg-primary/10")}>
-                        <span className={cn("font-mono text-[10px]", isMarkerRow ? "font-bold text-primary" : "text-muted-foreground")}>
-                          {isMarkerRow ? "▶" : `L${row.line}`}
-                        </span>
-                      </div>
-                      {enabledTracks.map((track, idx) => {
-                        const events = row.eventsByTrackId.get(track.id) ?? [];
-                        const selectedMarkerTrackId = selectedConfig?.v2TrackId;
-                        const isRangeMarkerTrack = isRange && selectedMarkerTrackId
-                          ? track.id === selectedMarkerTrackId
-                          : isRange && events.some((e) => e.markerId === selectedConfig?.id);
-                        const rangeInsideFill = isRangeInside && isRangeMarkerTrack;
-                        const selectedMarkerStyle = selectedConfig?.style && typeof selectedConfig.style === "object"
-                          ? selectedConfig.style as React.CSSProperties
-                          : undefined;
-                        return (
-                          <div
-                            key={`${row.line}-${track.id}`}
-                            className={cn(
-                              "min-h-[2rem] min-w-0 border-r border-border/60 px-2 py-1.5 last:border-r-0",
-                              !isRangeMarkerTrack && TRACK_TINTS[idx % TRACK_TINTS.length],
-                              events.length === 0 && !rangeInsideFill && "opacity-0"
-                            )}
-                            style={rangeInsideFill && selectedMarkerStyle?.backgroundColor
-                              ? { backgroundColor: selectedMarkerStyle.backgroundColor, opacity: 0.4 }
-                              : undefined}
-                          >
-                            {events.map((event) => {
-                              const mCfg = event.markerId ? markerConfigById.get(String(event.markerId)) : undefined;
-                              const rawStyle = mCfg?.style && typeof mCfg.style === "object" ? mCfg.style as React.CSSProperties : undefined;
-                              const rangeStyle: React.CSSProperties | undefined = rawStyle && isRange && event.markerId === selectedConfig?.id ? {
-                                ...rawStyle,
-                                borderRadius: isRangeStart ? "4px 4px 0 0" : isRangeEnd ? "0 0 4px 4px" : "0",
-                                marginBottom: isRangeStart ? 0 : undefined,
-                                marginTop: isRangeEnd ? 0 : undefined,
-                              } : rawStyle;
-                              return (
-                                <div key={event.id} className="min-w-0 break-words px-1 text-xs leading-relaxed" style={rangeStyle}>
-                                  {event.speakerId ? <span className="mr-1 text-[10px] text-muted-foreground">{event.speakerId}</span> : null}
-                                  <EventTextV2
-                                    text={event.text}
-                                    markerConfigs={markerConfigs}
-                                    hiddenMarkerIds={[]}
-                                    markerTooltipPrefix="標記"
-                                  />
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-        <p className="mt-2 text-xs text-muted-foreground lg:hidden">{tr("markerLayoutEditor.scrollHint", "預覽可左右滑動查看所有欄位。")}</p>
+      <section aria-label={tr("markerLayoutEditor.preview", "預覽")} className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold">{tr("markerLayoutEditor.preview", "預覽")}</h3>
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">
+            {t("markerLayoutEditor.rowGrouping")}
+            <select value={config.rowGrouping || "line"} className="h-8 rounded-md border border-input bg-background px-2 text-foreground"
+              onChange={event => updateRowGrouping(event.target.value as LayoutConfig["rowGrouping"])}>
+              {groupingOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="marker-preview-surface overflow-x-auto rounded-lg border border-border">
+          {enabledTracks.length ? <div style={{ minWidth: `calc(2rem + ${enabledTracks.length * 7}rem)` }}>
+            <ColumnsPresentationRenderer doc={orchestrated} markerConfigs={markerConfigs} fontSize={14} />
+          </div> : <p className="p-4 text-sm text-muted-foreground">{t("markerLayoutEditor.noEnabled")}</p>}
+        </div>
       </section>
     </div>
   );

@@ -33,7 +33,7 @@ describe('ScriptPresentationRenderer', () => {
 
     const lineGuideContainer = container.querySelector('[data-line-underlines]');
     expect(lineGuideContainer?.getAttribute('data-line-underlines')).toBe('false');
-    expect(lineGuideContainer?.className || '').not.toContain('divide-y');
+    expect(lineGuideContainer?.querySelector<HTMLElement>('[data-v2-line-row="2"]')?.style.borderBlockStart).toBeFalsy();
   });
 
   it('enables v2 row underlines only when requested', () => {
@@ -48,7 +48,7 @@ describe('ScriptPresentationRenderer', () => {
 
     const lineGuideContainer = container.querySelector('[data-line-underlines]');
     expect(lineGuideContainer?.getAttribute('data-line-underlines')).toBe('true');
-    expect(lineGuideContainer?.className || '').toContain('divide-y');
+    expect(lineGuideContainer?.querySelector<HTMLElement>('[data-v2-line-row="2"]')?.style.borderBlockStart).toContain('1px solid');
   });
 
   it('renders timeline mode rows', () => {

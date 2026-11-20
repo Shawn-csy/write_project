@@ -1,0 +1,10 @@
+.settings-media-library {
+  container-type: inline-size;
+}
+
+@container (min-width: 36rem) {
+  .settings-media-library .media-library-toolbar {
+    flex-direction: row;
+    align-items: center;
+  }
+}

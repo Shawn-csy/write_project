@@ -136,7 +136,7 @@ function buildCompiledPatterns(configs: MarkerConfig[]): CompiledPattern[] {
 /**
  * Left-to-right scan: equivalent to Parsimmon P.alt(...).many() + mergeTextNodes.
  */
-function scan(text: string, patterns: CompiledPattern[]): InlineToken[] {
+function scan(text: string, patterns: CompiledPattern[], preserveDelimiters: boolean): InlineToken[] {
   const tokens: InlineToken[] = [];
   let pos = 0;
 
@@ -145,12 +145,15 @@ function scan(text: string, patterns: CompiledPattern[]): InlineToken[] {
       p.regex.lastIndex = 0;
       const sub = text.slice(pos);
       const m = p.regex.exec(sub);
-      if (m && m.index === 0) {
+      if (m && m.index === 0 && m[0].length > 0) {
         const content =
           p.captureGroup > 0 && m[p.captureGroup] !== undefined
             ? m[p.captureGroup].trim()
             : m[0].trim();
-        tokens.push({ type: "highlight", id: p.id, content, style: p.style });
+        tokens.push({
+          type: "highlight", id: p.id, content, style: p.style,
+          ...(preserveDelimiters ? { raw: m[0] } : {}),
+        });
         pos += m[0].length;
         continue outer;
       }
@@ -174,7 +177,8 @@ const configCache = new WeakMap<MarkerConfig[], CompiledPattern[]>();
 
 export function parseInline(
   text: string,
-  configs: MarkerConfig[] = []
+  configs: MarkerConfig[] = [],
+  { preserveDelimiters = false } = {},
 ): InlineToken[] {
   if (!text) return [];
   let patterns = configCache.get(configs);
@@ -182,5 +186,5 @@ export function parseInline(
     patterns = buildCompiledPatterns(configs);
     configCache.set(configs, patterns);
   }
-  return scan(text, patterns);
+  return scan(text, patterns, preserveDelimiters);
 }

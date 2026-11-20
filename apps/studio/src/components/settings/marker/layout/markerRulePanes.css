@@ -1,0 +1,120 @@
+.marker-rule-workspace {
+  container-type: inline-size;
+}
+
+.marker-mapping-table {
+  min-inline-size: 45rem;
+  table-layout: fixed;
+  --rule-row-height: 36px;
+}
+
+.marker-mapping-table :is(th, td) {
+  text-align: start;
+  white-space: nowrap;
+  padding-inline: .375rem;
+  border-block-end: 1px solid hsl(var(--border) / .65);
+}
+
+.marker-mapping-table thead th { block-size: 32px; font-weight: 600; }
+.marker-mapping-table thead th:nth-child(1) { width: 18%; }
+.marker-mapping-table thead th:nth-child(2) { width: 13%; }
+.marker-mapping-table thead th:nth-child(3) { width: 23%; }
+.marker-mapping-table thead th:nth-child(4) { width: 22%; }
+.marker-mapping-table tr > :first-child {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 1;
+  background: hsl(var(--background));
+  border-inline-end: 1px solid hsl(var(--border));
+}
+.marker-mapping-table thead tr > :first-child { background: hsl(var(--muted)); }
+.marker-mapping-table tbody :is(td, th) { height: var(--rule-row-height); }
+.marker-mapping-table tbody tr:hover > :is(th, td) { background: hsl(var(--muted)); }
+.marker-cell-editor { position: relative; min-width: 0; }
+.marker-cell-value {
+  display: block;
+  padding-inline: .25rem 1rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: .8125rem;
+  line-height: 1.5rem;
+  height: 1.5rem;
+}
+.marker-cell-trigger {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: calc(var(--rule-row-height) - 2px);
+  border-radius: .25rem;
+}
+.marker-cell-input { width: 100%; min-width: 0; background: transparent; padding: .25rem; border-radius: .25rem; font-size: .8125rem; }
+.marker-cell-input:hover, .marker-cell-input:focus-visible { background: hsl(var(--background)); box-shadow: inset 0 0 0 1px hsl(var(--border)); }
+.marker-cell-value .marker-preview-surface { background: transparent; padding: 0; border: 0; overflow: hidden; max-block-size: 1.5rem; }
+.marker-cell-value .marker-word-paper { white-space: nowrap; background: transparent; line-height: 1.5rem; }
+.marker-cell-value .marker-word-paper :is(section, .marker-word-row, .marker-word-label, .marker-word-body, .marker-word-heading) {
+  display: inline; padding: 0; margin: 0; border: 0;
+}
+.marker-cell-value .marker-word-label:not(:empty)::after, .marker-cell-value .marker-word-row + .marker-word-row::before { content: " "; }
+.marker-cell-value .marker-word-paper { overflow: hidden; text-overflow: ellipsis; }
+.marker-cell-value [data-mode="reader"] :is(div,article,p,section,h1,h2,h3,span) { margin-block: 0; padding-block: 0; white-space: nowrap; line-height: 1.5rem; }
+@media (pointer: coarse) {
+  .marker-mapping-table { --rule-row-height: 44px; }
+  .marker-cell-input { font-size: 1rem; min-height: 42px; }
+}
+
+.marker-track-table { table-layout: fixed; min-inline-size: 21rem; }
+.marker-track-table th, .marker-track-table td { padding: .3rem .5rem; text-align: start; }
+.marker-track-table th { font-weight: 500; }
+.marker-track-table th:nth-child(2) { width: 31%; }
+.marker-track-table th:nth-child(3) { width: 3.5rem; }
+.marker-track-table th:last-child { width: 7rem; }
+.marker-track-table tr:focus-within { background: hsl(var(--muted) / .45); }
+
+.marker-inspector {
+  display: grid;
+  gap: 1rem;
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+  padding: 1rem;
+}
+.marker-inspector-settings, .marker-inspector-preview { min-width: 0; }
+.marker-inspector-preview { display: grid; align-content: start; gap: .75rem; }
+.marker-inspector-preview .marker-preview-surface { max-block-size: 48dvh; }
+.marker-inspector-preview textarea { min-height: 3.75rem; max-height: 48dvh; }
+@container (min-width: 720px) {
+  .marker-inspector {
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr) 12px var(--rule-preview-width, 404px);
+    gap: 0;
+    align-content: stretch;
+    overflow: hidden;
+    padding: 0;
+  }
+  .marker-inspector-settings, .marker-inspector-preview { overflow: auto; padding: 1rem; }
+  .marker-inspector-preview { background: hsl(var(--muted) / .24); }
+  .marker-inspector > .marker-inspector-divider { display: flex; }
+}
+@container (max-width: 719px) {
+  .marker-inspector { grid-template-columns: minmax(0, 1fr); }
+}
+
+.marker-rule-detail {
+  container: marker-detail / inline-size;
+}
+
+@container marker-detail (min-width: 440px) {
+  .marker-rule-form-row {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .marker-rule-form-indent {
+    padding-inline-start: 7.5rem;
+  }
+}

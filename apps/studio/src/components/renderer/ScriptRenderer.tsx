@@ -194,7 +194,7 @@ export const ScriptRenderer = React.memo(({
           ? <NodeRenderer node={ast} context={context} />
           : <NodeRenderer node={{ type: "root", children: ast.children || [] }} context={context} />
       ) : null}
-      {markerTooltip && (
+      {showMarkerTooltip && markerTooltip && (
         <div
           className="fixed z-[80] pointer-events-none rounded-md border border-border/60 bg-popover/95 px-2 py-1 text-xs text-popover-foreground shadow-lg backdrop-blur-sm"
           style={markerTooltipStyle || undefined}

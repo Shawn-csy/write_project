@@ -25,6 +25,7 @@ export interface MarkerConfig {
 export interface InlineToken {
   type: "text" | "highlight" | string;
   content: string;
+  raw?: string;
   id?: string;
   style?: Record<string, string>;
 }

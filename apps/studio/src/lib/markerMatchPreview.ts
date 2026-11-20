@@ -1,5 +1,9 @@
 /** The parts of a marker rule that decide which lines it touches. */
 export interface MarkerMatchShape {
+  id?: string;
+  isBlock?: boolean;
+  type?: string;
+  pause?: string;
   matchMode?: string;
   start?: string;
   end?: string;
@@ -74,14 +78,24 @@ export function findMarkerMatchLines(text: string, config: MarkerMatchShape | nu
 }
 
 /** A one-off sample snippet that exercises the given rule, for "insert example". */
-export function buildMarkerSample(config: MarkerMatchShape | null | undefined): string {
+export function buildMarkerSample(config: MarkerMatchShape | null | undefined, example?: {
+  content: string;
+  before: string;
+  after: string;
+  rangeBody: string;
+  rangePause: string;
+}): string {
   if (!config) return "";
   const mode = config.matchMode || "enclosure";
   const start = String(config.start || "");
   const end = String(config.end || "");
-  const label = String(config.label || "範例");
+  const label = example?.content ?? String(config.label || "範例");
   if (mode === "prefix" && start) return `${start} ${label}`;
-  if (mode === "range" && start && end) return `${start} ${label}\n範圍內的台詞。\n${end}`;
-  if (mode === "enclosure" && start && end) return `台詞${start}${label}${end}繼續說。`;
+  if (mode === "range" && start && end) return [`${start} ${label}`, example?.rangeBody ?? "範圍內的台詞。", config.pause && `${config.pause} ${example?.rangePause ?? "淡出"}`, end].filter(Boolean).join("\n");
+  if (mode === "enclosure" && start && end) return config.isBlock || config.type === "block"
+    ? `${start}${label}${end}`
+    : `${example?.before ?? "台詞"}${start}${label}${end}${example?.after ?? "繼續說。"}`;
+  if (mode === "regex" && config.id === "rule-numbered-chapter-title") return "1. 開場";
+  if (mode === "regex" && config.id === "rule-se-performer") return "我回來了。(*敲門聲)";
   return "";
 }

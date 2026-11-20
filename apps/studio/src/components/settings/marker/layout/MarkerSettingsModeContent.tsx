@@ -11,11 +11,9 @@ interface MarkerSettingsModeContentProps {
   setLocalConfigs: React.Dispatch<React.SetStateAction<MarkerConfig[]>>;
   updateMarker: UpdateMarkerFn;
   removeMarker: (idx: number) => void;
-  expandedId: string | null;
   setExpandedId: React.Dispatch<React.SetStateAction<string | null>>;
   selectedConfig: EditableMarkerConfig | null;
   selectedIndex: number;
-  existingIds: string[];
   onAddMarker: () => void;
   jsonText: string;
   setJsonText: (value: string) => void;
@@ -37,11 +35,9 @@ export function MarkerSettingsModeContent({
   setLocalConfigs,
   updateMarker,
   removeMarker,
-  expandedId,
   setExpandedId,
   selectedConfig,
   selectedIndex,
-  existingIds,
   onAddMarker,
   jsonText,
   setJsonText,
@@ -73,17 +69,15 @@ export function MarkerSettingsModeContent({
   }
 
   return (
-    <fieldset disabled={readOnly} className="h-full min-h-0">
+    <div className="marker-rule-workspace h-full min-h-0 min-w-0">
       <MarkerVisualEditorPane
         localConfigs={localConfigs}
         setLocalConfigs={setLocalConfigs}
         updateMarker={updateMarker}
         removeMarker={removeMarker}
-        expandedId={expandedId}
-        setExpandedId={(id) => setExpandedId(String(id))}
+        setExpandedId={setExpandedId}
         selectedConfig={selectedConfig}
         selectedIndex={selectedIndex}
-        existingIds={existingIds}
         onAddMarker={onAddMarker}
         readOnly={readOnly}
         tracks={tracks}
@@ -92,6 +86,6 @@ export function MarkerSettingsModeContent({
         onOpenFullLayoutEditor={onOpenFullLayoutEditor}
         usePresentationRenderer={usePresentationRenderer}
       />
-    </fieldset>
+    </div>
   );
 }

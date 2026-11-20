@@ -21,7 +21,7 @@ interface AstNodeLike {
   children?: AstNodeLike[];
   left?: AstNodeLike[];
   right?: AstNodeLike[];
-  startNode?: AstNodeLike;
+  startNode?: AstNodeLike | null;
   endNode?: AstNodeLike | null;
 }
 
