@@ -15,6 +15,7 @@ const backendUrl = process.env.BACKEND_API_URL || "http://localhost:1091";
 const staticExport = process.env.CF_STATIC_EXPORT === "1";
 
 const nextConfig: NextConfig = {
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   ...(staticExport
     ? { output: "export" as const }
     : {
