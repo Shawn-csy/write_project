@@ -1,15 +1,17 @@
 # Marker 設定與解析說明
-最後更新：2026-05-20
+最後更新：2026-11-20
 
-## 設定面板位置
+## 編輯、預覽與儲存
 
-設定面板組件位於：
-- `apps/studio/src/components/settings/marker/MarkerDetailEditor.tsx`
-- `apps/studio/src/components/settings/marker/configs/MarkerLogicSettings.tsx`
+1. 在工作室開啟「設定 → 自訂標記」，選擇要調整的主題。可直接在規則表修改名稱、匹配方式和輸出設定，也可開啟單條規則編輯。
+2. 在「試寫原稿」輸入符合規則的文字，查看「網頁閱讀預覽」與「Word 成品」。欄位名稱、順序、寬度和對白排列可在「欄位版面」調整。
+3. 從規則操作選單刪除規則後，可使用提示中的「復原刪除」。確認結果後按「儲存」，將草稿套用至主題。
 
----
+「設定 → 外觀與閱讀」可預覽字型、字級、行距、標記提示、分欄和行底線。行底線會依目前的閱讀版面決定是否可用。
 
-## 匹配模式 (matchMode)
+## 匯出製作台本 Word
+
+在標記規則中設定 Word 輸出的類型、符號、字型、顏色與字重。回到編輯器，在下載選單選擇「製作台本（Word）」，確認這次匯出的各標記用途後下載 `.docx`。匯出視窗中的調整只套用於該次下載；要更新主題預設值，請回到「自訂標記」儲存。
 
 ## 分欄位顯示與同行同步（重要）
 
@@ -21,6 +23,8 @@
 4. 要同步的內容在同一個同步區間內
 
 若任一條件不成立，內容仍會依原始行號顯示，不會同行同步。
+
+## 匹配模式
 
 ### 1. 包圍模式 (enclosure)
 **格式：** `[開始符號]內容[結束符號]`
@@ -131,7 +135,7 @@ flowchart TD
 
 | 檔案 | 說明 |
 |------|------|
-| `apps/studio/src/lib/importPipeline/directASTBuilder.ts` | 解析器核心 |
+| `packages/script-engine/src/parser/directASTBuilder.ts` | 解析器核心 |
 | `apps/studio/src/constants/defaultMarkerRules.ts` | 預設 marker 設定 |
 | `apps/studio/src/components/settings/marker/configs/ModeSelector.tsx` | 模式選擇器 UI |
-| `apps/studio/src/components/settings/marker/configs/MarkerPreview.tsx` | 即時預覽組件 |
+| `apps/studio/src/components/settings/marker/MarkerOutputPreview.tsx` | 網頁與 Word 即時預覽 |

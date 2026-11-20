@@ -79,6 +79,16 @@ export default function AboutPage() {
           <PublicInfoSection title="近期更新" card>
             <ul className="space-y-3 text-sm">
               <li className="rounded-lg border bg-muted p-3">
+                <time dateTime="2026-11-20" className="text-xs text-muted-foreground">2026 年 11 月 20 日</time>
+                <h3 className="mt-1 font-medium text-foreground">v0.7.5</h3>
+                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted-foreground">
+                  <li>更新首頁橫幅、推薦與作品卡片，作者名錄可搜尋，聲演作品集也納入搜尋索引。</li>
+                  <li>同一個創作者頁可以查看台本、聲演和製作職務的作品。音聲目錄補上社團、封面、台本師與製作署名。</li>
+                  <li>工作室統一設定版面，調整標記時可同時預覽網頁和 Word，並依標記規則匯出製作台本。</li>
+                  <li>公開頁採用定期更新的靜態快照，並增加公開資料和媒體的唯讀備援。</li>
+                </ul>
+              </li>
+              <li className="rounded-lg border bg-muted p-3">
                 <div className="text-xs text-muted-foreground">2026 年 11 月</div>
                 <div className="mt-1 font-medium text-foreground">創作資源與投稿流程</div>
                 <div className="mt-1 text-muted-foreground">

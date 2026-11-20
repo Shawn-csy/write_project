@@ -2,7 +2,7 @@
 
 `apps/public` 使用 Next.js App Router 編寫公開首頁、台本閱讀頁、作者／社團頁及 SEO metadata。正式站將 Next 產物靜態匯出至 Cloudflare Pages；瀏覽器讀取 FastAPI live API，主服務不可用時以 Worker/D1 JSON 與 R2 媒體提供唯讀 fallback。正式環境沒有常駐 Next server、ISR 或 Next image optimizer。
 
-完整拓樸與更新時序見[正式環境架構](../../docs/architecture/production-architecture.md)；發布見[持續部署](../../docs/engineering/continuous-deployment.md)，靜態頁操作見[Pages production](../../docs/engineering/public-pages-production.md)。Studio 是 repository 根目錄的 Vite app。
+完整拓樸與更新時序見[正式環境架構](../../docs/architecture/production-architecture.md)；發布見[持續部署](../../docs/engineering/continuous-deployment.md)，靜態頁操作見[Pages production](../../docs/engineering/public-pages-production.md)。Studio 是位於 `apps/studio` 的 Vite app。
 
 ## 本機開發
 
@@ -16,6 +16,8 @@ npm run dev -w apps/public
 預設開啟 `http://localhost:3000`。`BACKEND_API_URL` 未設定時使用 `http://localhost:1091`；其他 API／媒體來源依環境設定。Next server-mode 的 route handlers、rewrites 與快取設定支援本機開發，不能用其驗收結果代替 Pages 靜態產物驗收。
 
 ## 建置與資料邊界
+
+可用 `NEXT_DIST_DIR` 為 Next.js 指定獨立的建置目錄。
 
 ```bash
 # Pages 預覽建置（不會發布）

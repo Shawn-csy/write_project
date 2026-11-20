@@ -21,6 +21,6 @@ describe("/about page metadata", () => {
   });
 
   it("exposes the current site version", () => {
-    expect(SITE_VERSION).toBe("0.7.4");
+    expect(SITE_VERSION).toBe("0.7.5");
   });
 });

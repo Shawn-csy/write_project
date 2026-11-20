@@ -443,7 +443,7 @@ const messages = {
     "feature3": "Public site: explore scripts, audio works, demos, voice actors, post-production, cover artists, and recording studios.",
     "highlights": "Highlights",
     "highlight1": "Import pipeline includes preprocessing and rule preview for legacy drafts.",
-    "highlight2": "Marker themes are configurable with visual controls.",
+    "highlight2": "Preview web and Word output while editing marker rules, then export a production script as a Word document.",
     "highlight3": "Public works show license and age-rating details; new works and resources can be submitted for review.",
     "highlight4": "Desktop and mobile layouts support efficient workflows.",
     "developerTitle": "About the Developer",

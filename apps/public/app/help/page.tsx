@@ -83,6 +83,14 @@ export default function HelpPage() {
             </div>
           </PublicInfoSection>
 
+          <PublicInfoSection title="工作室標記與 Word 匯出">
+            <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+              <li>在工作室開啟「設定 → 自訂標記」，選擇主題後編輯規則。可試寫原稿，同時檢查網頁閱讀和 Word 成品。</li>
+              <li>確認規則後儲存主題。回到編輯器，在下載選單選擇「製作台本（Word）」。</li>
+              <li>確認各標記在 Word 中的用途後下載 <code>.docx</code>。下載視窗中的調整只套用於這次匯出。</li>
+            </ol>
+          </PublicInfoSection>
+
           <PublicInfoSection title="音聲作品與 Demo">
             <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
               <p><a href="/audio-works" className={linkClass}>音聲作品</a>頁依社團瀏覽作品，可能連往第三方試聽或販售頁。進入頁面前需確認已年滿 18 歲；作品可能分為免費與付費。使用「投稿作品」提供作品與來源連結，審核通過後才會公開。</p>
