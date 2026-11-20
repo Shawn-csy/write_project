@@ -170,7 +170,7 @@ def edge(name, config, static, alias, fixed=False):
                "--network", NETWORK, "--network-alias", alias,
                "-p", publish[0], "-p", publish[1],
                "-v", f"{static}:/usr/share/nginx/html:ro",
-               "-v", f"{config}:/etc/nginx/conf.d:ro", "nginx:alpine")
+               "-v", f"{config}:/etc/nginx/conf.d:ro", "nginx:1.31.9-alpine")
         if fixed:
             return
         for _ in range(5):

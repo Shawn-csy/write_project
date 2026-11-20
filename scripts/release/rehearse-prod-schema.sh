@@ -272,7 +272,7 @@ if [ "${REHEARSAL_REAL_CONTAINERS:-0}" = 1 ]; then
     --network-alias write_project-frontend -p 127.0.0.1::80 \
     -v "$candidate_dist:/usr/share/nginx/html:ro" \
     -v "$ROOT_DIR/deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro" \
-    nginx:alpine >/dev/null
+    nginx:1.31.9-alpine >/dev/null
   edge_port="$(docker port "$CLONE_EDGE" 80/tcp | sed -n 's/^127\.0\.0\.1://p' | head -1)"
   if [ -z "$edge_port" ]; then
     echo "ERROR: candidate edge has no loopback port" >&2

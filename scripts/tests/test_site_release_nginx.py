@@ -48,9 +48,9 @@ class NginxRuntimeTests(unittest.TestCase):
             docker('network', 'create', identity)
             try:
                 docker('run', '-d', '--name', backend, '--network', identity, '--network-alias', 'write_project-backend',
-                       '-v', f'{stub}:/etc/nginx/conf.d/default.conf:ro', 'nginx:alpine')
+                       '-v', f'{stub}:/etc/nginx/conf.d/default.conf:ro', 'nginx:1.31.9-alpine')
                 docker('run', '-d', '--name', edge, '--network', identity, '-p', '127.0.0.1::80',
-                       '-v', f'{config}:/etc/nginx/conf.d/default.conf:ro', '-v', f'{static}:/usr/share/nginx/html:ro', 'nginx:alpine')
+                       '-v', f'{config}:/etc/nginx/conf.d/default.conf:ro', '-v', f'{static}:/usr/share/nginx/html:ro', 'nginx:1.31.9-alpine')
                 docker('exec', edge, 'nginx', '-t')
                 base = 'http://' + docker('port', edge, '80/tcp').splitlines()[0]
                 for attempt in range(30):
