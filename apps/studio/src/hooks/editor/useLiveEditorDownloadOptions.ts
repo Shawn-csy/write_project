@@ -1,5 +1,9 @@
-import { useCallback, useMemo } from "react";
+import { createElement, useCallback, useMemo, useState } from "react";
+import { FileText } from "lucide-react";
+import { ProductionScriptExportDialog } from "../../components/export/ProductionScriptExportDialog";
 import { buildExportMetadata, type ExportMetadataSource } from "../../lib/exportMetadata";
+import { exportProductionScriptAsDocx } from "../../lib/api/export";
+import { buildProductionScriptExport } from "../../lib/productionScriptExport";
 import { buildV2TableExport, buildV2TableExportFromRenderedHtml } from "../../lib/v2/exportAdapter";
 import type { OrchestratedDocument } from "../../lib/v2/types";
 import type { MarkerConfig } from "../../types/script";
@@ -30,11 +34,12 @@ export function useLiveEditorDownloadOptions({
   content,
   renderedHtmlRef,
   ensureRenderedHtml,
-  markerConfigs = [],
+  markerConfigs,
   orchestratedDoc,
   isPresentationRendererEnabled = false,
   metadataSource,
 }: UseLiveEditorDownloadOptionsParams) {
+  const [productionExportOpen, setProductionExportOpen] = useState(false);
   const getRenderedHtml = useCallback(async () => {
     let currentHtml = renderedHtmlRef.current.processed || renderedHtmlRef.current.raw;
     if (!currentHtml && ensureRenderedHtml) {
@@ -56,7 +61,7 @@ export function useLiveEditorDownloadOptions({
     [metadataSource, title]
   );
 
-  return useScriptDownloadOptions({
+  const options = useScriptDownloadOptions({
     t,
     title,
     content,
@@ -70,4 +75,23 @@ export function useLiveEditorDownloadOptions({
     pdfCoverUrl: metadataSource?.coverUrl,
     resolveTableExport,
   });
+
+  return [
+    ...options,
+    {
+      id: "production-script-docx",
+      label: t("publicReader.downloadProductionScript"),
+      icon: FileText,
+      disabled: !content.trim(),
+      onClick: () => setProductionExportOpen(true),
+      renderDialog: () => productionExportOpen ? createElement(ProductionScriptExportDialog, {
+        t,
+        markerConfigs,
+        onClose: () => setProductionExportOpen(false),
+        onExport: (mapping) => exportProductionScriptAsDocx(
+          buildProductionScriptExport(content, { ...metadataSource, title }, markerConfigs, mapping),
+        ),
+      }) : null,
+    },
+  ];
 }

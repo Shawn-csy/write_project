@@ -1,5 +1,6 @@
 import { getAuthHeaders } from "./client";
 import { downloadBlob, buildFilename } from "../download";
+import type { ProductionScriptExport } from "../productionScriptExport";
 
 interface ScriptExportPayload {
   text?: string;
@@ -54,6 +55,12 @@ export const exportScriptAsDocx = async (title: string, payload: ScriptExportPay
   const text = String(payload?.text || "");
   const blob = await postExport("/api/export/docx", { title, text });
   downloadBlob(blob, buildFilename(title || "script", "docx"));
+};
+
+export const exportProductionScriptAsDocx = async (script: ProductionScriptExport): Promise<void> => {
+  const blob = await postExport("/api/export/production-script/docx", { ...script });
+  const filename = script.title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, "_").trim();
+  downloadBlob(blob, `${filename || "script"}.docx`);
 };
 
 export const exportScriptToGoogleDocs = async (

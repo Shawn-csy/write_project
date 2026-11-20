@@ -1,5 +1,7 @@
 const messages = {
   "productionExport": {
+    "title": "制作用台本の書き出し",
+    "description": "各マーカーの Word 形式を選択します。現在のテーマの設定を、この書き出し用に調整できます。",
     "auto": "解析ルールに従う",
     "preserve": "原文を保持",
     "chapter": "章の見出し",
@@ -11,7 +13,11 @@ const messages = {
     "continuousEffect": "持続効果音（開始・終了に対応）",
     "background": "背景音（開始・終了に対応）",
     "performance": "演技指示（…）",
-    "postEffect": "ポストプロダクション効果【…】"
+    "postEffect": "ポストプロダクション効果【…】",
+    "error": "書き出しに失敗しました。もう一度お試しください。",
+    "cancel": "キャンセル",
+    "exporting": "書き出し中…",
+    "download": "Word をダウンロード"
   },
   "app": {
     "homeTitle": "台本リーダー",
@@ -142,6 +148,7 @@ const messages = {
     "exportPdf": "PDFを書き出す",
     "downloadFountain": ".fountain をダウンロード",
     "downloadDoc": "Word (.doc) をダウンロード",
+    "downloadProductionScript": "制作用台本（Word）",
     "downloadXlsx": "Excel (.xlsx) をダウンロード",
     "exportGoogleDocs": "Google Docs に書き出す",
     "exportGoogleDocsTable": "複数列テーブルを Google Docs に書き出す",

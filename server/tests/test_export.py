@@ -4,6 +4,84 @@ import zipfile
 import sys
 import types
 from routers import export as export_router
+from docx import Document
+from docx.oxml.ns import qn
+
+
+def test_production_docx_applies_reference_styles(client):
+    cues = [
+        ("#SE", "單獨音效", "cue"),
+        ("@", "左耳", "position"),
+        (">>SE", "風吹", "cue"),
+        ("><SE", "漸弱", "cue"),
+        ("<<SE", "", "cue"),
+        ("//BG", "音樂", "cue"),
+        ("/\\BG", "輕一點", "cue"),
+        ("\\\\BG", "", "cue"),
+        ("", "（@貼近）台詞【淡出】", "speech"),
+        ("", "END", "speech"),
+    ]
+    response = client.post(
+        "/api/export/production-script/docx",
+        headers={"X-User-ID": "u_export"},
+        json={
+            "title": "測試台本",
+            "chapters": [{
+                "heading": "01. 場景",
+                "rows": [dict(label=label, text=text, kind=kind) for label, text, kind in cues],
+            }],
+        },
+    )
+    assert response.status_code == 200
+    doc = Document(io.BytesIO(response.content))
+    legend, chapter, body = doc.tables
+
+    def fill(cell):
+        shading = cell._tc.tcPr.find(qn("w:shd"))
+        return shading.get(qn("w:fill")) if shading is not None else None
+
+    assert doc.styles["Title"].font.size.pt == 20
+    assert doc.styles["Normal"].font.name == "Calibri"
+    assert doc.styles["Normal"].paragraph_format.line_spacing == 1.5
+    assert chapter.rows[0].cells[0].paragraphs[0].runs[0].font.size.pt == 14
+    assert fill(chapter.rows[0].cells[0]) == "DEEBF6"
+    expected = ["E7E6E6", "FFF2CC", "FFF2CC", "FFF2CC", "E2EFD9", "E2EFD9", "E2EFD9"]
+    for table in (legend, body):
+        start = next(index for index, row in enumerate(table.rows) if row.cells[0].text == "@")
+        assert [fill(row.cells[0]) for row in table.rows[start:start + 7]] == expected
+    assert str(body.rows[0].cells[0].paragraphs[0].runs[0].font.color.rgb) == "7F7F7F"
+    segments = body.rows[8].cells[1].paragraphs[0].runs
+    assert [segment.text for segment in segments] == ["（@貼近）", "台詞", "【淡出】"]
+    assert segments[0]._r.rPr.find(qn("w:shd")).get(qn("w:fill")) == "E7E6E6"
+    assert str(segments[-1].font.color.rgb) == "808080"
+    assert fill(body.rows[9].cells[1]) == "808080"
+    assert str(body.rows[9].cells[1].paragraphs[0].runs[0].font.color.rgb) == "FFFFFF"
+
+def test_production_docx_applies_rule_style_to_heading_label_and_content(client):
+    style = {"color": "#216A80", "font": "Noto Sans TC", "bold": True}
+    response = client.post(
+        "/api/export/production-script/docx",
+        headers={"X-User-ID": "u_export"},
+        json={"title": "試寫", "chapters": [{
+            "heading": "第一場", "style": {"bold": False},
+            "rows": [{"label": "#SE", "text": "開門聲【回音】", "kind": "cue", "style": style,
+                      "runs": [{"text": "開門聲"}, {"text": "【回音】", "style": {"color": "#AA0000", "bold": False}}]}],
+        }]},
+    )
+    assert response.status_code == 200
+    _, chapter, body = Document(io.BytesIO(response.content)).tables
+    assert chapter.cell(0, 0).paragraphs[0].runs[0].bold is False
+    for cell in body.rows[0].cells:
+        run = cell.paragraphs[0].runs[0]
+        assert run.bold
+        assert run.font.name == "Noto Sans TC"
+        assert run._r.rPr.rFonts.get(qn("w:eastAsia")) == "Noto Sans TC"
+        assert str(run.font.color.rgb) == "216A80"
+    effect = body.cell(0, 1).paragraphs[0].runs[1]
+    assert effect.bold is False
+    assert effect.font.name == "Noto Sans TC"
+    assert str(effect.font.color.rgb) == "AA0000"
+
 
 def test_export_all(client):
     headers = {"X-User-ID": "u_export"}

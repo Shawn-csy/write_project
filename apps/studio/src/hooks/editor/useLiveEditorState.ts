@@ -28,6 +28,7 @@ interface LiveEditorScriptData {
   author?: string;
   draftDate?: string;
   synopsis?: string;
+  contentRating?: string | null;
   customMetadata?: unknown[];
   tags?: Array<string | { name?: string }>;
   organization?: { name?: string; displayName?: string } | null;

@@ -1,5 +1,7 @@
 const messages = {
   "productionExport": {
+    "title": "Export production script",
+    "description": "Choose how each marker appears in Word. The current theme supplies the defaults, which you can adjust for this export.",
     "auto": "Use parsing rules",
     "preserve": "Keep original",
     "chapter": "Chapter heading",
@@ -11,7 +13,11 @@ const messages = {
     "continuousEffect": "Continuous sound effect (by boundary)",
     "background": "Background audio (by boundary)",
     "performance": "Performance direction (…)",
-    "postEffect": "Post-production effect 【…】"
+    "postEffect": "Post-production effect 【…】",
+    "error": "Export failed. Please try again.",
+    "cancel": "Cancel",
+    "exporting": "Exporting…",
+    "download": "Download Word"
   },
   "app": {
     "homeTitle": "Screenplay Reader",
@@ -142,6 +148,7 @@ const messages = {
     "exportPdf": "Export PDF",
     "downloadFountain": "Download .fountain",
     "downloadDoc": "Download Word (.doc)",
+    "downloadProductionScript": "Production script (Word)",
     "downloadXlsx": "Download Excel (.xlsx)",
     "exportGoogleDocs": "Export to Google Docs",
     "exportGoogleDocsTable": "Export multi-column table to Google Docs",

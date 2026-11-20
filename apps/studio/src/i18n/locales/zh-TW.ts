@@ -1,5 +1,7 @@
 const messages = {
   "productionExport": {
+    "title": "製作台本匯出",
+    "description": "選擇 Word 匯出時各標記的格式。初始值來自目前主題，也可為這一次匯出調整。",
     "auto": "依解析規則",
     "preserve": "保留原文",
     "chapter": "章節標題",
@@ -11,7 +13,11 @@ const messages = {
     "continuousEffect": "持續音效（依起訖）",
     "background": "背景音（依起訖）",
     "performance": "演繹指示（…）",
-    "postEffect": "後製效果【…】"
+    "postEffect": "後製效果【…】",
+    "error": "匯出失敗，請再試一次。",
+    "cancel": "取消",
+    "exporting": "匯出中…",
+    "download": "下載 Word"
   },
   "app": {
     "homeTitle": "回到首頁",
@@ -142,6 +148,7 @@ const messages = {
     "exportPdf": "匯出 PDF",
     "downloadFountain": "下載 .fountain",
     "downloadDoc": "下載 Word (.doc)",
+    "downloadProductionScript": "製作台本（Word）",
     "downloadXlsx": "下載 Excel (.xlsx)",
     "exportGoogleDocs": "匯出到 Google Docs",
     "exportGoogleDocsTable": "匯出到 Google Docs",

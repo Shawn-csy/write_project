@@ -3,8 +3,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Any, List, Optional
 import io
+from urllib.parse import quote
 
 from dependencies import get_current_user_id
+from services.production_script_docx import ProductionScriptRequest, build_production_script_docx
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
@@ -505,6 +507,20 @@ async def export_script_docx(
         io.BytesIO(docx_bytes),
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/production-script/docx")
+def export_production_script_docx(
+    req: ProductionScriptRequest,
+    _uid: str = Depends(get_current_user_id),
+):
+    docx_bytes = build_production_script_docx(req)
+    filename = quote(_safe_filename(req.title, "docx"))
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename}"},
     )
 
 
