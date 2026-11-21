@@ -31,7 +31,7 @@ export default function PrivacyPage() {
   return (
     <PublicInfoPageShell
       title="Privacy Policy"
-      description="Last updated: May 27, 2026"
+      description="Last updated November 22, 2026"
       relatedLinks={[{ href: "/", label: "← 返回台本列表" }]}
     >
       <JsonLdScript data={webPageJsonLd} />
@@ -75,6 +75,17 @@ export default function PrivacyPage() {
           </ul>
           <p className="mt-3">
             These tokens are used only during the export operation and are not stored on our servers.
+          </p>
+          <p className="mt-3">
+            We use Google Analytics on the public website to understand how visitors find and
+            browse Open Scripts. Google Analytics uses cookies and collects information such as
+            pages visited, referral sources, and browser and device information. Learn more about{" "}
+            <a
+              href="https://policies.google.com/technologies/partner-sites"
+              className="underline hover:text-foreground"
+            >
+              how Google uses this information
+            </a>.
           </p>
         </section>
 

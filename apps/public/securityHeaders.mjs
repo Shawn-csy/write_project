@@ -10,7 +10,7 @@ export const PUBLIC_SECURITY_HEADERS = [
       "base-uri 'self'",
       "form-action 'self'",
       "object-src 'none'",
-      "script-src 'self'",
+      "script-src 'self' https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",

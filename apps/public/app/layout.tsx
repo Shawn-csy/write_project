@@ -4,6 +4,7 @@ import "./homepage.css";
 import "@/components/legacy-homepage/legacy.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { MediaFallbackBridge } from "@/components/MediaFallbackBridge";
+import { PublicAnalytics } from "@/components/PublicAnalytics";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_TITLE } from "@/lib/seo";
 
 // 不要新增 loading.tsx —— 不論是這裡還是任何 [id] / [name] 路由底下。
@@ -64,6 +65,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>{children}</ThemeProvider>
         {process.env.NEXT_PUBLIC_STATIC_EXPORT === "1" && <MediaFallbackBridge />}
+        {deployEnvironment === "production" && <PublicAnalytics />}
       </body>
     </html>
   );
