@@ -25,6 +25,12 @@ describe("externalCoverSrc", () => {
     expect((await load(staticEnv))({ id: "a", coverUrl: "https://other.example/c.jpg" })).toBe("/api/public-media/external/a");
   });
 
+  it("keeps an already resolved R2 URL when the bundle came from D1", async () => {
+    const src = await load({ ...staticEnv, NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN: "https://r2.example" });
+    const r2 = "https://r2.example/media/u/cover.webp";
+    expect(src({ id: "a", coverUrl: r2 })).toBe(r2);
+  });
+
   it("always uses the proxy outside the static build", async () => {
     expect((await load({}))({ id: "a", coverUrl: "/media/u/cover.webp" })).toBe("/api/public-media/external/a");
   });

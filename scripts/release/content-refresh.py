@@ -12,7 +12,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import time
 from urllib.parse import quote
 
 from content_snapshot import API, PUBLIC, ContentError, capture, empty_routes, fingerprint, frozen_server, public_request, read_json, validate_export, validate_html, validate_sitemap
@@ -22,6 +21,22 @@ spec = importlib.util.spec_from_file_location('release_workflow', ROOT / 'script
 release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 BOOTSTRAP = 'Deploy a normal complete release containing content-refresh.py first; inspect ingress and its complete release journal. Never infer a live SHA from main.'
+RECEIPT_PATH = '/content-version.json'
+
+
+def write_receipt(output, sha, digest):
+    receipt = dict(digest=digest, commit=sha, built_at=release.now())
+    (output / RECEIPT_PATH[1:]).write_text(json.dumps(receipt) + '\n')
+    return receipt
+
+
+def record_verified(state_path, state, receipt):
+    verified_at = release.now()
+    key = receipt['commit'] + ':' + receipt['digest']
+    state.update(completed_key=key, pending_key=key, commit=receipt['commit'], digest=receipt['digest'],
+                 receipt=receipt, phase='complete', running=False, failure=None,
+                 completed_at=verified_at, checked_at=verified_at, updated_at=verified_at)
+    release.atomic_json(state_path, state)
 
 
 def resolve_source(root, commands):
@@ -75,23 +90,21 @@ class Commands(release.Commands):
     def receipt_matches(self, receipt):
         from urllib.error import HTTPError
         try:
-            return read_json(PUBLIC + '/content-version.json?refresh=' + str(time.time_ns())) == receipt
+            return read_json(PUBLIC + RECEIPT_PATH, revalidate=True) == receipt
         except HTTPError as error:
             if error.code == 404:
                 return False
             raise
 
     def verify(self, receipt, snapshot):
-        nonce = str(time.time_ns())
-        actual = read_json(PUBLIC + '/content-version.json?refresh=' + nonce)
-        if actual != receipt:
+        if not self.receipt_matches(receipt):
             raise ContentError('Public content receipt does not match; retry verification')
         # Bounded smoke reads; do not accept an HTTP error page or absent SSR shell.
         from urllib.request import urlopen
         paths = [('/', None), ('/authors', None), ('/sitemap.xml', None)]
         paths += [('/read/' + quote(item['id'], safe=''), snapshot['/api/public-scripts/' + quote(item['id'], safe='')]) for item in snapshot['/api/public-scripts'][:3]]
         for path, script in paths:
-            with urlopen(public_request(PUBLIC + path + '?refresh=' + nonce, '*/*'), timeout=30) as response:
+            with urlopen(public_request(PUBLIC + path, '*/*', revalidate=True), timeout=30) as response:
                 payload = response.read(32 * 1024 * 1024 + 1)
                 if response.status != 200 or not payload or len(payload) > 32 * 1024 * 1024:
                     raise ContentError('Public smoke failed')
@@ -163,8 +176,7 @@ class Refresh:
                             print('Content changed during build; deferred to next run')
                             return
                         self.guard()
-                        receipt = dict(digest=digest, commit=sha, built_at=release.now())
-                        (output / 'content-version.json').write_text(json.dumps(receipt) + '\n')
+                        receipt = write_receipt(output, sha, digest)
                         state.update(phase='uploading', receipt=receipt, updated_at=release.now())
                         release.atomic_json(self.path, state)
                         stage = 'upload'
@@ -175,8 +187,7 @@ class Refresh:
                 self.guard()
                 self.commands.verify(state['receipt'], snapshot)
                 self.guard()
-                state.update(completed_key=key, phase='complete', running=False, failure=None, completed_at=release.now(), checked_at=release.now(), updated_at=release.now())
-                release.atomic_json(self.path, state)
+                record_verified(self.path, state, state['receipt'])
                 print('Public content refresh complete')
             except BaseException:
                 state.update(running=False, failure={'stage': stage, 'at': release.now()}, updated_at=release.now())

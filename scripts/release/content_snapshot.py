@@ -27,14 +27,17 @@ class ContentError(RuntimeError):
     pass
 
 
-def public_request(url, accept='application/json'):
+def public_request(url, accept='application/json', *, revalidate=False):
     # Identify our publisher consistently at Cloudflare; the default urllib
     # user agent is rejected by the production edge before reaching the API.
-    return Request(url, headers={'Accept': accept, 'User-Agent': USER_AGENT})
+    headers = {'Accept': accept, 'User-Agent': USER_AGENT}
+    if revalidate:
+        headers['Cache-Control'] = 'no-cache'
+    return Request(url, headers=headers)
 
 
-def read_json(url):
-    with urlopen(public_request(url), timeout=30) as response:
+def read_json(url, *, revalidate=False):
+    with urlopen(public_request(url, revalidate=revalidate), timeout=30) as response:
         if response.status != 200:
             raise ContentError('Public read did not return 200')
         payload = response.read(MAX_BYTES + 1)

@@ -22,8 +22,6 @@ import { buildMediaSrcSet, withMediaExtension, type PublicMediaWidth } from "@/l
 import { isPublicMediaProxySrc, publicApiUrl } from "@/lib/publicApiUrl";
 import { mediaOriginsFromEnv } from "@/lib/mediaSources";
 
-// The static build has no server-side image proxy: /media/ files are read
-// straight from the media origin, with R2 as the fallback (MediaFallbackBridge).
 const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === "1";
 
 const RESIZABLE_PRESETS: ReadonlySet<PublicImagePreset> = new Set([
@@ -42,6 +40,21 @@ function resolvePublicMediaProxySrc(src: string): string {
   return publicApiUrl(`/api/public-media/${token}.webp`);
 }
 
+function staticCardProxy(src: string): { proxySrc: string; original: string } | undefined {
+  const { primary, fallback } = mediaOriginsFromEnv();
+  const original = src.startsWith("/media/") ? `${primary}${src}` : src;
+  if (primary && original.startsWith(`${primary}/media/`)) {
+    return { proxySrc: resolvePublicMediaProxySrc(original.slice(primary.length)), original };
+  }
+  const externalPrefix = `${fallback}/media/external-public-scripts/`;
+  if (fallback && original.startsWith(externalPrefix)) {
+    const id = original.slice(externalPrefix.length);
+    if (/^[^/?#]+$/.test(id)) {
+      return { proxySrc: publicApiUrl(withMediaExtension(`/api/public-media/external/${id}`)), original };
+    }
+  }
+}
+
 interface Props {
   src: string;
   alt: string;
@@ -54,6 +67,8 @@ interface Props {
   eager?: boolean;
   /** One canonical proxy width for placements with a fixed rendered size. */
   fixedMediaWidth?: PublicMediaWidth;
+  /** Use the public API's thumbnail variants in the static card layouts. */
+  resizeStatic?: boolean;
   fetchPriority?: "high" | "low" | "auto";
   className?: string;
   /** Override object-fit from preset default (e.g. "contain" for blur-fill foreground) */
@@ -78,6 +93,7 @@ export function PublicImage({
   priority,
   eager,
   fixedMediaWidth,
+  resizeStatic,
   fetchPriority,
   className,
   objectFit,
@@ -95,7 +111,10 @@ export function PublicImage({
   const config = getPresetConfig(preset);
   const isPublicMedia = cleanSrc.startsWith("/media/");
   const isMediaProxy = isPublicMediaProxySrc(cleanSrc);
-  if (STATIC_EXPORT && isPublicMedia) {
+  const staticThumbnail = STATIC_EXPORT && resizeStatic && RESIZABLE_PRESETS.has(preset)
+    ? staticCardProxy(cleanSrc)
+    : undefined;
+  if (STATIC_EXPORT && isPublicMedia && !staticThumbnail) {
     return (
       <img
         src={`${mediaOriginsFromEnv().primary}${cleanSrc}`}
@@ -110,19 +129,20 @@ export function PublicImage({
       />
     );
   }
-  if (isMediaProxy || isPublicMedia) {
-    const proxySrc = isMediaProxy ? publicApiUrl(withMediaExtension(cleanSrc)) : resolvePublicMediaProxySrc(cleanSrc);
-    // Priority images keep a single src: a srcset could make the browser pick
-    // a different URL than the one preloaded in <head>. Everything else gets
-    // resized variants so cards do not download full-size originals.
-    // Banners/backdrops span the viewport, so they stay at full resolution.
+  if (staticThumbnail || isMediaProxy || isPublicMedia) {
+    const proxySrc = staticThumbnail?.proxySrc
+      ?? (isMediaProxy ? publicApiUrl(withMediaExtension(cleanSrc)) : resolvePublicMediaProxySrc(cleanSrc));
     const fixedSrc = fixedMediaWidth && !proxySrc.includes("?") ? `${proxySrc}?w=${fixedMediaWidth}` : proxySrc;
-    const srcSet = priority || fixedSrc !== proxySrc || !RESIZABLE_PRESETS.has(preset) ? "" : buildMediaSrcSet(proxySrc);
+    // The static card is discovered in HTML with its responsive variants even when eager.
+    const canResize = (staticThumbnail || !priority) && fixedSrc === proxySrc && RESIZABLE_PRESETS.has(preset);
+    const srcSet = canResize ? buildMediaSrcSet(proxySrc) : "";
     return (
       <img
-        src={fixedSrc}
+        key={staticThumbnail?.original}
+        src={staticThumbnail && fixedSrc === proxySrc ? `${proxySrc}?w=360` : fixedSrc}
         srcSet={srcSet || undefined}
         sizes={srcSet ? (sizes ?? config.sizes) : undefined}
+        data-media-original={staticThumbnail?.original}
         alt={alt}
         loading={priority || eager ? "eager" : "lazy"}
         fetchPriority={fetchPriority ?? (priority || eager ? "high" : undefined)}

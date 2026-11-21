@@ -60,7 +60,7 @@ export default async function HomePage({
     v === undefined ? [] : Array.isArray(v) ? v.map((val) => [k, val]) : [[k, v]]
   )).toString();
   const initialUrlState = parseGalleryUrlState(qs);
-  const preloadPeople = STATIC_EXPORT || initialUrlState.view !== "scripts";
+  const preloadPeople = initialUrlState.view !== "scripts";
   const { scripts: initialScripts, externalPublicScripts, personas, organizations, activities, bannerSlides, showBrandHero } = await loadHomepageBundle(
     preloadPeople ? undefined : HOMEPAGE_SCRIPT_BUNDLE_SECTIONS,
   );
@@ -85,8 +85,6 @@ export default async function HomePage({
         <LiveGalleryClient
           scripts={initialScripts}
           externalPublicScripts={externalPublicScripts}
-          personas={personas}
-          organizations={organizations}
           activities={activities}
           bannerSlides={bannerSlides}
           showBrandHero={showBrandHero}

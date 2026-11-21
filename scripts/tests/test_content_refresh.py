@@ -181,6 +181,9 @@ class SmokeTests(unittest.TestCase):
         commands = refresh.Commands()
         with patch.object(refresh, 'read_json', return_value={'other': True}):
             self.assertFalse(commands.receipt_matches({'digest': 'expected'}))
+        with patch.object(refresh, 'read_json', return_value={'digest': 'expected'}) as read:
+            self.assertTrue(commands.receipt_matches({'digest': 'expected'}))
+            read.assert_called_once_with(snap.PUBLIC + '/content-version.json', revalidate=True)
         with patch.object(refresh, 'read_json', side_effect=TimeoutError('network unavailable')):
             with self.assertRaises(TimeoutError): commands.receipt_matches({'digest': 'expected'})
 
@@ -294,6 +297,10 @@ class RefreshTests(unittest.TestCase):
         spec.loader.exec_module(wrapper)
         data = snapshot()
         commands = Mock()
+        commands.output.side_effect = lambda args: 'a' * 40 if args[1] == 'rev-parse' else ''
+        commands.build.side_effect = lambda output, _snapshot: output.mkdir()
+        uploaded = []
+        commands.upload.side_effect = lambda output: uploaded.append(json.loads((output / 'content-version.json').read_text()))
         wrapper.publish(self.root, commands, lambda: copy.deepcopy(data))
         output, captured = commands.build.call_args.args
         self.assertEqual(captured, data)
@@ -301,6 +308,11 @@ class RefreshTests(unittest.TestCase):
         self.assertEqual(output.name, 'out')
         self.assertNotEqual(output, refresh.ROOT / 'apps/public/out')
         self.assertFalse(output.parent.exists())
+        receipt = uploaded[0]
+        self.assertEqual(receipt['commit'], 'a' * 40)
+        self.assertEqual(receipt['digest'], snap.fingerprint(data))
+        commands.verify.assert_called_once_with(receipt, data)
+        self.assertEqual(json.loads((self.root / '.content-refresh/state.json').read_text())['receipt'], receipt)
         commands.reset_mock()
         changed = copy.deepcopy(data)
         changed['/api/public-scripts/fixture-script']['content'] += 'changed'

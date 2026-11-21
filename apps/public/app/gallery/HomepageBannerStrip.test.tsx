@@ -20,6 +20,17 @@ describe("HomepageBannerStrip", () => {
     expect(screen.getByAltText("活動")).toBeTruthy();
   });
 
+  it("uses bounded variants for X banners and falls back to the original", () => {
+    const original = "https://pbs.twimg.com/media/example?format=jpg&name=large";
+    render(<HomepageBannerStrip slides={[{ id: "x", title: "活動", imageUrl: original }]} />);
+    const image = screen.getByAltText("活動");
+    expect(image).toHaveAttribute("src", original.replace("large", "360x360"));
+    expect(image.getAttribute("srcset")).toContain(`${original.replace("large", "small")} 2x`);
+    fireEvent.error(image);
+    expect(image).toHaveAttribute("src", original);
+    expect(image).not.toHaveAttribute("srcset");
+  });
+
   it("sizes mixed artwork by its natural ratio so adjacent slides have no empty gutters", () => {
     const { container } = render(<HomepageBannerStrip slides={[
       { id: "portrait", title: "直式", imageUrl: "/media/portrait.webp" },
