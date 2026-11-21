@@ -43,7 +43,7 @@ bash scripts/release/release.sh pages
 bash scripts/release/release.sh verify
 ```
 
-此入口固定擷取公開內容，建置後再次比對，才上傳，另以 verify 做正式入口煙霧驗證；不要以直接 `build:pages` 加 `wrangler pages deploy` 取代。`pages-build`／`pages-upload` 是內部步驟，不具完整發布保護。內容刷新工作另核對公開 `/content-version.json` 與 durable receipt 的 commit／digest；單獨 `pages` 不會更新內容刷新 journal，UI 可能暫時顯示未知或舊狀態，下一次刷新會重新核對。僅上傳成功不足以完成驗收。
+此入口從乾淨的 Git checkout 擷取公開內容，建置後再次比對，再將該 commit 與內容 digest 寫入同一份 Pages 輸出。程式發布與內容刷新都會重新驗證正式網址的 `/content-version.json` 和代表頁面，成功後更新內容刷新 journal，供後台與監控讀取。`pages-build`／`pages-upload` 是供發布工具呼叫的內部步驟。完整發布另執行 `verify` 檢查正式入口與 API readiness。
 
 ## 回滾
 

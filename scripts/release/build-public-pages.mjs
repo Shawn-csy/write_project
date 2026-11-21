@@ -167,6 +167,9 @@ const headers = [
   "/_next/static/*",
   "  Cache-Control: public, max-age=31536000, immutable",
   "",
+  "/content-version.json",
+  "  Cache-Control: no-cache, max-age=0, must-revalidate",
+  "",
 ];
 writeFileSync(join(outputRoot, "_headers"), headers.join("\n"), "utf8");
 

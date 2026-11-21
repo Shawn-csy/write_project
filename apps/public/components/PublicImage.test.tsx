@@ -81,4 +81,32 @@ describe("PublicImage", () => {
 
     expect(screen.getByAltText("avatar")).toHaveStyle({ transform: "scale(2)" });
   });
+
+  it("gives static cards local and external thumbnails with their existing fallback URL", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_STATIC_EXPORT", "1");
+    vi.stubEnv("NEXT_PUBLIC_API_ORIGIN", "https://api.example");
+    vi.stubEnv("NEXT_PUBLIC_MEDIA_ORIGIN", "https://media.example");
+    vi.stubEnv("NEXT_PUBLIC_MEDIA_FALLBACK_ORIGIN", "https://r2.example");
+    try {
+      const { PublicImage: StaticImage } = await import("./PublicImage");
+      const local = "https://media.example/media/u/cover.webp";
+      const external = "https://r2.example/media/external-public-scripts/entry";
+      render(<>
+        <StaticImage src={local} alt="local" preset="script-cover" resizeStatic eager sizes="120px" />
+        <StaticImage src={external} alt="external" preset="script-cover" resizeStatic />
+      </>);
+      const localImage = screen.getByAltText("local");
+      expect(localImage.getAttribute("src")).toMatch(/^https:\/\/api\.example\/api\/public-media\/[\w-]+\.webp\?w=360$/);
+      expect(localImage).toHaveAttribute("data-media-original", local);
+      expect(localImage).toHaveAttribute("loading", "eager");
+      expect(localImage).toHaveAttribute("sizes", "120px");
+      const externalImage = screen.getByAltText("external");
+      expect(externalImage.getAttribute("srcset")).toContain("https://api.example/api/public-media/external/entry.webp?w=240 240w");
+      expect(externalImage).toHaveAttribute("data-media-original", external);
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
+  });
 });

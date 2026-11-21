@@ -40,6 +40,39 @@ function isExternal(link: string) {
   return /^https?:\/\//i.test(link);
 }
 
+function BannerImage({ src, alt, eager }: { src: string; alt: string; eager: boolean }) {
+  const image = URL.canParse(src) ? new URL(src) : undefined;
+  if (image?.origin !== "https://pbs.twimg.com" || !/^\/media\/[^/]+$/.test(image.pathname)
+      || !["medium", "large", "orig"].includes(image.searchParams.get("name") ?? "")) {
+    return <PublicImage src={src} alt={alt} preset="hero-banner" objectFit="contain" eager={eager} sizes="(min-width: 640px) 720px, 90vw" />;
+  }
+
+  image.searchParams.set("name", "360x360");
+  const thumbnail = image.href;
+  image.searchParams.set("name", "small");
+  return (
+    <img
+      key={src}
+      src={thumbnail}
+      srcSet={`${thumbnail} 1x, ${image.href} 2x`}
+      data-media-original={src}
+      alt={alt}
+      loading={eager ? "eager" : "lazy"}
+      fetchPriority={eager ? "high" : undefined}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      className="absolute inset-0 h-full w-full object-contain"
+      onError={(event) => {
+        const element = event.currentTarget;
+        if (element.getAttribute("src") === src) return;
+        delete element.dataset.mediaFailed;
+        element.removeAttribute("srcset");
+        element.src = src;
+      }}
+    />
+  );
+}
+
 export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
   const [, setNow] = useState(() => Date.now());
   const trackRef = useRef<HTMLDivElement>(null);
@@ -190,7 +223,7 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
             const body = banner.brand ? (
               <GalleryBrandHeroSlide duplicate={duplicate} slide={{ ...BRAND_SLIDE, title: banner.title, content: banner.content, eyebrow: banner.eyebrow }} />
             ) : banner.src ? (
-              <PublicImage src={banner.src} alt={duplicate ? "" : banner.alt} preset="hero-banner" objectFit="contain" eager={!duplicate && index < 3} sizes="(min-width: 640px) 720px, 90vw" />
+              <BannerImage src={banner.src} alt={duplicate ? "" : banner.alt} eager={!duplicate && index < 3} />
             ) : (
               <span className="absolute inset-0 flex flex-col justify-center bg-band px-5 text-white">
                 <span className="line-clamp-2 text-lg font-bold sm:text-xl">{banner.title}</span>

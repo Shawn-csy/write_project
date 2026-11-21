@@ -12,6 +12,7 @@ export function externalCoverSrc(item: { id: string; coverUrl?: string | null })
     const { primary, fallback } = mediaOriginsFromEnv();
     if (item.coverUrl.startsWith("/media/")) return `${primary}${item.coverUrl}`;
     if (primary && item.coverUrl.startsWith(`${primary}/media/`)) return item.coverUrl;
+    if (fallback && item.coverUrl.startsWith(`${fallback}/media/`)) return item.coverUrl;
     if (fallback) return `${fallback}/media/external-public-scripts/${encodeURIComponent(item.id)}`;
   }
   return `/api/public-media/external/${item.id}`;

@@ -44,5 +44,5 @@ export function CardMediaImage(props: ComponentProps<typeof PublicImage>) {
   const active = useContext(CardMediaActive);
   const eagerCover = useContext(EagerCardCover)
     && (props.preset === "script-cover" || props.preset === "series-cover");
-  return active ? <PublicImage {...props} eager={props.eager ?? eagerCover} /> : null;
+  return active ? <PublicImage {...props} resizeStatic eager={props.eager ?? eagerCover} /> : null;
 }

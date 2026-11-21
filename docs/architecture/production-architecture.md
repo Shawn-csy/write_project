@@ -72,7 +72,7 @@ flowchart TB
 - 兩組程式 CI 為 `Public read and security contracts` 與 `Submission workflows`。CD 與內容刷新共用 `production-deploy` concurrency；仍須確認 journal 完成，不能只看某個提前等待 CI 的部署 job 顯示成功。
 - 內容刷新 cron 為每小時第 7、22、37、52 分鐘。GitHub 排程可能延後，另需建置時間；**不是儲存後立即推送，也不是逐筆發布完成通知**。
 - 頁面資料儲存成功、瀏覽器讀到新資料、靜態 HTML／SEO 上線是不同時點。後台顯示的是全站最近驗證結果，不能據此保證剛儲存的某一筆已包含在 Pages。
-- 一般程式 CD 的 Pages 上傳與內容刷新憑證分屬不同步驟；本次部署後另跑內容刷新，確認線上 `content-version.json` 與正式 SHA 一致。後續程式發布也要確認刷新完成，不能假設 CD 成功就已更新這份憑證。
+- 程式 CD 與內容刷新都將 commit 與內容 digest 寫入 Pages 的 `content-version.json`。發布工具核對正式網址的憑證與代表頁面後，才更新本機內容刷新紀錄。
 - 網站入口／API 回滾與 Pages 回滾分開；資料庫遷移及業務資料不隨程式回滾自動復原。
 
 詳細操作見 [持續部署](../engineering/continuous-deployment.md)、[Pages](../engineering/public-pages-production.md) 及 [發布狀態](../engineering/publication-status.md)。
