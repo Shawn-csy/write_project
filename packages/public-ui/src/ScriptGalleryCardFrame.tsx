@@ -318,7 +318,7 @@ function AgeGateOverlay({ variant }: { variant: "standard" | "compact" | "dense"
   const label = variant === "compact" || variant === "dense" ? "R18" : "R-18";
   return (
     <>
-      <div className="absolute inset-0 bg-danger-muted pointer-events-none" aria-hidden />
+      <div className="absolute inset-0 bg-danger-muted opacity-25 pointer-events-none" aria-hidden />
       <span className={badgeClass}>{label}</span>
     </>
   );
