@@ -977,6 +977,18 @@ def get_published_external_public_scripts(db: Session) -> list[dict[str, Any]]:
         supplement.authorKey: supplement
         for supplement in db.query(models.ExternalAuthorPageSupplement).all()
     }
+    linked_persona_ids = {
+        profile.linkedPersonaId
+        for profile in (*authors.values(), *profiles.values())
+        if profile.linkedPersonaId
+    }
+    persona_avatars = {}
+    if linked_persona_ids:
+        persona_avatars = dict(
+            db.query(models.Persona.id, models.Persona.avatar)
+            .filter(models.Persona.id.in_(linked_persona_ids))
+            .all()
+        )
     result: list[dict[str, Any]] = []
     for row in rows:
         item = serialize_external_public_script(row)
@@ -985,29 +997,24 @@ def get_published_external_public_scripts(db: Session) -> list[dict[str, Any]]:
         author = authors.get(row.externalAuthorId)
         profile = profiles.get(author_key)
         supplement = supplements.get(author_key)
-        if author:
-            # The curated author-page link is authoritative for this author
-            # group. Older ExternalAuthor rows may predate that admin link.
-            item["authorPersonaId"] = profile.linkedPersonaId if profile else author.linkedPersonaId
-            if author.isHidden:
+        author_profile = author or profile
+        if author_profile:
+            # Older author rows may predate the curated link for this group.
+            linked_persona_id = (profile or author_profile).linkedPersonaId
+            item["authorPersonaId"] = linked_persona_id or None
+            if author_profile.isHidden or (profile and profile.isHidden):
                 item.update({"authorName": "", "authorBio": "", "authorUrl": "", "authorAvatarUrl": ""})
             else:
+                avatar_url = (
+                    (persona_avatars.get(linked_persona_id) or "").strip()
+                    or (author_profile.avatarUrl or "").strip()
+                    or ((profile.avatarUrl or "").strip() if profile else "")
+                )
                 item.update({
-                    "authorName": author.displayName or str(row.authorName or ""),
-                    "authorBio": author.bio or "",
-                    "authorUrl": author.profileUrl or "",
-                    "authorAvatarUrl": author.avatarUrl or "",
-                })
-        elif profile:
-            item["authorPersonaId"] = profile.linkedPersonaId or None
-            if profile.isHidden:
-                item.update({"authorName": "", "authorBio": "", "authorUrl": "", "authorAvatarUrl": ""})
-            else:
-                item.update({
-                    "authorName": profile.displayName or str(row.authorName or ""),
-                    "authorBio": profile.bio or "",
-                    "authorUrl": profile.profileUrl or "",
-                    "authorAvatarUrl": profile.avatarUrl or "",
+                    "authorName": author_profile.displayName or str(row.authorName or ""),
+                    "authorBio": author_profile.bio or "",
+                    "authorUrl": author_profile.profileUrl or "",
+                    "authorAvatarUrl": avatar_url,
                 })
         if supplement and not ((author and author.isHidden) or (profile and profile.isHidden)):
             item["authorSupplement"] = supplement.profile if isinstance(supplement.profile, dict) else {}
