@@ -45,9 +45,10 @@ def test_curated_external_author_link_overrides_stale_author_row(db_session):
     persona_id = "persona-linked-author"
     author_id = "external-author-stale-link"
     author_key = "curated-author"
-    db_session.add(Persona(id=persona_id, displayName="作者兼聲演"))
+    db_session.add(Persona(id=persona_id, displayName="作者兼聲演", avatar="/media/current-author.jpg"))
     db_session.add(PersonaRole(id="role-linked-author", personaId=persona_id, role="scriptwriter", isVisible=True))
-    db_session.add(ExternalAuthor(id=author_id, canonicalKey=author_key, displayName="舊作者", linkedPersonaId=None))
+    db_session.add(ExternalAuthor(id=author_id, canonicalKey=author_key, displayName="舊作者",
+                                  linkedPersonaId=None, avatarUrl="/media/old-author.jpg"))
     db_session.add(ExternalAuthorPageProfile(authorKey=author_key, displayName="已確認作者", linkedPersonaId=persona_id))
     db_session.add(ExternalPublicScript(id="external-linked-work", externalAuthorId=author_id,
                                         authorKey=author_key, authorName="舊作者", sourceUrl="https://example.com/work",
@@ -57,7 +58,9 @@ def test_curated_external_author_link_overrides_stale_author_row(db_session):
     works = get_published_external_public_scripts(db_session)
     context = _build_public_identity_context(db_session, [persona_id])
 
-    assert next(work for work in works if work["id"] == "external-linked-work")["authorPersonaId"] == persona_id
+    work = next(work for work in works if work["id"] == "external-linked-work")
+    assert work["authorPersonaId"] == persona_id
+    assert work["authorAvatarUrl"] == "/media/current-author.jpg"
     assert [author.id for author in context["externalAuthors"][persona_id]] == [author_id]
     assert [work.id for work in context["externalScripts"][author_id]] == ["external-linked-work"]
 
