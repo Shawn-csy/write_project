@@ -154,7 +154,7 @@ function SeriesGalleryCardInner({
         <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[2px] border border-border bg-muted group-hover:opacity-90">
           {coverWrapEl}
           {showAgeGate && <>
-            <div className="pointer-events-none absolute inset-0 bg-danger-muted" aria-hidden />
+            <div className="pointer-events-none absolute inset-0 bg-danger-muted opacity-25" aria-hidden />
             <span className="pointer-events-none absolute left-0.5 top-0.5 z-10 rounded-[2px] bg-seal px-1 py-0.5 text-[9px] font-bold leading-none text-white">R18</span>
           </>}
           <span className="pointer-events-none absolute right-1 top-1 z-10 rounded-[2px] bg-black/80 px-1.5 py-0.5 text-[10px] font-medium text-white">{chapterCount} 部</span>
@@ -184,7 +184,7 @@ function SeriesGalleryCardInner({
               </div>
               {showAgeGate && (
                 <>
-                  <div className="absolute inset-0 bg-danger-muted pointer-events-none" aria-hidden />
+                  <div className="absolute inset-0 bg-danger-muted opacity-25 pointer-events-none" aria-hidden />
                   <span className="absolute top-1 left-1 z-10 rounded-[2px] bg-seal px-1 py-0.5 text-[9px] font-bold leading-none text-white pointer-events-none">R18</span>
                 </>
               )}
@@ -233,7 +233,7 @@ function SeriesGalleryCardInner({
           {coverWrapEl}
           {showAgeGate && (
             <>
-              <div className="absolute inset-0 bg-danger-muted pointer-events-none" aria-hidden />
+              <div className="absolute inset-0 bg-danger-muted opacity-25 pointer-events-none" aria-hidden />
               <span className="absolute top-1 left-1 z-10 rounded-[2px] bg-seal px-1.5 py-1 text-[11px] font-bold leading-none text-white pointer-events-none">R-18</span>
             </>
           )}
