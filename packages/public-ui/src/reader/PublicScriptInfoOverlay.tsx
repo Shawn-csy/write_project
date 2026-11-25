@@ -18,7 +18,11 @@ interface DemoLinkItem {
   id?: string;
   name?: string;
   url: string;
+  coverUrl?: string;
   cast?: string;
+  voiceActorIds?: string[];
+  manualVoiceActors?: Array<{ name: string; personaId?: string; socialUrl?: string }>;
+  voiceTypes?: Array<"male" | "female">;
   description?: string;
 }
 
@@ -26,6 +30,7 @@ interface AuthorInfo {
   id?: string;
   displayName?: string;
   name?: string;
+  avatarUrl?: string;
 }
 
 interface OrganizationInfo {
@@ -50,6 +55,8 @@ interface PublicScriptInfoOverlayProps {
   customFields?: Array<{ key?: string; value?: string }>;
   prefaceItems?: PrefaceItem[];
   demoLinks?: DemoLinkItem[];
+  renderAuthor?: () => React.ReactNode;
+  renderDemoLink?: (item: DemoLinkItem, index: number) => React.ReactNode;
   commercialUse?: string;
   derivativeUse?: string;
   notifyOnModify?: string;
@@ -106,6 +113,8 @@ export function PublicScriptInfoOverlay({
   customFields = [],
   prefaceItems = [],
   demoLinks = [],
+  renderDemoLink,
+  renderAuthor,
   commercialUse = "",
   derivativeUse = "",
   notifyOnModify = "",
@@ -248,7 +257,9 @@ export function PublicScriptInfoOverlay({
     <div key="demo-links">
       <div className="text-xs font-semibold text-muted-foreground">試聽範例</div>
       <div className="mt-1 space-y-2">
-        {demoLinks.map((item, idx) => (
+        {demoLinks.map((item, idx) => renderDemoLink ? (
+          <React.Fragment key={item.id || idx}>{renderDemoLink(item, idx)}</React.Fragment>
+        ) : (
           <div key={item.id || `preface-demo-link-${idx + 1}`} className="rounded-md border border-border bg-background px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <a
@@ -384,7 +395,7 @@ export function PublicScriptInfoOverlay({
               style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.7)", backdropFilter: "blur(8px)" }}
             />
           )}
-          {author && (
+          {author && (renderAuthor ? renderAuthor() : (
             <AuthorBadge
               author={author}
               clickable={isAuthorClickable}
@@ -394,7 +405,7 @@ export function PublicScriptInfoOverlay({
               }`}
               style={{ border: "1px solid hsl(var(--border) / 0.5)", background: "hsl(var(--card) / 0.7)", backdropFilter: "blur(8px)" }}
             />
-          )}
+          ))}
         </div>
       )}
 

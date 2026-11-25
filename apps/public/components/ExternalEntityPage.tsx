@@ -7,6 +7,8 @@ import { socialAvatarUrl } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
 import { ExternalPublicScriptCard } from "./ExternalPublicScriptSection";
 import { GalleryHoverPreviewProvider } from "@write/public-ui";
+import { PublicContentLink } from "./PublicDirectoryDetails";
+import { PublicWorkDetails } from "./PublicWorkDetails";
 import { LinkifiedText } from "./LinkifiedText";
 import { publicApiUrl } from "@/lib/publicApiUrl";
 import { externalCoverSrc } from "@/lib/externalCover";
@@ -66,9 +68,9 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 <span>{items.length} 部作品</span>
                 {profileUrl && (
-                  <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="text-link hover:underline">
-                    {socialAvatarUrl(profileUrl) ? "𝕏 / Twitter" : "連結"}
-                  </a>
+                  <PublicContentLink href={profileUrl} target="_blank" rel="noopener noreferrer" appearance="source" arrow>
+                    {socialAvatarUrl(profileUrl) ? "𝕏 / Twitter" : "外部個人頁"}
+                  </PublicContentLink>
                 )}
               </div>
             </div>
@@ -77,9 +79,21 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
         </section>
 
         {isAuthor && (approvedLinks.length > 0 || approvedOrganizations.length > 0 || approvedWorks.length > 0 || contributors.length > 0) && <section className="mb-8 space-y-5 border-t border-border pt-4">
-          {approvedLinks.length > 0 && <div><h2 className="mb-2 font-semibold">社群連結</h2><div className="flex flex-wrap gap-3">{approvedLinks.map((link, index) => <a key={`${link.url}-${index}`} href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-link hover:underline">{link.label || link.url}</a>)}</div></div>}
-          {approvedOrganizations.length > 0 && <div><h2 className="mb-2 font-semibold">所屬團體</h2><div className="grid gap-2 sm:grid-cols-2">{approvedOrganizations.map((org, index) => <article key={`${org.name}-${index}`} className="rounded-lg border border-border bg-background p-3"><strong className="text-sm">{org.name}</strong>{org.description && <p className="mt-1 text-xs text-muted-foreground">{org.description}</p>}{org.url && <a href={org.url} target="_blank" rel="noopener noreferrer" className="mt-1 block break-all text-xs text-link hover:underline">{org.url}</a>}</article>)}</div></div>}
-          {approvedWorks.length > 0 && <div><h2 className="mb-2 font-semibold">其他作品</h2><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{approvedWorks.map((work, index) => <article key={`${work.title}-${index}`} className="overflow-hidden rounded-lg border border-border bg-background">{work.coverUrl && <img src={publicApiUrl(work.coverUrl)} alt="" className="aspect-video w-full object-cover" loading="lazy"/>}<div className="p-3"><strong className="text-sm">{work.title}</strong>{work.role && <p className="mt-1 text-xs text-muted-foreground">{work.role}</p>}{work.description && <p className="mt-1 text-xs text-muted-foreground">{work.description}</p>}{work.url && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-xs text-link hover:underline">查看作品</a>}</div></article>)}</div></div>}
+          {approvedLinks.length > 0 && <div><h2 className="mb-2 font-semibold">社群連結</h2><div className="flex flex-wrap gap-3">{approvedLinks.map((link, index) => <PublicContentLink key={`${link.url}-${index}`} href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm" arrow>{link.label || link.url}</PublicContentLink>)}</div></div>}
+          {approvedOrganizations.length > 0 && <div><h2 className="mb-2 font-semibold">所屬團體</h2><div className="grid gap-2 sm:grid-cols-2">{approvedOrganizations.map((org, index) => <article key={`${org.name}-${index}`} className="rounded-lg border border-border bg-background p-3">{org.url ? <PublicContentLink href={org.url} target="_blank" rel="noopener noreferrer" appearance="source" className="text-sm" arrow>{org.name || "團體網站"}</PublicContentLink> : <strong className="text-sm">{org.name}</strong>}{org.description && <LinkifiedText text={org.description} className="mt-1 text-xs text-muted-foreground" />}</article>)}</div></div>}
+          {approvedWorks.length > 0 && <section>
+            <h2 className="mb-2 font-semibold">其他作品</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {approvedWorks.map((work, index) => <PublicWorkDetails
+                key={`${work.url || work.title}-${index}`}
+                title={work.title || "未命名作品"}
+                meta={work.role && <p className="mt-1 text-xs text-muted-foreground">{work.role}</p>}
+                action={work.url && <PublicContentLink href={work.url} target="_blank" rel="noopener noreferrer" appearance="source" className="text-xs" arrow>前往作品</PublicContentLink>}
+                artwork={work.coverUrl && <img src={publicApiUrl(work.coverUrl)} alt="" className="aspect-video w-full rounded-md object-cover" loading="lazy" />}
+                description={work.description}
+              />)}
+            </div>
+          </section>}
         </section>}
 
         {seriesGroups.length > 0 && (

@@ -7,7 +7,9 @@ import type {
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "./types";
 import { externalEntityHref, socialAvatarUrl } from "./externalEntity";
 import { externalCoverSrc } from "./externalCover";
+import { parsePublicDemoLinks } from "./publicDemoLinks";
 import { cleanScriptSummary } from "./scriptSummary";
+import { publicIdentityTags } from "./publicIdentityMetadata";
 
 function toTimestamp(value?: number | string | null): number {
   if (value == null || value === "") return 0;
@@ -90,21 +92,17 @@ export function toGalleryInput(script: PublicScript): GalleryScriptInput {
 }
 
 export function hasValidDemoLink(value: unknown): boolean {
-  let parsed = value;
-  if (typeof parsed === "string") {
-    try { parsed = JSON.parse(parsed); }
-    catch { return /^https?:\/\//i.test(String(value).trim()); }
-  }
-  return Array.isArray(parsed) && parsed.some((item) => item && typeof item === "object" && /^https?:\/\//i.test(String(item.url || item.link || "").trim()));
+  return parsePublicDemoLinks(value).length > 0;
 }
 
 export function toAuthorLike(persona: PublicPersona): AuthorLike {
+  const tags = publicIdentityTags(persona.tags);
   return {
     id: persona.id,
     displayName: persona.displayName,
     avatarUrl: persona.avatar,
-    tags: persona.tags,
-    searchText: [persona.bio, ...(persona.tags ?? []), ...(persona.workParticipations ?? []).map((work) => work.title)].filter(Boolean).join(" "),
+    tags,
+    searchText: [persona.bio, ...tags, ...(persona.workParticipations ?? []).map((work) => work.title)].filter(Boolean).join(" "),
   };
 }
 
@@ -124,7 +122,6 @@ export function externalPersonasFromScripts(items: ExternalPublicScript[]): Publ
     if (!displayName) continue;
     const key = item.externalAuthorId || item.authorKey || item.authorProfileKey || displayName.normalize("NFKC").toLocaleLowerCase();
     const current = map.get(key);
-    const tags = Array.from(new Set([...(current?.tags || []), ...(item.categories || [])]));
     const supplement = item.authorSupplement || {};
     const supplementalLinks = Array.isArray(supplement.links) ? supplement.links : [];
     const fallbackLink = item.authorUrl ? [{ url: item.authorUrl, label: "X / Twitter" }] : [];
@@ -139,7 +136,6 @@ export function externalPersonasFromScripts(items: ExternalPublicScript[]): Publ
       website: current?.website || supplement.website || item.authorUrl || undefined,
       avatar: current?.avatar || item.authorAvatarUrl || socialAvatarUrl(item.authorUrl),
       links: mergedLinks,
-      tags,
       externalHref: item.authorPersonaId ? `/author/${encodeURIComponent(item.authorPersonaId)}` : externalEntityHref("author", displayName, item.authorUrl),
     });
   }

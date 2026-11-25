@@ -726,7 +726,11 @@ def _is_voice_actor_persona(persona: models.Persona) -> bool:
 
 
 def _public_persona_tags(tags: object) -> list[str]:
-    return [str(tag) for tag in crud._ensure_list(tags) if str(tag).strip() != "待認領"]
+    internal_tags = {"待認領", "demo 投稿建立"}
+    return [
+        str(tag) for tag in crud._ensure_list(tags)
+        if " ".join(unicodedata.normalize("NFKC", str(tag)).casefold().split()) not in internal_tags
+    ]
 
 
 def _external_link_label(url: str) -> str:

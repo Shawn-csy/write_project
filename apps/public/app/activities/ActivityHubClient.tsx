@@ -1,9 +1,10 @@
 "use client";
 
+import { PublicPersonLink, PublicPlayLink } from "@/components/PublicDirectoryDetails";
 import * as Dialog from "@radix-ui/react-dialog";
 import { PublicSubmissionDialogContent } from "@/components/PublicSubmissionDialogContent";
 import { PublicBackButton } from "@/components/PublicBackButton";
-import { Fragment, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicBrowseMain } from "@/components/PublicBrowseMain";
 import Link from "next/link";
@@ -11,6 +12,11 @@ import { PublicSubmissionTrigger } from "@/components/PublicSubmissionTrigger";
 import { BookOpen, ExternalLink, Play } from "lucide-react";
 import { PublicHeroMarquee, type HeroSlide, type HeroImageRenderer } from "@write/public-ui";
 import { HeroImage } from "@/components/HeroImage";
+import { PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
+import { mergePublicDemoLinks, parsePublicDemoLinks, publicSubmittedDemoLink, type DemoLink } from "@/lib/publicDemoLinks";
+import { demoArtwork } from "@/lib/demoArtwork";
+import { publicScriptAttribution } from "@/lib/publicScriptAttribution";
+import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicListSkeleton } from "@/components/PublicSkeleton";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
@@ -29,18 +35,6 @@ interface ActivityBundle {
   personas?: PublicPersona[];
 }
 
-interface ActivityDemo {
-  id: string;
-  name: string;
-  url: string;
-  coverUrl: string;
-  cast: string;
-  voiceTypes: Array<"male" | "female">;
-  voiceActorIds: string[];
-  manualVoiceActors: Array<{ name: string; socialUrl?: string; personaId?: string }>;
-  description: string;
-}
-
 interface ActivityWork {
   id: string;
   title: string;
@@ -49,65 +43,9 @@ interface ActivityWork {
   href: string;
   source: "本站台本" | "外部台本";
   authorName: string;
-  demos: ActivityDemo[];
-}
-
-function parseDemoLinks(value: unknown): ActivityDemo[] {
-  let parsed = value;
-  if (typeof parsed === "string") {
-    try { parsed = JSON.parse(parsed); } catch { parsed = []; }
-  }
-  if (!Array.isArray(parsed)) return [];
-  return parsed.flatMap((raw, index) => {
-    if (!raw || typeof raw !== "object") return [];
-    const item = raw as Record<string, unknown>;
-    const url = String(item.url || item.link || "").trim();
-    if (!/^https?:\/\//i.test(url)) return [];
-    return [{
-      id: String(item.id || `demo-${index + 1}`),
-      name: String(item.name || item.title || item.label || "").trim(),
-      url,
-      coverUrl: String(item.coverUrl || item.thumbnailUrl || item.imageUrl || "").trim(),
-      cast: String(item.cast || item.voiceActor || item.speaker || "").trim(),
-      voiceTypes: Array.isArray(item.voiceTypes) ? item.voiceTypes.filter((type): type is "male" | "female" => type === "male" || type === "female") : [],
-      voiceActorIds: Array.isArray(item.voiceActorIds) ? item.voiceActorIds.map(String) : [],
-      manualVoiceActors: Array.isArray(item.manualVoiceActors) ? item.manualVoiceActors.flatMap((actor) => {
-        if (!actor || typeof actor !== "object") return [];
-        const entry = actor as Record<string, unknown>;
-        const name = String(entry.name || "").trim();
-        return name ? [{ name, socialUrl: String(entry.socialUrl || ""), personaId: String(entry.personaId || "") }] : [];
-      }) : [],
-      description: String(item.description || item.desc || "").trim(),
-    }];
-  });
-}
-
-function youtubeThumbnail(url: string): string {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.replace(/^www\./, "").toLowerCase();
-    const videoId = host === "youtu.be" ? parsed.pathname.split("/").filter(Boolean)[0]
-      : host === "youtube.com" || host === "m.youtube.com" ? parsed.searchParams.get("v") || parsed.pathname.match(/^\/(?:embed|shorts|live)\/([^/?]+)/)?.[1]
-        : null;
-    return videoId ? `https://img.youtube.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : "";
-  } catch { return ""; }
-}
-
-function voiceNames(demo: ActivityDemo, personas: Map<string, PublicPersona>): Array<{ name: string; href?: string }> {
-  const linked = demo.voiceActorIds.flatMap((id) => {
-    const persona = personas.get(id);
-    return persona ? [{ name: persona.displayName, href: persona.externalHref || `/author/${encodeURIComponent(id)}` }] : [];
-  });
-  const manual = demo.manualVoiceActors.map((actor) => ({
-    name: actor.name,
-    href: actor.personaId ? `/author/${encodeURIComponent(actor.personaId)}` : actor.socialUrl,
-  }));
-  const legacy = demo.cast.split(/[、,，/／|;；\n]+/).map((name) => name.trim())
-    .filter((name) => name && !/^(作者|原作者|台本師|編劇|劇本師|腳本家|シナリオライター|author|writer)/i.test(name))
-    .map((name) => ({ name: name.replace(/^(聲演|声優|配音|演出者|cast)\s*[:：]?\s*/i, "") }));
-  const byName = new Map<string, { name: string; href?: string }>();
-  [...linked, ...manual, ...legacy].forEach((actor) => { if (actor.name.trim()) byName.set(actor.name.trim(), { ...actor, name: actor.name.trim() }); });
-  return [...byName.values()];
+  authorHref?: string;
+  authorAvatarUrl?: string;
+  demos: DemoLink[];
 }
 
 function renderContent(body: string) {
@@ -185,28 +123,20 @@ export function ActivityHubClient({ initialPages, initialSlug = "" }: { initialP
     const internalWorks = selectedPage.scriptIds.flatMap((id) => {
       const script = scriptById.get(id);
       if (!script) return [];
-      const isOverride = script.authorDisplayMode?.toLowerCase() === "override" || Boolean(script.authorOverrideName?.trim());
-      const authorName = (isOverride ? script.authorOverrideName : script.persona?.displayName || script.owner?.displayName)?.trim() || "";
-      const demos = [
-        ...parseDemoLinks(script.activityDemoLinks),
-        ...submissions.filter((item) => item.scriptType === "internal" && item.scriptId === id).map((item) => ({
-          id: item.id, name: item.demoName || "", url: item.demoUrl, coverUrl: item.coverUrl || "", cast: item.cast || "",
-          voiceTypes: item.voiceTypes || [], voiceActorIds: item.voiceActorIds || [], manualVoiceActors: item.manualVoiceActors || [], description: item.description || "",
-        })),
-      ];
-      return [{ id, title: script.title, summary: script.synopsis || "", coverUrl: script.coverUrl || "", href: `/read/${encodeURIComponent(id)}`, source: "本站台本" as const, authorName, demos }];
+      const demos = mergePublicDemoLinks([
+        ...parsePublicDemoLinks(script.activityDemoLinks),
+        ...submissions.filter((item) => item.scriptType === "internal" && item.scriptId === id).flatMap(publicSubmittedDemoLink),
+      ]);
+      return [{ id, title: script.title, summary: cleanScriptSummary(script.synopsis), coverUrl: script.coverUrl || "", href: `/read/${encodeURIComponent(id)}`, source: "本站台本" as const, ...publicScriptAttribution(script), demos }];
     });
     const externalWorks = selectedPage.externalScriptIds.flatMap((id) => {
       const script = externalScriptById.get(id);
       if (!script) return [];
-      const demos = [
-        ...parseDemoLinks(script.demoLinks),
-        ...submissions.filter((item) => item.scriptType === "external" && item.externalScriptId === id).map((item) => ({
-          id: item.id, name: item.demoName || "", url: item.demoUrl, coverUrl: item.coverUrl || "", cast: item.cast || "",
-          voiceTypes: item.voiceTypes || [], voiceActorIds: item.voiceActorIds || [], manualVoiceActors: item.manualVoiceActors || [], description: item.description || "",
-        })),
-      ];
-      return [{ id, title: script.title || script.remoteTitle || "未命名台本", summary: cleanScriptSummary(script.summary || script.remoteSummary), coverUrl: script.coverUrl || script.coverUrlOverride || script.remoteCoverUrl || "", href: script.sourceUrl, source: "外部台本" as const, authorName: script.authorName || "", demos }];
+      const demos = mergePublicDemoLinks([
+        ...parsePublicDemoLinks(script.demoLinks),
+        ...submissions.filter((item) => item.scriptType === "external" && item.externalScriptId === id).flatMap(publicSubmittedDemoLink),
+      ]);
+      return [{ id, title: script.title || script.remoteTitle || "未命名台本", summary: cleanScriptSummary(script.summary || script.remoteSummary), coverUrl: script.coverUrl || script.coverUrlOverride || script.remoteCoverUrl || "", href: script.sourceUrl, source: "外部台本" as const, ...publicScriptAttribution(script), demos }];
     });
     return [...internalWorks, ...externalWorks];
   }, [bundle.demoSubmissions, externalScriptById, scriptById, selectedPage]);
@@ -347,33 +277,46 @@ export function ActivityHubClient({ initialPages, initialSlug = "" }: { initialP
           {worksReady && selectedWorks.length === 0 && <PublicEmptyState className="mt-6 border-y border-border" title="這個活動還沒有台本或 Demo" description={selectedPage.acceptingSubmissions ? "成為第一位投稿的人吧。" : "活動內容公開後會顯示在這裡。"} primaryAction={pages.length > 1 ? { label: "查看其他活動", onClick: backToEvents } : { label: "回到台本首頁", href: "/" }} />}
           {worksReady && selectedWorks.length > 0 && <section className="mt-10">
             <div className="mb-4"><h2 className="text-xl font-semibold">活動台本與 Demo</h2></div>
-            <div className="space-y-3">{selectedWorks.map((work) => <article key={`${work.source}:${work.id}`} data-feedback-target={`activity-script-${work.source === "本站台本" ? "internal" : "external"}`} data-feedback-title={work.title} className={`grid min-w-0 overflow-hidden rounded-md border border-border bg-card ${work.demos.length ? "lg:grid-cols-[minmax(17rem,0.34fr)_minmax(0,0.66fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.28fr)]"}`}>
+            <div className="space-y-3">{selectedWorks.map((work) => {
+              const firstDemo = work.demos[0];
+              const workArtwork = demoArtwork(firstDemo?.url || "", firstDemo?.coverUrl, work.coverUrl);
+              return <article key={`${work.source}:${work.id}`} data-feedback-target={`activity-script-${work.source === "本站台本" ? "internal" : "external"}`} data-feedback-title={work.title} className={`grid min-w-0 overflow-hidden rounded-md border border-border bg-card ${work.demos.length ? "lg:grid-cols-[minmax(17rem,0.34fr)_minmax(0,0.66fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.28fr)]"}`}>
               <div className={`grid min-h-28 min-w-0 grid-cols-[5.5rem_minmax(0,1fr)] border-b border-border lg:min-h-0 lg:border-b-0 lg:border-r ${work.demos.length ? "lg:grid-cols-[minmax(7rem,0.36fr)_minmax(0,0.64fr)]" : "lg:grid-cols-[minmax(10rem,0.34fr)_minmax(0,0.66fr)]"}`}>
                 <Link href={work.href} target={work.source === "外部台本" ? "_blank" : undefined} rel={work.source === "外部台本" ? "noopener noreferrer" : undefined} aria-label={`閱讀台本「${work.title}」`} className={`group relative min-h-full overflow-hidden bg-muted ${work.demos.length ? "" : "min-h-36 lg:min-h-48"}`}>
                   <BookOpen className="absolute inset-0 m-auto h-7 w-7 text-muted-foreground/50" aria-hidden />
-                  {(youtubeThumbnail(work.demos[0]?.url || "") || work.coverUrl) && <PublicImage src={youtubeThumbnail(work.demos[0]?.url || "") || work.coverUrl} alt={`${work.title}封面`} preset="script-cover" className="group-hover:opacity-90" />}
+                  {workArtwork && <PublicImage src={workArtwork} alt={`${work.title}封面`} preset="script-cover" className="group-hover:opacity-90" />}
                 </Link>
                 <div className="flex min-w-0 flex-col justify-center p-3 sm:p-4">
                   <Link href={work.href} target={work.source === "外部台本" ? "_blank" : undefined} rel={work.source === "外部台本" ? "noopener noreferrer" : undefined} className="line-clamp-2 text-sm font-semibold leading-snug hover:text-link">{work.title}{work.source === "外部台本" && <ExternalLink className="ml-1 inline h-3 w-3" />}</Link>
-                  {work.authorName && <span className="mt-1 truncate [font-size:var(--public-font-caption)] text-muted-foreground">台本師：{work.authorName}</span>}
+                  {work.authorName && <span className="mt-1 [font-size:var(--public-font-caption)] text-muted-foreground">台本師：{work.authorHref ? <PublicPersonLink href={work.authorHref} name={work.authorName} avatar={work.authorAvatarUrl} compact /> : work.authorName}</span>}
                   {work.summary && <p className="mt-1 line-clamp-2 [font-size:var(--public-font-caption)] leading-4 text-muted-foreground">{work.summary}</p>}
                   <Link href={work.href} target={work.source === "外部台本" ? "_blank" : undefined} rel={work.source === "外部台本" ? "noopener noreferrer" : undefined} className="mt-2 inline-flex min-h-7 w-fit items-center gap-1 [font-size:var(--public-font-caption)] font-semibold text-link">台本資訊 <ExternalLink className="h-3 w-3" aria-hidden /></Link>
                 </div>
               </div>
               <section aria-label={`${work.title}的演出版本`} className="min-w-0">
-                {work.demos.length > 0 ? <><div className="flex min-h-9 items-center border-b border-border px-3"><h3 className="text-xs font-semibold">演出與試聽</h3></div><div className="divide-y divide-border/60">{work.demos.map((demo, index) => {
-                  const actors = voiceNames(demo, personasById);
-                  const preview = youtubeThumbnail(demo.url) || work.coverUrl || demo.coverUrl;
-                  let platform = "來源網站";
-                  try { platform = new URL(demo.url).hostname.replace(/^www\./i, ""); } catch { /* Keep generic label. */ }
-                  return <div key={`${demo.id}-${index}`} data-feedback-target="activity-demo" data-feedback-title={`${work.title}｜${demo.name || `演出版本 ${index + 1}`}`} className="grid min-h-[4.25rem] grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-3 px-3 py-2 hover:bg-muted sm:grid-cols-[6rem_minmax(0,1fr)_auto]">
-                    <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`試聽 ${demo.name || `演出版本 ${index + 1}`}`} className="relative aspect-video overflow-hidden rounded-md bg-muted">{preview ? <PublicImage src={preview} alt="Demo 預覽" preset="thumbnail" /> : <Play className="absolute inset-0 m-auto h-4 w-4 text-muted-foreground" aria-hidden />}</a>
-                    <span className="min-w-0"><a href={demo.url} target="_blank" rel="noopener noreferrer" className="block truncate text-xs font-medium leading-5 hover:text-link">{demo.name || `演出版本 ${index + 1}`}</a><span className="flex min-w-0 flex-wrap items-center gap-1 [font-size:var(--public-font-caption)] leading-4 text-muted-foreground"><span className="shrink-0">聲演：</span>{actors.length ? actors.map((actor, actorIndex) => <Fragment key={`${actor.name}-${actorIndex}`}>{actorIndex > 0 && <span>、</span>}{actor.href ? <a href={actor.href} target={actor.href.startsWith("http") ? "_blank" : undefined} rel={actor.href.startsWith("http") ? "noopener noreferrer" : undefined} className="truncate hover:text-link hover:underline">{actor.name}</a> : <span className="truncate">{actor.name}</span>}</Fragment>) : <span>{demo.cast ? demo.cast : "資料未標示"}</span>}{demo.voiceTypes.map((type) => <span key={type} className="rounded-sm bg-muted px-1.5 py-0.5">{type === "male" ? "男聲演" : "女聲演"}</span>)}<span className="ml-1">· {platform}</span></span>{demo.description && <span className="mt-0.5 block line-clamp-1 [font-size:var(--public-font-caption)] text-muted-foreground">{demo.description}</span>}</span>
-                    <a href={demo.url} target="_blank" rel="noopener noreferrer" className="inline-flex h-8 shrink-0 items-center gap-1 rounded-md bg-primary px-2 [font-size:var(--public-font-caption)] font-semibold text-primary-foreground hover:opacity-90"><Play className="h-3 w-3 fill-current" aria-hidden />試聽</a>
-                  </div>;
+                {work.demos.length > 0 ? <><div className="flex min-h-9 items-center border-b border-border px-3"><h3 className="text-xs font-semibold">演出與試聽</h3></div><div className="grid gap-2 p-2">{work.demos.map((demo, index) => {
+                  const name = demo.name || `演出版本 ${index + 1}`;
+                  const preview = demoArtwork(demo.url, demo.coverUrl, work.coverUrl);
+                  return (
+                    <PublicWorkDetails
+                      key={`${demo.id}-${index}`}
+                      heading="h4"
+                      title={name}
+                      data-feedback-target="activity-demo"
+                      data-feedback-title={`${work.title}｜${name}`}
+                      meta={<PublicVoiceTypes types={demo.voiceTypes} />}
+                      artwork={<div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+                        {preview ? <PublicImage src={preview} alt="Demo 預覽" preset="thumbnail" /> : <Play className="absolute inset-0 m-auto size-4 text-muted-foreground" aria-hidden />}
+                      </div>}
+                      action={<PublicPlayLink href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`試聽 ${name}`} className="text-xs">試聽</PublicPlayLink>}
+                      performers={publicDemoPerformers(demo, personasById)}
+                      description={demo.description}
+                    />
+                  );
                 })}</div></> : <div className="flex min-h-28 items-center justify-center p-4 lg:min-h-48">{selectedPage.acceptingSubmissions && <PublicSubmissionTrigger label="投稿 Demo" onClick={(event) => openSubmission(event.currentTarget, "demo", `${work.source === "本站台本" ? "internal" : "external"}:${work.id}`)} />}</div>}
               </section>
-            </article>)}</div>
+            </article>;
+            })}</div>
           </section>}
         </article>
         : pages.length > 0 ? <section><PublicBrowseHeader title="主題企劃與活動" /><div className="grid gap-4 sm:grid-cols-2">{pages.map((page) => <button key={page.id} type="button" onClick={() => openPage(page.slug)} className="overflow-hidden rounded-md border border-border bg-card text-left">{page.coverUrl && <div className="relative aspect-[16/8] overflow-hidden bg-muted"><PublicImage src={page.coverUrl} alt={`${page.title}封面`} preset="script-cover" crop={page.coverCrop} /></div>}<div className="p-4"><h2 className="text-lg font-semibold">{page.title}</h2>{page.summary && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{page.summary}</p>}<span className="mt-3 inline-block text-xs font-semibold text-link">查看活動 →</span></div></button>)}</div></section>

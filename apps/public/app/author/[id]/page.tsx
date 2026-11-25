@@ -1,3 +1,4 @@
+import { publicAudioWorksForPerformer } from "@/lib/publicWorkPerformers";
 import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -12,7 +13,7 @@ import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticAuthorParams } from "@/lib/staticParams";
 import { LiveAuthorPage } from "@/components/LiveEntityPages";
 import { ROLE_LABELS } from "@/components/identity/identityRoles";
-import { audioScriptWorksForPersona } from "@/lib/audioScriptWorks";
+import { audioScriptWorksForPersona, audioWorksForOtherParticipations } from "@/lib/audioScriptWorks";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
@@ -125,8 +126,9 @@ export default async function AuthorPage({
 
   const performances = getPublicVoicePerformances(id, bundle);
   const externalScripts = externalScriptsForPersona(persona, bundle.externalPublicScripts || []);
-  const audioWorks = (bundle.audioWorks || []).filter((work) => work.voiceActors?.some((actor) => actor.id === id));
+  const audioWorks = publicAudioWorksForPerformer(bundle.audioWorks, id);
   const audioScriptWorks = audioScriptWorksForPersona(persona, bundle.audioWorks || []);
+  const otherAudioWorks = audioWorksForOtherParticipations(persona, bundle.audioWorks || [], [...audioWorks, ...audioScriptWorks]);
   const displayPersona = combinePublicIdentities([persona], externalScripts)[0];
 
   const structuredData = {
@@ -162,9 +164,9 @@ export default async function AuthorPage({
         </article>
       </noscript>
       {STATIC_EXPORT ? (
-        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks, audioScriptWorks }} />
+        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks, audioScriptWorks, otherAudioWorks }} />
       ) : (
-        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} audioScriptWorks={audioScriptWorks} />
+        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} audioScriptWorks={audioScriptWorks} otherAudioWorks={otherAudioWorks} />
       )}
     </>
   );

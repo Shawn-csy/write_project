@@ -781,7 +781,7 @@ def _ensure_manual_voice_actor_personas(db: Session, row: models.PublicDemoSubmi
                 website="",
                 links=links,
                 organizationIds=[],
-                tags=["聲演", "Demo 投稿建立"],
+                tags=["聲演"],
                 defaultLicenseCommercial="",
                 defaultLicenseDerivative="",
                 defaultLicenseNotify="",

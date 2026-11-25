@@ -92,10 +92,15 @@ describe("AudioWorksClient data loading", () => {
     const manyWorks = Array.from({ length: 20 }, (_, index) => ({
       id: `work-${index}`, title: `作品${index}`, url: `https://example.com/${index}`, organizationId: "org-1",
     })) as PublicAudioWork[];
-    readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: manyWorks, organizations: initialOrganizations } });
+    const organizations = [{ ...initialOrganizations[0], description: "社團簡介", website: "https://example.com/studio" }];
+    readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: manyWorks, organizations } });
     render(<AudioWorksClient />);
     fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
     fireEvent.click(await screen.findByRole("button", { name: /社團甲/ }));
+    expect(screen.getByRole("heading", { name: "社團甲", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("社團簡介")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "官方網站" })).toHaveAttribute("href", "https://example.com/studio");
+    expect(screen.getByRole("searchbox", { name: "搜尋作品或聲演" })).toBeInTheDocument();
     fireEvent.keyDown(screen.getByRole("button", { name: "時間排序 最新優先" }), { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("menuitemradio", { name: "最舊優先" }));
     expect(screen.getByRole("button", { name: "時間排序 最舊優先" })).toBeTruthy();
@@ -119,5 +124,6 @@ describe("AudioWorksClient data loading", () => {
     expect(screen.getByRole("link", { name: "舊署名" }).getAttribute("href")).toBe("/author/artist-1");
     expect(screen.queryByRole("link", { name: "待核署名" })).toBeNull();
     expect(screen.getByText("待核署名")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "待核署名的署名來源" })).toHaveAttribute("href", initialWorks[0].url);
   });
 });

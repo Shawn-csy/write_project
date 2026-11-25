@@ -16,7 +16,7 @@ import { ResourceSubmissionDialog } from "@/components/ResourceSubmissionDialog"
 import type { PublicPersona } from "@/lib/types";
 
 import { buildResourceDirectory, selectResourceDirectory, type ProductionResource, type ResourceCategory as Category, type ResourceDirectoryEntry } from "@/lib/resourceDirectory";
-import { PARTICIPATION_ROLE_LABELS } from "@write/public-ui/participation-roles";
+import { publicIdentityRoleLabel } from "@/lib/publicIdentityMetadata";
 
 export type { ProductionResource } from "@/lib/resourceDirectory";
 const CATEGORIES: { key: Category; label: string }[] = [
@@ -86,8 +86,18 @@ export function ResourcesClient({ initialDirectory, refreshOnMount = false }: {
         actions={<ResourceSubmissionDialog defaultCategory={category} />}
       />
       {ageGateReady && !ageConfirmed && <div className="mb-4"><AdultContentNotice scope="participations" onConfirm={confirmAge} /></div>}
-      <nav aria-label="資源類別" className="sticky top-[86px] z-30 -mx-4 flex gap-1 overflow-x-auto border-b-2 border-primary bg-background px-4 pt-1.5 sm:top-[57px] sm:mx-0 sm:px-0">
-        {visibleCategories.map((item) => <button key={item.key} type="button" aria-pressed={category === item.key} onClick={() => selectCategory(item.key)} className="tab-item">{item.label}</button>)}
+      <nav aria-label="資源類別" className="sticky top-[86px] z-30 flex flex-wrap gap-x-1 border-b border-border bg-background sm:top-[57px] sm:gap-x-2">
+        {visibleCategories.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            aria-pressed={category === item.key}
+            onClick={() => selectCategory(item.key)}
+            className="min-h-9 border-b-2 border-transparent px-2 text-xs font-medium text-muted-foreground hover:text-foreground aria-pressed:border-link aria-pressed:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary sm:px-3 sm:text-sm"
+          >
+            {item.label}
+          </button>
+        ))}
       </nav>
       {visibleCount === 0 ? <PublicEmptyState
         className="border-y border-border"
@@ -102,8 +112,8 @@ export function ResourcesClient({ initialDirectory, refreshOnMount = false }: {
               name={item.name} href={href} avatar={item.avatar} bio={item.bio}
               works={credited}
               emptyLabel={category !== "voice_actor" && item.commissionRoles.includes(category === "recording_engineer" || category === "recording_unclassified" ? "recording_studio" : category) ? "提供委託資訊" : "尚無參與作品"}
-              roleLabels={item.roles.map((role) => PARTICIPATION_ROLE_LABELS[role])}
-              tags={item.tags.filter((tag) => !Object.values(PARTICIPATION_ROLE_LABELS).some((label) => label === tag))}
+              roleLabels={item.roles.map((role) => publicIdentityRoleLabel(role, item.recordingEntityType))}
+              tags={item.tags}
               onTagClick={setQuery} links={links} showWorks={ageConfirmed} /></li>;
           })}
         </ul>}

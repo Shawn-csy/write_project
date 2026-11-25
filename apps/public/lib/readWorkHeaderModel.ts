@@ -1,8 +1,10 @@
+import { publicScriptAttribution } from "./publicScriptAttribution";
 /**
  * Pure model for the read-page work header.
  * Consumes a raw PublicScript + stats input and returns a stable,
  * typed model object. Components receive the model, not raw script props.
  */
+import { cleanScriptSummary } from "./scriptSummary";
 import type { PublicScript } from "./types";
 import { buildScriptOverlayProps } from "./scriptProjection";
 
@@ -19,6 +21,7 @@ export interface ReadWorkHeaderStatsInput {
 export interface ReadWorkHeaderAuthor {
   id?: string;
   displayName: string;
+  avatarUrl?: string;
   isClickable: boolean;
   href: string | undefined;
 }
@@ -72,33 +75,20 @@ export interface ReadWorkHeaderModel {
   customFields: ReturnType<typeof buildScriptOverlayProps>["customFields"];
 }
 
-// ── non-linkable author id sentinels (from PublicScriptInfoOverlay) ───────
-
-const NON_LINK_AUTHOR_IDS = new Set(["override-author", "header-author-fallback"]);
-
-function isNonLinkAuthorId(id: string | undefined): boolean {
-  return NON_LINK_AUTHOR_IDS.has(String(id ?? "").trim());
-}
-
-// ── builder ───────────────────────────────────────────────────────────────
-
 export function buildReadWorkHeaderModel(
   script: PublicScript,
   stats: ReadWorkHeaderStatsInput,
 ): ReadWorkHeaderModel {
   const overlayProps = buildScriptOverlayProps(script);
 
-  // author — only persona.id maps to /author/ route; owner fallback is plain text
-  const authorDisplayName =
-    script.persona?.displayName ?? script.owner?.displayName ?? "";
-  const personaId = script.persona?.id;
-  const authorIsClickable = Boolean(personaId) && !isNonLinkAuthorId(personaId);
-  const author: ReadWorkHeaderAuthor | null = authorDisplayName
+  const attribution = publicScriptAttribution(script);
+  const author: ReadWorkHeaderAuthor | null = attribution.authorName
     ? {
-        id: authorIsClickable ? personaId : undefined,
-        displayName: authorDisplayName,
-        isClickable: authorIsClickable,
-        href: authorIsClickable ? `/author/${personaId}` : undefined,
+        id: attribution.authorHref ? script.persona?.id : undefined,
+        displayName: attribution.authorName,
+        avatarUrl: attribution.authorAvatarUrl,
+        isClickable: Boolean(attribution.authorHref),
+        href: attribution.authorHref,
       }
     : null;
 
@@ -132,7 +122,7 @@ export function buildReadWorkHeaderModel(
 
   const tags = (script.tags ?? []).map((t) => t.name).filter(Boolean);
 
-  const synopsisFallback = (script.synopsis ?? "").trim() || undefined;
+  const synopsisFallback = cleanScriptSummary(script.synopsis).trim() || undefined;
 
   return {
     title: script.title,

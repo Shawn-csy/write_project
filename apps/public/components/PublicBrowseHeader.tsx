@@ -7,12 +7,13 @@ interface Props {
   description?: ReactNode;
   search?: ReactNode;
   actions?: ReactNode;
+  actionsClassName?: string;
 }
 
 /** Shared heading for public directory pages. */
-export function PublicBrowseHeader({ title, count, leading, description, search, actions }: Props) {
+export function PublicBrowseHeader({ title, count, leading, description, search, actions, actionsClassName = "" }: Props) {
   return (
-    <header className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border pb-3 sm:mb-6 sm:gap-4 sm:pb-4">
+    <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border pb-2.5 sm:mb-4 sm:gap-x-4 sm:pb-3">
       <div className="flex min-w-0 flex-1 basis-24 items-center gap-2 sm:gap-3">
         {leading}
         <div className="min-w-0">
@@ -24,7 +25,7 @@ export function PublicBrowseHeader({ title, count, leading, description, search,
         </div>
       </div>
       {search && <div className="order-last min-w-0 basis-full sm:order-none sm:flex-1 sm:basis-48 sm:max-w-80">{search}</div>}
-      {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">{actions}</div>}
+      {actions && <div className={`ml-auto flex max-w-full flex-wrap items-center justify-end gap-2 ${actionsClassName}`}>{actions}</div>}
     </header>
   );
 }

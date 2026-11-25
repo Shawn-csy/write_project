@@ -86,6 +86,74 @@ def test_audio_credit_links_only_reviewed_visible_identity(client, db_session):
     public_bundle_router.invalidate_public_bundle_cache()
 
 
+def test_audio_bundle_links_canonical_scriptwriter_source_role(client, db_session):
+    public_bundle_router.invalidate_public_bundle_cache()
+    url = "https://example.com/scriptwriter-credit"
+    db_session.add(models.PublicAudioWorkSubmission(id="canonical-role", title="作品", url=url, status="approved"))
+    db_session.add(models.Persona(id="confirmed-writer", displayName="台本師"))
+    db_session.flush()
+    db_session.add_all([
+        models.PersonaRole(personaId="confirmed-writer", role="scriptwriter", isVisible=True),
+        models.AudioWorkCredit(audioWorkId="canonical-role", role="scriptwriter", sourceRole="台本", creditedAs="台本師",
+                               provenance="official_page", sourceUrl=url, checkedAt=1),
+        models.PersonaCredit(personaId="confirmed-writer", role="scriptwriter", audioWorkId="canonical-role", url=url,
+                             creditedAs="台本師"),
+    ])
+    db_session.commit()
+
+    work = client.get("/api/public-bundle?sections=audioWorks").json()["audioWorks"][0]
+    assert work["credits"][0]["personaId"] == "confirmed-writer"
+    public_bundle_router.invalidate_public_bundle_cache()
+
+def test_audio_bundle_links_source_only_role_with_matching_reviewed_signature(client, db_session):
+    public_bundle_router.invalidate_public_bundle_cache()
+    url = "https://example.com/same-source"
+    work = models.PublicAudioWorkSubmission(id="cross-role", title="作品", url=url, status="approved")
+    db_session.add_all([
+        work,
+        models.Persona(id="designer", displayName="設計者"),
+        models.Persona(id="private-credit", displayName="另一人"),
+    ])
+    db_session.flush()
+    db_session.add_all([
+        models.PersonaRole(personaId="designer", role="cover_art", isVisible=True),
+        models.PersonaRole(personaId="private-credit", role="post_production", isVisible=False),
+        models.PersonaCredit(personaId="designer", role="cover_art", audioWorkId=work.id,
+                             url=url, creditedAs="署名"),
+        models.PersonaCredit(personaId="private-credit", role="post_production", audioWorkId=work.id,
+                             url=url, creditedAs="署名"),
+    ])
+    for role, source, source_role in [
+        ("cover_art", url, "封面"),
+        ("design", url, "設計"),
+        ("music", "https://example.com/another-source", "音樂"),
+        ("illustration", "https://example.com/another-source", "插圖"),
+        ("post_production", "https://example.com/another-source", "後製"),
+        ("sound_design", "https://example.com/another-source", "音效設計"),
+        ("direction", "", "導演"),
+    ]:
+        db_session.add(models.AudioWorkCredit(
+            audioWorkId=work.id, role=role, sourceRole=source_role, creditedAs="署名",
+            provenance="official_page", sourceUrl=source, checkedAt=1,
+        ))
+    db_session.commit()
+
+    def credit_links():
+        public_bundle_router.invalidate_public_bundle_cache()
+        credits = client.get("/api/public-bundle?sections=audioWorks").json()["audioWorks"][0]["credits"]
+        public_bundle_router.invalidate_public_bundle_cache()
+        return {credit["role"]: credit.get("personaId") for credit in credits}
+
+    assert credit_links() == {
+        "cover_art": "designer", "design": "designer", "music": None, "illustration": "designer",
+        "post_production": None, "sound_design": None, "direction": None,
+    }
+    # A conflicting hidden signer in the same source must stop a source-only match.
+    db_session.query(models.AudioWorkCredit).filter_by(audioWorkId=work.id, role="post_production").one().sourceUrl = url
+    db_session.commit()
+    assert credit_links()["design"] is None
+
+
 def test_explicit_production_credit_parser_handles_combined_roles():
     assert set(credited_roles("錄音・後期：所有聲音製作\n封面：玫臼惹\n故事裡提到後製：不是署名")) == {
         ("recording_studio", "所有聲音製作"),

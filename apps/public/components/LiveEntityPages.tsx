@@ -10,6 +10,7 @@
  * author or tag) is rendered by LiveEntityRoute from 404.html.
  */
 
+import { publicAudioWorksForPerformer } from "@/lib/publicWorkPerformers";
 import { useEffect, type ReactNode } from "react";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { NotFoundBody, NotFoundContent } from "@/components/NotFoundContent";
@@ -17,7 +18,7 @@ import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { AuthorPageClient } from "@/app/author/[id]/AuthorPageClient";
 import { IdentityRedirect } from "@/components/IdentityRedirect";
 import { identityHrefForLegacyResource } from "@/lib/legacyResourceRedirect";
-import { audioScriptWorksForPersona } from "@/lib/audioScriptWorks";
+import { audioScriptWorksForPersona, audioWorksForOtherParticipations } from "@/lib/audioScriptWorks";
 import type { ProductionResource } from "@/app/resources/ResourcesClient";
 import { OrgPageClient } from "@/app/org/[id]/OrgPageClient";
 import { SeriesPageClient } from "@/app/series/[name]/SeriesPageClient";
@@ -128,7 +129,7 @@ function useDocumentTitle(label: string | null): void {
 
 // ── Author / organization (profile plus their works) ────────────────────────
 
-interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[]; audioWorks?: PublicAudioWork[]; audioScriptWorks?: PublicAudioWork[] }
+interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[]; audioWorks?: PublicAudioWork[]; audioScriptWorks?: PublicAudioWork[]; otherAudioWorks?: PublicAudioWork[] }
 
 export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: AuthorData; chrome?: Chrome }) {
   const state = useLiveData<AuthorData>(initial, async (signal) => {
@@ -140,15 +141,16 @@ export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: 
     ]);
     const performances = getPublicVoicePerformances(id, bundle || {});
     const externalScripts = externalScriptsForPersona(persona, bundle?.externalPublicScripts || []);
-    const audioWorks = (bundle?.audioWorks || []).filter((work) => work.voiceActors?.some((actor) => actor.id === id));
+    const audioWorks = publicAudioWorksForPerformer(bundle?.audioWorks, id);
     const audioScriptWorks = audioScriptWorksForPersona(persona, bundle?.audioWorks || []);
-    return { persona, scripts: scripts ?? [], performances, externalScripts, audioWorks, audioScriptWorks };
+    const otherAudioWorks = audioWorksForOtherParticipations(persona, bundle?.audioWorks || [], [...audioWorks, ...audioScriptWorks]);
+    return { persona, scripts: scripts ?? [], performances, externalScripts, audioWorks, audioScriptWorks, otherAudioWorks };
   }, `author:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.persona.displayName : null);
   const resolvedChrome = chrome ? { ...chrome, activeTab: "authors" } : undefined;
   return (
     <Frame state={state} chrome={resolvedChrome}>
-      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} audioScriptWorks={state.data.audioScriptWorks} />}
+      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} audioScriptWorks={state.data.audioScriptWorks} otherAudioWorks={state.data.otherAudioWorks} />}
     </Frame>
   );
 }
