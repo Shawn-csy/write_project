@@ -163,6 +163,15 @@ class SmokeTests(unittest.TestCase):
             handle = io.BytesIO(responses[path].encode())
             handle.status = 200
             return handle
+        with (
+            patch.object(refresh, 'read_json', side_effect=[{'commit': 'previous'}, receipt]) as read,
+            patch.object(refresh, 'sleep') as pause,
+            patch('urllib.request.urlopen', side_effect=response),
+        ):
+            refresh.Commands().verify(receipt, data)
+            self.assertEqual(read.call_count, 2)
+            pause.assert_called_once_with(refresh.RECEIPT_VERIFY_INTERVAL)
+
         with patch.object(refresh, 'read_json', return_value=receipt), patch('urllib.request.urlopen', side_effect=response):
             refresh.Commands().verify(receipt, data)
             self.assertIn('/read/fixture%20script', requested)
@@ -176,6 +185,18 @@ class SmokeTests(unittest.TestCase):
             responses['/'] = homepage
             responses['/sitemap.xml'] = sitemap.replace('fixture%20script', 'withdrawn')
             with self.assertRaises(snap.ContentError): refresh.Commands().verify(receipt, data)
+
+    def test_stale_receipt_exhausts_attempts_before_probing_pages(self):
+        with (
+            patch.object(refresh, 'read_json', return_value={'commit': 'previous'}) as read,
+            patch.object(refresh, 'sleep') as pause,
+            patch('urllib.request.urlopen') as public_page,
+        ):
+            with self.assertRaisesRegex(snap.ContentError, 'did not propagate'):
+                refresh.Commands().verify({'commit': 'expected'}, {})
+        self.assertEqual(read.call_count, refresh.RECEIPT_VERIFY_ATTEMPTS)
+        self.assertEqual(pause.call_count, refresh.RECEIPT_VERIFY_ATTEMPTS - 1)
+        public_page.assert_not_called()
 
     def test_receipt_mismatch_and_network_failure_are_distinct(self):
         commands = refresh.Commands()

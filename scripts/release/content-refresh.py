@@ -12,6 +12,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+from time import sleep
 from urllib.parse import quote
 
 from content_snapshot import API, PUBLIC, ContentError, capture, empty_routes, fingerprint, frozen_server, public_request, read_json, validate_export, validate_html, validate_sitemap
@@ -22,6 +23,8 @@ release = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(release)
 BOOTSTRAP = 'Deploy a normal complete release containing content-refresh.py first; inspect ingress and its complete release journal. Never infer a live SHA from main.'
 RECEIPT_PATH = '/content-version.json'
+RECEIPT_VERIFY_ATTEMPTS = 11
+RECEIPT_VERIFY_INTERVAL = 3
 
 
 def write_receipt(output, sha, digest):
@@ -97,8 +100,14 @@ class Commands(release.Commands):
             raise
 
     def verify(self, receipt, snapshot):
-        if not self.receipt_matches(receipt):
-            raise ContentError('Public content receipt does not match; retry verification')
+        # Wrangler can finish before the production hostname serves the new deployment.
+        for attempt in range(RECEIPT_VERIFY_ATTEMPTS):
+            if attempt:
+                sleep(RECEIPT_VERIFY_INTERVAL)
+            if self.receipt_matches(receipt):
+                break
+        else:
+            raise ContentError('Public content receipt did not propagate; retry verification')
         # Bounded smoke reads; do not accept an HTTP error page or absent SSR shell.
         from urllib.request import urlopen
         paths = [('/', None), ('/authors', None), ('/sitemap.xml', None)]
