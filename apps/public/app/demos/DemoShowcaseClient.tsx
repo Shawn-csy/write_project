@@ -1,69 +1,45 @@
 "use client";
 
+import { PublicSubmissionDialogContent } from "@/components/PublicSubmissionDialogContent";
+import { PublicSearchField } from "@/components/PublicSearchField";
+import { PublicSubmissionTrigger } from "@/components/PublicSubmissionTrigger";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { BookOpen, ChevronLeft, ExternalLink, LayoutGrid, List, Play, Plus, RefreshCw, Search, X } from "lucide-react";
-import { PublicFooter } from "@/components/PublicFooter";
+import { BookOpen, Check, ExternalLink, LayoutGrid, List, LoaderCircle, Play, Plus, RefreshCw, Search, X } from "lucide-react";
+import { AnimatedSegment } from "@/components/AnimatedSegment";
+import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
+import { PublicBrowseMain } from "@/components/PublicBrowseMain";
+import { PublicBackButton } from "@/components/PublicBackButton";
+import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
 import { PublicImage } from "@/components/PublicImage";
-import { PublicTopBar } from "@/components/PublicTopBar";
 import { LiveBannerStrip } from "@/components/LiveBannerStrip";
-import { parseBannerSlides, type HeroSlide } from "@write/public-ui";
+import type { HeroSlide } from "@write/public-ui";
 import { liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
-import { externalEntityHref } from "@/lib/externalEntity";
-import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
 import { demoArtwork, youtubeThumbnail } from "@/lib/demoArtwork";
-import { demoScriptOrganization } from "@/lib/demoScriptContext";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
-import { cleanScriptSummary } from "@/lib/scriptSummary";
-
-interface DemoLink {
-  id: string;
-  name: string;
-  url: string;
-  coverUrl: string;
-  cast: string;
-  voiceTypes: Array<"male" | "female">;
-  voiceActorIds: string[];
-  manualVoiceActors: ManualVoiceActor[];
-  description: string;
-  createdAt: number;
-}
-
-interface ManualVoiceActor {
-  name: string;
-  socialUrl: string;
-  personaId?: string;
-}
+import type { PublicPersona } from "@/lib/types";
+import type { DemoCatalog, DemoCatalogBundle, DemoLink, DemoScriptGroup, ManualVoiceActor } from "@/lib/demoCatalog";
+import { DEMO_CATALOG_SECTIONS } from "@/lib/publicBundleProjection";
+import { useDirectoryRenderLimit } from "@/lib/useDirectoryRenderLimit";
 
 interface ManualVoiceActorDraft extends ManualVoiceActor {
   id: string;
 }
 
-interface DemoScriptGroup {
-  key: string;
-  id: string;
-  scriptType: "internal" | "external";
-  title: string;
-  authorName: string;
-  authorHref?: string;
-  organizationName?: string;
-  organizationHref?: string;
-  summary: string;
-  coverUrl: string;
-  sourceUrl: string;
-  demos: DemoLink[];
-  sortAt: number;
-}
-
 type DemoSort = "newest" | "oldest" | "random";
 type DemoView = "grid" | "list";
 
-function timestamp(value: unknown): number {
-  const number = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(number) && number > 0 ? number : 0;
-}
+const DEMO_SORT_OPTIONS: { value: DemoSort; label: string }[] = [
+  { value: "newest", label: "最新" },
+  { value: "oldest", label: "最舊" },
+  { value: "random", label: "隨機" },
+];
+const DEMO_SORT_GROUPS = [{ options: DEMO_SORT_OPTIONS }];
+const DEMO_VIEW_OPTIONS: { value: DemoView; label: string }[] = [
+  { value: "grid", label: "卡片模式" },
+  { value: "list", label: "橫條模式" },
+];
 
 function randomRank(key: string, seed: number): number {
   let hash = seed | 0;
@@ -71,20 +47,10 @@ function randomRank(key: string, seed: number): number {
   return hash >>> 0;
 }
 
-interface SubmissionTarget {
-  value: string;
-  title: string;
-  authorName: string;
-  label: string;
-}
-
 interface Props {
-  initialScripts: PublicScript[];
-  initialExternalScripts: ExternalPublicScript[];
-  initialPersonas: PublicPersona[];
-  initialOrganizations: PublicOrg[];
-  initialSubmissions: PublicDemoSubmission[];
+  initialCatalog: DemoCatalog;
   initialBannerSlides?: HeroSlide[];
+  refreshOnMount: boolean;
 }
 
 function DemoAuthorName({ group }: { group: DemoScriptGroup }) {
@@ -95,160 +61,6 @@ function DemoAuthorName({ group }: { group: DemoScriptGroup }) {
 
 const VOICE_ACTOR_TAG_PATTERN = /聲演|配音|voice[\s-]?actor/i;
 const GENERIC_DEMO_NAME_PATTERN = /^(演出 demo|demo|試聽|google docs|youtube|vocus|cxc|soundcloud|bilibili|spotify)$/i;
-
-function parseDemoLinks(value: unknown): DemoLink[] {
-  let parsed = value;
-  if (typeof parsed === "string") {
-    const raw = parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      parsed = raw.startsWith("http") ? [{ url: raw }] : [];
-    }
-  }
-  if (!Array.isArray(parsed)) return [];
-  return parsed.flatMap((raw, index) => {
-    if (!raw || typeof raw !== "object") return [];
-    const item = raw as Record<string, unknown>;
-    const url = String(item.url || item.link || "").trim();
-    if (!/^https?:\/\//i.test(url)) return [];
-    return [{
-      id: String(item.id || `demo-${index + 1}`),
-      name: String(item.name || item.title || item.label || "").trim(),
-      url,
-      coverUrl: String(item.coverUrl || item.thumbnailUrl || item.imageUrl || item.image || "").trim(),
-      cast: String(item.cast || item.voiceActor || item.speaker || "").trim(),
-      voiceTypes: Array.isArray(item.voiceTypes) ? item.voiceTypes.filter((type): type is "male" | "female" => type === "male" || type === "female") : [],
-      voiceActorIds: Array.isArray(item.voiceActorIds) ? item.voiceActorIds.map(String) : [],
-      manualVoiceActors: Array.isArray(item.manualVoiceActors)
-        ? item.manualVoiceActors.flatMap((actor) => {
-          if (!actor || typeof actor !== "object") return [];
-          const item = actor as Record<string, unknown>;
-          const name = String(item.name || "").trim();
-          const socialUrl = String(item.socialUrl || "").trim();
-          const personaId = String(item.personaId || "").trim();
-          return name ? [{ name, socialUrl: /^https?:\/\//i.test(socialUrl) ? socialUrl : "", personaId }] : [];
-        })
-        : [],
-      description: String(item.description || item.desc || "").trim(),
-      createdAt: timestamp(item.createdAt || item.publishedAt),
-    }];
-  });
-}
-
-function buildScriptGroups(
-  scripts: PublicScript[],
-  externalScripts: ExternalPublicScript[],
-  submissions: PublicDemoSubmission[],
-  organizations: PublicOrg[],
-): DemoScriptGroup[] {
-  const groups = new Map<string, DemoScriptGroup>();
-  const addDemos = (
-    key: string,
-    group: Omit<DemoScriptGroup, "demos">,
-    demos: DemoLink[],
-  ) => {
-    if (demos.length === 0) return;
-    const existing = groups.get(key);
-    const sortAt = Math.max(group.sortAt, ...demos.map((demo) => demo.createdAt));
-    if (existing) {
-      existing.demos.push(...demos);
-      existing.sortAt = Math.max(existing.sortAt, sortAt);
-    } else groups.set(key, { ...group, sortAt, demos });
-  };
-
-  for (const script of scripts) {
-    const key = `internal:${script.id}`;
-    const organization = demoScriptOrganization(script, organizations);
-    addDemos(key, {
-      key,
-      id: script.id,
-      scriptType: "internal",
-      title: script.title || "未命名台本",
-      authorName: script.persona?.displayName || script.owner?.displayName || "",
-      authorHref: script.persona?.id ? `/author/${encodeURIComponent(script.persona.id)}` : undefined,
-      organizationName: organization?.name,
-      organizationHref: organization?.href,
-      summary: script.synopsis || "",
-      coverUrl: script.coverUrl || "",
-      sourceUrl: `/read/${encodeURIComponent(script.id)}`,
-      sortAt: timestamp(script.createdAt),
-    }, parseDemoLinks(script.activityDemoLinks));
-  }
-
-  for (const script of externalScripts) {
-    if (script.status !== "published") continue;
-    const key = `external:${script.id}`;
-    const organization = demoScriptOrganization(script, organizations);
-    addDemos(key, {
-      key,
-      id: script.id,
-      scriptType: "external",
-      title: script.title || script.remoteTitle || "未命名台本",
-      authorName: script.authorName || "",
-      authorHref: script.authorName ? (script.authorPersonaId
-        ? `/author/${encodeURIComponent(script.authorPersonaId)}`
-        : externalEntityHref("author", script.authorName, script.authorUrl)) : undefined,
-      organizationName: organization?.name,
-      organizationHref: organization?.href,
-      summary: cleanScriptSummary(script.summary || script.remoteSummary),
-      coverUrl: script.coverUrlOverride || script.coverUrl || script.remoteCoverUrl || "",
-      sourceUrl: script.sourceUrl,
-      sortAt: timestamp(script.mountedAt || script.createdAt || script.sourceCreatedAt),
-    }, parseDemoLinks(script.demoLinks));
-  }
-
-  for (const submission of submissions) {
-    const scriptType = submission.scriptType === "external" ? "external" : "internal";
-    const id = scriptType === "external" ? submission.externalScriptId : submission.scriptId;
-    const key = id ? `${scriptType}:${id}` : `submitted:${submission.id}`;
-    const linkedExternalScript = scriptType === "external" ? externalScripts.find((script) => script.id === id) : undefined;
-    const linkedInternalScript = scriptType === "internal" ? scripts.find((script) => script.id === id) : undefined;
-    const organization = linkedExternalScript
-      ? demoScriptOrganization(linkedExternalScript, organizations)
-      : linkedInternalScript ? demoScriptOrganization(linkedInternalScript, organizations) : null;
-    addDemos(key, {
-      key,
-      id: id || submission.id,
-      scriptType,
-      title: submission.scriptTitle || linkedExternalScript?.title || linkedExternalScript?.remoteTitle || linkedInternalScript?.title || "未命名台本",
-      authorName: scriptType === "external"
-        ? linkedExternalScript?.authorName || ""
-        : linkedInternalScript?.persona?.displayName || linkedInternalScript?.owner?.displayName || "",
-      authorHref: scriptType === "external"
-        ? linkedExternalScript?.authorName
-          ? linkedExternalScript.authorPersonaId
-            ? `/author/${encodeURIComponent(linkedExternalScript.authorPersonaId)}`
-            : externalEntityHref("author", linkedExternalScript.authorName, linkedExternalScript.authorUrl)
-          : undefined
-        : linkedInternalScript?.persona?.id ? `/author/${encodeURIComponent(linkedInternalScript.persona.id)}` : undefined,
-      organizationName: organization?.name,
-      organizationHref: organization?.href,
-      summary: scriptType === "external"
-        ? linkedExternalScript?.summary || linkedExternalScript?.remoteSummary || ""
-        : linkedInternalScript?.synopsis || "",
-      coverUrl: scriptType === "external"
-        ? linkedExternalScript?.coverUrlOverride || linkedExternalScript?.coverUrl || linkedExternalScript?.remoteCoverUrl || ""
-        : linkedInternalScript?.coverUrl || "",
-      sourceUrl: submission.scriptUrl,
-      sortAt: timestamp(submission.createdAt),
-    }, [{
-      id: submission.id,
-      name: submission.demoName || "演出 Demo",
-      url: submission.demoUrl,
-      coverUrl: submission.coverUrl || "",
-      cast: submission.cast || "",
-      voiceTypes: submission.voiceTypes || [],
-      voiceActorIds: submission.voiceActorIds || [],
-      manualVoiceActors: (submission.manualVoiceActors || []).map((actor) => ({ name: actor.name, socialUrl: actor.socialUrl || "", personaId: actor.personaId || "" })),
-      description: submission.description || "",
-      createdAt: timestamp(submission.createdAt),
-    }]);
-  }
-
-  return [...groups.values()]
-    .map((group) => ({ ...group, demos: group.demos.sort((a, b) => a.name.localeCompare(b.name, "zh-Hant")) }));
-}
 
 function demoActors(demo: DemoLink, personasById: Map<string, PublicPersona>): PublicPersona[] {
   return demo.voiceActorIds
@@ -272,19 +84,14 @@ function demoCastNames(demo: DemoLink): string[] {
   return [...demo.manualVoiceActors.map((actor) => actor.name.trim()), ...demoLegacyCastNames(demo)].filter(Boolean);
 }
 
-export function DemoShowcaseClient({ initialScripts, initialExternalScripts, initialPersonas, initialOrganizations, initialSubmissions, initialBannerSlides }: Props) {
-  const [scripts, setScripts] = useState(initialScripts);
-  const [externalScripts, setExternalScripts] = useState(initialExternalScripts);
-  const [personas, setPersonas] = useState(initialPersonas);
-  const [organizations, setOrganizations] = useState(initialOrganizations);
-  const [submissions, setSubmissions] = useState(initialSubmissions);
-  const [bannerSlides, setBannerSlides] = useState<HeroSlide[]>(initialBannerSlides || []);
-  const [liveBundleLoaded, setLiveBundleLoaded] = useState(false);
+export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refreshOnMount }: Props) {
+  const [catalog, setCatalog] = useState(initialCatalog);
+  const { groups: scriptGroups, personas, submissionTargets } = catalog;
+  const [liveBundleLoaded, setLiveBundleLoaded] = useState(!refreshOnMount);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<DemoSort>("newest");
   const [view, setView] = useState<DemoView>("grid");
   const [randomSeed, setRandomSeed] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(24);
   const [selectedScriptKey, setSelectedScriptKey] = useState("");
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
   const [target, setTarget] = useState("");
@@ -306,31 +113,17 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   }, [submitMessage]);
 
   useEffect(() => {
+    if (!refreshOnMount) return;
     let active = true;
-    void readPublicBundle<{
-      scripts?: PublicScript[];
-      externalPublicScripts?: ExternalPublicScript[];
-      personas?: PublicPersona[];
-      organizations?: PublicOrg[];
-      demoSubmissions?: PublicDemoSubmission[];
-      demoBanner?: unknown;
-    }>(["scripts", "externalPublicScripts", "personas", "organizations", "demoSubmissions", "demoBanner"])
-      .then(({ data: bundle }) => {
-        if (!active) return;
-        if (Array.isArray(bundle.scripts)) setScripts(bundle.scripts);
-        if (Array.isArray(bundle.externalPublicScripts)) setExternalScripts(bundle.externalPublicScripts);
-        if (Array.isArray(bundle.personas)) setPersonas(bundle.personas);
-        if (Array.isArray(bundle.organizations)) setOrganizations(bundle.organizations);
-        if (Array.isArray(bundle.demoSubmissions)) setSubmissions(bundle.demoSubmissions);
-        const slides = parseBannerSlides(bundle.demoBanner);
-        if (slides) setBannerSlides(slides);
-        setLiveBundleLoaded(true);
-      })
-      .catch(() => { if (active) setLiveBundleLoaded(true); });
+    void Promise.all([
+      readPublicBundle<DemoCatalogBundle>(DEMO_CATALOG_SECTIONS),
+      import("@/lib/demoCatalog"),
+    ]).then(([{ data }, { buildDemoCatalog }]) => {
+      if (active) setCatalog(buildDemoCatalog(data));
+    }).catch(() => {}).finally(() => { if (active) setLiveBundleLoaded(true); });
     return () => { active = false; };
-  }, []);
+  }, [refreshOnMount]);
 
-  const scriptGroups = useMemo(() => buildScriptGroups(scripts, externalScripts, submissions, organizations), [scripts, externalScripts, submissions, organizations]);
   const normalizedQuery = query.trim().toLocaleLowerCase();
   const visibleGroups = useMemo(() => {
     const filtered = normalizedQuery ? scriptGroups.filter((group) => [
@@ -349,7 +142,6 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   const changeSort = (next: DemoSort) => {
     if (next === "random") setRandomSeed(Date.now());
     setSort(next);
-    setVisibleCount(24);
   };
 
   useEffect(() => {
@@ -367,33 +159,27 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   const selectedGroupCoverUrl = selectedGroup
     ? selectedGroup.demos.map((demo) => youtubeThumbnail(demo.url)).find(Boolean) || selectedGroup.coverUrl || ""
     : "";
-  const voiceActors = useMemo(() => personas.filter((persona) => !persona.voiceActorHidden && (persona.roles?.includes("voice_actor") ?? (
-    hasVoiceActorSelfTag(persona)
-    || getPublicVoicePerformances(persona.id, { scripts, externalPublicScripts: externalScripts, demoSubmissions: submissions }).length > 0
-  ))).sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant")), [personas, scripts, externalScripts, submissions]);
+  const { limit: renderLimit, loadMoreRef } = useDirectoryRenderLimit(
+    selectedGroup ? 0 : visibleGroups.length,
+    8,
+    JSON.stringify([normalizedQuery, sort, randomSeed, view]),
+  );
+  const voiceActorById = useMemo(() => new Map<string, PublicPersona>(personas.map((persona) => [persona.id, persona])), [personas]);
+  const voiceActors = useMemo(() => catalog.voiceActorIds.flatMap((id) => {
+    const persona = voiceActorById.get(id);
+    return persona ? [persona] : [];
+  }), [catalog.voiceActorIds, voiceActorById]);
   const voiceActorNames = useMemo(() => new Set(voiceActors.map((persona) => persona.displayName.trim().toLocaleLowerCase())), [voiceActors]);
-  const voiceActorById = useMemo(() => new Map(personas.map((persona) => [persona.id, persona])), [personas]);
+  const selectedGroupAuthorIsVoiceActor = selectedGroup && voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase());
   const selectedVoiceActors = voiceActorIds.map((id) => voiceActorById.get(id)).filter((persona): persona is PublicPersona => Boolean(persona));
-  const visibleVoiceActors = voiceActors
+  const visibleVoiceActors = showSubmissionForm ? voiceActors
     .filter((persona) => `${persona.displayName} ${(persona.tags || []).join(" ")}`.toLocaleLowerCase().includes(voiceActorQuery.trim().toLocaleLowerCase()))
-    .slice(0, 20);
+    .slice(0, 20) : [];
 
-  const submissionTargets = useMemo<SubmissionTarget[]>(() => [
-    ...scripts.map((script) => {
-      const title = script.title || "未命名台本";
-      const authorName = script.persona?.displayName || script.owner?.displayName || "";
-      return { value: `internal:${script.id}`, title, authorName, label: title };
-    }),
-    ...externalScripts.filter((script) => script.status === "published").map((script) => {
-      const title = script.title || script.remoteTitle || "未命名台本";
-      const authorName = script.authorName || "";
-      return { value: `external:${script.id}`, title, authorName, label: title };
-    }),
-  ], [scripts, externalScripts]);
   const selectedTarget = submissionTargets.find((option) => option.value === target);
-  const visibleTargets = submissionTargets
+  const visibleTargets = showSubmissionForm && targetPickerOpen ? submissionTargets
     .filter((option) => `${option.label} ${option.authorName}`.toLocaleLowerCase().includes(targetSearch.trim().toLocaleLowerCase()))
-    .slice(0, 25);
+    .slice(0, 25) : [];
 
   const toggleVoiceActor = (id: string) => {
     const selected = voiceActorIds.includes(id);
@@ -497,284 +283,256 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <PublicTopBar activeTab="demos" />
-      <LiveBannerStrip slides={bannerSlides} placement="demos" />
+    <div className="flex flex-1 flex-col bg-background">
+      <LiveBannerStrip slides={initialBannerSlides} placement="demos" />
       {submitMessage && (
         <div role="status" aria-live="polite" className="fixed bottom-4 left-4 right-4 z-[60] mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-success bg-background px-4 py-3 text-sm text-foreground shadow-lg sm:left-auto sm:right-6">
+          <Check className="public-motion-icon h-4 w-4 shrink-0 text-success" aria-hidden />
           <span className="min-w-0 flex-1">{submitMessage}</span>
           <button type="button" onClick={() => setSubmitMessage("")} aria-label="關閉通知" className="-mr-1 -mt-1 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground">
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
       )}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-        <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border pb-4 sm:mb-6 sm:flex sm:items-end sm:justify-between sm:gap-4 sm:pb-5">
-          {selectedGroup ? (
-            <div className="flex min-w-0 items-start gap-3">
-              <button type="button" onClick={returnToScriptList} className="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2.5 py-2 text-sm hover:bg-muted" aria-label="返回台本清單">
-                <ChevronLeft className="h-4 w-4" aria-hidden />台本清單
-              </button>
-              <div className="min-w-0">
-                <h1 className="mt-1 line-clamp-2 text-2xl font-bold sm:text-3xl">{selectedGroup.title}</h1>
-                          {selectedGroup.authorName && <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>}</p>}
-              </div>
-            </div>
-          ) : (
-            <div>
-              <h1 className="text-2xl font-bold sm:text-3xl">Demo</h1>
-            </div>
+      <PublicBrowseMain>
+        <PublicBrowseHeader
+          title={selectedGroup?.title ?? "Demo"}
+          leading={selectedGroup && <PublicBackButton label="返回台本清單" onClick={returnToScriptList} />}
+          description={selectedGroup?.authorName && (
+            <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+              <span>台本師：<DemoAuthorName group={selectedGroup} /></span>
+              <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>
+              {selectedGroupAuthorIsVoiceActor && (
+                <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>
+              )}
+            </p>
           )}
-          <div className="contents sm:flex sm:w-auto sm:max-w-xl sm:items-center sm:gap-2">
-            {!selectedGroup && (
-              <label className="relative order-3 col-span-2 block min-w-0 sm:order-none sm:w-80 sm:flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  value={query}
-                  onChange={(event) => { setQuery(event.target.value); setVisibleCount(24); }}
-                  className="h-11 w-full rounded-lg border border-border bg-card pl-9 pr-3 sm:h-10 text-sm outline-none focus:border-link"
-                  placeholder="搜尋台本或台本師"
-                  aria-label="搜尋台本或台本師"
-                />
-              </label>
-            )}
+          search={!selectedGroup && (
+            <PublicSearchField
+              value={query}
+              onChange={setQuery}
+              placeholder="搜尋台本或台本師"
+            />
+          )}
+          actions={
             <Dialog.Root open={showSubmissionForm} onOpenChange={setShowSubmissionForm}>
               <Dialog.Trigger asChild>
-                <button type="button" className="order-2 inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md bg-cta px-3 text-xs font-bold text-white hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:order-none sm:px-5 sm:text-sm">
-                  <Plus className="h-4 w-4" aria-hidden />投稿 Demo
-                </button>
+                <PublicSubmissionTrigger label="投稿 Demo" />
               </Dialog.Trigger>
-              <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60" />
-                <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-background p-5 shadow-lg sm:p-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <Dialog.Title className="text-lg font-semibold">投稿已錄製的 Demo</Dialog.Title>
-                      <Dialog.Description className="mt-1 text-sm text-muted-foreground">選擇台本並提供公開連結，審核通過後會顯示在該台本旁。</Dialog.Description>
-                    </div>
-                    <Dialog.Close asChild>
-                      <button type="button" aria-label="關閉投稿表單" className="rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground"><X className="h-4 w-4" /></button>
-                    </Dialog.Close>
-                  </div>
-
-                  <form onSubmit={handleDemoSubmission} className="mt-5 grid gap-3 sm:grid-cols-2">
-                    <label className="grid gap-1 text-sm sm:col-span-2">對應台本
-                      <div className="relative">
-                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                          role="combobox"
-                          aria-label="搜尋並選擇對應台本"
-                          aria-expanded={targetPickerOpen}
-                          aria-controls="demo-submission-target-options"
-                          aria-autocomplete="list"
-                          required={!targetPickerOpen && !target}
-                          value={targetPickerOpen ? targetSearch : selectedTarget?.label || ""}
-                          onFocus={() => { setTargetSearch(""); setTargetPickerOpen(true); }}
-                          onChange={(event) => { setTargetSearch(event.target.value); setTargetPickerOpen(true); }}
-                          onBlur={() => window.setTimeout(() => setTargetPickerOpen(false), 120)}
-                          placeholder="搜尋台本名稱或作者…"
-                          className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-link"
-                        />
-                        {targetPickerOpen && (
-                          <div id="demo-submission-target-options" role="listbox" className="absolute inset-x-0 top-[calc(100%+0.25rem)] z-20 max-h-60 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
-                            {visibleTargets.length === 0 ? <p className="px-3 py-4 text-sm text-muted-foreground">找不到符合的台本。</p> : visibleTargets.map((option) => (
-                              <button
-                                key={option.value}
-                                type="button"
-                                role="option"
-                                aria-selected={target === option.value}
-                                onMouseDown={(event) => event.preventDefault()}
-                                onClick={() => { setTarget(option.value); setTargetSearch(""); setTargetPickerOpen(false); }}
-                                className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-muted aria-selected:bg-muted"
-                              >
-                                <span className="min-w-0">
-                                  <span className="block truncate text-sm">{option.title}</span>
-                      {option.authorName && <span className="block truncate text-xs text-muted-foreground">台本師：{option.authorName}</span>}
-                                </span>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      {target && <input type="hidden" name="target" value={target} />}
-                    </label>
-
-                    <label className="grid gap-1 text-sm">Demo 名稱
-                      <input name="demoName" maxLength={160} placeholder="例如：角色 A 試聽" className="h-10 rounded-lg border border-border bg-background px-3" />
-                    </label>
-                    <fieldset className="grid gap-1 text-sm">
-                      <legend>聲演聲線（可複選）</legend>
-                      <div className="flex h-10 items-center gap-4 rounded-lg border border-border bg-background px-3">
-                        <label className="inline-flex items-center gap-2 text-xs">
-                          <input type="checkbox" name="voiceTypes" value="male" checked={voiceTypes.includes("male")} onChange={(event) => setVoiceTypes((current) => event.target.checked ? [...new Set<"male" | "female">([...current, "male"])] : current.filter((type) => type !== "male"))} className="accent-primary" />
-                          男聲演
-                        </label>
-                        <label className="inline-flex items-center gap-2 text-xs">
-                          <input type="checkbox" name="voiceTypes" value="female" checked={voiceTypes.includes("female")} onChange={(event) => setVoiceTypes((current) => event.target.checked ? [...new Set<"male" | "female">([...current, "female"])] : current.filter((type) => type !== "female"))} className="accent-primary" />
-                          女聲演
-                        </label>
-                      </div>
-                    </fieldset>
-                    <div className="grid gap-1 text-sm">
-                      <span>聲演名單 <span className="text-destructive">必填</span></span>
+              <PublicSubmissionDialogContent title="投稿已錄製的 Demo" description="選擇台本並提供公開連結，審核通過後會顯示在該台本旁。" width="large" restoreActiveElement>
+                <form onSubmit={handleDemoSubmission} className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-sm sm:col-span-2">對應台本
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                       <input
-                        value={voiceActorQuery}
-                        onChange={(event) => setVoiceActorQuery(event.target.value)}
-                        placeholder="搜尋公開聲演身份…"
-                        className="h-10 rounded-lg border border-border bg-background px-3"
-                        aria-label="搜尋聲演名單"
+                        role="combobox"
+                        aria-label="搜尋並選擇對應台本"
+                        aria-expanded={targetPickerOpen}
+                        aria-controls="demo-submission-target-options"
+                        aria-autocomplete="list"
+                        required={!targetPickerOpen && !target}
+                        value={targetPickerOpen ? targetSearch : selectedTarget?.label || ""}
+                        onFocus={() => { setTargetSearch(""); setTargetPickerOpen(true); }}
+                        onChange={(event) => { setTargetSearch(event.target.value); setTargetPickerOpen(true); }}
+                        onBlur={() => window.setTimeout(() => setTargetPickerOpen(false), 120)}
+                        placeholder="搜尋台本名稱或作者…"
+                        className="h-10 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-link"
                       />
-                    </div>
-
-                    <div id="demo-submission-voice-actors" className={`rounded-lg border bg-card p-2.5 sm:col-span-2 ${voiceActorError ? "border-destructive/70" : "border-border"}`} aria-invalid={Boolean(voiceActorError)} aria-describedby={voiceActorError ? "demo-submission-voice-actor-error" : undefined}>
-                      {selectedVoiceActors.length > 0 && (
-                        <div className="mb-2 flex flex-wrap gap-1.5">
-                          {selectedVoiceActors.map((persona) => (
-                            <button key={persona.id} type="button" onClick={() => toggleVoiceActor(persona.id)} className="rounded-sm bg-muted px-2 py-1 text-xs text-foreground hover:bg-border">
-                              {persona.displayName} <span aria-hidden>×</span>
+                      {targetPickerOpen && (
+                        <div id="demo-submission-target-options" role="listbox" className="absolute inset-x-0 top-[calc(100%+0.25rem)] z-20 max-h-60 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+                          {visibleTargets.length === 0 ? <p className="px-3 py-4 text-sm text-muted-foreground">找不到符合的台本。</p> : visibleTargets.map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              role="option"
+                              aria-selected={target === option.value}
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => { setTarget(option.value); setTargetSearch(""); setTargetPickerOpen(false); }}
+                              className="flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-left hover:bg-muted aria-selected:bg-muted"
+                            >
+                              <span className="min-w-0">
+                                <span className="block truncate text-sm">{option.title}</span>
+                    {option.authorName && <span className="block truncate text-xs text-muted-foreground">台本師：{option.authorName}</span>}
+                              </span>
                             </button>
                           ))}
                         </div>
                       )}
-                      {visibleVoiceActors.length > 0 ? (
-                        <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
-                          {visibleVoiceActors.map((persona) => {
-                            const selected = voiceActorIds.includes(persona.id);
-                            return (
-                              <button key={persona.id} type="button" aria-pressed={selected} onClick={() => toggleVoiceActor(persona.id)} className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-muted"}`}>
-                                {selected ? "✓ " : ""}{persona.displayName}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : <p className="px-1 py-2 text-xs text-muted-foreground">目前沒有符合的公開聲演身份；其他演出者可填在下方。</p>}
-                      <p className="mt-2 px-1 [font-size:var(--public-font-caption)] text-muted-foreground">名單包含自填聲演身份，或已有公開 Demo 演出紀錄的身份頁。</p>
                     </div>
+                    {target && <input type="hidden" name="target" value={target} />}
+                  </label>
 
-                    <section className="rounded-lg border border-border bg-card p-3 sm:col-span-2" aria-label="新增名單外聲演">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <h3 className="text-sm font-medium">名單外聲演</h3>
-                          <p className="mt-0.5 text-xs text-muted-foreground">審核通過後會建立身份頁並連上這筆 Demo。</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setManualVoiceActors((current) => [...current, { id: `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: "", socialUrl: "" }])}
-                          disabled={manualVoiceActors.length >= 20}
-                          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
-                        >
-                          <Plus className="h-3.5 w-3.5" aria-hidden />新增聲演
-                        </button>
-                      </div>
-                      {manualVoiceActors.length > 0 ? (
-                        <div className="mt-3 space-y-2">
-                          {manualVoiceActors.map((actor, index) => (
-                            <div key={actor.id} className="grid gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
-                              <label className="grid gap-1 text-xs text-muted-foreground">
-                                <span>姓名</span>
-                                <input
-                                  value={actor.name}
-                                  onChange={(event) => {
-                                    const name = event.target.value;
-                                    setManualVoiceActors((current) => current.map((item) => item.id === actor.id ? { ...item, name } : item));
-                                    if (name.trim() || selectedVoiceActors.length > 0) setVoiceActorError("");
-                                  }}
-                                  maxLength={120}
-                                  placeholder="聲演名稱"
-                                  aria-label={`名單外聲演 ${index + 1} 姓名`}
-                                  className="h-9 rounded-md border border-border bg-background px-2.5 text-sm text-foreground"
-                                />
-                              </label>
-                              <label className="grid gap-1 text-xs text-muted-foreground">
-                                <span>社群連結（選填）</span>
-                                <input
-                                  value={actor.socialUrl}
-                                  onChange={(event) => setManualVoiceActors((current) => current.map((item) => item.id === actor.id ? { ...item, socialUrl: event.target.value } : item))}
-                                  type="url"
-                                  pattern="https://.*"
-                                  maxLength={2000}
-                                  placeholder="https://…"
-                                  aria-label={`名單外聲演 ${index + 1} 社群連結`}
-                                  className="h-9 rounded-md border border-border bg-background px-2.5 text-sm text-foreground"
-                                />
-                              </label>
-                              <button type="button" onClick={() => {
-                                const next = manualVoiceActors.filter((item) => item.id !== actor.id);
-                                setManualVoiceActors(next);
-                                if (selectedVoiceActors.length > 0 || next.some((item) => item.name.trim())) setVoiceActorError("");
-                              }} aria-label={`移除名單外聲演 ${index + 1}`} className="mt-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
-                                <X className="h-4 w-4" aria-hidden />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : <p className="mt-3 text-xs text-muted-foreground">尚未新增名單外聲演。</p>}
-                      {voiceActorError && <p id="demo-submission-voice-actor-error" role="alert" className="mt-2 text-xs font-medium text-destructive">{voiceActorError}</p>}
-                    </section>
-                    <label className="grid gap-1 text-sm sm:col-span-2">公開 Demo 連結
-                      <input name="demoUrl" type="url" required pattern="https://.*" maxLength={2000} placeholder="https://…" className="h-10 rounded-lg border border-border bg-background px-3" />
-                    </label>
-                    <label className="grid gap-1 text-sm sm:col-span-2">封面圖片連結（選填）
-                      <input name="coverUrl" type="url" pattern="https://.*" maxLength={2000} placeholder="非 YouTube 來源可補充封面圖片網址" className="h-10 rounded-lg border border-border bg-background px-3" />
-                    </label>
-                    <label className="grid gap-1 text-sm">投稿者名稱（公開顯示）
-                      <input name="displayName" maxLength={120} placeholder="可留空" className="h-10 rounded-lg border border-border bg-background px-3" />
-                    </label>
-                    <label className="grid gap-1 text-sm">聯絡 Email（不公開）
-                      <input name="contactEmail" type="email" maxLength={320} placeholder="可留空" className="h-10 rounded-lg border border-border bg-background px-3" />
-                    </label>
-                    <label className="grid gap-1 text-sm sm:col-span-2">簡介
-                      <textarea name="description" rows={3} maxLength={2000} placeholder="補充角色、版本或演出資訊" className="rounded-lg border border-border bg-background px-3 py-2" />
-                    </label>
-                    <label className="flex items-start gap-2 text-xs text-muted-foreground sm:col-span-2">
-                      <input name="confirmPublic" type="checkbox" required className="mt-0.5 accent-primary" />
-                      <span>我確認此 Demo 連結可公開瀏覽，且我有權提供此連結供本站展示。</span>
-                    </label>
-                    {manualVoiceActors.some((actor) => actor.name.trim()) && (
-                      <label className="flex items-start gap-2 text-xs text-muted-foreground sm:col-span-2">
-                        <input name="confirmVoiceActorProfiles" type="checkbox" required className="mt-0.5 accent-primary" />
-                        <span>我已取得名單外聲演同意，將以其姓名與社群連結建立公開聲演身份頁。</span>
+                  <label className="grid gap-1 text-sm">Demo 名稱
+                    <input name="demoName" maxLength={160} placeholder="例如：角色 A 試聽" className="h-10 rounded-lg border border-border bg-background px-3" />
+                  </label>
+                  <fieldset className="grid gap-1 text-sm">
+                    <legend>聲演聲線（可複選）</legend>
+                    <div className="flex h-10 items-center gap-4 rounded-lg border border-border bg-background px-3">
+                      <label className="inline-flex items-center gap-2 text-xs">
+                        <input type="checkbox" name="voiceTypes" value="male" checked={voiceTypes.includes("male")} onChange={(event) => setVoiceTypes((current) => event.target.checked ? [...new Set<"male" | "female">([...current, "male"])] : current.filter((type) => type !== "male"))} className="accent-primary" />
+                        男聲演
                       </label>
-                    )}
-                    <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[10000px] h-px w-px" />
-                    <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
-                      <button type="submit" disabled={isSubmitting || submissionTargets.length === 0} className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
-                        {isSubmitting ? "送出中…" : "送出審核"}
-                      </button>
-                      {submissionTargets.length === 0 && <span className="text-xs text-muted-foreground">目前沒有可投稿的公開台本。</span>}
-                      {submitError && <span role="alert" className="text-sm text-destructive">{submitError}</span>}
+                      <label className="inline-flex items-center gap-2 text-xs">
+                        <input type="checkbox" name="voiceTypes" value="female" checked={voiceTypes.includes("female")} onChange={(event) => setVoiceTypes((current) => event.target.checked ? [...new Set<"male" | "female">([...current, "female"])] : current.filter((type) => type !== "female"))} className="accent-primary" />
+                        女聲演
+                      </label>
                     </div>
-                  </form>
-                </Dialog.Content>
-              </Dialog.Portal>
+                  </fieldset>
+                  <div className="grid gap-1 text-sm">
+                    <span>聲演名單 <span className="text-destructive">必填</span></span>
+                    <input
+                      value={voiceActorQuery}
+                      onChange={(event) => setVoiceActorQuery(event.target.value)}
+                      placeholder="搜尋公開聲演身份…"
+                      className="h-10 rounded-lg border border-border bg-background px-3"
+                      aria-label="搜尋聲演名單"
+                    />
+                  </div>
+
+                  <div id="demo-submission-voice-actors" className={`rounded-lg border bg-card p-2.5 sm:col-span-2 ${voiceActorError ? "border-destructive/70" : "border-border"}`} aria-invalid={Boolean(voiceActorError)} aria-describedby={voiceActorError ? "demo-submission-voice-actor-error" : undefined}>
+                    {selectedVoiceActors.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        {selectedVoiceActors.map((persona) => (
+                          <button key={persona.id} type="button" onClick={() => toggleVoiceActor(persona.id)} className="rounded-sm bg-muted px-2 py-1 text-xs text-foreground hover:bg-border">
+                            {persona.displayName} <span aria-hidden>×</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {visibleVoiceActors.length > 0 ? (
+                      <div className="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                        {visibleVoiceActors.map((persona) => {
+                          const selected = voiceActorIds.includes(persona.id);
+                          return (
+                            <button key={persona.id} type="button" aria-pressed={selected} onClick={() => toggleVoiceActor(persona.id)} className={`rounded-md border px-2.5 py-1.5 text-xs transition-colors ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background hover:bg-muted"}`}>
+                              {selected ? "✓ " : ""}{persona.displayName}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : <p className="px-1 py-2 text-xs text-muted-foreground">目前沒有符合的公開聲演身份；其他演出者可填在下方。</p>}
+                    <p className="mt-2 px-1 [font-size:var(--public-font-caption)] text-muted-foreground">名單包含自填聲演身份，或已有公開 Demo 演出紀錄的身份頁。</p>
+                  </div>
+
+                  <section className="rounded-lg border border-border bg-card p-3 sm:col-span-2" aria-label="新增名單外聲演">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-sm font-medium">名單外聲演</h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">審核通過後會建立身份頁並連上這筆 Demo。</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setManualVoiceActors((current) => [...current, { id: `manual-${Date.now()}-${Math.random().toString(36).slice(2)}`, name: "", socialUrl: "" }])}
+                        disabled={manualVoiceActors.length >= 20}
+                        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs font-medium hover:bg-muted disabled:opacity-50"
+                      >
+                        <Plus className="h-3.5 w-3.5" aria-hidden />新增聲演
+                      </button>
+                    </div>
+                    {manualVoiceActors.length > 0 ? (
+                      <div className="mt-3 space-y-2">
+                        {manualVoiceActors.map((actor, index) => (
+                          <div key={actor.id} className="grid gap-2 sm:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)_auto]">
+                            <label className="grid gap-1 text-xs text-muted-foreground">
+                              <span>姓名</span>
+                              <input
+                                value={actor.name}
+                                onChange={(event) => {
+                                  const name = event.target.value;
+                                  setManualVoiceActors((current) => current.map((item) => item.id === actor.id ? { ...item, name } : item));
+                                  if (name.trim() || selectedVoiceActors.length > 0) setVoiceActorError("");
+                                }}
+                                maxLength={120}
+                                placeholder="聲演名稱"
+                                aria-label={`名單外聲演 ${index + 1} 姓名`}
+                                className="h-9 rounded-md border border-border bg-background px-2.5 text-sm text-foreground"
+                              />
+                            </label>
+                            <label className="grid gap-1 text-xs text-muted-foreground">
+                              <span>社群連結（選填）</span>
+                              <input
+                                value={actor.socialUrl}
+                                onChange={(event) => setManualVoiceActors((current) => current.map((item) => item.id === actor.id ? { ...item, socialUrl: event.target.value } : item))}
+                                type="url"
+                                pattern="https://.*"
+                                maxLength={2000}
+                                placeholder="https://…"
+                                aria-label={`名單外聲演 ${index + 1} 社群連結`}
+                                className="h-9 rounded-md border border-border bg-background px-2.5 text-sm text-foreground"
+                              />
+                            </label>
+                            <button type="button" onClick={() => {
+                              const next = manualVoiceActors.filter((item) => item.id !== actor.id);
+                              setManualVoiceActors(next);
+                              if (selectedVoiceActors.length > 0 || next.some((item) => item.name.trim())) setVoiceActorError("");
+                            }} aria-label={`移除名單外聲演 ${index + 1}`} className="mt-auto inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+                              <X className="h-4 w-4" aria-hidden />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="mt-3 text-xs text-muted-foreground">尚未新增名單外聲演。</p>}
+                    {voiceActorError && <p id="demo-submission-voice-actor-error" role="alert" className="mt-2 text-xs font-medium text-destructive">{voiceActorError}</p>}
+                  </section>
+                  <label className="grid gap-1 text-sm sm:col-span-2">公開 Demo 連結
+                    <input name="demoUrl" type="url" required pattern="https://.*" maxLength={2000} placeholder="https://…" className="h-10 rounded-lg border border-border bg-background px-3" />
+                  </label>
+                  <label className="grid gap-1 text-sm sm:col-span-2">封面圖片連結（選填）
+                    <input name="coverUrl" type="url" pattern="https://.*" maxLength={2000} placeholder="非 YouTube 來源可補充封面圖片網址" className="h-10 rounded-lg border border-border bg-background px-3" />
+                  </label>
+                  <label className="grid gap-1 text-sm">投稿者名稱（公開顯示）
+                    <input name="displayName" maxLength={120} placeholder="可留空" className="h-10 rounded-lg border border-border bg-background px-3" />
+                  </label>
+                  <label className="grid gap-1 text-sm">聯絡 Email（不公開）
+                    <input name="contactEmail" type="email" maxLength={320} placeholder="可留空" className="h-10 rounded-lg border border-border bg-background px-3" />
+                  </label>
+                  <label className="grid gap-1 text-sm sm:col-span-2">簡介
+                    <textarea name="description" rows={3} maxLength={2000} placeholder="補充角色、版本或演出資訊" className="rounded-lg border border-border bg-background px-3 py-2" />
+                  </label>
+                  <label className="flex items-start gap-2 text-xs text-muted-foreground sm:col-span-2">
+                    <input name="confirmPublic" type="checkbox" required className="mt-0.5 accent-primary" />
+                    <span>我確認此 Demo 連結可公開瀏覽，且我有權提供此連結供本站展示。</span>
+                  </label>
+                  {manualVoiceActors.some((actor) => actor.name.trim()) && (
+                    <label className="flex items-start gap-2 text-xs text-muted-foreground sm:col-span-2">
+                      <input name="confirmVoiceActorProfiles" type="checkbox" required className="mt-0.5 accent-primary" />
+                      <span>我已取得名單外聲演同意，將以其姓名與社群連結建立公開聲演身份頁。</span>
+                    </label>
+                  )}
+                  <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[10000px] h-px w-px" />
+                  <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+                    <span role="status" className="sr-only">{isSubmitting ? "送出中…" : ""}</span>
+                    <button type="submit" disabled={isSubmitting || submissionTargets.length === 0} className="inline-flex min-w-28 items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50">
+                      {isSubmitting && <LoaderCircle className="public-submit-spinner h-4 w-4" aria-hidden />}
+                      <span key={String(isSubmitting)} className="public-motion-icon">{isSubmitting ? "送出中…" : "送出審核"}</span>
+                    </button>
+                    {submissionTargets.length === 0 && <span className="text-xs text-muted-foreground">目前沒有可投稿的公開台本。</span>}
+                    {submitError && <span role="alert" className="text-sm text-destructive">{submitError}</span>}
+                  </div>
+                </form>
+              </PublicSubmissionDialogContent>
             </Dialog.Root>
-          </div>
-        </div>
+          }
+        />
 
         {!selectedGroup && scriptGroups.length > 0 && (
           <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-5">
             <span className="hidden [font-size:var(--public-font-meta)] text-muted-foreground sm:inline" aria-live="polite">{visibleGroups.length} 部 Demo 台本</span>
             <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-              <select
-                value={sort}
-                onChange={(event) => changeSort(event.target.value as DemoSort)}
-                aria-label="Demo 排序"
-                className="h-9 rounded-lg border border-border bg-card px-2 [font-size:var(--public-font-meta)] text-foreground sm:hidden"
-              >
-                <option value="newest">最新</option>
-                <option value="oldest">最舊</option>
-                <option value="random">隨機</option>
-              </select>
-              <div role="group" aria-label="Demo 排序" className="hidden h-9 items-center gap-0.5 rounded-lg border border-border bg-card p-0.5 sm:flex">
-                {([ ["newest", "最新"], ["oldest", "最舊"], ["random", "隨機"] ] as const).map(([value, label]) => (
-                  <button key={value} type="button" onClick={() => changeSort(value)} aria-pressed={sort === value} className={`h-8 rounded-md px-3 [font-size:var(--public-font-meta)] font-medium ${sort === value ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}>{label}</button>
-                ))}
-              </div>
-              {sort === "random" && <button type="button" onClick={() => { setRandomSeed(Date.now()); setVisibleCount(24); }} aria-label="重新隨機排序" title="重新隨機排序" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground"><RefreshCw className="h-4 w-4" aria-hidden /></button>}
-              <div role="group" aria-label="展示方式" className="flex h-9 items-center gap-0.5 rounded-lg border border-border bg-card p-0.5">
-                <button type="button" onClick={() => setView("grid")} aria-label="卡片模式" aria-pressed={view === "grid"} title="卡片模式" className={`inline-flex h-8 items-center gap-1 rounded-md px-2 [font-size:var(--public-font-meta)] ${view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}><LayoutGrid className="h-4 w-4" aria-hidden /><span className="hidden md:inline">卡片</span></button>
-                <button type="button" onClick={() => setView("list")} aria-label="橫條模式" aria-pressed={view === "list"} title="橫條模式" className={`inline-flex h-8 items-center gap-1 rounded-md px-2 [font-size:var(--public-font-meta)] ${view === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}><List className="h-4 w-4" aria-hidden /><span className="hidden md:inline">橫條</span></button>
-              </div>
+              <PublicMorphDropdown label="Demo 排序" value={sort} groups={DEMO_SORT_GROUPS} onChange={changeSort} className="sm:hidden" align="end" />
+              <AnimatedSegment label="Demo 排序" options={DEMO_SORT_OPTIONS} value={sort} onChange={changeSort}
+                className="hidden h-9 border border-border sm:flex" btnClassName="whitespace-nowrap px-3 font-medium" />
+              {sort === "random" && <button type="button" onClick={() => setRandomSeed(Date.now())} aria-label="重新隨機排序" title="重新隨機排序" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground"><RefreshCw className="h-4 w-4" aria-hidden /></button>}
+              <AnimatedSegment label="展示方式" options={DEMO_VIEW_OPTIONS} value={view} onChange={setView}
+                className="flex h-9 border border-border" btnClassName="inline-flex items-center gap-1 whitespace-nowrap px-2"
+                renderOption={({ value, label }) => {
+                  const Icon = value === "grid" ? LayoutGrid : List;
+                  return <>
+                    <Icon className="h-4 w-4" aria-hidden />
+                    <span className="sr-only">{label}</span>
+                    <span className="hidden md:inline" aria-hidden>{value === "grid" ? "卡片" : "橫條"}</span>
+                  </>;
+                }} />
             </div>
           </div>
         )}
@@ -799,7 +557,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
           ) : (
             <section aria-label="Demo 作品">
               <div data-demo-view={view} className={view === "list" ? "grid grid-cols-1 gap-2.5" : "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3"}>
-                {visibleGroups.slice(0, visibleCount).map((group) => {
+                {visibleGroups.slice(0, renderLimit).map((group) => {
                   const firstDemo = group.demos[0];
                   const artwork = demoArtwork(firstDemo.url, firstDemo.coverUrl, group.coverUrl);
                   const actors = demoActors(firstDemo, voiceActorById);
@@ -833,7 +591,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                   );
                 })}
               </div>
-              {visibleGroups.length > visibleCount && <div className="mt-6 flex justify-center"><button type="button" onClick={() => setVisibleCount((count) => count + 24)} className="rounded-lg border border-border px-5 py-2 text-sm hover:bg-muted">顯示更多</button></div>}
+              {visibleGroups.length > renderLimit && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
             </section>
           )
         ) : (
@@ -845,7 +603,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
                   {selectedGroupCoverUrl && <PublicImage src={selectedGroupCoverUrl} alt={`${selectedGroup.title}封面`} preset="script-cover" />}
                 </div>
                 <div className="min-w-0">
-                  {selectedGroup.authorName && <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{voiceActorNames.has(selectedGroup.authorName.trim().toLocaleLowerCase()) && <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>}</p>}
+                  {selectedGroup.authorName && <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{selectedGroupAuthorIsVoiceActor && <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>}</p>}
                   {selectedGroup.organizationName && selectedGroup.organizationHref && <p className="mt-1 text-sm text-muted-foreground">組織：<a href={selectedGroup.organizationHref} className="text-link hover:underline">{selectedGroup.organizationName}</a></p>}
                   {selectedGroup.summary && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{selectedGroup.summary}</p>}
                   <a href={selectedGroup.sourceUrl} target={selectedGroup.scriptType === "external" ? "_blank" : undefined} rel={selectedGroup.scriptType === "external" ? "noopener noreferrer" : undefined} className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted">
@@ -917,8 +675,7 @@ export function DemoShowcaseClient({ initialScripts, initialExternalScripts, ini
             </section>
           </div>
         )}
-      </main>
-      <PublicFooter />
+      </PublicBrowseMain>
     </div>
   );
 }

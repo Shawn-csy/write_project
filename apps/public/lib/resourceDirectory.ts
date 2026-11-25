@@ -14,7 +14,7 @@ export interface ResourceDirectoryEntry {
   id: string; name: string; href: string; avatar?: string; bio: string;
   roles: PublicIdentityRole[]; commissionRoles: ProductionRole[]; tags: string[];
   recordingEntityType: "person" | "studio" | "unknown";
-  links: Array<{ label: string; url: string }>; works: PublicWorkParticipation[];
+  links: Array<{ label: string; url: string }>; works: Pick<PublicWorkParticipation, "id" | "title" | "url" | "coverUrl" | "creditRole" | "workType">[];
 }
 
 function linksOf(person?: PublicPersona, resource?: ProductionResource): ResourceDirectoryEntry["links"] {
@@ -53,7 +53,10 @@ export function buildResourceDirectory(personas: PublicPersona[], resources: Pro
         const key = `${work.creditRole}:${work.audioWorkId || work.url || work.id}`;
         if (!roles.includes(work.creditRole) || seen.has(key)) return false;
         seen.add(key); return true;
-      });
+      })
+      .map(({ id, title, url, coverUrl, creditRole, workType }) => ({
+        id: `${id}-${creditRole}`, title, url, coverUrl, creditRole, workType,
+      }));
     return [{ id, name: person?.displayName || resource?.name || "未命名", href: person?.externalHref || `/author/${encodeURIComponent(id)}`,
       avatar: person?.avatar || resource?.avatarUrl, bio: person?.bio || resource?.bio || resource?.summary || "",
       roles, commissionRoles: commissions, tags: person?.tags || [], links: linksOf(person, resource), works,

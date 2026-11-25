@@ -59,7 +59,8 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
     if (!scrollRef.current) return;
     const { clientWidth } = scrollRef.current;
     const scrollAmount = direction === "left" ? -clientWidth * 0.75 : clientWidth * 0.75;
-    scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    scrollRef.current.scrollBy({ left: scrollAmount, behavior: reducedMotion ? "instant" : "smooth" });
   };
 
   const handleMouseEnter = useCallback(() => setIsLaneHovered(true), []);
@@ -78,9 +79,10 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
             <button
               type="button"
               onClick={onAction}
-              className="-my-1 inline-flex h-8 shrink-0 items-center gap-1 px-1 text-[0.8125rem] text-link hover:underline"
+              className="public-arrow-link -my-1 inline-flex h-8 shrink-0 items-center gap-1 px-1 text-[0.8125rem] text-link hover:underline"
             >
               {actionLabel}
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </button>
           ) : null}
         </div>
@@ -93,12 +95,12 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
         {showLeft && (
           <div
             className={`absolute left-0 md:-left-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
- isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
+ isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0 md:focus-within:opacity-100"
             }`}
           >
             <button
               type="button"
-              className="pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-card hover:bg-muted"
+              className="public-arrow-motion public-arrow-back pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-card hover:bg-muted"
               onClick={handleScrollLeft}
               aria-label="向左滑動"
             >
@@ -118,12 +120,12 @@ function HorizontalScrollLaneInner({ children, title, actionLabel, onAction, ini
         {showRight && (
           <div
             className={`absolute right-0 md:-right-4 top-0 bottom-6 z-10 pointer-events-none flex items-center justify-center transition-opacity duration-300 ${
- isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0"
+ isLaneHovered ? "opacity-100" : "opacity-100 md:opacity-0 md:focus-within:opacity-100"
             }`}
           >
             <button
               type="button"
-              className="pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-card hover:bg-muted"
+              className="public-arrow-motion public-arrow-forward pointer-events-auto flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-border bg-card hover:bg-muted"
               onClick={handleScrollRight}
               aria-label="向右滑動"
             >

@@ -9,7 +9,6 @@
     "./public-date": "./src/publicDate.ts",
     "./server": "./src/server.ts",
     "./PublicShellTopBar": "./src/gallery/PublicShellTopBar.tsx",
-    "./legacy-homepage": "./src/legacy-homepage/index.ts",
     "./WorkParticipantEditor": "./src/WorkParticipantEditor.tsx",
     "./participation-roles": "./src/participationRoles.ts"
   },

@@ -13,7 +13,6 @@ import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } fro
 import {
   publicOrgsFromResponse,
   publicPersonasFromResponse,
-  toAuthorLike,
   toGalleryInput,
   toOrgLike,
   externalOrgsFromScripts,
@@ -23,8 +22,7 @@ import { useGalleryUrlState } from "./useGalleryUrlState";
 import type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageUrlState } from "./useGalleryUrlState";
 import { liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
-import { getPublicPersonaTags } from "@/lib/publicPersonaTags";
-import { combinePublicIdentities, hasScriptwriterRole } from "@/lib/publicIdentity";
+import { buildGalleryAuthorIndex } from "@/lib/galleryAuthorIndex";
 import type { HomepageBundleResponse } from "@/lib/homepageBundle";
 
 export type { GalleryView, GalleryViewMode, GalleryLaneMode, PublicHomepageModel };
@@ -167,20 +165,10 @@ export function useGalleryController({
     () => externalPublicScripts.filter((item) => item.status === "published"),
     [externalPublicScripts]
   );
-  const allAuthors = useMemo(() => {
-    return combinePublicIdentities(
-      authors.map((author) => ({ ...author, tags: getPublicPersonaTags(author.tags) })),
-      publishedExternalPublicScripts,
-    );
-  }, [authors, publishedExternalPublicScripts]);
-  const scriptwriterAuthors = useMemo(() => {
-    return allAuthors.filter((author) => author.externalHref
-      || rawScripts.some((script) => script.persona?.id === author.id)
-      || publishedExternalPublicScripts.some((script) => script.authorPersonaId === author.id)
-      || author.workParticipations?.some((work) => work.creditRole === "scriptwriter")
-      || (author.roles?.includes("scriptwriter") && Array.isArray(author.roleProfiles?.scriptwriter?.commissionOffers)
-        && author.roleProfiles.scriptwriter.commissionOffers.length > 0));
-  }, [allAuthors, rawScripts, publishedExternalPublicScripts]);
+  const { authors: scriptwriterAuthors, searchIndex: galleryAuthors } = useMemo(
+    () => buildGalleryAuthorIndex(authors, rawScripts, publishedExternalPublicScripts),
+    [authors, rawScripts, publishedExternalPublicScripts]
+  );
   const allOrgs = useMemo(() => {
     const map = new Map(orgs.map((org) => [org.name.trim().toLocaleLowerCase(), org]));
     for (const externalOrg of externalOrgsFromScripts(publishedExternalPublicScripts)) {
@@ -189,17 +177,6 @@ export function useGalleryController({
     }
     return Array.from(map.values());
   }, [orgs, publishedExternalPublicScripts]);
-  const galleryAuthors = useMemo(() => scriptwriterAuthors.map((author) => {
-    const authorLike = toAuthorLike(author);
-    return {
-      ...authorLike,
-      searchText: [
-        authorLike.searchText,
-        ...rawScripts.filter((script) => script.persona?.id === author.id).map((script) => script.title),
-        ...publishedExternalPublicScripts.filter((script) => script.authorPersonaId === author.id).map((script) => script.title),
-      ].filter(Boolean).join(" "),
-    };
-  }), [scriptwriterAuthors, rawScripts, publishedExternalPublicScripts]);
   const galleryOrgs = useMemo(() => allOrgs.map(toOrgLike), [allOrgs]);
   const filteredExternalPublicScripts = useMemo(
     () => filterExternalPublicScripts(
@@ -328,7 +305,6 @@ export function useGalleryController({
   };
 
   return {
-    tab: urlState.view,
     segment: urlState.segment,
     setSegment: urlActions.setSegment,
     usage: urlState.usage,

@@ -129,6 +129,7 @@ describe("useAnimeSegmentIndicator", () => {
       const makeEl = (left: number, width: number) => ({
         getBoundingClientRect: () => ({ left, width, top: 0, height: 32, right: left + width, bottom: 32 }),
         style: {} as CSSStyleDeclaration,
+        dataset: {},
       });
 
       const trackEl = makeEl(0, 240);

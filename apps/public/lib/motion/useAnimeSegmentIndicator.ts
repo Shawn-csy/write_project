@@ -9,28 +9,36 @@ import { getAnimate } from "./animeLoader";
  * Width is set synchronously via style before the animation starts so that
  * Anime.js never tweens a layout property.
  */
-export function useAnimeSegmentIndicator<T extends string>(activeValue: T) {
+export function useAnimeSegmentIndicator<T extends string>(activeValue: T | null) {
   const trackRef = useRef<HTMLDivElement | null>(null);
   const pillRef = useRef<HTMLDivElement | null>(null);
   const btnRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const isFirstRender = useRef(true);
+  const request = useRef(0);
   const reduced = useReducedMotion();
 
   const movePill = useCallback(
-    async (targetValue: T, animate: boolean) => {
+    async (targetValue: T | null, animate: boolean) => {
+      const requested = ++request.current;
       const track = trackRef.current;
       const pill = pillRef.current;
-      const btn = btnRefs.current[targetValue];
-      if (!track || !pill || !btn) return;
+      if (!track || !pill) return;
+      const btn = targetValue === null ? null : btnRefs.current[targetValue];
+      const buttonRect = btn?.getBoundingClientRect();
+      if (!buttonRect?.width) {
+        pill.style.opacity = "0";
+        delete track.dataset.indicatorReady;
+        return;
+      }
 
       const trackRect = track.getBoundingClientRect();
-      const btnRect = btn.getBoundingClientRect();
-      const tx = btnRect.left - trackRect.left;
-      const targetWidth = btnRect.width;
+      const tx = buttonRect.left - trackRect.left;
+      const targetWidth = buttonRect.width;
 
       // Width is always set synchronously — never animated (avoids layout thrash).
       pill.style.width = `${targetWidth}px`;
       pill.style.opacity = "1";
+      track.dataset.indicatorReady = "";
 
       if (!animate || reduced) {
         pill.style.transform = `translateX(${tx}px)`;
@@ -40,7 +48,7 @@ export function useAnimeSegmentIndicator<T extends string>(activeValue: T) {
       const { animate: animeAnimate } = await getAnimate();
       // Re-check after async gap
       const pillEl = pillRef.current;
-      if (!pillEl) return;
+      if (!pillEl || requested !== request.current) return;
 
       // Only transform properties — no layout.
       animeAnimate(pillEl, {
@@ -72,6 +80,19 @@ export function useAnimeSegmentIndicator<T extends string>(activeValue: T) {
     if (isFirstRender.current) return;
     movePill(activeValue, true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeValue, movePill]);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track || typeof ResizeObserver === "undefined") return;
+    let width = track.offsetWidth;
+    const observer = new ResizeObserver(() => {
+      if (track.offsetWidth === width) return;
+      width = track.offsetWidth;
+      void movePill(activeValue, false);
+    });
+    observer.observe(track);
+    return () => observer.disconnect();
   }, [activeValue, movePill]);
 
   const setBtnRef = useCallback((value: T) => (el: HTMLButtonElement | null) => {

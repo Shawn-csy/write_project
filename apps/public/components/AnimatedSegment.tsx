@@ -17,21 +17,23 @@ export function AnimatedSegment<T extends string>({
   label,
   renderOption,
   btnClassName,
+  className = "flex",
 }: {
   options: { value: T; label: string }[];
-  value: T;
+  value: T | null;
   onChange: (v: T) => void;
   label: string;
   renderOption?: (opt: { value: T; label: string }, active: boolean) => React.ReactNode;
   /** Extra classes applied to each button (e.g. for size variants). */
   btnClassName?: string;
+  className?: string;
 }) {
   const { trackRef, pillRef, setBtnRef } = useAnimeSegmentIndicator(value);
 
   return (
     <div
       ref={trackRef}
-      className="relative flex gap-0.5 rounded-lg p-0.5 bg-muted"
+      className={`public-animated-segment relative gap-0.5 rounded-lg bg-muted p-0.5 ${className}`}
       role="group"
       aria-label={label}
     >

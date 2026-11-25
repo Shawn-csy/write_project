@@ -23,10 +23,10 @@ export function GalleryViewModeToggle({ value, onChange, compact = false }: Gall
       aria-label={action}
       title={action}
       data-testid="gallery-view-mode-toggle"
-      className={`inline-flex shrink-0 items-center justify-center rounded-md border border-border bg-card px-3 text-[0.8125rem] text-foreground transition-colors duration-100 hover:bg-muted ${compact ? "h-9" : "min-h-[44px]"}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-md px-2 text-[0.8125rem] leading-5 text-foreground transition-colors duration-100 hover:bg-muted ${compact ? "h-9" : "min-h-[44px] border border-border bg-card"}`}
       {...handlers}
     >
-      {dense ? "密集" : "標準"}
+      <span>{dense ? "密集" : "標準"}</span>
     </button>
   );
 }

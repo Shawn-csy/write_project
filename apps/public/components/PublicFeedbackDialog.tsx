@@ -1,7 +1,8 @@
 "use client";
 
+import { PublicSubmissionDialogContent } from "@/components/PublicSubmissionDialogContent";
 import * as Dialog from "@radix-ui/react-dialog";
-import { CheckCircle2, Loader2, MessageSquarePlus, MousePointer2, X } from "lucide-react";
+import { CheckCircle2, Loader2, MessageSquarePlus, MousePointer2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { liveApi } from "@/lib/liveApi";
@@ -88,7 +89,6 @@ function buildAuthorOptions(bundle: {
 
 export interface PublicFeedbackDialogProps {
   mode?: "choice" | FeedbackKind;
-  compactAtMobile?: boolean;
   showLabel?: boolean;
   hideTrigger?: boolean;
   open?: boolean;
@@ -97,7 +97,6 @@ export interface PublicFeedbackDialogProps {
 
 export function PublicFeedbackDialog({
   mode = "choice",
-  compactAtMobile = false,
   showLabel = false,
   hideTrigger = false,
   open: controlledOpen,
@@ -422,28 +421,15 @@ export function PublicFeedbackDialog({
     )}
     <style>{`[data-feedback-pick-hover="true"]{outline:2px solid hsl(var(--primary))!important;outline-offset:2px!important;box-shadow:0 0 0 5px hsl(var(--primary)/.18)!important;cursor:crosshair!important}`}</style>
     <Dialog.Root open={open} onOpenChange={handleOpenChange}>
-      {!hideTrigger && <Dialog.Trigger asChild><PublicFeedbackTrigger mode={mode} compactAtMobile={compactAtMobile} showLabel={showLabel} /></Dialog.Trigger>}
+      {!hideTrigger && <Dialog.Trigger asChild><PublicFeedbackTrigger mode={mode} showLabel={showLabel} /></Dialog.Trigger>}
 
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/60" />
-        <Dialog.Content
-          className={`fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] ${kind === "listing" ? "max-w-5xl" : "max-w-lg"} max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-md border border-border bg-card p-5 shadow-lg outline-none sm:p-6`}
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Dialog.Title className="text-lg font-semibold text-foreground">{kind === "bug" ? "回報問題" : kind === "listing" ? "投稿台本" : "回報／投稿"}</Dialog.Title>
-            </div>
-            <Dialog.Close asChild>
-              <button
-                type="button"
-                aria-label="關閉回報表單"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </Dialog.Close>
-          </div>
-
+      <PublicSubmissionDialogContent
+        title={kind === "bug" ? "回報問題" : kind === "listing" ? "投稿台本" : "回報／投稿"}
+        width={kind === "listing" ? "wide" : "small"}
+        closeLabel="關閉回報表單"
+        restoreActiveElement={hideTrigger && mode !== "bug"}
+        elevated
+      >
           {!submitted && kind === null && mode === "choice" ? (
             <div className="mt-5 grid gap-3 sm:grid-cols-2" role="group" aria-label="選擇回報或投稿">
               <button
@@ -699,8 +685,7 @@ export function PublicFeedbackDialog({
               </div>
             </form>
           )}
-        </Dialog.Content>
-      </Dialog.Portal>
+      </PublicSubmissionDialogContent>
     </Dialog.Root>
     </>
   );

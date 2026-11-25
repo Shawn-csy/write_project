@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { GalleryHoverPreviewProvider, type HeroSlide } from "@write/public-ui";
 import { PanelLeftClose } from "lucide-react";
@@ -9,7 +9,6 @@ const GalleryListOverlay = lazy(() => import("./gallery/GalleryListOverlay").the
 import { GalleryMobileSheet } from "./gallery/GalleryMobileSheet";
 import { GalleryAuthorGrid, GalleryOrgGrid } from "./gallery/GalleryPeopleGrid";
 import { GalleryScriptResults } from "./gallery/GalleryScriptResults";
-import { GalleryTopBar } from "./gallery/GalleryTopBar";
 import { LiveBannerStrip } from "@/components/LiveBannerStrip";
 import type { GallerySortValue } from "./gallery/GallerySortControl";
 import type { ActiveGalleryFilterChip } from "./gallery/GalleryFilterSummary";
@@ -17,7 +16,7 @@ import { GalleryToolbar } from "./gallery/GalleryToolbar";
 import { useGalleryController } from "./gallery/useGalleryController";
 import { useGalleryLayoutState } from "./gallery/useGalleryLayoutState";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
-import { PublicFooter } from "@/components/PublicFooter";
+import { PublicBrowseMain } from "@/components/PublicBrowseMain";
 import { HomepageActivityBanner } from "./gallery/HomepageActivityBanner";
 import type { HomepageActivity } from "@/lib/homepageBundle";
 
@@ -34,7 +33,6 @@ interface Props {
 
 export function GalleryClient({ initialScripts, initialExternalPublicScripts, initialPersonas, initialOrganizations, initialActivities = [], initialBannerSlides, showBrandHero = true, initialUrlState }: Props) {
   const {
-    tab,
     segment,
     setSegment,
     usage,
@@ -66,8 +64,37 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
 
   const { view } = homepageModel;
   const { sidebarCollapsed, setSidebarCollapsed } = useGalleryLayoutState();
+  const sidebarRef = useRef<HTMLElement>(null);
+  const shouldRestoreSidebarFocus = useRef(false);
+
+  useEffect(() => {
+    if (!shouldRestoreSidebarFocus.current) return;
+    shouldRestoreSidebarFocus.current = false;
+    const buttonId = sidebarCollapsed ? "homepage-filter-open" : "homepage-filter-close";
+    document.getElementById(buttonId)?.focus({ preventScroll: true });
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (view !== "scripts" || sidebarCollapsed) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      const sidebar = sidebarRef.current;
+      if (!sidebar || event.composedPath().includes(sidebar) || !sidebar.getClientRects().length) return;
+      setSidebarCollapsed(true);
+    };
+
+    document.addEventListener("click", closeOnOutsideClick, true);
+    return () => document.removeEventListener("click", closeOnOutsideClick, true);
+  }, [view, sidebarCollapsed, setSidebarCollapsed]);
+
+  const toggleSidebar = (collapsed: boolean) => {
+    shouldRestoreSidebarFocus.current = true;
+    setSidebarCollapsed(collapsed);
+  };
+
   const [showList, setShowList] = useState(false);
   const [allScriptsSort, setAllScriptsSort] = useState<GallerySortValue | null>(null);
+  const showOverviewAnnouncements = view === "scripts" && !homepageModel.hasFilters && allScriptsSort === null;
   const openAllScripts = (sort?: GallerySortValue) => {
     setAllScriptsSort(sort ?? "latest");
   };
@@ -91,43 +118,61 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
   };
 
   return (
-    <div className="modern-homepage min-h-screen bg-background flex flex-col">
-      <GalleryTopBar
-        activeTab={tab}
-      />
-
+    <div className="modern-homepage flex flex-1 flex-col bg-background">
       <div className="flex flex-col flex-1">
-        {view === "scripts" && <LiveBannerStrip slides={bannerSlides ?? undefined} placement="homepage" showBrandHero={showBrandHero} />}
+        {showOverviewAnnouncements && (
+          <div className="homepage-announcements">
+            <LiveBannerStrip slides={bannerSlides ?? undefined} placement="homepage" showBrandHero={showBrandHero} />
+            <HomepageActivityBanner activities={initialActivities} />
+          </div>
+        )}
 
-        {view === "scripts" && <HomepageActivityBanner activities={initialActivities} />}
-
-        <div className={`flex flex-1 w-full py-4 sm:py-6 lg:py-8 pb-24 sm:pb-20 gap-6 ${view === "scripts" ? "px-4 sm:px-5 lg:px-8" : "mx-auto max-w-6xl px-4 sm:px-6 lg:px-8"}`}>
+        <PublicBrowseMain width={view === "scripts" ? "wide" : "standard"} className="flex">
         {/* Desktop sidebar — only when expanded */}
-        {view === "scripts" && !sidebarCollapsed && (
-          <aside className="hidden lg:flex lg:flex-col w-56 shrink-0">
-            <div className="sticky top-[72px] max-h-[calc(100vh-88px)] overflow-y-auto overflow-x-hidden overscroll-contain">
-              <div className="section-bar mb-3 flex items-center justify-between">
+        {view === "scripts" && (
+          <aside
+            ref={sidebarRef}
+            id="homepage-filter-sidebar"
+            aria-label="篩選"
+            aria-hidden={sidebarCollapsed}
+            inert={sidebarCollapsed}
+            data-open={!sidebarCollapsed}
+            className="homepage-filter-sidebar hidden shrink-0 lg:block"
+            onKeyDown={(event) => {
+              if (event.key !== "Escape" || event.defaultPrevented || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              toggleSidebar(true);
+            }}
+          >
+            <div className="homepage-filter-sidebar-inner sticky top-[72px] flex w-56 flex-col">
+              <div className="section-bar mb-3 flex shrink-0 items-center justify-between">
                 <span className="text-[0.9375rem] font-bold text-foreground">篩選</span>
                 <button
                   type="button"
-                  onClick={() => setSidebarCollapsed(true)}
+                  id="homepage-filter-close"
+                  aria-controls="homepage-filter-sidebar"
+                  aria-expanded={true}
+                  onClick={() => toggleSidebar(true)}
                   className="-my-1 -mr-1.5 inline-flex h-8 w-8 items-center justify-center rounded-sm text-muted-foreground hover:bg-background hover:text-foreground"
                   aria-label="收起篩選欄"
                 >
                   <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
-              <GalleryFilterPanel
-                {...filterPanelProps}
-                variant="sidebar"
-                showSearch={false}
-              />
+              <div role="region" aria-label="篩選選項" tabIndex={0} className="min-h-0 overflow-x-hidden overflow-y-auto p-1">
+                <GalleryFilterPanel
+                  {...filterPanelProps}
+                  variant="sidebar"
+                  showSearch={false}
+                />
+              </div>
             </div>
           </aside>
         )}
 
         {/* Main content */}
-        <main className="flex-1 min-w-0">
+        <div className="min-w-0 flex-1">
+          {view === "scripts" && (!showOverviewAnnouncements || !showBrandHero) && <h1 className="sr-only">公開台本</h1>}
           {/* Toolbar — scripts view only */}
           {view === "scripts" && (
             <GalleryToolbar
@@ -141,13 +186,12 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
               onViewModeChange={setViewMode}
               searchTerm={filterPanelProps.searchTerm}
               onSearchChange={filterPanelProps.onSearchChange}
-              resultCount={homepageModel.resultCount}
               chips={homepageModel.filterChips}
               onRemoveChip={removeFilter}
               onClearFilters={filterPanelProps.onResetFilters}
               onOpenFilterSheet={openMobileFilter}
               sidebarCollapsed={sidebarCollapsed}
-              onExpandSidebar={() => setSidebarCollapsed(false)}
+              onExpandSidebar={() => toggleSidebar(false)}
               onOpenList={() => setShowList(true)}
             />
           )}
@@ -194,8 +238,8 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
               onResetFilters={onResetOrgTags}
             />
           )}
-        </main>
         </div>
+        </PublicBrowseMain>
       </div>
 
       {/* List overlay — lazy-loaded, only mounted on user request */}
@@ -229,7 +273,6 @@ export function GalleryClient({ initialScripts, initialExternalPublicScripts, in
         resultCount={homepageModel.resultCount}
       />
 
-      <PublicFooter />
     </div>
   );
 }

@@ -1,7 +1,10 @@
+import { Suspense } from "react";
+import { PublicDirectoryLoading } from "@/components/PublicDirectoryLoading";
 import { apiFetch } from "@/lib/api";
 import type { PublicPersona } from "@/lib/types";
 import { publicDirectoryMetadata, TITLE_SUFFIX } from "@/lib/seo";
-import { ResourcesClient, type ProductionResource } from "./ResourcesClient";
+import { buildResourceDirectory, type ProductionResource } from "@/lib/resourceDirectory";
+import { ResourcesClient } from "./ResourcesClient";
 
 export const dynamic = "force-dynamic";
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
@@ -12,7 +15,15 @@ export const metadata = publicDirectoryMetadata(
   "探索聲演、後製、封面繪製、錄音師與錄音室，查看創作者的參與作品與聯絡方式。",
 );
 
-export default async function ResourcesPage() {
+export default function ResourcesPage() {
+  return (
+    <Suspense fallback={<PublicDirectoryLoading title="資源" />}>
+      <ResourceDirectory />
+    </Suspense>
+  );
+}
+
+async function ResourceDirectory() {
   let personas: PublicPersona[] = [];
   let resources: ProductionResource[] = [];
   try {
@@ -22,5 +33,5 @@ export default async function ResourcesPage() {
   } catch {
     // Static previews refresh from the public API in the browser.
   }
-  return <ResourcesClient initialPersonas={personas} initialResources={resources} refreshOnMount={STATIC_EXPORT} />;
+  return <ResourcesClient initialDirectory={buildResourceDirectory(personas, resources)} refreshOnMount={STATIC_EXPORT} />;
 }

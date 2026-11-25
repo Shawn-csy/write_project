@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import Link from "next/link";
 import { ArrowUpRight, Headphones, MessageSquarePlus, Mic2, Play, UserRound, X } from "lucide-react";
@@ -17,6 +17,23 @@ const PUBLIC_SECTIONS = PUBLIC_SECTION_TABS.map((tab) => ({ ...tab, Icon: SECTIO
 
 export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: { onClose: () => void; onOpenFeedback: () => void; activeTab: string }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [closing, setClosing] = useState(false);
+  const requestClose = useCallback(() => {
+    const panel = panelRef.current;
+    if (!panel || getComputedStyle(panel).animationName !== "public-panel-enter") {
+      onClose();
+      return;
+    }
+    setClosing(true);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (!closing) return;
+    // A resize can hide the sheet and cancel its exit animation.
+    const timeout = window.setTimeout(onClose, 250);
+    return () => window.clearTimeout(timeout);
+  }, [closing, onClose]);
 
   // Esc, focus trap, body scroll lock
   useEffect(() => {
@@ -24,7 +41,7 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
     document.body.style.overflow = "hidden";
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") { onClose(); return; }
+      if (e.key === "Escape") { requestClose(); return; }
       if (e.key !== "Tab") return;
       const sheet = document.getElementById("mobile-action-sheet");
       if (!sheet) return;
@@ -55,7 +72,7 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
       cancelAnimationFrame(rafId);
       document.body.style.overflow = prevOverflow;
     };
-  }, [onClose]);
+  }, [onClose, requestClose]);
 
   if (typeof document === "undefined") return null;
 
@@ -63,18 +80,24 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
     <div className="fixed inset-0 z-50 sm:hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0"
+        data-state={closing ? "closed" : "open"}
+        className="public-panel-backdrop-motion absolute inset-0"
         style={{ background: "hsl(var(--foreground) / 0.25)" }}
         aria-hidden
-        onClick={onClose}
+        onClick={requestClose}
       />
       {/* Sheet panel */}
       <div
         id="mobile-action-sheet"
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label="更多選項"
-        className="absolute bottom-0 left-0 right-0 flex max-h-[92dvh] min-h-0 flex-col overflow-hidden"
+        data-state={closing ? "closed" : "open"}
+        onAnimationEnd={(event) => {
+          if (closing && event.target === event.currentTarget) onClose();
+        }}
+        className="public-mobile-sheet-motion absolute bottom-0 left-0 right-0 flex max-h-[92dvh] min-h-0 flex-col overflow-hidden"
         style={{
           borderRadius: "1rem 1rem 0 0",
           background: "hsl(var(--background))",
@@ -88,7 +111,7 @@ export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: 
           <button
             ref={closeButtonRef}
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label="關閉選單"
             className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >

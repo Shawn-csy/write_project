@@ -10,9 +10,10 @@ describe("PublicShellTopBar", () => {
   });
 
   it("brand link uses brandHref", () => {
-    render(<PublicShellTopBar brandName="B" brandHref="/home" />);
+    render(<PublicShellTopBar brandName="B" brandHref="/home" brandCurrent />);
     const link = screen.getByText("B").closest("a");
     expect(link?.getAttribute("href")).toBe("/home");
+    expect(link?.getAttribute("aria-current")).toBe("page");
   });
 
   it("href tab renders <a>", () => {
@@ -58,7 +59,7 @@ describe("PublicShellTopBar", () => {
     expect(inactive[0].getAttribute("aria-current")).toBeNull();
   });
 
-  it("mobile tabs render inline (no hamburger)", () => {
+  it("uses one inline navigation for desktop and mobile", () => {
     render(
       <PublicShellTopBar
         tabs={[
@@ -68,13 +69,9 @@ describe("PublicShellTopBar", () => {
         activeTab="scripts"
       />
     );
-    // No hamburger button
     expect(screen.queryByRole("button", { name: "開啟導航" })).toBeNull();
-    // Mobile tabs are inline nav elements
-    const header = screen.getByRole("banner");
-    const navs = header.querySelectorAll('nav[aria-label="公開頁面導航"]');
-    // Desktop nav + mobile nav = 2
-    expect(navs.length).toBe(2);
+    expect(screen.getByRole("navigation", { name: "公開頁面導航" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "台本" }).getAttribute("aria-current")).toBe("page");
   });
 
   it("mobile tab click triggers onSelect", () => {
@@ -84,9 +81,7 @@ describe("PublicShellTopBar", () => {
         tabs={[{ key: "authors", label: "作者", onSelect: handler }]}
       />
     );
-    // Both desktop and mobile tabs exist — click any
-    const buttons = screen.getAllByRole("button", { name: "作者" });
-    fireEvent.click(buttons[buttons.length - 1]);
+    fireEvent.click(screen.getByRole("button", { name: "作者" }));
     expect(handler).toHaveBeenCalledTimes(1);
   });
 

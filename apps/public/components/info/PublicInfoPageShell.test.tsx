@@ -9,6 +9,7 @@ vi.mock("@/components/PublicFooter", () => ({
 }));
 
 vi.mock("next/link", () => ({
+  useLinkStatus: () => ({ pending: false }),
   default: ({ href, children, prefetch: _prefetch, ...props }: { href: string; children: React.ReactNode; className?: string; "aria-current"?: "page"; prefetch?: boolean }) => (
     <a href={href} {...props}>{children}</a>
   ),

@@ -151,7 +151,7 @@ function SeriesGalleryCardInner({
   if (variant === "dense") {
     return (
       <article className="group relative min-w-0" data-gallery-card="dense" {...hoverPreviewProps}>
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[2px] border border-border bg-muted group-hover:opacity-90">
+        <div data-public-cover={Boolean(rawCoverSrc || leadScript?.coverDesign) || undefined} className="relative aspect-[2/3] w-full overflow-hidden rounded-[2px] border border-border bg-muted group-hover:opacity-90">
           {coverWrapEl}
           {showAgeGate && <>
             <div className="pointer-events-none absolute inset-0 bg-danger-muted opacity-25" aria-hidden />
@@ -228,6 +228,7 @@ function SeriesGalleryCardInner({
         <div className="absolute inset-0 translate-x-[6px] translate-y-[6px] rounded-[3px] border border-border bg-card" aria-hidden />
         <div className="absolute inset-0 translate-x-[3px] translate-y-[3px] rounded-[3px] border border-border bg-card" aria-hidden />
         <div
+          data-public-cover={Boolean(rawCoverSrc || leadScript?.coverDesign) || undefined}
           className="absolute inset-0 overflow-hidden rounded-[2px] border border-border bg-muted group-hover:opacity-90"
         >
           {coverWrapEl}

@@ -8,7 +8,6 @@ const Dialog = lazy(() => import("@/components/PublicFeedbackDialog").then((modu
 
 export function LazyPublicFeedbackDialog({
   mode = "choice",
-  compactAtMobile = false,
   showLabel = false,
   hideTrigger = false,
   open: controlledOpen,
@@ -31,12 +30,11 @@ export function LazyPublicFeedbackDialog({
     <>
       {!hideTrigger && <PublicFeedbackTrigger
         mode={mode}
-        compactAtMobile={compactAtMobile}
         showLabel={showLabel}
         onClick={() => { setActivated(true); handleOpenChange(true); }}
       />}
       {(activated || open) && <Suspense fallback={null}>
-        <Dialog mode={mode} compactAtMobile={compactAtMobile} showLabel={showLabel} hideTrigger open={open} onOpenChange={handleOpenChange} />
+        <Dialog mode={mode} showLabel={showLabel} hideTrigger open={open} onOpenChange={handleOpenChange} />
       </Suspense>}
     </>
   );

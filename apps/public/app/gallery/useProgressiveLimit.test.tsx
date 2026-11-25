@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { renderToString } from "react-dom/server";
 import React from "react";
-import { INITIAL_RENDERED_CARDS, useProgressiveLimit } from "./GalleryScriptResults";
+import { useProgressiveLimit } from "@/lib/useProgressiveLimit";
+import { INITIAL_RENDERED_CARDS } from "./GalleryScriptResults";
 
 describe("useProgressiveLimit", () => {
   beforeEach(() => vi.useFakeTimers());

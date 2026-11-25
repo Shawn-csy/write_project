@@ -2,15 +2,9 @@
 
 import { useState } from "react";
 import { Search, X } from "lucide-react";
+import { PublicFilterCheck } from "@/components/PublicFilterCheck";
+import { GallerySegmentBar } from "./GallerySegmentBar";
 import { GallerySortControl, type GallerySortValue } from "./GallerySortControl";
-
-const SEGMENT_OPTIONS = [
-  { value: "all", label: "全部" },
-  { value: "all-ages", label: "全年齡向" },
-  { value: "adult", label: "成人向" },
-  { value: "male", label: "男性向" },
-  { value: "female", label: "女性向" },
-] as const;
 
 /** Maximum tags shown before collapse. */
 export const DEFAULT_VISIBLE_TAG_COUNT = 8;
@@ -97,7 +91,7 @@ export function GalleryFilterPanel({
   const divider = "border-t border-border pt-3.5";
   const activeChip = "bg-primary text-primary-foreground font-bold border border-primary";
   const idleChip = "border border-border bg-card text-foreground/80 hover:bg-muted hover:text-link";
-  const chipBase = "h-7 rounded-sm px-2 [font-size:var(--public-font-caption)] transition-colors duration-100";
+  const chipBase = "homepage-filter-option inline-flex h-7 items-center gap-1 rounded-sm px-2 [font-size:var(--public-font-caption)] transition-colors duration-100";
 
   const inner = (
     <div className="space-y-4">
@@ -112,7 +106,7 @@ export function GalleryFilterPanel({
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="搜尋台本..."
-              className="w-full rounded-sm border border-border bg-card pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground focus:outline-none focus:border-link focus:ring-1 focus:ring-link"
+              className="public-command-search w-full rounded-sm border border-border bg-card pr-7 py-[0.45rem] [font-size:var(--public-font-meta)] placeholder:text-muted-foreground focus:outline-none focus:border-link focus:ring-1 focus:ring-link"
               style={{ paddingLeft: "2.125rem" }}
             />
             {searchTerm && (
@@ -132,23 +126,8 @@ export function GalleryFilterPanel({
       {/* Segment */}
       {segment !== undefined && onSegmentChange && (
         <div className={showSearch ? divider : ""}>
-          <p className={sectionLabel}>作品分類</p>
-          <div className="flex flex-wrap gap-1.5">
-            {SEGMENT_OPTIONS.map((opt) => {
-              const active = segment === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  aria-pressed={active}
-                  onClick={() => onSegmentChange(opt.value)}
-                  className={`${chipBase} ${active ? activeChip : idleChip}`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
+          <p className={sectionLabel}>{onDemoOnlyChange ? "作品篩選" : "作品分類"}</p>
+          <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
         </div>
       )}
 
@@ -161,10 +140,10 @@ export function GalleryFilterPanel({
       )}
 
       {/* Demo filter */}
-      {onDemoOnlyChange && (
+      {onDemoOnlyChange && (segment === undefined || !onSegmentChange) && (
         <div className={divider}>
           <p className={sectionLabel}>作品條件</p>
-          <button type="button" aria-pressed={Boolean(demoOnly)} onClick={() => onDemoOnlyChange(!demoOnly)} className={`${chipBase} ${demoOnly ? activeChip : idleChip}`}>有 Demo</button>
+          <button type="button" aria-pressed={Boolean(demoOnly)} onClick={() => onDemoOnlyChange(!demoOnly)} className={`${chipBase} ${demoOnly ? activeChip : idleChip}`}><PublicFilterCheck />有 Demo</button>
         </div>
       )}
 
@@ -180,6 +159,7 @@ export function GalleryFilterPanel({
                   key={opt.value}
                   type="button"
                   onClick={() => onUsageChange(opt.value)}
+                  aria-pressed={active}
                   className={`${chipBase} ${active ? activeChip : idleChip}`}
                 >
                   {opt.label}
@@ -201,10 +181,11 @@ export function GalleryFilterPanel({
                 <button
                   key={tag}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onToggleTag(tag)}
                   className={`${chipBase} ${active ? activeChip : idleChip}`}
                 >
-                  {tag.replace(/^授權:/, "")}
+                  <PublicFilterCheck />{tag.replace(/^授權:/, "")}
                 </button>
               );
             })}
@@ -223,7 +204,7 @@ export function GalleryFilterPanel({
               value={tagSearch}
               onChange={(e) => onTagSearchChange(e.target.value)}
               placeholder="篩選標籤..."
-              className="w-full rounded-sm border border-border bg-card py-[0.35rem] [font-size:var(--public-font-caption)] placeholder:text-muted-foreground focus:outline-none focus:border-link focus:ring-1 focus:ring-link"
+              className="public-command-search w-full rounded-sm border border-border bg-card py-[0.35rem] [font-size:var(--public-font-caption)] placeholder:text-muted-foreground focus:outline-none focus:border-link focus:ring-1 focus:ring-link"
               style={{ paddingLeft: "2rem", paddingRight: "0.75rem" }}
             />
           </div>
@@ -234,10 +215,11 @@ export function GalleryFilterPanel({
                 <button
                   key={tag}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => onToggleTag(tag)}
                   className={`${chipBase} ${active ? activeChip : idleChip}`}
                 >
-                  {tag}
+                  <PublicFilterCheck />{tag}
                 </button>
               );
             })}

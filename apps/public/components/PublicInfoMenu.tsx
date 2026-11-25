@@ -53,7 +53,7 @@ export function PublicInfoMenu() {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-[101] w-80 rounded-md p-1.5"
+          className="public-topbar-popover z-[101] w-80 rounded-md p-1.5"
           style={{
             border: "1px solid hsl(var(--border) / 0.6)",
             background: "hsl(var(--card))",

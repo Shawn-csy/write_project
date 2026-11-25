@@ -1,24 +1,23 @@
 "use client";
 
+import { useProgressiveLimit } from "@/lib/useProgressiveLimit";
+
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Search } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { PublicSearchField } from "@/components/PublicSearchField";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicAvatarImage } from "@/components/PublicAvatarImage";
-import { PublicFooter } from "@/components/PublicFooter";
-import { PublicTopBar } from "@/components/PublicTopBar";
+import { PublicBrowseMain } from "@/components/PublicBrowseMain";
+import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { readPublicBundle } from "@/lib/readPublicBundle";
-import { getPublicVoicePerformances, hasVoiceActorSelfTag } from "@/lib/publicVoicePerformances";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import { buildVoiceActorDirectory, VOICE_ACTOR_DIRECTORY_SECTIONS, type VoiceActorDirectoryBundle, type VoiceActorDirectoryEntry } from "@/lib/voiceActorDirectory";
 
 interface Props {
-  initialPersonas: PublicPersona[];
-  initialDemos: PublicDemoSubmission[];
-  initialScripts: PublicScript[];
-  initialExternalScripts: ExternalPublicScript[];
+  initialDirectory: VoiceActorDirectoryEntry[];
   refreshOnMount?: boolean;
 }
 
-function socialLinks(persona: PublicPersona): Array<{ label: string; url: string }> {
+function socialLinks(persona: VoiceActorDirectoryEntry): Array<{ label: string; url: string }> {
   const links = Array.isArray(persona.links) ? persona.links : [];
   const unique = new Set<string>();
   return links.filter((item) => {
@@ -29,57 +28,45 @@ function socialLinks(persona: PublicPersona): Array<{ label: string; url: string
   }).map((item) => ({ label: String(item.label || "社群"), url: String(item.url) }));
 }
 
-export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initialScripts, initialExternalScripts, refreshOnMount = false }: Props) {
-  const [personas, setPersonas] = useState(initialPersonas);
-  const [demos, setDemos] = useState(initialDemos);
-  const [scripts, setScripts] = useState(initialScripts);
-  const [externalScripts, setExternalScripts] = useState(initialExternalScripts);
+export function VoiceActorDirectoryClient({ initialDirectory, refreshOnMount = false }: Props) {
+  const [directory, setDirectory] = useState(initialDirectory);
   const [query, setQuery] = useState("");
+  const renderLimit = useProgressiveLimit(24);
 
   useEffect(() => {
     if (!refreshOnMount) return;
     let active = true;
-    void readPublicBundle<{ personas?: PublicPersona[]; scripts?: PublicScript[]; externalPublicScripts?: ExternalPublicScript[]; demoSubmissions?: PublicDemoSubmission[] }>(["personas", "scripts", "externalPublicScripts", "demoSubmissions"])
+    void readPublicBundle<VoiceActorDirectoryBundle>(VOICE_ACTOR_DIRECTORY_SECTIONS)
       .then(({ data }) => {
-        if (!active) return;
-        if (Array.isArray(data.personas)) setPersonas(data.personas);
-        if (Array.isArray(data.scripts)) setScripts(data.scripts);
-        if (Array.isArray(data.externalPublicScripts)) setExternalScripts(data.externalPublicScripts);
-        if (Array.isArray(data.demoSubmissions)) setDemos(data.demoSubmissions);
+        if (active && Array.isArray(data.personas)) setDirectory(buildVoiceActorDirectory(data));
       })
       .catch(() => {});
     return () => { active = false; };
   }, [refreshOnMount]);
 
-  const performanceCounts = useMemo(() => {
-    const bundle = { scripts, externalPublicScripts: externalScripts, demoSubmissions: demos };
-    return new Map(personas.map((persona) => [persona.id, getPublicVoicePerformances(persona.id, bundle).length]));
-  }, [personas, scripts, externalScripts, demos]);
-
   const visible = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
-    return personas.filter((persona) => !persona.voiceActorHidden && (persona.roles?.includes("voice_actor") ?? (hasVoiceActorSelfTag(persona)
-      || (performanceCounts.get(persona.id) || 0) > 0)))
+    return directory
       .filter((persona) => !needle || `${persona.displayName} ${persona.bio || ""} ${(persona.tags || []).join(" ")}`.toLocaleLowerCase().includes(needle))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, "zh-Hant"));
-  }, [personas, performanceCounts, query]);
+  }, [directory, query]);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <PublicTopBar activeTab="resources" />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-        <PublicBrowseHeader title="聲演" count={`${visible.length} 位`} actions={
-          <label className="relative block w-full sm:w-80">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm outline-none focus:border-link" placeholder="搜尋聲演" aria-label="搜尋聲演" />
-          </label>
+    <div className="flex flex-1 flex-col bg-background">
+      <PublicBrowseMain>
+        <PublicBrowseHeader title="聲演" count={`${visible.length} 位`} search={
+          <PublicSearchField value={query} onChange={setQuery} placeholder="搜尋聲演" />
         } />
 
         {visible.length === 0 ? (
-          <div className="border-y border-border px-6 py-14 text-center text-sm text-muted-foreground">{query.trim() ? "找不到符合的聲演。" : "目前還沒有公開聲演身份。"}</div>
+          <PublicEmptyState
+            className="border-y border-border"
+            title={query.trim() ? "找不到符合的聲演。" : "目前還沒有公開聲演身份。"}
+            primaryAction={query.trim() ? { label: "清除搜尋", onClick: () => setQuery("") } : undefined}
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {visible.map((persona) => {
+            {visible.slice(0, renderLimit).map((persona) => {
               const socials = socialLinks(persona);
               return (
                 <article key={persona.id} className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
@@ -98,8 +85,7 @@ export function VoiceActorDirectoryClient({ initialPersonas, initialDemos, initi
             })}
           </div>
         )}
-      </main>
-      <PublicFooter />
+      </PublicBrowseMain>
     </div>
   );
 }
