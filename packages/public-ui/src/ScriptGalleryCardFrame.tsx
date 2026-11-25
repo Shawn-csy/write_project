@@ -435,7 +435,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     const denseAuthorHref = author?.displayName ? authorHref : organizationHref;
     return (
       <article className={`group relative min-w-0 ${!href ? "cursor-pointer" : ""}`} onClick={onArticleClick} data-gallery-card="dense" {...articleProps}>
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-[3px] border border-border bg-muted group-hover:opacity-90">
+        <div data-public-cover={Boolean(coverUrl || coverDesign) || undefined} className="relative aspect-[2/3] w-full overflow-hidden rounded-[3px] border border-border bg-muted group-hover:opacity-90">
           {coverLinkEl}
           {showAgeGate && <AgeGateOverlay variant="dense" />}
           {demoBadgeEl}
@@ -612,6 +612,7 @@ function ScriptGalleryCardFrameInner(props: ScriptGalleryCardFrameProps) {
     >
       {/* Cover */}
       <div
+        data-public-cover={Boolean(coverUrl || coverDesign) || undefined}
         className={`relative aspect-[2/3] w-full overflow-hidden rounded-[3px] bg-muted ${COVER_FRAME}`}
         {...(coverContainerProps ? { onPointerMove: coverContainerProps.onPointerMove, onPointerLeave: coverContainerProps.onPointerLeave } : {})}
       >

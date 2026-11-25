@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { HomepageVersionSwitch as GalleryClient } from "./HomepageVersionSwitch";
+import { GalleryClient } from "./GalleryClient";
 import { LiveGalleryClient } from "./LiveGalleryClient";
 import { parseGalleryUrlState } from "@write/public-ui/server";
 import { loadHomepageBundle } from "@/lib/loadHomepageBundle";
@@ -23,7 +23,6 @@ import { JsonLdScript } from "@/lib/jsonLd";
 export const dynamic = "force-dynamic";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
-
 
 export const metadata: Metadata = {
   title: SITE_TITLE,
@@ -55,7 +54,7 @@ export default async function HomePage({
   // A static Pages export cannot read request search params. The client hook
   // reads the current URL after hydration; the normal Next deployment keeps
   // its server-parsed initial state for a no-flash first render.
-  const rawParams = process.env.CF_STATIC_EXPORT === "1" ? {} : await searchParams;
+  const rawParams = STATIC_EXPORT ? {} : await searchParams;
   const qs = new URLSearchParams(Object.entries(rawParams).flatMap(([k, v]) =>
     v === undefined ? [] : Array.isArray(v) ? v.map((val) => [k, val]) : [[k, v]]
   )).toString();

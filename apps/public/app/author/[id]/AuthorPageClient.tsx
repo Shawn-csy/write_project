@@ -9,7 +9,8 @@ import { PublicImage } from "@/components/PublicImage";
 import { LinkifiedText } from "@/components/LinkifiedText";
 import { ExternalLink, BriefcaseBusiness, X } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
-import { ResourceAgeGate, useResourceAgeGate } from "@/components/ResourceAgeGate";
+import { AdultContentNotice } from "@/components/AdultContentNotice";
+import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
 import { demoArtwork } from "@/lib/demoArtwork";
 import { combinePublicIdentities } from "@/lib/publicIdentity";
 import { PublicProfileAvatar, PublicProfileCard, PublicProfileContainer, PublicProfileLink, PublicProfileRole, PublicProfileSection, PublicProfileWorkCard } from "@/components/PublicProfileLayout";
@@ -226,8 +227,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
       )}
 
       <PublicProfileContainer>
-        {needsAgeGate && ageGateReady && !ageConfirmed && <div className="pt-6"><ResourceAgeGate onConfirm={confirmAge} /></div>}
-        <PublicProfileCard overlap={Boolean(persona.bannerUrl) && (!needsAgeGate || ageConfirmed)}>
+        <PublicProfileCard overlap={Boolean(persona.bannerUrl)}>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             {!editing && <PublicProfileAvatar src={identity.avatar} name={identity.displayName} crop={persona.avatarCrop} />}
 
@@ -312,6 +312,8 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
             <a href={commissionOffers[0].sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs text-link hover:underline">查看收費標準來源<ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
           </PublicProfileSection>
         )}
+
+        {needsAgeGate && ageGateReady && !ageConfirmed && <div className="my-4"><AdultContentNotice scope="participations" onConfirm={confirmAge} /></div>}
 
         {sections.map((section) => (
           (!section.ageGated || ageConfirmed) && (

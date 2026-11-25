@@ -75,7 +75,7 @@ export function PublicAppearanceMenu() {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-[101] w-72 rounded-md p-4"
+          className="public-topbar-popover z-[101] w-72 rounded-md p-4"
           style={{
             border: "1px solid hsl(var(--border) / 0.6)",
             background: "hsl(var(--card))",

@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { FilePlus2, List, MoreHorizontal, Search, SlidersHorizontal } from "lucide-react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+import * as Dropdown from "@radix-ui/react-dropdown-menu";
+import { Check, Funnel, List, MoreHorizontal, Plus } from "lucide-react";
 import type { GalleryViewMode } from "@write/public-ui";
 import { LazyPublicFeedbackDialog } from "@/components/LazyPublicFeedbackDialog";
 import { PublicFeedbackTrigger } from "@/components/PublicFeedbackTrigger";
-import { GallerySegmentBar, SEGMENT_OPTIONS } from "./GallerySegmentBar";
-import { GallerySearchField } from "./GallerySearchField";
+import { GallerySegmentBar } from "./GallerySegmentBar";
+import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
+import { PublicExpandableSearch } from "@/components/PublicExpandableSearch";
+import { PublicScriptSubmissionTrigger } from "@/components/PublicScriptSubmissionTrigger";
 import { GallerySortControl, GALLERY_OVERVIEW_LABEL, GALLERY_SORT_OPTIONS, type GallerySortValue } from "./GallerySortControl";
 import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
 import { GalleryFilterSummary, type ActiveGalleryFilterChip } from "./GalleryFilterSummary";
@@ -22,7 +25,6 @@ interface GalleryToolbarProps {
   onViewModeChange: (mode: GalleryViewMode) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  resultCount: number;
   chips: ActiveGalleryFilterChip[];
   onRemoveChip: (chip: ActiveGalleryFilterChip) => void;
   onClearFilters: () => void;
@@ -34,38 +36,77 @@ interface GalleryToolbarProps {
 }
 
 const ICON_BUTTON =
-  "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground";
+  "relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground";
 const TEXT_BUTTON =
-  "relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-border bg-card px-3 text-[0.8125rem] text-foreground/80 hover:bg-muted hover:text-foreground";
+  "relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md px-2 text-[0.8125rem] leading-5 text-foreground/80 hover:bg-muted hover:text-foreground";
 
 const ICON_BUTTON_SM = ICON_BUTTON;
-const ICON_BUTTON_MOBILE = ICON_BUTTON;
-const TEXT_BUTTON_SM = TEXT_BUTTON;
-
-function CategorySelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      aria-label="作品分類"
-      className="h-9 w-28 min-w-0 rounded-sm border border-border bg-card px-2 text-[0.875rem] text-foreground focus:border-link focus:outline-none"
-    >
-      {SEGMENT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-    </select>
-  );
-}
+const MOBILE_SORT_OPTIONS = [{ value: "overview" as const, label: GALLERY_OVERVIEW_LABEL }, ...GALLERY_SORT_OPTIONS];
+const MOBILE_SORT_GROUPS = [{ options: MOBILE_SORT_OPTIONS }];
 
 function SortSelect({ value, onChange }: { value: GallerySortValue | null; onChange: (value: GallerySortValue | null) => void }) {
   return (
-    <select
+    <PublicMorphDropdown
+      label="排序"
       value={value ?? "overview"}
-      onChange={(event) => onChange(event.target.value === "overview" ? null : event.target.value as GallerySortValue)}
-      aria-label="排序"
-      className="h-9 w-20 shrink-0 rounded-sm border border-border bg-card px-2 text-[0.875rem] text-foreground focus:border-foreground focus:outline-none"
-    >
-      <option value="overview">{GALLERY_OVERVIEW_LABEL}</option>
-      {GALLERY_SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-    </select>
+      groups={MOBILE_SORT_GROUPS}
+      onChange={(next) => onChange(next === "overview" ? null : next)}
+      className="w-14 sm:w-[4.25rem]"
+    />
+  );
+}
+
+function GalleryViewActions({ viewMode, onViewModeChange, onOpenList, filter, phone = false }: Pick<GalleryToolbarProps, "viewMode" | "onViewModeChange" | "onOpenList"> & { filter?: ReactNode; phone?: boolean }) {
+  return (
+    <div className="ml-auto flex shrink-0 items-center gap-1" data-testid="gallery-view-actions">
+      {filter}
+      <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" title="一覽表" className={`${TEXT_BUTTON} ${phone ? "min-w-11 justify-center" : ""}`}>
+        <List className={`h-3.5 w-3.5 ${phone ? "min-[360px]:hidden" : "hidden md:block"}`} aria-hidden />
+        <span className={phone ? "hidden min-[360px]:inline" : undefined}>一覽表</span>
+      </button>
+      <GalleryViewModeToggle value={viewMode} onChange={onViewModeChange} compact />
+    </div>
+  );
+}
+
+function GalleryPhoneActions({ sort, onSortChange, onOpenFilterSheet, onOpenSubmission }: Pick<GalleryToolbarProps, "sort" | "onSortChange" | "onOpenFilterSheet"> & { onOpenSubmission: () => void }) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  const afterClose = useRef<(() => void) | null>(null);
+  const itemClass = "gallery-morph-option flex min-h-11 items-center justify-between gap-3 rounded px-3 text-sm outline-none data-[highlighted]:bg-muted";
+
+  return (
+    <Dropdown.Root modal={false}>
+      <Dropdown.Trigger ref={trigger} className={ICON_BUTTON} aria-label="更多操作" title="更多操作">
+        <MoreHorizontal className="h-4 w-4" aria-hidden />
+      </Dropdown.Trigger>
+      <Dropdown.Portal>
+        <Dropdown.Content align="end" sideOffset={4} collisionPadding={8} className="gallery-morph-menu w-44 rounded-lg border border-border bg-card p-1 text-foreground shadow-lg"
+          onCloseAutoFocus={(event) => {
+            const action = afterClose.current;
+            if (!action) return;
+            afterClose.current = null;
+            event.preventDefault();
+            trigger.current?.focus({ preventScroll: true });
+            action();
+          }}>
+          <Dropdown.Label className="px-3 py-1 text-xs text-muted-foreground">排序</Dropdown.Label>
+          <Dropdown.RadioGroup aria-label="排序" value={sort ?? "overview"}>
+            {MOBILE_SORT_OPTIONS.map((option) => (
+              <Dropdown.RadioItem key={option.value} value={option.value} className={itemClass} onSelect={() => onSortChange(option.value === "overview" ? null : option.value)}>
+                {option.label}<Dropdown.ItemIndicator><Check className="h-3.5 w-3.5" aria-hidden /></Dropdown.ItemIndicator>
+              </Dropdown.RadioItem>
+            ))}
+          </Dropdown.RadioGroup>
+          <Dropdown.Separator className="my-1 border-t border-border" />
+          <Dropdown.Item className={itemClass} onSelect={() => { afterClose.current = onOpenFilterSheet; }}>
+            進階篩選 <Funnel className="h-4 w-4" aria-hidden />
+          </Dropdown.Item>
+          <Dropdown.Item className={itemClass} onSelect={() => { afterClose.current = onOpenSubmission; }}>
+            投稿台本 <Plus className="h-4 w-4" aria-hidden />
+          </Dropdown.Item>
+        </Dropdown.Content>
+      </Dropdown.Portal>
+    </Dropdown.Root>
   );
 }
 
@@ -92,7 +133,6 @@ export function GalleryToolbar({
   onViewModeChange,
   searchTerm,
   onSearchChange,
-  resultCount,
   chips,
   onRemoveChip,
   onClearFilters,
@@ -105,7 +145,6 @@ export function GalleryToolbar({
   const barRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
-  const [searchFocused, setSearchFocused] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [submitOpen, setSubmitOpen] = useState(false);
 
@@ -128,9 +167,21 @@ export function GalleryToolbar({
     };
   }, []);
 
-  // Never collapse underneath someone who is typing.
-  const compact = stuck && !searchFocused;
+  const compact = stuck;
   const filterCount = chips.length;
+  const viewActionProps = { viewMode, onViewModeChange, onOpenList };
+  const sidebarTrigger = sidebarCollapsed && (
+    <button type="button" onClick={onExpandSidebar} id="homepage-filter-open" aria-label="展開篩選欄" aria-controls="homepage-filter-sidebar" aria-expanded={false} className={`${ICON_BUTTON} hidden lg:inline-flex`}>
+      <Funnel className="h-4 w-4" aria-hidden />
+    </button>
+  );
+  const mobileFilterTrigger = (
+    <button type="button" aria-label="開啟篩選" aria-haspopup="dialog" className={compact ? `${ICON_BUTTON} hidden min-[360px]:inline-flex lg:hidden` : `${TEXT_BUTTON} lg:hidden`} onClick={onOpenFilterSheet}>
+      <Funnel className="h-4 w-4" aria-hidden />
+      {!compact && <span>篩選</span>}
+      <CountBadge count={filterCount} floating />
+    </button>
+  );
 
   useEffect(() => {
     if (!compact) setActionsOpen(false);
@@ -159,116 +210,81 @@ export function GalleryToolbar({
         ref={barRef}
         data-compact={compact ? "true" : "false"}
         data-testid="gallery-toolbar"
-        className={`gallery-toolbar sticky top-[86px] z-30 -mx-4 mb-5 bg-background px-4 sm:-mx-5 sm:top-[57px] sm:px-5 lg:mx-0 lg:px-0 ${
- compact ? "border-b border-border shadow-[0_2px_4px_rgba(0,0,0,0.06)]" : ""
+        className={`gallery-toolbar sticky top-[86px] z-30 -mx-4 mb-5 bg-background px-4 sm:-mx-6 sm:top-[57px] sm:px-6 lg:mx-0 lg:px-0 ${
+          compact ? "border-b border-border" : ""
         }`}
       >
-        {compact ? (
-          <div className="flex h-12 min-w-0 items-center gap-2">
-            {sidebarCollapsed && (
-              <button type="button" onClick={onExpandSidebar} aria-label="展開篩選欄" className={`${ICON_BUTTON_SM} hidden lg:inline-flex`}>
-                <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              </button>
-            )}
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
-              <div className="shrink-0 md:hidden"><CategorySelect value={segment} onChange={onSegmentChange} /></div>
-              <div className="hidden min-w-0 flex-1 md:block">
+        <div className={compact
+          ? "gallery-compact-toolbar flex h-12 min-w-0 items-center gap-1 sm:gap-2"
+          : "gallery-standard-toolbar flex items-center gap-x-1 gap-y-1 border-b border-border py-1 sm:flex-wrap sm:gap-x-2"}
+        >
+          <PublicExpandableSearch
+            value={searchTerm}
+            onChange={onSearchChange}
+            placeholder="搜尋台本、作者或標籤"
+            applyOnSubmit
+            className="shrink-0"
+          />
+          <div className="gallery-phone-toolbar-controls flex min-w-0 flex-1 items-center gap-1 sm:hidden">
+            <div className="min-w-0 flex-1">
+              <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} fit />
+            </div>
+            <GalleryPhoneActions sort={sort} onSortChange={onSortChange} onOpenFilterSheet={onOpenFilterSheet} onOpenSubmission={() => setSubmitOpen(true)} />
+            <GalleryViewActions {...viewActionProps} phone />
+          </div>
+          {compact ? (
+            <div className="gallery-compact-controls hidden min-w-0 flex-1 items-center gap-2 sm:flex">
+              <div className="hidden shrink-0 sm:flex">
                 <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
               </div>
-            </div>
-            <div className="xl:hidden"><SortSelect value={sort} onChange={onSortChange} /></div>
-            <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 xl:inline-flex" />
-            <GalleryViewModeToggle value={viewMode} onChange={onViewModeChange} compact />
-            <div ref={actionsRef} className="relative shrink-0">
-              <button
-                type="button"
-                onClick={() => setActionsOpen((open) => !open)}
-                aria-label="更多操作"
-                aria-expanded={actionsOpen}
-                aria-controls="gallery-toolbar-actions"
-                className={ICON_BUTTON_SM}
-              >
-                <MoreHorizontal className="h-4 w-4" aria-hidden />
-                <CountBadge count={filterCount} floating />
-              </button>
-              {actionsOpen && (
-                <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-border bg-card p-1 shadow-lg">
-                  <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted">
-                    <Search className="h-4 w-4" aria-hidden />搜尋與篩選
-                  </button>
-                  <button type="button" onClick={() => { onDemoOnlyChange(!demoOnly); setActionsOpen(false); }} aria-pressed={demoOnly} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted md:hidden">
-                    <span aria-hidden className="w-4 text-center">{demoOnly ? "✓" : ""}</span>有 Demo
-                  </button>
-                  <button type="button" onClick={() => { setActionsOpen(false); onOpenList(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted">
-                    <List className="h-4 w-4" aria-hidden />台本一覽表
-                  </button>
-                  <button type="button" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted">
-                    <FilePlus2 className="h-4 w-4" aria-hidden />投稿台本
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b border-border md:gap-x-3 md:gap-y-1 xl:grid-cols-[minmax(0,1fr)_16rem_auto]">
-              <GallerySearchField
-                value={searchTerm}
-                onChange={onSearchChange}
-                onFocusChange={setSearchFocused}
-                className="col-start-1 row-start-1 md:hidden xl:col-start-2 xl:row-start-1 xl:block"
-              />
-              <div className="col-start-1 row-start-2 flex min-w-0 items-center gap-1.5 md:row-start-1">
-                {sidebarCollapsed && (
-                  <button type="button" onClick={onExpandSidebar} aria-label="展開篩選欄" className={`${ICON_BUTTON} hidden lg:inline-flex`}>
-                    <SlidersHorizontal className="h-4 w-4" aria-hidden />
-                  </button>
-                )}
-                <div className="flex min-w-0 flex-1 items-center gap-1.5">
-                  <div className="shrink-0 md:hidden"><CategorySelect value={segment} onChange={onSegmentChange} /></div>
-                  <button type="button" onClick={() => onDemoOnlyChange(!demoOnly)} aria-pressed={demoOnly} className={`h-9 shrink-0 rounded-sm border px-2 text-[0.875rem] md:hidden ${demoOnly ? "border-primary bg-primary font-semibold text-primary-foreground" : "border-border bg-card text-muted-foreground"}`}>
-                    有 Demo
-                  </button>
-                  <div className="hidden min-w-0 flex-1 md:block">
-                    <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
-                  </div>
-                </div>
-              </div>
-              <div className="col-start-2 row-start-1 flex shrink-0 items-center gap-2 xl:col-start-3">
-                <button type="button" onClick={onOpenFilterSheet} aria-label="開啟篩選" className={`${ICON_BUTTON_MOBILE} lg:hidden`}>
-                  <SlidersHorizontal className="h-4 w-4" aria-hidden />
+              <div className="xl:hidden"><SortSelect value={sort} onChange={onSortChange} /></div>
+              <GallerySortControl value={sort} onChange={onSortChange} showOverview className="hidden shrink-0 xl:inline-flex" />
+              <div ref={actionsRef} className="relative shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setActionsOpen((open) => !open)}
+                  aria-label="更多操作"
+                  aria-expanded={actionsOpen}
+                  aria-controls="gallery-toolbar-actions"
+                  className={ICON_BUTTON_SM}
+                >
+                  <MoreHorizontal className="h-4 w-4" aria-hidden />
                   <CountBadge count={filterCount} floating />
                 </button>
-                <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={`${ICON_BUTTON_MOBILE} hidden min-[360px]:inline-flex md:hidden`}>
-                  <List className="h-4 w-4" aria-hidden />
-                </button>
-                <div className="lg:[&_button]:w-9 lg:[&_button]:px-0 lg:[&_span]:hidden xl:[&_button]:w-auto xl:[&_button]:px-4 xl:[&_span]:inline">
-                  <PublicFeedbackTrigger mode="listing" compactAtMobile onClick={() => setSubmitOpen(true)} />
-                </div>
+                {actionsOpen && (
+                  <div id="gallery-toolbar-actions" role="group" aria-label="更多操作" className="public-toolbar-reveal absolute right-0 top-full z-50 mt-1 w-44 rounded-md border border-border bg-card p-1 shadow-lg">
+                    <button type="button" onClick={() => { setActionsOpen(false); onOpenFilterSheet(); }} className="flex h-10 w-full items-center gap-2 rounded-md px-3 text-left [font-size:var(--public-font-meta)] text-foreground hover:bg-muted min-[360px]:hidden lg:flex">
+                      <Funnel className="h-4 w-4" aria-hidden />搜尋與篩選
+                    </button>
+                    <PublicScriptSubmissionTrigger className="w-full" onClick={() => { setActionsOpen(false); setSubmitOpen(true); }} />
+                  </div>
+                )}
               </div>
-              <div className="col-start-2 row-start-2 md:hidden"><SortSelect value={sort} onChange={onSortChange} /></div>
-              <div className="col-span-2 col-start-1 row-start-2 hidden min-w-0 items-center gap-3 md:flex xl:col-span-3">
-                <GallerySearchField
-                  value={searchTerm}
-                  onChange={onSearchChange}
-                  onFocusChange={setSearchFocused}
-                  className="min-w-0 flex-1 xl:hidden"
-                />
-                <div className="flex shrink-0 items-center gap-3">
-                  <GallerySortControl value={sort} onChange={onSortChange} showOverview />
-                  <span className="whitespace-nowrap text-[0.8125rem] tabular-nums text-muted-foreground" aria-live="polite">共 {resultCount.toLocaleString()} 部</span>
-                </div>
-                <div className="ml-auto flex shrink-0 items-center gap-2">
-                  <button type="button" onClick={onOpenList} aria-label="開啟台本一覽表" className={TEXT_BUTTON_SM}>
-                    <List className="h-3.5 w-3.5" aria-hidden />一覽表
-                  </button>
-                  <GalleryViewModeToggle value={viewMode} onChange={onViewModeChange} compact />
-                </div>
-              </div>
+              <GalleryViewActions {...viewActionProps} filter={<>{mobileFilterTrigger}{sidebarTrigger}</>} />
             </div>
-            <GalleryFilterSummary chips={chips} onRemove={onRemoveChip} onClear={onClearFilters} />
-          </>
-        )}
+          ) : (
+            <>
+              <div className="hidden max-w-full flex-wrap items-center gap-1 sm:flex md:gap-2">
+                <GallerySegmentBar segment={segment} onSegmentChange={onSegmentChange} demoOnly={demoOnly} onDemoOnlyChange={onDemoOnlyChange} />
+                <div className="md:hidden">
+                  <SortSelect value={sort} onChange={onSortChange} />
+                </div>
+                <div className="hidden border-s border-border ps-2 md:flex">
+                  <GallerySortControl value={sort} onChange={onSortChange} showOverview />
+                </div>
+              </div>
+              <div className="ms-auto hidden max-w-full flex-wrap items-center justify-end gap-1 sm:flex">
+                <PublicFeedbackTrigger mode="listing" onClick={() => setSubmitOpen(true)} />
+                {mobileFilterTrigger}
+                {sidebarTrigger}
+                <div className="md:ms-1 md:border-s md:border-border md:ps-2">
+                  <GalleryViewActions {...viewActionProps} />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+        {!compact && <GalleryFilterSummary chips={chips} onRemove={onRemoveChip} onClear={onClearFilters} />}
       </div>
       <LazyPublicFeedbackDialog mode="listing" hideTrigger open={submitOpen} onOpenChange={setSubmitOpen} />
     </>

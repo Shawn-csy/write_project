@@ -39,6 +39,8 @@ export interface PublicShellTopBarProps {
   brandSubtitle?: string;
   /** href for the brand logo link. Defaults to "/". */
   brandHref?: string;
+  /** Marks the brand link as the current home page. */
+  brandCurrent?: boolean;
   /** Optional back control rendered immediately before the brand. */
   brandLeading?: React.ReactNode;
   /**
@@ -67,7 +69,7 @@ export interface PublicShellTopBarProps {
  */
 const BAND_STYLE = {
   "--background": "var(--band)",
-  "--foreground": "0 0% 100%",
+  "--foreground": "var(--band-foreground, 0 0% 100%)",
   "--muted-foreground": "var(--band-muted-foreground)",
   "--muted": "var(--band-muted)",
   "--border": "var(--band-border)",
@@ -82,8 +84,8 @@ function cn(...classes: (string | undefined | false | null)[]): string {
 
 function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
-    "relative flex h-full items-center justify-center px-3 text-[0.875rem] whitespace-nowrap transition-colors duration-100",
-    tab.hideOnTablet && "hidden lg:inline-flex",
+    "relative flex h-full items-center justify-center whitespace-nowrap px-3 text-[0.875rem] transition-colors duration-100 focus-visible:-outline-offset-2",
+    tab.hideOnTablet && "sm:hidden lg:flex",
     isActive && activeTabStyle === "pill"
       ? "bg-foreground text-background font-semibold"
       : isActive && activeTabStyle === "subtle"
@@ -116,32 +118,6 @@ function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShe
   );
 }
 
-function MobileTabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
-  const className = cn(
-    "relative flex h-10 items-center justify-center px-3 text-[0.875rem] whitespace-nowrap transition-colors duration-100",
-    isActive && activeTabStyle === "pill"
-      ? "bg-foreground text-background font-semibold"
-      : isActive && activeTabStyle === "subtle"
-        ? "text-foreground font-bold after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-foreground"
-        : "text-muted-foreground font-normal"
-  );
-
-  if (tab.href) {
-    if (renderLink) return renderLink({ href: tab.href, className, ariaCurrent: isActive ? "page" : undefined, children: tab.label });
-    return (
-      <a href={tab.href} aria-current={isActive ? "page" : undefined} className={className}>
-        {tab.label}
-      </a>
-    );
-  }
-
-  return (
-    <button type="button" onClick={tab.onSelect} aria-current={isActive ? "page" : undefined} className={className}>
-      {tab.label}
-    </button>
-  );
-}
-
 export function PublicShellTopBar({
   activeTab,
   activeTabStyle = "pill",
@@ -149,6 +125,7 @@ export function PublicShellTopBar({
   brandName = "Screenplay Reader",
   brandSubtitle,
   brandHref = "/",
+  brandCurrent = false,
   brandLeading,
   trailing,
   leadingTrailing,
@@ -159,6 +136,11 @@ export function PublicShellTopBar({
   renderLink,
 }: PublicShellTopBarProps): React.JSX.Element {
   const hasTabs = tabs.length > 0;
+  const brandClassName = cn(
+    "relative flex h-11 items-center gap-2.5 shrink-0 group sm:h-full",
+    brandCurrent && "after:absolute after:inset-x-0 after:bottom-0 after:h-[2px] after:bg-foreground",
+  );
+  const brandAriaCurrent = brandCurrent ? "page" : undefined;
   const brandContent = <>
     <div className="relative w-7 h-7 shrink-0">
       <div className="absolute inset-0 rounded-[3px] bg-foreground" />
@@ -180,20 +162,38 @@ export function PublicShellTopBar({
       className="sticky top-0 z-40 bg-background text-foreground"
       style={BAND_STYLE}
     >
-      {/* Row 1: brand + actions */}
-      <div className="relative flex h-11 items-center px-4 sm:h-[3.5rem] sm:px-6 lg:px-8 w-full gap-2">
-
-        {/* Brand — left-aligned */}
+      <div className="relative flex w-full flex-wrap items-center gap-x-2 px-4 sm:h-[3.5rem] sm:flex-nowrap sm:px-6 lg:px-8">
         {brandLeading}
         {renderLink
-          ? renderLink({ href: brandHref, className: "flex items-center gap-2.5 shrink-0 group", children: brandContent })
-          : <a href={brandHref} className="flex items-center gap-2.5 shrink-0 group">{brandContent}</a>}
+          ? renderLink({ href: brandHref, className: brandClassName, ariaCurrent: brandAriaCurrent, children: brandContent })
+          : <a href={brandHref} className={brandClassName} aria-current={brandAriaCurrent}>{brandContent}</a>}
 
-        {/* Divider + desktop tabs */}
+        {mobileLeadingAction && (
+          <div className="ml-auto flex shrink-0 items-center sm:hidden">
+            {mobileLeadingAction}
+          </div>
+        )}
+        {mobileTabSwitcher && (
+          <div className="flex shrink-0 items-center sm:hidden">
+            {mobileTabSwitcher}
+          </div>
+        )}
+        {mobileTrailingAction && (
+          <div className={cn("flex shrink-0 items-center sm:hidden", !mobileLeadingAction && "ml-auto")}>
+            {mobileTrailingAction}
+          </div>
+        )}
+
         {hasTabs && (
           <>
-            <div className="hidden sm:block w-px h-5 bg-border mx-2 shrink-0" aria-hidden />
-            <nav className="hidden sm:flex h-full items-stretch" aria-label="公開頁面導航">
+            <div className="mx-2 hidden h-5 w-px shrink-0 bg-border sm:block" aria-hidden />
+            <nav
+              className={cn(
+                "-mx-4 h-[2.5625rem] min-w-0 shrink-0 basis-[calc(100%+2rem)] items-stretch overflow-x-auto border-t border-border px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex sm:h-full sm:basis-auto sm:overflow-visible sm:border-0 sm:px-0",
+                mobileNav || mobileTabSwitcher ? "hidden" : "flex",
+              )}
+              aria-label="公開頁面導航"
+            >
               {tabs.map((tab) => (
                 <TabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} renderLink={renderLink} />
               ))}
@@ -202,48 +202,15 @@ export function PublicShellTopBar({
         )}
 
         {leadingTrailing}
-
-        {/* Mobile leading action (e.g. filter button) — between brand and trailing on mobile */}
-        {mobileLeadingAction && (
-          <div className="sm:hidden ml-auto flex items-center shrink-0">
-            {mobileLeadingAction}
-          </div>
-        )}
-
-        {mobileTabSwitcher && (
-          <div className="sm:hidden flex items-center shrink-0">
-            {mobileTabSwitcher}
-          </div>
-        )}
-
-        {/* Mobile trailing action (e.g. more button) */}
-        {mobileTrailingAction && (
-          <div className={cn("sm:hidden flex items-center shrink-0", !mobileLeadingAction && "ml-auto")}>
-            {mobileTrailingAction}
-          </div>
-        )}
-
-        {/* Desktop trailing slot */}
-        <div className={cn("hidden sm:flex ml-auto items-center gap-1 shrink-0")}>
+        <div className="ml-auto hidden shrink-0 items-center gap-1 sm:flex">
           {trailing}
         </div>
       </div>
 
-      {/* Row 2: mobile inline tabs */}
-      {mobileNav ? (
-        <div className="sm:hidden overflow-x-auto" style={{ borderTop: "1px solid hsl(var(--border))" }}>
+      {mobileNav && (
+        <div className="overflow-x-auto border-t border-border sm:hidden">
           {mobileNav}
         </div>
-      ) : hasTabs && !mobileTabSwitcher && (
-        <nav
-          className="sm:hidden flex items-center px-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          aria-label="公開頁面導航"
-          style={{ borderTop: "1px solid hsl(var(--border))" }}
-        >
-          {tabs.map((tab) => (
-            <MobileTabItem key={tab.key} tab={tab} isActive={tab.key === activeTab} activeTabStyle={activeTabStyle} renderLink={renderLink} />
-          ))}
-        </nav>
       )}
     </header>
   );

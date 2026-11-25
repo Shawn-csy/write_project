@@ -1,5 +1,7 @@
 "use client";
 
+import { useDirectoryRenderLimit } from "@/lib/useDirectoryRenderLimit";
+
 import { useMemo, useState } from "react";
 import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
@@ -11,7 +13,7 @@ import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicAvatarImage } from "@/components/PublicAvatarImage";
 import { publicAvatarColor } from "@/components/publicAvatarColor";
-import { GallerySearchField } from "./GallerySearchField";
+import { PublicSearchField } from "@/components/PublicSearchField";
 import { GalleryViewModeToggle } from "./GalleryViewModeToggle";
 import type { GalleryViewMode } from "@write/public-ui";
 
@@ -72,7 +74,7 @@ interface TagFilterChipsProps {
   allTags: string[];
   selectedTags: string[];
   onToggleTag: (tag: string) => void;
-  onResetFilters: () => void;
+  onResetFilters?: () => void;
 }
 
 function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: TagFilterChipsProps) {
@@ -128,7 +130,7 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
           收合標籤
         </button>
       )}
-      {selectedTags.length > 0 && (
+      {selectedTags.length > 0 && onResetFilters && (
         <button
           type="button"
           onClick={onResetFilters}
@@ -239,6 +241,7 @@ interface GalleryAuthorGridProps {
   authors: PublicPersona[];
   scripts?: PublicScript[];
   externalScripts?: ExternalPublicScript[];
+  worksByAuthor?: Record<string, ReturnType<typeof authorDirectoryWorks>>;
   filteredAuthors: AuthorLike[];
   peopleStatus: PeopleStatus;
   onRetry: () => void;
@@ -254,6 +257,7 @@ export function GalleryAuthorGrid({
   authors,
   scripts = [],
   externalScripts = [],
+  worksByAuthor,
   filteredAuthors,
   peopleStatus,
   onRetry,
@@ -265,38 +269,48 @@ export function GalleryAuthorGrid({
   onSearchChange,
 }: GalleryAuthorGridProps) {
   const [viewMode, setViewMode] = useState<GalleryViewMode>("standard");
+  const { limit: renderLimit, loadMoreRef } = useDirectoryRenderLimit(
+    filteredAuthors.length,
+    viewMode === "compact" ? 24 : 8,
+    JSON.stringify([searchTerm, selectedTags]),
+  );
   const authorById = useMemo(() => new Map(authors.map((author) => [author.id, author])), [authors]);
   if (peopleStatus === "loading" || peopleStatus === "idle") return <PeopleLoading />;
   if (peopleStatus === "error") return <PeopleError onRetry={onRetry} />;
 
   return (
     <div>
-      <PublicBrowseHeader title="作者" count={`${filteredAuthors.length} 位`} />
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <GallerySearchField value={searchTerm} onChange={onSearchChange ?? (() => {})} className="min-w-48 flex-1" placeholder="搜尋作者、作品或標籤" />
-        <GalleryViewModeToggle value={viewMode} onChange={setViewMode} />
-      </div>
+      <PublicBrowseHeader
+        title="作者"
+        count={`${filteredAuthors.length} 位`}
+        search={onSearchChange && <PublicSearchField value={searchTerm} onChange={onSearchChange} placeholder="搜尋作者、作品或標籤" />}
+        actions={<GalleryViewModeToggle value={viewMode} onChange={setViewMode} />}
+      />
       <TagFilterChips
         allTags={allTags}
         selectedTags={selectedTags}
         onToggleTag={onToggleTag}
-        onResetFilters={onResetFilters}
+        onResetFilters={filteredAuthors.length ? onResetFilters : undefined}
       />
       <div className={viewMode === "compact" ? "grid grid-cols-4 gap-x-2 gap-y-4 min-[480px]:grid-cols-5 sm:grid-cols-[repeat(auto-fill,minmax(104px,1fr))] sm:gap-x-3 sm:gap-y-5 lg:grid-cols-[repeat(auto-fill,minmax(108px,1fr))] [&>*]:min-w-0" : undefined}>
-        {filteredAuthors.map((authorLike) => {
+        {filteredAuthors.slice(0, renderLimit).map((authorLike) => {
           const author = authorLike.id ? authorById.get(authorLike.id) : undefined;
           if (!author) return null;
-          const works = authorDirectoryWorks(author, scripts, externalScripts);
+          const works = worksByAuthor?.[author.id] ?? authorDirectoryWorks(author, scripts, externalScripts);
           return viewMode === "compact"
             ? <AuthorAvatarTile key={author.id} author={author} workCount={works.length} />
             : <AuthorCard key={author.id} author={author} works={works} onTagClick={onToggleTag} />;
         })}
         {filteredAuthors.length === 0 && (
-          <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">
-            找不到符合的作者
-          </p>
+          <PublicEmptyState
+            className="col-span-full border-y border-border"
+            title={authors.length || searchTerm.trim() || selectedTags.length ? "找不到符合的作者" : "目前沒有公開作者"}
+            primaryAction={searchTerm.trim() && onSearchChange ? { label: "清除搜尋", onClick: () => onSearchChange("") } : selectedTags.length ? { label: "清除篩選", onClick: onResetFilters } : undefined}
+            secondaryAction={searchTerm.trim() && onSearchChange && selectedTags.length ? { label: "清除篩選", onClick: onResetFilters } : undefined}
+          />
         )}
       </div>
+      {filteredAuthors.length > renderLimit && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
     </div>
   );
 }
@@ -335,7 +349,7 @@ export function GalleryOrgGrid({
         allTags={allTags}
         selectedTags={selectedTags}
         onToggleTag={onToggleTag}
-        onResetFilters={onResetFilters}
+        onResetFilters={filteredOrgs.length ? onResetFilters : undefined}
       />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filteredOrgs.map((orgLike) => {
@@ -344,9 +358,11 @@ export function GalleryOrgGrid({
           return <OrgCard key={org.id} org={org} onTagClick={onToggleTag} />;
         })}
         {filteredOrgs.length === 0 && (
-          <p className="col-span-full py-16 text-center text-muted-foreground [font-size:var(--public-font-body)]">
-            找不到符合的組織
-          </p>
+          <PublicEmptyState
+            className="col-span-full border-y border-border"
+            title={orgs.length || selectedTags.length ? "找不到符合的組織" : "目前沒有公開組織"}
+            primaryAction={selectedTags.length ? { label: "清除篩選", onClick: onResetFilters } : undefined}
+          />
         )}
       </div>
     </div>

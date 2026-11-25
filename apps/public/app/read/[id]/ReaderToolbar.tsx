@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect } from "react";
+import { Check, Share2 } from "lucide-react";
 import Link from "next/link";
 import { ReaderToolbar as SharedReaderToolbar } from "@write/script-reader-ui";
 import type { ReaderState } from "@write/script-reader-ui";
 import { useAnimePressFeedback } from "@/lib/motion/useAnimePressFeedback";
-import { useAnimeSuccessFeedback } from "@/lib/motion/useAnimeSuccessFeedback";
 import type { SegmentRenderProp } from "@write/script-reader-ui";
 import { AnimatedSegment } from "@/components/AnimatedSegment";
 
@@ -31,20 +30,7 @@ interface Props {
 
 export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf, pdfReady = false }: Props) {
   const sharePress = useAnimePressFeedback<HTMLButtonElement>();
-  const shareSuccess = useAnimeSuccessFeedback<HTMLButtonElement>();
   const pdfPress = useAnimePressFeedback<HTMLButtonElement>();
-
-  // Merge share button refs
-  const shareRef = (el: HTMLButtonElement | null) => {
-    (sharePress.ref as React.MutableRefObject<HTMLButtonElement | null>).current = el;
-    (shareSuccess.ref as React.MutableRefObject<HTMLButtonElement | null>).current = el;
-  };
-
-  // Fire success pop when copied state becomes true
-  const { trigger: triggerShareSuccess } = shareSuccess;
-  useEffect(() => {
-    if (copied) triggerShareSuccess();
-  }, [copied, triggerShareSuccess]);
 
   return (
     <SharedReaderToolbar
@@ -68,13 +54,14 @@ export function ReaderToolbar({ readerState, title, onShare, copied, onExportPdf
         <div className="flex items-center gap-1">
           {onShare && (
             <button
-              ref={shareRef}
+              ref={sharePress.ref}
               type="button"
               onClick={onShare}
-              className="inline-flex items-center min-h-[44px] px-3 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
               {...sharePress.handlers}
             >
-              {copied ? "已複製！" : "分享"}
+              {copied ? <Check className="public-motion-icon h-4 w-4 text-success" aria-hidden /> : <Share2 className="h-4 w-4" aria-hidden />}
+              <span aria-live="polite">{copied ? "已複製！" : "分享"}</span>
             </button>
           )}
           {onExportPdf && (

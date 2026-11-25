@@ -12,9 +12,10 @@ describe("AuthorPageClient resource age confirmation", () => {
       voiceActorWorks: [{ title: "參演甲", url: "https://example.com/work", coverUrl: "https://example.com/cover.jpg" }],
     } as PublicPersona;
     render(<AuthorPageClient persona={persona} scripts={[]} />);
-    expect(screen.getByRole("button", { name: "我已年滿 18 歲，顯示作品" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "成人向內容提醒", level: 2 })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "我已年滿 18 歲" })).toBeTruthy();
     expect(screen.queryByText("參演甲")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲，顯示作品" }));
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
     expect(screen.getByText("參演甲")).toBeTruthy();
     window.sessionStorage.clear();
   });

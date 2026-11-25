@@ -34,7 +34,7 @@ export function GalleryFilterSummary({ chips, onRemove, onClear }: GalleryFilter
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1.5 pb-2"
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 py-1.5"
       aria-label="目前篩選條件"
       aria-live="polite"
     >
@@ -49,7 +49,7 @@ export function GalleryFilterSummary({ chips, onRemove, onClear }: GalleryFilter
             type="button"
             onClick={() => onRemove(chip)}
             aria-label={`移除篩選 ${label}`}
-            className="inline-flex h-7 items-center gap-1 rounded-md border border-primary/30 bg-accent-muted px-2 [font-size:var(--public-font-caption)] text-link hover:bg-card"
+            className="inline-flex min-h-7 items-center gap-1 rounded-full bg-accent-muted px-2.5 [font-size:var(--public-font-caption)] text-link hover:bg-muted-strong"
           >
             <span>{label}</span>
             <X className="h-3 w-3" aria-hidden />

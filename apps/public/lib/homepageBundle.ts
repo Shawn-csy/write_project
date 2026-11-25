@@ -4,7 +4,7 @@ import type { ActivityPage, ExternalPublicScript, PublicDemoSubmission, PublicOr
 import type { PublicBundleSection } from "./publicBundleProjection";
 
 export type HomepageActivity = Pick<ActivityPage, "id" | "slug" | "title" | "summary" | "coverUrl" | "coverCrop" | "sortOrder" | "publishedAt">;
-import { slimExternalScriptForHomepage, slimScriptForHomepage } from "./galleryProjection";
+import { slimExternalScriptForHomepage, slimPersonaForGallery, slimScriptForHomepage } from "./galleryProjection";
 
 export const HOMEPAGE_BUNDLE_SECTIONS = [
   "scripts", "externalPublicScripts", "personas", "organizations",
@@ -78,7 +78,7 @@ export function parseHomepageBundle(bundle: HomepageBundleResponse): HomepageBun
   return {
     scripts,
     externalPublicScripts,
-    personas: Array.isArray(bundle.personas) ? bundle.personas : [],
+    personas: Array.isArray(bundle.personas) ? bundle.personas.map(slimPersonaForGallery) : [],
     organizations: Array.isArray(bundle.organizations) ? bundle.organizations : [],
     activities: (Array.isArray(bundle.activityPages) ? bundle.activityPages : [])
       .filter((page) => page?.status === "published" && page.slug && page.title)

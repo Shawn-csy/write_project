@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicAudioWork, PublicOrg } from "@/lib/types";
 
@@ -16,29 +16,73 @@ describe("AudioWorksClient data loading", () => {
     window.history.replaceState(null, "", "/audio-works");
     readPublicBundle.mockReset().mockResolvedValue({ data: { audioWorkBanner: [] }, source: "primary" });
   });
-  afterEach(() => vi.unstubAllGlobals());
-
-  it("uses server data without downloading the same bundle again", () => {
-    render(<AudioWorksClient initialWorks={initialWorks} initialOrganizations={initialOrganizations} />);
-    fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
-    expect(screen.getByRole("button", { name: /社團甲/ })).toBeTruthy();
-    expect(readPublicBundle).toHaveBeenCalledWith(["audioWorkBanner"]);
-    expect(readPublicBundle).not.toHaveBeenCalledWith(["audioWorks", "organizations"]);
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
   });
 
-  it("refreshes a static export when opened in the browser", async () => {
-    readPublicBundle.mockResolvedValue({ data: {
-      audioWorks: [{ id: "work-2", title: "作品乙", url: "https://example.com/work-2", organizationId: "org-2" }],
-      organizations: [{ id: "org-2", name: "社團乙" }],
-    }, source: "primary" });
-    render(<AudioWorksClient initialWorks={initialWorks} initialOrganizations={initialOrganizations} refreshOnMount />);
-    fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
-    await waitFor(() => expect(screen.getByRole("button", { name: /社團乙/ })).toBeTruthy());
+  it("shows the age notice before the catalog responds and loads the catalog only once", async () => {
+    let resolveCatalog!: (result: { data: { audioWorks: PublicAudioWork[]; organizations: PublicOrg[] } }) => void;
+    readPublicBundle.mockImplementationOnce(() => new Promise((resolve) => { resolveCatalog = resolve; }));
+    render(<AudioWorksClient />);
+
+    expect(screen.getByRole("heading", { name: "成人向內容提醒", level: 1 })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "返回首頁" })).toHaveAttribute("href", "/");
+    expect(readPublicBundle.mock.calls).toEqual([[["audioWorks", "organizations"]]]);
+
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
+    expect(screen.getByRole("status", { name: "載入作品" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /社團甲/ })).toBeNull();
-    expect(readPublicBundle).toHaveBeenCalledWith(["audioWorks", "organizations"]);
+
+    resolveCatalog({ data: { audioWorks: initialWorks, organizations: initialOrganizations } });
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+    expect(readPublicBundle.mock.calls).toEqual([[["audioWorks", "organizations"]], [["audioWorkBanner"]]]);
   });
 
-  it("loads the next works when the bottom enters view, without a button", () => {
+  it("loads the Pages snapshot only after the live read fails", async () => {
+    vi.stubEnv("NEXT_PUBLIC_STATIC_EXPORT", "1");
+    const fetchSnapshot = vi.fn().mockResolvedValue(Response.json({ audioWorks: initialWorks, organizations: initialOrganizations }));
+    vi.stubGlobal("fetch", fetchSnapshot);
+    readPublicBundle.mockRejectedValueOnce(new Error("Both APIs are offline"));
+    render(<AudioWorksClient />);
+
+    expect(fetchSnapshot).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+    expect(fetchSnapshot).toHaveBeenCalledExactlyOnceWith("/audio-works/catalog.json", {
+      cache: "no-cache",
+      signal: expect.any(AbortSignal),
+    });
+  });
+
+  it("uses a successful live fallback without requesting the Pages snapshot", async () => {
+    vi.stubEnv("NEXT_PUBLIC_STATIC_EXPORT", "1");
+    const fetchSnapshot = vi.fn();
+    vi.stubGlobal("fetch", fetchSnapshot);
+    readPublicBundle.mockResolvedValueOnce({
+      data: { audioWorks: initialWorks, organizations: initialOrganizations },
+      source: "fallback",
+    });
+    render(<AudioWorksClient />);
+
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+    expect(fetchSnapshot).not.toHaveBeenCalled();
+  });
+
+  it("retries when the catalog request fails", async () => {
+    readPublicBundle.mockRejectedValueOnce(new Error("Offline"));
+    render(<AudioWorksClient />);
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
+
+    await screen.findByText("無法載入音聲作品");
+    readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: initialWorks, organizations: initialOrganizations } });
+    fireEvent.click(screen.getByRole("button", { name: "重新載入" }));
+
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+  });
+
+  it("loads the next works when the bottom enters view, without a button", async () => {
     let onIntersect!: IntersectionObserverCallback;
     vi.stubGlobal("IntersectionObserver", class {
       constructor(callback: IntersectionObserverCallback) { onIntersect = callback; }
@@ -48,9 +92,13 @@ describe("AudioWorksClient data loading", () => {
     const manyWorks = Array.from({ length: 20 }, (_, index) => ({
       id: `work-${index}`, title: `作品${index}`, url: `https://example.com/${index}`, organizationId: "org-1",
     })) as PublicAudioWork[];
-    render(<AudioWorksClient initialWorks={manyWorks} initialOrganizations={initialOrganizations} />);
+    readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: manyWorks, organizations: initialOrganizations } });
+    render(<AudioWorksClient />);
     fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
-    fireEvent.click(screen.getByRole("button", { name: /社團甲/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /社團甲/ }));
+    fireEvent.keyDown(screen.getByRole("button", { name: "時間排序 最新優先" }), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "最舊優先" }));
+    expect(screen.getByRole("button", { name: "時間排序 最舊優先" })).toBeTruthy();
     expect(screen.getAllByRole("article")).toHaveLength(18);
     expect(screen.queryByRole("button", { name: /顯示更多作品/ })).toBeNull();
 
@@ -58,14 +106,15 @@ describe("AudioWorksClient data loading", () => {
     expect(screen.getAllByRole("article")).toHaveLength(20);
   });
 
-  it("links reviewed staff credits while leaving unlinked source names as text", () => {
+  it("links reviewed staff credits while leaving unlinked source names as text", async () => {
     const works = [{ ...initialWorks[0], credits: [
       { role: "cover_art", sourceRole: "封面", creditedAs: "舊署名", personaId: "artist-1", provenance: "official_page", sourceUrl: initialWorks[0].url },
       { role: "cover_art", sourceRole: "封面", creditedAs: "待核署名", provenance: "official_page", sourceUrl: initialWorks[0].url },
     ] }] as PublicAudioWork[];
-    render(<AudioWorksClient initialWorks={works} initialOrganizations={initialOrganizations} />);
+    readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: works, organizations: initialOrganizations } });
+    render(<AudioWorksClient />);
     fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
-    fireEvent.click(screen.getByRole("button", { name: /社團甲/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /社團甲/ }));
     fireEvent.click(screen.getByText("製作人員與介紹"));
     expect(screen.getByRole("link", { name: "舊署名" }).getAttribute("href")).toBe("/author/artist-1");
     expect(screen.queryByRole("link", { name: "待核署名" })).toBeNull();

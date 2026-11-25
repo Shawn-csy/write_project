@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { RandomRecommendationStrip } from "./RandomRecommendationStrip";
 import type { MixedGalleryEntry } from "./recommendationModel";
 import { externalScriptCardDetails } from "@/lib/externalScriptCard";
@@ -27,24 +27,11 @@ import { ExternalPublicScriptCard } from "@/components/ExternalPublicScriptSecti
 import { externalEntityHref } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalCoverSrc } from "@/lib/externalCover";
+import { useProgressiveLimit } from "@/lib/useProgressiveLimit";
 
 // Grid and compact views initially render enough cards for the first screens;
 // the horizontal lanes expand as readers scroll each lane.
 export const INITIAL_RENDERED_CARDS = 24;
-
-export function useProgressiveLimit(initial: number): number {
-  const [limit, setLimit] = useState(initial);
-  useEffect(() => {
-    const expand = () => setLimit(Number.POSITIVE_INFINITY);
-    if (typeof window.requestIdleCallback === "function") {
-      const handle = window.requestIdleCallback(expand, { timeout: 1500 });
-      return () => window.cancelIdleCallback(handle);
-    }
-    const timer = window.setTimeout(expand, 300);
-    return () => window.clearTimeout(timer);
-  }, []);
-  return limit;
-}
 
 // Whole-card lanes: three full covers on narrow phones, four on wider phones.
 // Every card snaps to the lane edge instead of being sliced in half.
@@ -530,8 +517,8 @@ export function GalleryScriptResults({
             </button>
           )}
         >
-          {featuredPracticeEntries.map((entry) => (
-            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={CARD_WIDTH}>
+          {featuredPracticeEntries.map((entry, index) => (
+            <div key={entry.kind === "external" ? `external:${entry.item.id}` : entry.kind === "external-series" ? `external-series:${entry.entry.key}` : entry.entry.type === "series" ? `series:${entry.entry.key}` : entry.entry.script.id} className={`${CARD_WIDTH} ${index < 3 ? "public-featured-glare" : ""}`}>
               {entry.kind === "external"
                 ? <ExternalPublicScriptCard item={entry.item} onTagClick={onTagClick} />
                 : entry.kind === "external-series"

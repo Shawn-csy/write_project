@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { HOMEPAGE_BUNDLE_SECTIONS, HOMEPAGE_SCRIPT_BUNDLE_SECTIONS, parseHomepageBundle, type HomepageBundle, type HomepageBundleResponse } from "@/lib/homepageBundle";
-import { HomepageVersionSwitch as GalleryClient } from "./HomepageVersionSwitch";
+import { GalleryClient } from "./GalleryClient";
 import type { PublicHomepageUrlState } from "./gallery/useGalleryUrlState";
 
 type GalleryBundle = Omit<HomepageBundle, "personas" | "organizations"> & Partial<Pick<HomepageBundle, "personas" | "organizations">>;

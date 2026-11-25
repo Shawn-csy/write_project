@@ -18,7 +18,7 @@ export function PublicCardGridSkeleton({
       <span className="sr-only">載入中...</span>
       <div className="grid gap-5 sm:gap-6" style={style} aria-hidden>
         {Array.from({ length: count }, (_, index) => (
-          <div key={index} className="animate-pulse">
+          <div key={index} className="motion-safe:animate-pulse">
             <div className={`${aspect} w-full rounded-md bg-muted`} />
             <div className="mt-3 h-3.5 w-3/4 rounded bg-muted" />
             <div className="mt-2 h-3 w-1/2 rounded bg-muted" />
@@ -35,7 +35,7 @@ export function PublicListSkeleton({ rows = 4, className = "" }: { rows?: number
     <div role="status" aria-live="polite" aria-busy="true" className={`space-y-3 ${className}`}>
       <span className="sr-only">載入中...</span>
       {Array.from({ length: rows }, (_, index) => (
-        <div key={index} aria-hidden className="flex animate-pulse items-center gap-4 rounded-md border border-border bg-card p-4">
+        <div key={index} aria-hidden className="flex motion-safe:animate-pulse items-center gap-4 rounded-md border border-border bg-card p-4">
           <div className="h-14 w-14 shrink-0 rounded-lg bg-muted" />
           <div className="min-w-0 flex-1 space-y-2">
             <div className="h-4 w-1/3 rounded bg-muted" />

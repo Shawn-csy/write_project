@@ -37,7 +37,10 @@ BUNDLE = {
     "audioWorkBanner": {"items": []},
     "externalPublicScripts": [EXTERNAL_SCRIPT],
     "demoSubmissions": [],
-    "audioWorks": [],
+    "audioWorks": [{
+        "id": "fixture-audio", "title": "Frozen audio fixture",
+        "url": "https://example.com/recording", "organizationId": "fixture-org",
+    }],
     "activityPages": [],
     "productionResources": [{
         "id": "fixture-persona", "personaId": "fixture-persona", "name": "Fixture Studio",

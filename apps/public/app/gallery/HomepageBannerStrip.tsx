@@ -210,7 +210,8 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
           className={`flex snap-x snap-mandatory gap-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${looping ? "" : "justify-center"}`}>
           {cycles.flatMap((cycle) => banners.map((banner, index) => {
             const ratio = banner.src ? imageRatios[banner.src] ?? 3 : 3;
-            const tileStyle = { width: `${Math.round(160 * ratio)}px` };
+            const width = `${Math.round(160 * ratio)}px`;
+            const tileStyle = { width, "--public-banner-tile-width": width } as React.CSSProperties;
             const onImageLoad = (event: React.SyntheticEvent<HTMLElement>) => {
               if (!banner.src || !(event.target instanceof HTMLImageElement)) return;
               const image = event.target;
@@ -256,10 +257,10 @@ export function HomepageBannerStrip({ slides }: { slides: HeroSlide[] }) {
           }))}
         </div>
         {looping && <>
-          <button type="button" aria-label="上一張橫幅" onClick={() => move(-1)} className={`${arrowClass} left-0`}>
+          <button type="button" aria-label="上一張橫幅" onClick={() => move(-1)} className={`${arrowClass} public-arrow-motion public-arrow-back left-0`}>
             <ChevronLeft className="h-5 w-5" aria-hidden />
           </button>
-          <button type="button" aria-label="下一張橫幅" onClick={() => move(1)} className={`${arrowClass} right-0`}>
+          <button type="button" aria-label="下一張橫幅" onClick={() => move(1)} className={`${arrowClass} public-arrow-motion public-arrow-forward right-0`}>
             <ChevronRight className="h-5 w-5" aria-hidden />
           </button>
         </>}

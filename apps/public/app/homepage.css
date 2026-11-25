@@ -1,7 +1,7 @@
 /* Shared modern palette for the public site. The wrapper supplies tokens during
    homepage SSR; the root covers every public route and portal. */
 .modern-homepage,
-html:not([data-homepage-version="legacy"]) {
+html {
   --background: 210 7.14% 94.51%;
   --foreground: 0 0% 23.92%;
   --card: 0 0% 96.86%;
@@ -33,11 +33,6 @@ html:not([data-homepage-version="legacy"]) {
   --paper-shadow: rgba(0, 0, 0, 0.06);
 }
 
-/* PublicShellTopBar sets an inline white foreground for the old colored band.
-   Override that mapping only inside this homepage, retaining its local roles. */
-html:not([data-homepage-version="legacy"]) [data-public-topbar] {
-  --foreground: var(--band-foreground) !important;
-}
 .modern-homepage [data-testid="brand-hero-slide"] {
   color: hsl(var(--band-foreground));
 }
@@ -51,7 +46,7 @@ html:not([data-homepage-version="legacy"]) [data-public-topbar] {
 /* Neutral dark roles follow the measured SoundCloud/itch.io pattern: a charcoal
    canvas, restrained neutral surfaces, soft gray actions and blue text links. */
 .dark .modern-homepage,
-html.dark:not([data-homepage-version="legacy"]) {
+html.dark {
   --background: 0 0% 12.94%;
   --foreground: 0 0% 86.67%;
   --card: 0 0% 16.08%;
@@ -84,75 +79,130 @@ html.dark:not([data-homepage-version="legacy"]) {
 }
 
 .dark .modern-homepage .bg-cta,
-html.dark:not([data-homepage-version="legacy"]) .bg-cta {
+html.dark .bg-cta {
   color: hsl(var(--primary-foreground));
-}
-.dark .modern-homepage .gallery-search-input {
-  border-color: hsl(var(--muted-foreground) / 0.5);
-  background: hsl(var(--card));
-  box-shadow: none;
-}
-.dark .modern-homepage .gallery-search-input:focus {
-  border-color: hsl(var(--link));
-  box-shadow: 0 0 0 2px hsl(var(--link) / 0.22);
 }
 .dark .modern-homepage [data-testid="homepage-banner-strip"] {
   background: hsl(var(--background));
 }
-.dark .modern-homepage [data-testid="random-recommendation-strip"] article {
-  border-color: hsl(var(--border) / 0.65);
-  border-radius: 0.625rem;
-  box-shadow: 0 2px 6px hsl(0 0% 0% / 0.16);
-}
 
-/* Section names are reading landmarks, not another toolbar. */
 .modern-homepage .section-bar {
   background: transparent;
-  border-left: 0;
-  border-bottom: 1px solid hsl(var(--border));
-  padding: 0 0 0.65rem;
+  border: 0;
+  padding: 0 0 0.2rem;
 }
 
-/* Quiet inactive categories; filled primary is reserved for the current category. */
 .modern-homepage .tab-item {
   border-color: transparent;
-  border-radius: 0.375rem 0.375rem 0 0;
+  border-radius: 0;
   background: transparent;
   color: hsl(var(--muted-foreground));
 }
 .modern-homepage .tab-item:hover {
-  background: hsl(var(--muted));
   color: hsl(var(--foreground));
 }
 .modern-homepage .tab-item[aria-pressed="true"] {
-  border-color: hsl(var(--primary));
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
+  color: hsl(var(--foreground));
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.38em;
 }
 
-.modern-homepage .gallery-search-input {
-  border-color: hsl(var(--primary) / 0.65);
-  box-shadow: 0 1px 3px hsl(var(--foreground) / 0.05);
+.modern-homepage :is(.gallery-toolbar, .homepage-filter-sidebar, .homepage-announcements) :is(button, select, input, a):focus-visible {
+  outline: 2px solid hsl(var(--link));
+  outline-offset: -2px;
+  box-shadow: none;
 }
-.modern-homepage .gallery-search-input:focus {
-  border-color: hsl(var(--link));
-  box-shadow: 0 0 0 2px hsl(var(--link) / 0.22);
+
+.modern-homepage .gallery-sort-control {
+  background: transparent;
+}
+
+.modern-homepage .gallery-sort-control > [aria-hidden="true"] {
+  top: auto;
+  bottom: 2px;
+  height: 2px;
+  background: hsl(var(--link));
+}
+
+.modern-homepage .gallery-sort-control > [aria-pressed="true"] {
+  font-weight: 600;
+}
+
+.modern-homepage .gallery-sort-control:not([data-indicator-ready]) > [aria-pressed="true"] {
+  background: transparent;
+  text-decoration: underline;
+  text-underline-offset: 0.38em;
+}
+
+.modern-homepage .homepage-filter-option {
+  border-color: transparent;
+  background: transparent;
+}
+
+.modern-homepage .homepage-filter-option:hover {
+  background: hsl(var(--muted-strong) / 0.45);
+}
+
+.modern-homepage .homepage-filter-option[aria-pressed="true"] {
+  color: hsl(var(--link));
+  background: hsl(var(--accent-muted));
+}
+
+.homepage-filter-sidebar {
+  inline-size: 15.5rem;
+  overflow: clip;
+}
+
+.homepage-filter-sidebar-inner {
+  max-block-size: calc(100vh - 88px);
+  max-block-size: calc(100dvh - 88px);
+}
+
+.homepage-filter-sidebar[data-open="false"] {
+  inline-size: 0;
+}
+
+.homepage-filter-sidebar[data-open="false"] .homepage-filter-sidebar-inner {
+  opacity: 0;
+  translate: -0.75rem 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .homepage-filter-sidebar {
+    transition: inline-size 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .homepage-filter-sidebar-inner {
+    transition: opacity 155ms ease-out, translate 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@media (max-width: 639px) {
+  .modern-homepage .homepage-announcements [data-testid="banner-track"] > * {
+    height: 7rem;
+    max-inline-size: calc(var(--public-banner-tile-width) * 0.7);
+  }
+}
+
+.modern-homepage main [data-public-cover] {
+  border-color: transparent;
 }
 
 /* Keep tappable controls generous without increasing desktop visual density. */
 @media (pointer: coarse), (max-width: 639px) {
   .modern-homepage .gallery-toolbar button,
   .modern-homepage .gallery-toolbar select,
-  .modern-homepage .gallery-search-input {
+  .modern-homepage .gallery-toolbar .public-search-field {
     min-height: 2.75rem;
   }
-  .modern-homepage .gallery-toolbar button:has(> svg:only-child) {
+  .modern-homepage .gallery-toolbar button {
     min-width: 2.75rem;
   }
 }
 
-html:not([data-homepage-version="legacy"]):not([data-public-text-scale]),
-html:not([data-homepage-version="legacy"])[data-public-text-scale="default"] {
+html:not([data-public-text-scale]),
+html[data-public-text-scale="default"] {
   --public-font-caption: 0.8125rem;
 }
 
@@ -162,6 +212,11 @@ html:not([data-homepage-version="legacy"])[data-public-text-scale="default"] {
 }
 .modern-homepage [data-testid="random-recommendation-strip"] .section-bar button:has(> svg:only-child) {
   min-width: 2.5rem;
+}
+
+.recommendation-marquee[data-looping="true"]:not(:focus-within) {
+  --marquee-edge: clamp(0.75rem, 4vw, 2.25rem);
+  mask-image: linear-gradient(to right, transparent, black var(--marquee-edge), black calc(100% - var(--marquee-edge)), transparent);
 }
 
 @media (pointer: coarse), (max-width: 639px) {
@@ -195,6 +250,6 @@ html:not(.dark) .modern-homepage section[aria-label="公開活動"] a:not(:has(i
 }
 
 html:not(.dark) .modern-homepage .bg-cta,
-html:not(.dark):not([data-homepage-version="legacy"]) .bg-cta {
+html:not(.dark) .bg-cta {
   color: hsl(var(--primary-foreground));
 }

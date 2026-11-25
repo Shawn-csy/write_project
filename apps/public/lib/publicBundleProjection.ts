@@ -4,6 +4,10 @@ export const PUBLIC_BUNDLE_SECTIONS = [
 ] as const;
 export type PublicBundleSection = (typeof PUBLIC_BUNDLE_SECTIONS)[number];
 
+export const DEMO_CATALOG_SECTIONS = [
+  "scripts", "externalPublicScripts", "personas", "organizations", "demoSubmissions",
+] as const satisfies readonly PublicBundleSection[];
+
 const allowedSections = new Set<string>(PUBLIC_BUNDLE_SECTIONS);
 
 /** null means the full bundle; false means an invalid projection request. */

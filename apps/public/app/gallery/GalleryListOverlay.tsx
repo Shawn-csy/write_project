@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { ExternalLink, Search, X } from "lucide-react";
+import { PublicExpandableSearch } from "@/components/PublicExpandableSearch";
+import { ExternalLink, X } from "lucide-react";
 import { getGalleryPublishedTimestamp, type EnrichedGalleryScript } from "@write/public-ui";
 import { PUBLIC_TIME_ZONE } from "@write/public-ui/public-date";
 import type { ExternalPublicScript } from "@/lib/types";
@@ -64,7 +65,12 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
 
   // ESC to close
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    const handler = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest(".public-expandable-search-content")) return;
+      onClose();
+    };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose]);
@@ -103,27 +109,15 @@ export function GalleryListOverlay({ scripts, externalItems = [], onClose }: Gal
               {searchTerm.trim() ? `${visibleRows.length} / ${sorted.length} 部` : `${sorted.length} 部`}・依發表時間排序
             </p>
           </div>
-          <div className="relative order-3 w-full sm:order-none sm:w-64 md:w-80">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="快速搜尋台本或作者..."
-              aria-label="快速搜尋台本或作者"
-              className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-9 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm("")}
-                className="absolute right-1 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                aria-label="清除快速搜尋"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden />
-              </button>
-            )}
-          </div>
+          <PublicExpandableSearch
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="快速搜尋台本或作者"
+            triggerLabel="開啟快速搜尋"
+            closeLabel="關閉快速搜尋"
+            className="gallery-list-search"
+            clearOnClose
+          />
           <button
             type="button"
             onClick={onClose}

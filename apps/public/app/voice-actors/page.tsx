@@ -1,5 +1,7 @@
+import { Suspense } from "react";
+import { PublicDirectoryLoading } from "@/components/PublicDirectoryLoading";
 import { apiFetch } from "@/lib/api";
-import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
+import { buildVoiceActorDirectory, VOICE_ACTOR_DIRECTORY_SECTIONS, type VoiceActorDirectoryBundle } from "@/lib/voiceActorDirectory";
 import { publicDirectoryMetadata, TITLE_SUFFIX } from "@/lib/seo";
 import { VoiceActorDirectoryClient } from "./VoiceActorDirectoryClient";
 
@@ -12,16 +14,16 @@ export const metadata = publicDirectoryMetadata(
   "查找聲演的公開個人頁、參演作品與演出 Demo。",
 );
 
-async function getDirectoryData(): Promise<{ personas: PublicPersona[]; demos: PublicDemoSubmission[]; scripts: PublicScript[]; externalScripts: ExternalPublicScript[] }> {
-  try {
-    const bundle = await apiFetch<{ personas?: PublicPersona[]; scripts?: PublicScript[]; externalPublicScripts?: ExternalPublicScript[]; demoSubmissions?: PublicDemoSubmission[] }>("/public-bundle?sections=personas,scripts,externalPublicScripts,demoSubmissions", { cache: "no-store" });
-    return { personas: bundle.personas || [], demos: bundle.demoSubmissions || [], scripts: bundle.scripts || [], externalScripts: bundle.externalPublicScripts || [] };
-  } catch {
-    return { personas: [], demos: [], scripts: [], externalScripts: [] };
-  }
+export default function VoiceActorDirectoryPage() {
+  return (
+    <Suspense fallback={<PublicDirectoryLoading title="聲演" />}>
+      <VoiceActorDirectory />
+    </Suspense>
+  );
 }
 
-export default async function VoiceActorDirectoryPage() {
-  const { personas, demos, scripts, externalScripts } = await getDirectoryData();
-  return <VoiceActorDirectoryClient initialPersonas={personas} initialDemos={demos} initialScripts={scripts} initialExternalScripts={externalScripts} refreshOnMount={STATIC_EXPORT} />;
+async function VoiceActorDirectory() {
+  const bundle = await apiFetch<VoiceActorDirectoryBundle>(`/public-bundle?sections=${VOICE_ACTOR_DIRECTORY_SECTIONS.join(",")}`, { cache: "no-store" })
+    .catch((): VoiceActorDirectoryBundle => ({}));
+  return <VoiceActorDirectoryClient initialDirectory={buildVoiceActorDirectory(bundle)} refreshOnMount={STATIC_EXPORT} />;
 }

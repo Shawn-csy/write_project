@@ -20,6 +20,9 @@ import { render, screen } from "@testing-library/react";
 import React from "react";
 
 vi.mock("@/lib/api", () => ({ apiFetch: vi.fn() }));
+vi.mock("@/lib/readPublicBundle", () => ({
+  readPublicBundle: vi.fn().mockRejectedValue(new Error("offline")),
+}));
 vi.mock("@write/public-ui/server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@write/public-ui/server")>();
   return { ...actual, parseBannerSlides: vi.fn(() => undefined) };
@@ -119,5 +122,22 @@ describe("homepage server component", () => {
     mockApiFetch.mockResolvedValue({ scripts: SCRIPTS });
     const { container } = await renderPage();
     expect(container.querySelector("section[aria-label='最新公開台本']")).toBeNull();
+  });
+
+  it("renders the gallery with baked scripts in static export mode", async () => {
+    vi.stubEnv("CF_STATIC_EXPORT", "1");
+    vi.resetModules();
+    try {
+      mockApiFetch.mockResolvedValue({ scripts: SCRIPTS });
+      const { default: StaticHomePage } = await import("./page");
+      const jsx = await StaticHomePage({ searchParams: Promise.resolve({ view: "orgs" }) });
+      render(jsx as React.ReactElement);
+      const client = screen.getByTestId("gallery-client");
+      expect(client.getAttribute("data-script-count")).toBe("2");
+      expect(client.getAttribute("data-people-preloaded")).toBe("false");
+    } finally {
+      vi.unstubAllEnvs();
+      vi.resetModules();
+    }
   });
 });

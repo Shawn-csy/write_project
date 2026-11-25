@@ -76,6 +76,13 @@ def static_build(snapshot):
         validate_export(output, snapshot)
         validate_html((output / "index.html").read_text())
         validate_html((output / "authors.html").read_text())
+        audio_catalog = json.loads((output / "audio-works/catalog.json").read_text())
+        expected_catalog = {key: snapshot["/api/public-bundle"][key] for key in ("audioWorks", "organizations")}
+        if audio_catalog != expected_catalog:
+            raise RuntimeError("The audio directory fallback does not match the frozen content")
+        audio_page = (output / "audio-works.html").read_text()
+        if any(work["title"] in audio_page for work in audio_catalog["audioWorks"]):
+            raise RuntimeError("Audio directory fallback data was embedded in the initial page")
         for script in snapshot["/api/public-scripts"]:
             validate_html((output / "read" / (script["id"] + ".html")).read_text(), script)
         sitemap = (output / "sitemap.xml").read_text()

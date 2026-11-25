@@ -1,12 +1,14 @@
 "use client";
 
 import { useMemo, type MouseEvent } from "react";
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pause, Play, RefreshCw } from "lucide-react";
 import { CoverPlaceholder, CoverRenderer, useGalleryHoverPreview, type ScriptNavigationPolicy } from "@write/public-ui";
 import { CardMediaImage } from "@/components/CardMediaVisibility";
 import { trackExternalView } from "@/lib/externalScriptCard";
 import { projectRecommendation, type MixedGalleryEntry, type RecommendationCardData } from "./recommendationModel";
 import { useLoopingScroll } from "./useLoopingScroll";
+
+const MARQUEE_SPEED = 32;
 
 function RecommendationCard({ card, duplicate, activateCopy }: {
   card: RecommendationCardData;
@@ -21,9 +23,14 @@ function RecommendationCard({ card, duplicate, activateCopy }: {
   };
   const Title = duplicate ? "div" : "h3";
   return (
-    <article className="relative flex h-36 gap-3 overflow-hidden rounded-md border border-border bg-card p-2 text-card-foreground transition-colors hover:border-link/60 focus-within:border-link"
+    <article className="public-spotlight-card relative flex h-32 gap-3 overflow-hidden rounded-md px-1 py-1.5 text-card-foreground"
       onMouseEnter={(event) => preview?.show(detail, event.clientX, event.clientY)}
-      onMouseMove={(event) => preview?.move(event.clientX, event.clientY)}
+      onMouseMove={(event) => {
+        const { left, top } = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty("--public-spotlight-x", `${event.clientX - left}px`);
+        event.currentTarget.style.setProperty("--public-spotlight-y", `${event.clientY - top}px`);
+        preview?.move(event.clientX, event.clientY);
+      }}
       onMouseLeave={() => preview?.hide()}
       onFocus={(event) => {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -78,23 +85,30 @@ export function RandomRecommendationStrip({ entries, navigationPolicyMap, onShuf
 }) {
   const cards = useMemo(() => entries.map((entry) => projectRecommendation(entry, navigationPolicyMap)), [entries, navigationPolicyMap]);
   const resetKey = cards.map((card) => card.id).join("|");
-  const { trackRef, move, looping, cycles, interactionProps } = useLoopingScroll(cards.length, resetKey, 6000);
+  const { trackRef, move, looping, cycles, paused, togglePaused, reducedMotion, interactionProps } = useLoopingScroll(cards.length, resetKey, MARQUEE_SPEED);
+  const playbackLabel = paused ? "繼續播放隨機推薦" : "暫停隨機推薦";
   if (!cards.length) return null;
   return (
-    <section aria-label="隨機推薦" data-testid="random-recommendation-strip" {...interactionProps}>
+    <section aria-label="隨機推薦" data-testid="random-recommendation-strip">
       <div className="section-bar mb-3 flex items-center justify-between gap-3">
         <h2 className="text-lg font-bold tracking-tight">隨機推薦</h2>
         <div className="flex items-center gap-2">
           {looping && <>
-            <button type="button" aria-label="上一則隨機推薦" onClick={() => move(-1)} className="inline-flex h-8 w-8 items-center justify-center rounded border border-border hover:bg-muted"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
-            <button type="button" aria-label="下一則隨機推薦" onClick={() => move(1)} className="inline-flex h-8 w-8 items-center justify-center rounded border border-border hover:bg-muted"><ChevronRight className="h-4 w-4" aria-hidden /></button>
+            <button type="button" aria-label="上一則隨機推薦" onClick={() => move(-1)} className="public-arrow-motion public-arrow-back inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"><ChevronLeft className="h-4 w-4" aria-hidden /></button>
+            <button type="button" aria-label="下一則隨機推薦" onClick={() => move(1)} className="public-arrow-motion public-arrow-forward inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"><ChevronRight className="h-4 w-4" aria-hidden /></button>
+            {!reducedMotion && (
+              <button type="button" aria-label={playbackLabel} title={playbackLabel} onClick={togglePaused} className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+                {paused ? <Play className="h-4 w-4" aria-hidden /> : <Pause className="h-4 w-4" aria-hidden />}
+              </button>
+            )}
           </>}
           <button type="button" onClick={onShuffle} className="inline-flex h-8 items-center gap-1 text-xs text-link hover:underline">
             <RefreshCw className="h-3.5 w-3.5" aria-hidden />換一批
           </button>
         </div>
       </div>
-      <div ref={trackRef} data-testid="recommendation-track" className="flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={trackRef} data-testid="recommendation-track" data-looping={looping}
+        className="recommendation-marquee flex gap-3 overflow-x-auto overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" {...interactionProps}>
         {cycles.flatMap((cycle) => cards.map((card, index) => {
           const duplicate = cycle !== "original";
           const activateCopy = (action: string) => {
@@ -103,7 +117,7 @@ export function RandomRecommendationStrip({ entries, navigationPolicyMap, onShuf
           return (
             <div key={`${cycle}-${card.id}`} data-rec-index={duplicate ? undefined : index}
               aria-hidden={duplicate || undefined}
-              className={`${looping ? "w-[88%] sm:w-[19rem]" : "w-full max-w-[19rem]"} shrink-0 snap-start`}
+              className={`${looping ? "w-[88%] sm:w-[19rem]" : "w-full max-w-[19rem]"} shrink-0`}
               onClick={duplicate ? () => activateCopy("primary") : undefined}>
               <RecommendationCard card={card} duplicate={duplicate} activateCopy={activateCopy} />
             </div>

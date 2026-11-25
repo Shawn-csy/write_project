@@ -53,6 +53,6 @@ Standards references: [W3C contrast minimum](https://www.w3.org/WAI/WCAG21/Under
 
 ## Isolation and verification
 
-`app/homepage.css` scopes tokens to `html[data-homepage-version="modern"]` for portal sheets and `.modern-homepage` for the server-rendered gallery before the preference effect runs. The version effect removes its html attribute when unmounted. Legacy snapshot files and shared default public tokens remain unchanged; other public routes keep their existing palette. Banner and recommendation scroll behavior is unchanged.
+`app/homepage.css` provides the shared public palette on the root HTML element, including panels rendered through portals. The `.modern-homepage` wrapper scopes gallery-specific visual treatments.
 
 Public and main TypeScript checks pass, along with 35 focused tests across six mode-toggle, layout, mobile-sheet, version-switch and banner behavior test files after the pagination/toggle refinement. Earlier palette verification also passed 54 tests across eight files. Browser acceptance covers both themes and mobile/desktop separately.

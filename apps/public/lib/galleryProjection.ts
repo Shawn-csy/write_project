@@ -202,6 +202,25 @@ function clip(value: string | undefined, max: number): string | undefined {
   return value.length > max ? `${value.slice(0, max)}…` : value;
 }
 
+export function slimPersonaForGallery(persona: PublicPersona): PublicPersona {
+  const { id, displayName, avatar, bio, website, links, tags, roles, roleProfiles, externalHref, organizations, workParticipations } = persona;
+  const commissionOffers = roleProfiles?.scriptwriter?.commissionOffers;
+  return {
+    id,
+    displayName,
+    avatar,
+    bio,
+    website,
+    links,
+    tags,
+    roles,
+    externalHref,
+    organizations: organizations?.map(({ id, name }) => ({ id, name })),
+    roleProfiles: Array.isArray(commissionOffers) ? { scriptwriter: { commissionOffers } } : undefined,
+    workParticipations,
+  };
+}
+
 export function slimScriptForHomepage(script: PublicScript): PublicScript {
   return {
     id: script.id,

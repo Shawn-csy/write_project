@@ -1,21 +1,42 @@
 "use client";
 
 import { LiveBannerStrip } from "@/components/LiveBannerStrip";
-import type { HeroSlide } from "@write/public-ui";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ExternalLink, Headphones, Search } from "lucide-react";
-import { PublicFooter } from "@/components/PublicFooter";
+import { ArrowRight, ExternalLink, Headphones } from "lucide-react";
+import { PublicSearchField } from "@/components/PublicSearchField";
+import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
+import { PublicBrowseMain } from "@/components/PublicBrowseMain";
+import { PublicBackButton } from "@/components/PublicBackButton";
+import { PublicEmptyState } from "@/components/PublicEmptyState";
+import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
+import { AdultContentNotice } from "@/components/AdultContentNotice";
 import { PublicImage } from "@/components/PublicImage";
-import { PublicTopBar } from "@/components/PublicTopBar";
 import { AudioWorkSubmissionDialog } from "@/components/AudioWorkSubmissionDialog";
 import { AudioWorkAdApplicationDialog } from "@/components/AudioWorkAdApplicationDialog";
 import { readPublicBundle } from "@/lib/readPublicBundle";
+import { AUDIO_CATALOG_SECTIONS, AUDIO_CATALOG_SNAPSHOT, parseAudioCatalog, type AudioCatalog } from "@/lib/audioCatalog";
 import { audioWorkTime, sortAudioWorks, type AudioWorkSortOrder } from "@/lib/audioWorkSorting";
 import type { PublicAudioWork, PublicOrg } from "@/lib/types";
 
-type AudioBundle = { audioWorks?: PublicAudioWork[]; organizations?: PublicOrg[] };
+async function loadAudioCatalog(): Promise<AudioCatalog> {
+  try {
+    const { data } = await readPublicBundle<unknown>(AUDIO_CATALOG_SECTIONS);
+    return parseAudioCatalog(data);
+  } catch (error) {
+    if (process.env.NEXT_PUBLIC_STATIC_EXPORT !== "1") throw error;
+    const snapshot = await fetch(AUDIO_CATALOG_SNAPSHOT, { cache: "no-cache", signal: AbortSignal.timeout(8000) });
+    if (!snapshot.ok) throw new Error(`Audio catalog snapshot failed: ${snapshot.status}`);
+    return parseAudioCatalog(await snapshot.json());
+  }
+}
+const EMPTY_WORKS: PublicAudioWork[] = [];
+const EMPTY_ORGANIZATIONS: PublicOrg[] = [];
 const isFreeWork = (work: PublicAudioWork) => work.accessType === "free";
 const WORKS_PER_PAGE = 18;
+const AUDIO_SORT_GROUPS = [{ options: [
+  { value: "newest", label: "最新優先" },
+  { value: "oldest", label: "最舊優先" },
+] satisfies { value: AudioWorkSortOrder; label: string }[] }];
 const BEDTIME_ORG_ID = "39189f92-73b3-47fd-8f59-343f9367a443";
 const BEDTIME_OFFICIAL_LINKS = [
   { label: "官網", url: "https://bedtimestoryasmr.com/" },
@@ -79,12 +100,14 @@ const HANDORU_OFFICIAL_LINKS = [
   { label: "DLsite", url: "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG63553.html" },
 ] as const;
 
-export function AudioWorksClient({ initialWorks, initialOrganizations, initialBannerSlides = [], refreshOnMount = false }: { initialWorks: PublicAudioWork[]; initialOrganizations: PublicOrg[]; initialBannerSlides?: HeroSlide[]; refreshOnMount?: boolean }) {
+export function AudioWorksClient() {
   // Confirm on each visit; the choice is intentionally not persisted between pages.
   const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [works, setWorks] = useState(initialWorks);
-  const [organizations, setOrganizations] = useState(initialOrganizations);
-  const [loaded, setLoaded] = useState(!refreshOnMount || initialWorks.length > 0 || initialOrganizations.length > 0);
+  const [catalog, setCatalog] = useState<AudioCatalog | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const works = catalog?.audioWorks ?? EMPTY_WORKS;
+  const organizations = catalog?.organizations ?? EMPTY_ORGANIZATIONS;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<AudioWorkSortOrder>("newest");
   const [randomizedOrgIds, setRandomizedOrgIds] = useState<string[]>([]);
@@ -100,19 +123,14 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, initialBa
     return () => window.removeEventListener("popstate", syncSelection);
   }, []);
 
+  // Start the catalog request as soon as the age notice is interactive.
   useEffect(() => {
-    if (!refreshOnMount) return;
     let active = true;
-    void readPublicBundle<AudioBundle>(["audioWorks", "organizations"])
-      .then(({ data }) => {
-        if (!active) return;
-        if (Array.isArray(data.audioWorks)) setWorks(data.audioWorks);
-        if (Array.isArray(data.organizations)) setOrganizations(data.organizations);
-      })
-      .catch(() => {})
-      .finally(() => { if (active) setLoaded(true); });
+    void loadAudioCatalog()
+      .then((data) => { if (active) setCatalog(data); })
+      .catch(() => { if (active) setLoadFailed(true); });
     return () => { active = false; };
-  }, [refreshOnMount]);
+  }, [loadAttempt]);
 
   const groups = useMemo(() => {
     const orgById = new Map(organizations.map((org) => [org.id, org]));
@@ -202,37 +220,40 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, initialBa
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
-      <PublicTopBar activeTab="audio-works" />
+    <div className="flex flex-1 flex-col bg-background">
       {!ageConfirmed ? (
-        <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
-          <section aria-labelledby="audio-age-warning" className="w-full border-l-4 border-seal bg-muted p-5 sm:p-6">
-            <h1 id="audio-age-warning" className="flex items-center gap-2 text-xl font-bold"><span className="rounded-sm bg-seal px-1.5 py-0.5 text-xs font-bold text-white">R18</span>成人向內容提醒</h1>
-            <p className="mt-3 text-sm leading-relaxed text-foreground">音聲作品頁包含成人向作品與封面，僅供年滿 18 歲者瀏覽。</p>
-            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-              <button type="button" onClick={() => setAgeConfirmed(true)} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">我已年滿 18 歲，進入頁面</button>
-              <a href="/" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border px-5 text-sm font-medium hover:bg-muted">返回首頁</a>
-            </div>
-          </section>
-        </main>
+        <PublicBrowseMain width="narrow">
+          <AdultContentNotice scope="audio-works" onConfirm={() => setAgeConfirmed(true)} />
+        </PublicBrowseMain>
       ) : (
       <>
-      <LiveBannerStrip slides={initialBannerSlides} placement="audio-works" />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 lg:px-8">
-        <div className="mb-5 flex flex-col gap-3 border-b border-border pb-4 sm:mb-7 sm:flex-row sm:items-center sm:justify-between sm:pb-5">
-          <div className="flex min-w-0 items-center gap-3">
-            {selected && <button type="button" onClick={() => select(null)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border hover:bg-muted" aria-label="返回音聲作品總覽"><ArrowLeft className="h-4 w-4" /></button>}
-            {selected?.org.logoUrl && <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-card"><PublicImage src={selected.org.logoUrl} alt={`${selected.org.name}圖像`} preset="logo" /></span>}
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{selected?.org.name || "音聲作品"}</h1>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
-            <AudioWorkSubmissionDialog organizations={organizations} />
+      <LiveBannerStrip placement="audio-works" />
+      <PublicBrowseMain>
+        <PublicBrowseHeader
+          title={selected?.org.name || "音聲作品"}
+          leading={selected && <>
+            <PublicBackButton label="返回音聲作品總覽" onClick={() => select(null)} />
+            {selected.org.logoUrl && <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-card"><PublicImage src={selected.org.logoUrl} alt={`${selected.org.name}圖像`} preset="logo" /></span>}
+          </>}
+          search={selected ? (
+            <PublicSearchField value={workQuery} onChange={(next) => { setWorkQuery(next); setVisibleCount(WORKS_PER_PAGE); }} placeholder="搜尋作品或聲演" />
+          ) : catalog && !selectedId && works.length > 0 ? (
+            <PublicSearchField value={studioQuery} onChange={setStudioQuery} placeholder="搜尋社團" />
+          ) : undefined}
+          actions={<>
+            {catalog && <AudioWorkSubmissionDialog organizations={organizations} />}
             <AudioWorkAdApplicationDialog />
-          </div>
-        </div>
+          </>}
+        />
 
-        {!loaded ? (
-          <div className="grid gap-4" aria-label="載入作品">{Array.from({ length: 2 }, (_, index) => <div key={index} className="h-48 animate-pulse rounded-xl bg-muted" />)}</div>
+        {loadFailed ? (
+          <PublicEmptyState
+            className="border-y border-border"
+            title="無法載入音聲作品"
+            primaryAction={{ label: "重新載入", onClick: () => { setLoadFailed(false); setLoadAttempt((attempt) => attempt + 1); } }}
+          />
+        ) : !catalog ? (
+          <div className="grid gap-4" role="status" aria-label="載入作品">{Array.from({ length: 2 }, (_, index) => <div key={index} aria-hidden="true" className="h-48 animate-pulse rounded-xl bg-muted" />)}</div>
         ) : selected ? (
           <section aria-label={`${selected.org.name}的作品`}>
             {selected.org.description && <p className="mb-5 max-w-3xl text-sm leading-relaxed text-muted-foreground">{selected.org.description}</p>}
@@ -245,44 +266,26 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, initialBa
                 ))}
               </nav>
             )}
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <label className="relative block w-full max-w-sm">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                <input type="search" value={workQuery} onChange={(event) => { setWorkQuery(event.target.value); setVisibleCount(WORKS_PER_PAGE); }} placeholder="搜尋作品或聲演" aria-label="搜尋作品或聲演" className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground" />
-              </label>
-              <label className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
-                時間排序
-                <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as AudioWorkSortOrder)} className="h-10 rounded-lg border border-border bg-card px-3 text-sm text-foreground">
-                  <option value="newest">最新優先</option>
-                  <option value="oldest">最舊優先</option>
-                </select>
-              </label>
+            <div className="mb-4 flex justify-end">
+              <PublicMorphDropdown label="時間排序" value={sortOrder} groups={AUDIO_SORT_GROUPS} onChange={setSortOrder} align="end" />
             </div>
             <p className="mb-4 text-xs text-muted-foreground">{workQuery ? `找到 ${filteredWorks.length} 件作品` : `共 ${selected.works.length} 件作品`}</p>
             {filteredWorks.length > 0 ? <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
-              {filteredWorks.slice(0, visibleCount).map((work) => <AudioWorkCard key={work.id} work={work} />)}
-            </div> : <p className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">找不到符合的作品或聲演。</p>}
+              {filteredWorks.slice(0, visibleCount).map((work, index) => <AudioWorkCard key={work.id} work={work} highlightCover={index < 3} />)}
+            </div> : <PublicEmptyState
+              className="border-y border-border"
+              title="找不到符合的作品或聲演。"
+              primaryAction={workQuery.trim() ? { label: "清除搜尋", onClick: () => { setWorkQuery(""); setVisibleCount(WORKS_PER_PAGE); } } : undefined}
+            />}
             {filteredWorks.length > visibleCount && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
           </section>
         ) : selectedId ? (
-          <section className="rounded-xl border border-border p-8 text-center">
-            <p>找不到這個組織的公開作品。</p>
-            <button type="button" onClick={() => select(null)} className="mt-4 text-sm text-link hover:underline">返回總覽</button>
-          </section>
+          <PublicEmptyState className="border-y border-border" title="找不到這個組織的公開作品。" primaryAction={{ label: "返回音聲作品總覽", onClick: () => select(null) }} />
         ) : works.length === 0 ? (
-          <section className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
-            <Headphones className="mx-auto h-8 w-8 text-muted-foreground" aria-hidden />
-            <h2 className="mt-4 text-base font-semibold">目前沒有公開作品</h2>
-          </section>
+          <PublicEmptyState className="border-y border-border" title="目前沒有公開作品" icon={<Headphones className="h-5 w-5" aria-hidden />} />
         ) : (
           <div className="space-y-8">
             <section aria-label="音聲作品組織">
-              <div className="mb-5">
-                <label className="relative block w-full sm:w-64">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-                  <input type="search" value={studioQuery} onChange={(event) => setStudioQuery(event.target.value)} placeholder="搜尋社團" aria-label="搜尋社團" className="h-10 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground" />
-                </label>
-              </div>
               {visibleGroups.length > 0 ? <div className="grid gap-4 md:grid-cols-2">
               {visibleGroups.map(({ org, works: orgWorks }) => {
                 const banner = org.bannerUrl;
@@ -304,7 +307,11 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, initialBa
                   </span>
                 </button>;
               })}
-              </div> : <p className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-sm text-muted-foreground">找不到符合的社團。</p>}
+              </div> : <PublicEmptyState
+                className="border-y border-border"
+                title="找不到符合的社團。"
+                primaryAction={studioQuery.trim() ? { label: "清除搜尋", onClick: () => setStudioQuery("") } : undefined}
+              />}
             </section>
             {groups.unassigned.length > 0 && <section aria-labelledby="other-audio-works">
               <h2 id="other-audio-works" className="mb-4 text-sm font-semibold">其他公開作品</h2>
@@ -312,22 +319,21 @@ export function AudioWorksClient({ initialWorks, initialOrganizations, initialBa
             </section>}
           </div>
         )}
-      </main>
+      </PublicBrowseMain>
       </>
       )}
-      <PublicFooter />
     </div>
   );
 }
 
-function AudioWorkCard({ work }: { work: PublicAudioWork }) {
+function AudioWorkCard({ work, highlightCover = false }: { work: PublicAudioWork; highlightCover?: boolean }) {
   const isAdultWork = /成人向|R18/i.test(`${work.title}\n${work.description}`);
   const introduction = (work.description || "").split("\n").filter((line) =>
     !work.credits?.length || !/^\s*[【〔]?(?:聲演|聲優|声優|配音|CV|台本|劇本|脚本|シナリオ|封面|插畫|イラスト|後製|後期|混音|錄音|音效|聲音導演|音樂|配樂|美術|設計|標題設計|導演|監修|原著|原案|製作|共同製作|企劃|企画|制作|其他演出)(?:[・／/、+＆&](?:後製|後期|錄音|配音))?[】〕]?\s*[：:|｜]/i.test(line)
   ).join("\n").trim();
   return (
-    <article className="overflow-hidden rounded-xl border border-border bg-card">
-      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+    <article className={`overflow-hidden rounded-xl border border-border bg-card ${highlightCover ? "public-featured-glare" : ""}`}>
+      <div data-public-cover={Boolean(work.coverUrl) || undefined} className="relative aspect-[4/3] overflow-hidden bg-muted">
         {work.coverUrl ? <PublicImage src={work.coverUrl} alt={`${work.title}封面`} preset="script-cover" /> : <div className="flex h-full items-center justify-center"><Headphones className="h-9 w-9 text-muted-foreground/50" aria-hidden /></div>}
         {isAdultWork && <span className="absolute left-2 top-2 rounded-sm bg-seal px-1.5 py-0.5 [font-size:var(--public-font-caption)] font-bold text-white">成人向</span>}
         {isFreeWork(work) && <span className="absolute right-2 top-2 rounded bg-slate-900/85 px-1.5 py-0.5 [font-size:var(--public-font-caption)] font-bold text-white">免費版</span>}
@@ -337,8 +343,8 @@ function AudioWorkCard({ work }: { work: PublicAudioWork }) {
         {work.creatorName && <p className="mt-1 text-xs text-muted-foreground">{work.creatorName}</p>}
         {work.publishedAt != null && <time className="mt-1 block text-xs text-muted-foreground" dateTime={new Date(work.publishedAt).toISOString()}>{work.url.includes("cxc.today/") ? (work.url.includes("/track/") ? "CxC 上架 " : "CxC 更新 ") : "發售 "}{new Intl.DateTimeFormat("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Taipei" }).format(work.publishedAt)}</time>}
         {Boolean(work.voiceActors?.length) && <p className="mt-1 flex flex-wrap gap-x-1 text-xs text-muted-foreground">聲演：{work.voiceActors!.map((actor, index) => <span key={actor.id}>{index > 0 ? "、" : ""}<a href={`/author/${actor.id}`} className="text-link hover:underline">{actor.name}</a></span>)}</p>}
-        <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-link hover:underline sm:text-sm">前往作品頁 <ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
-        {(Boolean(work.credits?.length) || introduction) && <details className="mt-3 border-t border-border pt-2 text-xs text-muted-foreground sm:text-sm">
+        <a href={work.url} target="_blank" rel="noopener noreferrer" className="public-arrow-link mt-3 inline-flex items-center gap-1 text-xs font-semibold text-link hover:underline sm:text-sm">前往作品頁 <ExternalLink className="h-3.5 w-3.5" aria-hidden /></a>
+        {(Boolean(work.credits?.length) || introduction) && <details className="public-native-disclosure mt-3 border-t border-border pt-2 text-xs text-muted-foreground sm:text-sm">
           <summary className="cursor-pointer font-medium text-foreground">製作人員與介紹</summary>
           {Boolean(work.credits?.length) && <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 leading-relaxed">{work.credits!.map((credit, index) => <div className="contents" key={`${credit.role}-${credit.creditedAs}-${index}`}><dt className="whitespace-nowrap text-muted-foreground">{credit.sourceRole}</dt><dd className="break-words text-foreground">{credit.personaId ? <a href={`/author/${encodeURIComponent(credit.personaId)}`} className="text-link hover:underline focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{credit.creditedAs}</a> : credit.creditedAs}{credit.provenance === "catalog_description" && <span className="ml-1 text-muted-foreground">（本站原有資料）</span>}</dd></div>)}</dl>}
           {work.credits?.some((credit) => credit.provenance === "official_page") && <a href={work.url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-link hover:underline">核對來源 ↗</a>}
