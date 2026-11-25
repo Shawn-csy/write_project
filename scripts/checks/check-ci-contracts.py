@@ -132,6 +132,14 @@ class CIContracts(unittest.TestCase):
         self.assertNotIn('["npm", "run", "build", "-w", "apps/public"]', build_check)
         self.assertIn('"scripts/release/build-public-pages.mjs"', build_check)
 
+    def test_production_jobs_pin_the_runner_environment(self):
+        for workflow in ("deploy.yml", "content-refresh.yml"):
+            with self.subTest(workflow=workflow):
+                source = (ROOT / ".github/workflows" / workflow).read_text()
+                job_env = source.split("\n    env:\n", 1)[1].split("\n    steps:", 1)[0].splitlines()
+                self.assertIn("      DOCKER_CONTEXT: orbstack", job_env)
+                self.assertIn("      SSL_CERT_FILE: /etc/ssl/cert.pem", job_env)
+
     def test_deployment_gate_names_remain_compatible(self):
         deploy = (ROOT / ".github/workflows/deploy.yml").read_text()
         release = (ROOT / "scripts/release/release-workflow.py").read_text()

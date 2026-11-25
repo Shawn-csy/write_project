@@ -109,6 +109,8 @@ runner 從自己的 checkout 建置，但兩樣東西必須用正式位置：
 - `WP_RELEASE_ROOT=$HOME/Desktop/write_project/releases`：正式入口掛載的靜態檔與發布控制資料。
 - `WP_STUDIO_ENV_FILE=$HOME/Desktop/write_project/.env`：工作室建置需要的公開 Firebase 設定（不進 git）。
 
+正式部署與內容刷新 workflow 都在 job 層設定 `DOCKER_CONTEXT=orbstack`，讓入口檢查和發布固定使用 OrbStack。兩個 job 也都設定 `SSL_CERT_FILE=/etc/ssl/cert.pem`，讓 runner 上的 Python 使用 macOS 憑證包驗證 API 與 Pages 的 HTTPS 憑證。
+
 ## 回滾
 
 與手動發布相同：`python3 scripts/release/site-release.py rollback --tag auto-<sha>` 接回上一版入口；Cloudflare Pages 從部署記錄回滾。schema 遷移與身份收斂寫入的資料不會回滾，需要時從 `~/write_project_backups/` 的備份還原。

@@ -17,6 +17,8 @@ jobs:
     runs-on: [self-hosted, macOS, write-project-prod]
     timeout-minutes: 45
     env:
+      DOCKER_CONTEXT: orbstack
+      SSL_CERT_FILE: /etc/ssl/cert.pem
       WP_RELEASE_ROOT: /Users/shanti/Desktop/write_project/releases
     steps:
       - uses: actions/checkout@v7
