@@ -17,7 +17,7 @@ import { LiveBannerStrip } from "@/components/LiveBannerStrip";
 import type { HeroSlide } from "@write/public-ui";
 import { liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
-import { demoArtwork, youtubeThumbnail } from "@/lib/demoArtwork";
+import { demoArtwork } from "@/lib/demoArtwork";
 import type { PublicPersona } from "@/lib/types";
 import type { DemoCatalog, DemoCatalogBundle, DemoLink, DemoScriptGroup, ManualVoiceActor } from "@/lib/demoCatalog";
 import { DEMO_CATALOG_SECTIONS } from "@/lib/publicBundleProjection";
@@ -157,7 +157,7 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
 
   const selectedGroup = scriptGroups.find((group) => group.key === selectedScriptKey);
   const selectedGroupCoverUrl = selectedGroup
-    ? selectedGroup.demos.map((demo) => youtubeThumbnail(demo.url)).find(Boolean) || selectedGroup.coverUrl || ""
+    ? selectedGroup.demos.map((demo) => demoArtwork(demo.url, demo.coverUrl)).find(Boolean) || selectedGroup.coverUrl
     : "";
   const { limit: renderLimit, loadMoreRef } = useDirectoryRenderLimit(
     selectedGroup ? 0 : visibleGroups.length,
@@ -622,7 +622,7 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
                   const actors = demo.voiceActorIds.map((id) => voiceActorById.get(id)).filter((persona): persona is PublicPersona => Boolean(persona));
                   const namedActors = new Set([...actors.map((actor) => actor.displayName), ...demo.manualVoiceActors.map((actor) => actor.name)].map((name) => name.trim().toLocaleLowerCase()));
                   const legacyCastNames = [...new Set(demoLegacyCastNames(demo))].filter((name) => !namedActors.has(name.toLocaleLowerCase()));
-                  const artwork = youtubeThumbnail(demo.url) || selectedGroup.coverUrl || demo.coverUrl;
+                  const artwork = demoArtwork(demo.url, demo.coverUrl, selectedGroup.coverUrl);
                   const singleDemo = selectedGroup.demos.length === 1;
                   return (
                     <article key={`${demo.id}-${index}`} className={`overflow-hidden rounded-xl border border-border bg-card ${singleDemo ? "sm:grid sm:grid-cols-[minmax(14rem,0.42fr)_minmax(0,1fr)]" : ""}`}>

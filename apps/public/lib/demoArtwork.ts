@@ -14,5 +14,5 @@ export function youtubeThumbnail(url: string): string {
 }
 
 export function demoArtwork(demoUrl: string, demoCoverUrl = "", scriptCoverUrl = ""): string {
-  return youtubeThumbnail(demoUrl) || demoCoverUrl || scriptCoverUrl;
+  return demoCoverUrl || youtubeThumbnail(demoUrl) || scriptCoverUrl;
 }
