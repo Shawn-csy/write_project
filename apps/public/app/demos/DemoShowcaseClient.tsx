@@ -6,12 +6,15 @@ import { PublicSubmissionTrigger } from "@/components/PublicSubmissionTrigger";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { BookOpen, Check, ExternalLink, LayoutGrid, List, LoaderCircle, Play, Plus, RefreshCw, Search, X } from "lucide-react";
+import { PublicActionArrow, PublicContentLink, PublicMetadataLabel, PublicPersonLink, PublicPlayLink } from "@/components/PublicDirectoryDetails";
+import { BookOpen, Check, Headphones, LayoutGrid, List, LoaderCircle, Plus, RefreshCw, Search, X } from "lucide-react";
 import { AnimatedSegment } from "@/components/AnimatedSegment";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicBrowseMain } from "@/components/PublicBrowseMain";
 import { PublicBackButton } from "@/components/PublicBackButton";
 import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
+import { PublicCast, PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
+import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
 import { PublicImage } from "@/components/PublicImage";
 import { LiveBannerStrip } from "@/components/LiveBannerStrip";
 import type { HeroSlide } from "@write/public-ui";
@@ -19,7 +22,7 @@ import { liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { demoArtwork } from "@/lib/demoArtwork";
 import type { PublicPersona } from "@/lib/types";
-import type { DemoCatalog, DemoCatalogBundle, DemoLink, DemoScriptGroup, ManualVoiceActor } from "@/lib/demoCatalog";
+import type { DemoCatalog, DemoCatalogBundle, DemoScriptGroup, ManualVoiceActor } from "@/lib/demoCatalog";
 import { DEMO_CATALOG_SECTIONS } from "@/lib/publicBundleProjection";
 import { useDirectoryRenderLimit } from "@/lib/useDirectoryRenderLimit";
 
@@ -55,34 +58,10 @@ interface Props {
 
 function DemoAuthorName({ group }: { group: DemoScriptGroup }) {
   return group.authorHref
-    ? <a href={group.authorHref} className="inline-flex min-h-7 items-center text-link hover:underline">{group.authorName}</a>
+    ? <PublicPersonLink href={group.authorHref} name={group.authorName} avatar={group.authorAvatarUrl} compact />
     : <span>{group.authorName}</span>;
 }
 
-const VOICE_ACTOR_TAG_PATTERN = /聲演|配音|voice[\s-]?actor/i;
-const GENERIC_DEMO_NAME_PATTERN = /^(演出 demo|demo|試聽|google docs|youtube|vocus|cxc|soundcloud|bilibili|spotify)$/i;
-
-function demoActors(demo: DemoLink, personasById: Map<string, PublicPersona>): PublicPersona[] {
-  return demo.voiceActorIds
-    .map((id) => personasById.get(id))
-    .filter((persona): persona is PublicPersona => Boolean(persona));
-}
-
-function demoLegacyCastNames(demo: DemoLink): string[] {
-  return demo.cast
-    .split(/[、,，/／|;；\n]+/)
-    .map((value) => value.trim())
-    .flatMap((value) => {
-      // Legacy cast fields are free text. Keep them in the performer bucket only
-      // when they do not explicitly identify an author or scriptwriter.
-      if (/^(作者|原作者|台本師|編劇|劇本師|脚本家|シナリオライター|author|writer|script\s*writer)(?:\s*[:：]|\s|$)/i.test(value)) return [];
-      return [value.replace(/^(聲演|声優|配音|演出者|cast)\s*[:：]?\s*/i, "").trim()];
-    });
-}
-
-function demoCastNames(demo: DemoLink): string[] {
-  return [...demo.manualVoiceActors.map((actor) => actor.name.trim()), ...demoLegacyCastNames(demo)].filter(Boolean);
-}
 
 export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refreshOnMount }: Props) {
   const [catalog, setCatalog] = useState(initialCatalog);
@@ -156,9 +135,9 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
   }, [liveBundleLoaded, scriptGroups, selectedScriptKey]);
 
   const selectedGroup = scriptGroups.find((group) => group.key === selectedScriptKey);
-  const selectedGroupCoverUrl = selectedGroup
-    ? selectedGroup.demos.map((demo) => demoArtwork(demo.url, demo.coverUrl)).find(Boolean) || selectedGroup.coverUrl
-    : "";
+  const scriptArtwork = selectedGroup?.coverUrl && !selectedGroup.demos.some(
+    (demo) => demoArtwork(demo.url, demo.coverUrl, selectedGroup.coverUrl) === selectedGroup.coverUrl,
+  ) ? selectedGroup.coverUrl : "";
   const { limit: renderLimit, loadMoreRef } = useDirectoryRenderLimit(
     selectedGroup ? 0 : visibleGroups.length,
     8,
@@ -294,16 +273,15 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
           </button>
         </div>
       )}
-      <PublicBrowseMain>
+      <PublicBrowseMain className={`scroll-mt-[86px] sm:scroll-mt-[57px] ${selectedGroup ? "public-demo-detail" : ""}`}>
         <PublicBrowseHeader
           title={selectedGroup?.title ?? "Demo"}
           leading={selectedGroup && <PublicBackButton label="返回台本清單" onClick={returnToScriptList} />}
           description={selectedGroup?.authorName && (
             <p className="mt-1 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
               <span>台本師：<DemoAuthorName group={selectedGroup} /></span>
-              <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>
               {selectedGroupAuthorIsVoiceActor && (
-                <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>
+                <PublicMetadataLabel>聲演</PublicMetadataLabel>
               )}
             </p>
           )}
@@ -314,10 +292,11 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
               placeholder="搜尋台本或台本師"
             />
           )}
+          actionsClassName={selectedGroup ? "basis-full lg:basis-auto" : undefined}
           actions={
             <Dialog.Root open={showSubmissionForm} onOpenChange={setShowSubmissionForm}>
               <Dialog.Trigger asChild>
-                <PublicSubmissionTrigger label="投稿 Demo" />
+                <PublicSubmissionTrigger label="投稿 Demo" quiet={Boolean(selectedGroup)} />
               </Dialog.Trigger>
               <PublicSubmissionDialogContent title="投稿已錄製的 Demo" description="選擇台本並提供公開連結，審核通過後會顯示在該台本旁。" width="large" restoreActiveElement>
                 <form onSubmit={handleDemoSubmission} className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -516,13 +495,21 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
         />
 
         {!selectedGroup && scriptGroups.length > 0 && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-5">
-            <span className="hidden [font-size:var(--public-font-meta)] text-muted-foreground sm:inline" aria-live="polite">{visibleGroups.length} 部 Demo 台本</span>
-            <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="hidden truncate [font-size:var(--public-font-meta)] text-muted-foreground sm:inline" aria-live="polite">{visibleGroups.length} 部 Demo 台本</span>
+              {sort === "random" && <button
+                type="button"
+                onClick={() => setRandomSeed(Date.now())}
+                aria-label="重新隨機排序"
+                title="重新隨機排序"
+                className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-link"
+              ><RefreshCw className="h-4 w-4" aria-hidden /></button>}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
               <PublicMorphDropdown label="Demo 排序" value={sort} groups={DEMO_SORT_GROUPS} onChange={changeSort} className="sm:hidden" align="end" />
               <AnimatedSegment label="Demo 排序" options={DEMO_SORT_OPTIONS} value={sort} onChange={changeSort}
                 className="hidden h-9 border border-border sm:flex" btnClassName="whitespace-nowrap px-3 font-medium" />
-              {sort === "random" && <button type="button" onClick={() => setRandomSeed(Date.now())} aria-label="重新隨機排序" title="重新隨機排序" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground"><RefreshCw className="h-4 w-4" aria-hidden /></button>}
               <AnimatedSegment label="展示方式" options={DEMO_VIEW_OPTIONS} value={view} onChange={setView}
                 className="flex h-9 border border-border" btnClassName="inline-flex items-center gap-1 whitespace-nowrap px-2"
                 renderOption={({ value, label }) => {
@@ -560,31 +547,30 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
                 {visibleGroups.slice(0, renderLimit).map((group) => {
                   const firstDemo = group.demos[0];
                   const artwork = demoArtwork(firstDemo.url, firstDemo.coverUrl, group.coverUrl);
-                  const actors = demoActors(firstDemo, voiceActorById);
-                  const names = [...new Set([...actors.map((actor) => actor.displayName.trim()), ...demoCastNames(firstDemo)])];
-                  const actorHrefs = new Map(actors.map((actor) => [actor.displayName.trim(), actor.externalHref || `/author/${encodeURIComponent(actor.id)}`]));
-                  firstDemo.manualVoiceActors.forEach((actor) => {
-                    const href = actor.personaId ? `/author/${encodeURIComponent(actor.personaId)}` : actor.socialUrl;
-                    if (href) actorHrefs.set(actor.name.trim(), href);
-                  });
+                  const performers = publicDemoPerformers(firstDemo, voiceActorById);
                   const cardTitle = group.demos.find((demo) => demo.name.includes("｜") && /PV|試聽/.test(demo.name))?.name || group.title;
                   return (
                     <article key={group.key} className={`${view === "list" ? "grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[12rem_minmax(0,1fr)]" : "flex flex-col"} min-w-0 overflow-hidden rounded-xl border border-border bg-card`}>
-                      <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className={`group relative overflow-hidden bg-muted text-left ${view === "list" ? "h-full min-h-28" : "aspect-video"}`}>
+                      <button
+                        type="button"
+                        onClick={() => openScript(group.key)}
+                        aria-label={`開啟「${group.title}」的演出`}
+                        className={`group relative isolate block w-full min-w-0 overflow-hidden bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-link ${view === "list" ? "h-full min-h-28" : "aspect-video"}`}
+                      >
                         <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
-                        {artwork && <PublicImage src={artwork} alt={`${cardTitle}演出圖片`} preset="script-cover" className="group-hover:opacity-90" />}
-                        {group.demos.length > 1 && <span className="absolute bottom-1.5 left-1.5 right-1.5 rounded-md bg-black/75 px-1 py-1 text-center [font-size:var(--public-font-caption)] text-white sm:bottom-2 sm:left-auto sm:right-2 sm:px-2 sm:text-xs">多個版本</span>}
+                        {artwork && <PublicImage src={artwork} alt="" preset="script-cover" className="motion-safe:transition-[filter] group-hover:brightness-90" />}
+                        {group.demos.length > 1 && <span aria-hidden="true" className="absolute bottom-2 right-2 rounded-full bg-black/75 px-2 py-0.5 text-xs font-medium text-white">{group.demos.length} 個版本</span>}
                       </button>
                       <div className={`flex min-w-0 flex-1 flex-col p-2.5 ${view === "list" ? "sm:px-4 sm:py-3" : "sm:p-4"}`}>
-                        <button type="button" onClick={() => openScript(group.key)} className={`text-left text-xs font-semibold leading-5 hover:text-link sm:text-sm ${view === "list" ? "line-clamp-1 sm:line-clamp-2" : "line-clamp-2 sm:min-h-10"}`}>{cardTitle}</button>
-                        {group.authorName && <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><span className="shrink-0">台本師：</span><span className="min-w-0 truncate"><DemoAuthorName group={group} /></span></p>}
-                        {group.organizationName && group.organizationHref && <p className="mt-1 truncate text-xs text-muted-foreground">組織：<a href={group.organizationHref} className="text-link hover:underline">{group.organizationName}</a></p>}
-                        {names.length > 0 && <p className={`mt-1 flex min-w-0 items-center gap-x-1 text-xs text-muted-foreground ${view === "list" ? "overflow-hidden whitespace-nowrap" : "flex-wrap"}`}><span className="shrink-0">聲演：</span>{names.map((name, index) => {
-                          const href = actorHrefs.get(name);
-                          return <span key={`${name}-${index}`} className={`inline-flex min-w-0 items-center whitespace-nowrap rounded-md bg-muted px-1.5 ${view === "list" ? "truncate" : ""}`}>{href ? <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex min-h-7 items-center text-link hover:underline">{name}</a> : <span>{name}</span>}</span>;
-                        })}</p>}
-                        <div className={`mt-auto hidden pt-3 sm:block ${view === "list" ? "sm:pt-1" : ""}`}>
-                          <button type="button" onClick={() => openScript(group.key)} className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground hover:opacity-90">{group.demos.length > 1 ? "查看演出版本" : "查看演出"}</button>
+                        <h2 className="line-clamp-2 text-[0.875rem] font-semibold leading-snug sm:text-base">{cardTitle}</h2>
+                        {view === "list" && group.summary && <p className="mt-1 hidden text-sm leading-relaxed text-muted-foreground sm:block sm:truncate">{group.summary}</p>}
+                        {group.authorName && <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground"><span className="shrink-0">台本師：</span><span className="min-w-0"><DemoAuthorName group={group} /></span></p>}
+                        {group.organizationName && group.organizationHref && <p className="mt-1 min-w-0 text-xs text-muted-foreground">社團：<PublicContentLink href={group.organizationHref} appearance="identity">{group.organizationName}</PublicContentLink></p>}
+                        {performers.length > 0 && <div className="mt-1"><PublicCast performers={performers} compact /></div>}
+                        <div className="mt-auto pt-3">
+                          <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className="public-directory-action text-xs">
+                            {group.demos.length > 1 ? "查看版本" : "查看演出"}<PublicActionArrow />
+                          </button>
                         </div>
                       </div>
                     </article>
@@ -595,80 +581,46 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
             </section>
           )
         ) : (
-          <div className="space-y-5">
-            <section className="overflow-hidden rounded-xl border border-border bg-card">
-              <div className="grid gap-4 p-4 sm:grid-cols-[minmax(12rem,0.36fr)_minmax(0,1fr)] sm:items-center sm:p-5">
-                <div className="relative aspect-[16/10] overflow-hidden rounded-lg bg-muted">
-                  <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
-                  {selectedGroupCoverUrl && <PublicImage src={selectedGroupCoverUrl} alt={`${selectedGroup.title}封面`} preset="script-cover" />}
-                </div>
+          <div className="space-y-5 sm:space-y-6">
+            <section aria-label="台本資料" className="rounded-xl bg-muted/45 p-3 ring-1 ring-inset ring-border sm:p-4">
+              <div className={scriptArtwork ? "grid gap-3 sm:grid-cols-[minmax(9rem,0.32fr)_minmax(0,1fr)] sm:items-start" : undefined}>
+                {scriptArtwork && <div className="relative hidden aspect-[16/10] overflow-hidden rounded-lg bg-muted sm:block">
+                  <PublicImage src={scriptArtwork} alt={`${selectedGroup.title}台本封面`} preset="script-cover" />
+                </div>}
                 <div className="min-w-0">
-                  {selectedGroup.authorName && <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground"><span>台本師：<DemoAuthorName group={selectedGroup} /></span><span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)]">台本師</span>{selectedGroupAuthorIsVoiceActor && <span className="rounded-sm bg-muted px-1.5 py-0.5 [font-size:var(--public-font-caption)] text-link">聲演</span>}</p>}
-                  {selectedGroup.organizationName && selectedGroup.organizationHref && <p className="mt-1 text-sm text-muted-foreground">組織：<a href={selectedGroup.organizationHref} className="text-link hover:underline">{selectedGroup.organizationName}</a></p>}
-                  {selectedGroup.summary && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{selectedGroup.summary}</p>}
-                  <a href={selectedGroup.sourceUrl} target={selectedGroup.scriptType === "external" ? "_blank" : undefined} rel={selectedGroup.scriptType === "external" ? "noopener noreferrer" : undefined} className="mt-4 inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-xs font-medium hover:bg-muted">
-                    <BookOpen className="h-3.5 w-3.5" aria-hidden />{selectedGroup.scriptType === "external" ? "閱讀原台本" : "閱讀台本"}<ExternalLink className="h-3 w-3" aria-hidden />
-                  </a>
+                  <h2 className="text-base font-semibold sm:text-lg">{selectedGroup.summary ? "台本簡介" : "台本資料"}</h2>
+                  {selectedGroup.organizationName && selectedGroup.organizationHref && <p className="mt-1.5 text-sm text-muted-foreground">社團　<PublicContentLink href={selectedGroup.organizationHref} appearance="identity">{selectedGroup.organizationName}</PublicContentLink></p>}
+                  {selectedGroup.summary && <p className="mt-2 max-w-[66ch] whitespace-pre-wrap break-words text-[0.9375rem] leading-7 text-foreground/85 sm:text-base sm:leading-8">{selectedGroup.summary}</p>}
+                  <PublicContentLink href={selectedGroup.sourceUrl} target={selectedGroup.scriptType === "external" ? "_blank" : undefined} rel={selectedGroup.scriptType === "external" ? "noopener noreferrer" : undefined} arrow={selectedGroup.scriptType === "external"} appearance="source" className="mt-2 text-xs">
+                    <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {selectedGroup.scriptType === "external" ? "閱讀原台本" : "閱讀台本"}
+                  </PublicContentLink>
                 </div>
               </div>
             </section>
 
-            <section>
-              <div className="mb-3 flex items-baseline justify-between gap-3">
-                <h2 className="text-base font-semibold">演出與試聽</h2>
+            <section aria-labelledby="demo-performances">
+              <div className="mb-3 flex flex-wrap items-baseline gap-x-2">
+                <h2 id="demo-performances" className="text-lg font-semibold sm:text-xl">演出與試聽</h2>
+                {selectedGroup.demos.length > 1 && <span className="text-xs text-muted-foreground">{selectedGroup.demos.length} 個版本</span>}
               </div>
-              <div className={selectedGroup.demos.length > 1 ? "grid gap-4 md:grid-cols-2" : "space-y-4"}>
+              <div className="grid gap-4">
                 {selectedGroup.demos.map((demo, index) => {
-                  const actors = demo.voiceActorIds.map((id) => voiceActorById.get(id)).filter((persona): persona is PublicPersona => Boolean(persona));
-                  const namedActors = new Set([...actors.map((actor) => actor.displayName), ...demo.manualVoiceActors.map((actor) => actor.name)].map((name) => name.trim().toLocaleLowerCase()));
-                  const legacyCastNames = [...new Set(demoLegacyCastNames(demo))].filter((name) => !namedActors.has(name.toLocaleLowerCase()));
+                  const performers = publicDemoPerformers(demo, voiceActorById);
                   const artwork = demoArtwork(demo.url, demo.coverUrl, selectedGroup.coverUrl);
-                  const singleDemo = selectedGroup.demos.length === 1;
                   return (
-                    <article key={`${demo.id}-${index}`} className={`overflow-hidden rounded-xl border border-border bg-card ${singleDemo ? "sm:grid sm:grid-cols-[minmax(14rem,0.42fr)_minmax(0,1fr)]" : ""}`}>
-                      <a href={demo.url} target="_blank" rel="noopener noreferrer" aria-label={`開啟 ${demo.name || "演出 Demo"}`} className={`group relative block overflow-hidden bg-muted ${singleDemo ? "aspect-video sm:aspect-auto sm:min-h-64" : "aspect-video"}`}>
-                        <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
-                        {artwork && <PublicImage src={artwork} alt={`${demo.name || "演出 Demo"}封面`} preset="script-cover" className="group-hover:opacity-90" />}
-                        <span className="absolute bottom-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/70 px-2 py-1 [font-size:var(--public-font-caption)] font-semibold text-white">播放連結 <ExternalLink className="h-3 w-3" aria-hidden /></span>
-                      </a>
-                      <div className="flex min-w-0 flex-col p-4">
-                        <h3 className="text-base font-semibold">{demo.name || "演出 Demo"}</h3>
-                        {actors.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {actors.map((persona) => (
-                              <a key={persona.id} href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="inline-flex items-center gap-2 rounded-md border border-border bg-card py-1 pl-1 pr-3 text-xs hover:text-link">
-                                <span className="relative h-7 w-7 shrink-0 overflow-hidden rounded-full bg-muted">
-                                  {persona.avatar ? <PublicImage src={persona.avatar} alt="" preset="avatar" sizes="28px" /> : <span className="flex h-full items-center justify-center [font-size:var(--public-font-caption)]">{persona.displayName.slice(0, 1)}</span>}
-                                </span>
-                                <span>
-                                  <span className="block font-medium">{persona.displayName}</span>
-                                  <span className="block [font-size:var(--public-font-caption)] text-muted-foreground">{(persona.tags || []).find((tag) => VOICE_ACTOR_TAG_PATTERN.test(tag)) || "聲演"}</span>
-                                </span>
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                        {demo.manualVoiceActors.length > 0 && (
-                          <div className="mt-3">
-                            <p className="mb-1.5 text-xs text-muted-foreground">名單外聲演</p>
-                            <div className="flex flex-wrap gap-2">
-                              {demo.manualVoiceActors.map((actor, actorIndex) => (
-                                <span key={`${actor.name}-${actorIndex}`} className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-1.5 text-xs">
-                                  {actor.personaId ? <a href={`/author/${encodeURIComponent(actor.personaId)}`} className="font-medium hover:text-link">{actor.name}</a> : <span>{actor.name}</span>}
-                                  {actor.socialUrl && <a href={actor.socialUrl} target="_blank" rel="noopener noreferrer" aria-label={`${actor.name}社群連結`} className="text-muted-foreground hover:text-link"><ExternalLink className="h-3 w-3" aria-hidden /></a>}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {legacyCastNames.length > 0 && <p className="mt-2 text-xs text-muted-foreground">聲演：{legacyCastNames.join("、")}</p>}
-                        {demo.voiceTypes.length > 0 && <p className="mt-2 flex flex-wrap gap-1.5 text-xs text-muted-foreground">聲演聲線：{demo.voiceTypes.map((type) => <span key={type} className="rounded-sm bg-muted px-1.5 py-0.5">{type === "male" ? "男聲演" : "女聲演"}</span>)}</p>}
-                        {demo.description && <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{demo.description}</p>}
-                        <a href={demo.url} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:opacity-90">
-                          開啟 Demo <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-                        </a>
-                      </div>
-                    </article>
+                    <PublicWorkDetails
+                      key={`${demo.id}-${index}`}
+                      title={demo.name || "演出 Demo"}
+                      meta={<PublicVoiceTypes types={demo.voiceTypes} />}
+                      action={<PublicPlayLink href={demo.url} target="_blank" rel="noopener noreferrer" className="text-sm">開啟 Demo</PublicPlayLink>}
+                      artwork={<div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+                        <Headphones className="absolute inset-0 m-auto size-8 text-muted-foreground/50" aria-hidden />
+                        {artwork && <PublicImage src={artwork} alt={`${demo.name || "演出 Demo"}封面`} preset="script-cover" />}
+                      </div>}
+                      performers={performers}
+                      description={demo.description}
+                    />
                   );
                 })}
               </div>

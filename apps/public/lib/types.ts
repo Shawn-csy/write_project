@@ -163,14 +163,17 @@ export interface PublicDemoSubmission {
   demoName?: string;
   demoUrl: string;
   coverUrl?: string;
+  scriptCoverUrl?: string;
   cast?: string;
   voiceTypes?: Array<"male" | "female">;
   voiceActorIds?: string[];
+  voiceActorPersonaId?: string | null;
   manualVoiceActors?: Array<{ name: string; socialUrl?: string; personaId?: string }>;
   description?: string;
   scriptSummary?: string;
   scriptAuthorName?: string;
   scriptAuthorHref?: string;
+  scriptAuthorAvatarUrl?: string;
   organizationName?: string;
   organizationHref?: string;
   displayName?: string;
@@ -186,8 +189,8 @@ export interface PublicAudioWork {
   creatorName?: string;
   creatorUrl?: string;
   organizationId?: string | null;
-  voiceActors?: Array<{ id: string; name: string }>;
-  credits?: Array<{ role: string; sourceRole: string; creditedAs: string; provenance: "official_page" | "catalog_description"; sourceUrl: string; personaId?: string }>;
+  voiceActors?: Array<{ id: string; name: string; avatar?: string }>;
+  credits?: Array<{ role: string; sourceRole: string; creditedAs: string; provenance: "official_page" | "catalog_description"; sourceUrl: string; personaId?: string; personaAvatar?: string }>;
   accessType?: "paid" | "free";
   publishedAt?: number | null;
   createdAt?: number;

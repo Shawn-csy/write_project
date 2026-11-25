@@ -1,13 +1,19 @@
 "use client";
 
+import { PublicContentLink, PublicPersonLink, PublicPlayLink, PublicTag } from "@/components/PublicDirectoryDetails";
 import { partitionContacts } from "@/lib/publicContactPrivacy";
 import { useMemo, useState, type ReactNode } from "react";
 import type { ExternalPublicScript, ProductionRole, PublicAudioWork, PublicDemoSubmission, PublicIdentityRole, PublicPersona, PublicWorkParticipation, PublicScript } from "@/lib/types";
 import { buildAuthorEntityModel } from "@/lib/publicEntityPageModel";
 import { EntityScriptGrid } from "@/components/EntityScriptGrid";
+import { PublicAudioWorkCard } from "@/components/PublicAudioWorkCard";
+import { PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
+import { legacyVoiceWorkParticipations, mergePublicWorkParticipations } from "@/lib/publicWorkParticipations";
+import { usePublicDemoIdentities } from "@/lib/usePublicDemoIdentities";
+import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
 import { PublicImage } from "@/components/PublicImage";
 import { LinkifiedText } from "@/components/LinkifiedText";
-import { ExternalLink, BriefcaseBusiness, X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
 import { AdultContentNotice } from "@/components/AdultContentNotice";
 import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
@@ -15,7 +21,8 @@ import { demoArtwork } from "@/lib/demoArtwork";
 import { combinePublicIdentities } from "@/lib/publicIdentity";
 import { PublicProfileAvatar, PublicProfileCard, PublicProfileContainer, PublicProfileLink, PublicProfileRole, PublicProfileSection, PublicProfileWorkCard } from "@/components/PublicProfileLayout";
 import { IdentityProfileForm } from "@/components/identity/IdentityProfileForm";
-import { ROLE_LABELS, editableProfileKinds, productionRolesOf, resolveIdentityRoles } from "@/components/identity/identityRoles";
+import { editableProfileKinds, productionRolesOf, resolveIdentityRoles } from "@/components/identity/identityRoles";
+import { publicIdentityRoleLabel } from "@/lib/publicIdentityMetadata";
 import { externalCoverSrc } from "@/lib/externalCover";
 import { cleanScriptSummary } from "@/lib/scriptSummary";
 
@@ -35,6 +42,7 @@ interface Props {
   externalScripts?: ExternalPublicScript[];
   audioWorks?: PublicAudioWork[];
   audioScriptWorks?: PublicAudioWork[];
+  otherAudioWorks?: PublicAudioWork[];
 }
 
 interface SectionContext {
@@ -42,8 +50,8 @@ interface SectionContext {
   scripts: PublicScript[];
   externalScripts: ExternalPublicScript[];
   performances: PublicDemoSubmission[];
-  audioWorks: PublicAudioWork[];
-  audioScriptWorks: PublicAudioWork[];
+  catalogWorks: PublicAudioWork[];
+  demoIdentities: ReadonlyMap<string, PublicPersona>;
   credits: PublicWorkParticipation[];
   series: Array<{ name: string; count: number; coverUrl: string | null }>;
 }
@@ -91,8 +99,24 @@ function productionSection(role: PublicIdentityRole): IdentitySection {
     ageGated: true,
     count: (ctx) => items(ctx).length,
     render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {items(ctx).map((credit) => <PublicProfileWorkCard key={`${credit.id}-${credit.creditRole}`} title={credit.title} url={credit.url} coverUrl={credit.coverUrl} workType={credit.workType}
-        subtitle={[WORK_TYPE_LABELS[credit.workType || "audio"], credit.creditedAs && credit.creditedAs !== ctx.persona.displayName ? `署名 ${credit.creditedAs}` : "", credit.characterName ? `角色：${credit.characterName}` : "", credit.description].filter(Boolean).join("・")} />)}
+      {items(ctx).map((credit, index) => {
+        const audio = ctx.catalogWorks.find((work) => work.id === credit.audioWorkId || work.id === credit.id || (credit.url && work.url === credit.url));
+        const attribution = [WORK_TYPE_LABELS[credit.workType || "audio"], credit.creditedAs && credit.creditedAs !== ctx.persona.displayName ? `署名 ${credit.creditedAs}` : "", credit.characterName ? `角色：${credit.characterName}` : ""].filter(Boolean).join("・");
+        if (audio) return <PublicAudioWorkCard
+          key={`${credit.id}-${credit.creditRole}-${index}`}
+          work={audio}
+          description={credit.description}
+          attribution={attribution}
+        />;
+        return <PublicWorkDetails
+          key={`${credit.id}-${credit.creditRole}-${index}`}
+          title={credit.title}
+          meta={<p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{attribution}</p>}
+          action={credit.url ? <PublicContentLink href={credit.url} target="_blank" rel="noopener noreferrer" appearance="source" className="text-xs" arrow>前往作品</PublicContentLink> : undefined}
+          artwork={credit.coverUrl ? <div className="relative aspect-video overflow-hidden rounded-lg bg-muted"><PublicImage src={credit.coverUrl} alt={`${credit.title}封面`} preset="script-cover" /></div> : undefined}
+          description={credit.description}
+        />;
+      })}
     </div>,
   };
 }
@@ -103,23 +127,25 @@ const SECTIONS: IdentitySection[] = [
     count: (ctx) => ctx.performances.length,
     render: (ctx) => <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {ctx.performances.map((demo) => {
-        const artwork = demoArtwork(demo.demoUrl, demo.coverUrl || "");
-        return <article key={demo.id} className="min-w-0">
-          <div className="relative aspect-video overflow-hidden rounded-sm border border-border bg-muted">
-            {artwork ? <PublicImage src={artwork} alt={`${demo.scriptTitle}演出圖片`} preset="script-cover" /> : <BriefcaseBusiness className="absolute inset-0 m-auto h-7 w-7 text-muted-foreground/50" aria-hidden />}
-          </div>
-          <div className="pt-2">
-            <p className="line-clamp-2 text-sm font-bold">{demo.scriptTitle}</p>
-            {demo.scriptAuthorName && <p className="mt-1 text-xs text-muted-foreground">台本師：{demo.scriptAuthorHref ? <a href={demo.scriptAuthorHref} className="text-link hover:underline">{demo.scriptAuthorName}</a> : demo.scriptAuthorName}</p>}
-            {demo.demoName && demo.demoName !== "YouTube 試聽" && <h3 className="mt-1 text-xs text-muted-foreground">{demo.demoName}</h3>}
-            {(cleanScriptSummary(demo.scriptSummary) || demo.description) && <p className="mt-1 line-clamp-3 text-xs text-muted-foreground">{cleanScriptSummary(demo.scriptSummary) || demo.description}</p>}
-            {demo.organizationName && demo.organizationHref && <a href={demo.organizationHref} className="mt-2 inline-block text-xs text-link hover:underline">{demo.organizationName}</a>}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <a href={demo.scriptUrl} target={demo.scriptType === "external" ? "_blank" : undefined} rel={demo.scriptType === "external" ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-1 rounded-md border border-border bg-card px-2.5 py-1.5 text-xs hover:bg-muted">看台本</a>
-              <a href={demo.demoUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90">播放 Demo<ExternalLink className="h-3 w-3" aria-hidden /></a>
-            </div>
-          </div>
-        </article>;
+        const artwork = demoArtwork(demo.demoUrl, demo.coverUrl, demo.scriptCoverUrl);
+        return <PublicWorkDetails
+          key={demo.id}
+          title={demo.scriptTitle}
+          meta={<>
+            {demo.scriptAuthorName && <p className="mt-1 text-xs text-muted-foreground">台本師：{demo.scriptAuthorHref ? <PublicPersonLink href={demo.scriptAuthorHref} name={demo.scriptAuthorName} avatar={demo.scriptAuthorAvatarUrl} compact /> : demo.scriptAuthorName}</p>}
+            {demo.demoName && demo.demoName !== "YouTube 試聽" && <p className="mt-1 text-xs text-muted-foreground">{demo.demoName}</p>}
+            {demo.organizationName && demo.organizationHref && <PublicContentLink href={demo.organizationHref} appearance="identity" className="mt-1 text-xs">{demo.organizationName}</PublicContentLink>}
+            <PublicVoiceTypes types={demo.voiceTypes} />
+          </>}
+          action={<PublicPlayLink href={demo.demoUrl} target="_blank" rel="noopener noreferrer" className="text-xs">播放 Demo</PublicPlayLink>}
+          artwork={artwork ? <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+            <PublicImage src={artwork} alt={`${demo.scriptTitle}演出圖片`} preset="script-cover" />
+          </div> : undefined}
+          performers={publicDemoPerformers(demo, ctx.demoIdentities)}
+          description={cleanScriptSummary(demo.scriptSummary) || demo.description}
+        >
+          <PublicContentLink href={demo.scriptUrl} target={demo.scriptType === "external" ? "_blank" : undefined} rel={demo.scriptType === "external" ? "noopener noreferrer" : undefined} appearance="source" arrow={demo.scriptType === "external"} className="mt-3 text-xs">看台本</PublicContentLink>
+        </PublicWorkDetails>;
       })}
     </div>,
   },
@@ -143,13 +169,14 @@ const SECTIONS: IdentitySection[] = [
         {ctx.externalScripts.map((script) => <PublicProfileWorkCard key={script.id}
           title={script.title || script.remoteTitle || "未命名台本"} url={script.sourceUrl} coverUrl={externalCoverSrc(script)}
           workType="other" sourceLabel={script.sourceName || script.sourceDomain || "外部台本"}
-          subtitle={cleanScriptSummary(script.summary)} linkLabel="閱讀台本" />)}
+          subtitle={cleanScriptSummary(script.summary || script.remoteSummary)} linkLabel="閱讀台本" />)}
       </div>}
     </>,
   },
 ];
 
-export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [], audioScriptWorks = [] }: Props) {
+export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [], audioScriptWorks = [], otherAudioWorks = [] }: Props) {
+  const demoIdentities = usePublicDemoIdentities(performances, persona);
   const identity = combinePublicIdentities([persona], externalScripts)[0];
   const model = buildAuthorEntityModel(identity, scripts);
   const roles = resolveIdentityRoles(persona, { scripts, externalScripts, performances, audioWorks });
@@ -180,10 +207,10 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     ...(persona.productionCredits || []),
     ...audioWorks.map((work) => ({ ...work, creditRole: "voice_actor" as const, coverUrl: work.coverUrl || "", creditedAs: "" })),
     ...audioScriptWorks.map((work) => ({ ...work, creditRole: "scriptwriter" as const, coverUrl: work.coverUrl || "", creditedAs: "" })),
-    ...(persona.voiceActorWorks || []).map((work, index) => ({ id: `legacy-${index}`, title: work.title || "未命名作品", url: work.url || "", coverUrl: work.coverUrl || "", creditRole: "voice_actor" as const, creditedAs: "", characterName: work.role, description: work.description })),
+    ...legacyVoiceWorkParticipations(persona),
   ];
-  const ctx: SectionContext = { persona, scripts, externalScripts, performances, audioWorks, audioScriptWorks,
-    credits: persona.workParticipations ?? legacyCredits, series };
+  const ctx: SectionContext = { persona, scripts, externalScripts, performances, demoIdentities, catalogWorks: [...audioWorks, ...audioScriptWorks, ...otherAudioWorks],
+    credits: mergePublicWorkParticipations(persona.workParticipations ?? legacyCredits), series };
   const commissionOffers = Object.values(persona.roleProfiles || {}).flatMap((profile) => {
     const raw = profile?.commissionOffers;
     if (!Array.isArray(raw)) return [];
@@ -215,88 +242,85 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
   });
   // Email / Discord stay hidden until the visitor asks, unless the owner flagged them public.
   const { visible: contactItems, hidden: privateContactItems } = partitionContacts(allContactItems);
-  const profileTags = model.profileTags.filter((tag) => tag.trim() !== "待認領");
+  const profileTags = model.profileTags;
 
   return (
     <>
     <main className="min-h-screen bg-background">
       {persona.bannerUrl && (
-        <div className="relative h-36 overflow-hidden border-b border-border bg-muted sm:h-44">
+        <div className="relative h-28 overflow-hidden border-b border-border bg-muted sm:h-36">
           <PublicImage src={persona.bannerUrl} alt="" preset="author-banner" crop={persona.bannerCrop} />
         </div>
       )}
 
       <PublicProfileContainer>
         <PublicProfileCard overlap={Boolean(persona.bannerUrl)}>
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-            {!editing && <PublicProfileAvatar src={identity.avatar} name={identity.displayName} crop={persona.avatarCrop} />}
-
-            <div className="min-w-0 flex-1 space-y-3">
-              {!editing && <>
-                <h1 className="text-2xl font-bold">{identity.displayName}</h1>
-
-                {roles.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5" aria-label="創作者身份">
-                    {roles.map((role) => (
-                      <PublicProfileRole key={role} href={productionRoles.includes(role as ProductionRole)
-                        ? `/resources?category=${role === "recording_studio" ? persona.roleProfiles?.recording_studio?.entityType === "person" ? "recording_engineer" : persona.roleProfiles?.recording_studio?.entityType === "studio" ? "recording_studio" : "recording_unclassified" : role}`
-                        : undefined}>{ROLE_LABELS[role]}</PublicProfileRole>
-                    ))}
-                  </div>
-                )}
-
-                {(persona.voiceActorOrganizations || []).length > 0 && (
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
-                    {persona.voiceActorOrganizations!.map((org, index) => org.url ? (
-                      <a key={`${org.name}-${index}`} href={org.url} target="_blank" rel="noopener noreferrer" className="text-sm text-link hover:underline">團體：{org.name || "未命名"}<ExternalLink className="ml-1 inline h-3 w-3" aria-hidden /></a>
-                    ) : <span key={`${org.name}-${index}`} className="text-sm text-muted-foreground">團體：{org.name || "未命名"}</span>)}
-                  </div>
-                )}
-
-                {identity.bio && <LinkifiedText text={identity.bio} className="max-w-3xl whitespace-pre-wrap text-sm leading-7 text-foreground" />}
-
-                {profileTags.length > 0 && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-foreground">個人標籤</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {profileTags.map((tag, i) => <span key={i} className="rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{tag}</span>)}
+          <div className="min-w-0 space-y-2.5">
+            {!editing && <>
+              <header className="flex items-center gap-3">
+                <PublicProfileAvatar src={identity.avatar} name={identity.displayName} crop={persona.avatarCrop} />
+                <div className="min-w-0">
+                  <h1 className="break-words text-2xl font-bold leading-tight">{identity.displayName}</h1>
+                  {roles.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5" aria-label="創作者身份">
+                      {roles.map((role) => (
+                        <PublicProfileRole key={role} href={productionRoles.includes(role as ProductionRole)
+                          ? `/resources?category=${role === "recording_studio" ? persona.roleProfiles?.recording_studio?.entityType === "person" ? "recording_engineer" : persona.roleProfiles?.recording_studio?.entityType === "studio" ? "recording_studio" : "recording_unclassified" : role}`
+                          : undefined}>{publicIdentityRoleLabel(role, persona.roleProfiles?.recording_studio?.entityType)}</PublicProfileRole>
+                      ))}
                     </div>
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1 text-sm text-muted-foreground" aria-label="聯絡與官方連結">
-                  {contactItems.map((item, i) => (
-                    /^https?:\/\//i.test(item.value) ? <PublicProfileLink key={`${item.label}-${i}`} label={item.label} url={item.value} /> : <span key={`${item.label}-${i}`} className="break-all">{item.label}：{item.value}</span>
-                  ))}
-                  {privateContactItems.length > 0 && !showPrivateContacts && (
-                    <button type="button" onClick={() => setShowPrivateContacts(true)} className="inline-flex h-8 items-center rounded-md border border-border bg-card px-2.5 text-xs text-foreground hover:bg-muted">顯示聯絡方式</button>
                   )}
-                  {showPrivateContacts && privateContactItems.map((item, i) => (
-                    <span key={`private-${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
-                      <span className="font-medium text-foreground/80">{item.label}：</span>
-                      <span>{item.value}</span>
-                    </span>
-                  ))}
                 </div>
-              </>}
+              </header>
 
-              {profileKinds.length > 0 && (
-                <div className="pt-1">
-                  {!editing && !notice && <button type="button" onClick={() => setEditing(true)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted">更新資料</button>}
-                  {notice && <p role="status" className="text-sm text-success">{notice}</p>}
-                  {editing && (
-                    <IdentityProfileForm
-                      persona={persona}
-                      fallback={identity}
-                      kinds={profileKinds}
-                      productionRoles={productionRoles}
-                      onCancel={() => setEditing(false)}
-                      onSubmitted={(message) => { setNotice(message); setEditing(false); }}
-                    />
-                  )}
+              {(persona.voiceActorOrganizations || []).length > 0 && (
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {persona.voiceActorOrganizations!.map((org, index) => org.url ? (
+                    <span key={`${org.name}-${index}`} className="text-sm text-muted-foreground">團體：<PublicContentLink href={org.url} target="_blank" rel="noopener noreferrer" arrow>{org.name || "未命名"}</PublicContentLink></span>
+                  ) : <span key={`${org.name}-${index}`} className="text-sm text-muted-foreground">團體：{org.name || "未命名"}</span>)}
                 </div>
               )}
-            </div>
+
+              {identity.bio && <LinkifiedText text={identity.bio} className="max-w-3xl whitespace-pre-wrap text-sm leading-6 text-foreground" />}
+
+              {profileTags.length > 0 && (
+                <ul className="flex flex-wrap gap-1.5" aria-label="個人標籤">
+                  {profileTags.map((tag, i) => <li key={i} className="text-xs text-muted-foreground"><PublicTag>{tag}</PublicTag></li>)}
+                </ul>
+              )}
+
+              {(contactItems.length > 0 || privateContactItems.length > 0) && <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted-foreground" aria-label="聯絡與官方連結">
+                {contactItems.map((item, i) => (
+                  /^https?:\/\//i.test(item.value) ? <PublicProfileLink key={`${item.label}-${i}`} label={item.label} url={item.value} /> : <span key={`${item.label}-${i}`} className="break-all">{item.label}：{item.value}</span>
+                ))}
+                {privateContactItems.length > 0 && !showPrivateContacts && (
+                  <button type="button" onClick={() => setShowPrivateContacts(true)} className="inline-flex h-8 items-center rounded-md border border-border bg-card px-2.5 text-xs text-foreground hover:bg-muted">顯示聯絡方式</button>
+                )}
+                {showPrivateContacts && privateContactItems.map((item, i) => (
+                  <span key={`private-${item.label}-${i}`} className="inline-flex items-baseline gap-1 break-all">
+                    <span className="font-medium text-foreground/80">{item.label}：</span>
+                    <span>{item.value}</span>
+                  </span>
+                ))}
+              </div>}
+            </>}
+
+            {profileKinds.length > 0 && (
+              <div className="pt-1">
+                {!editing && !notice && <button type="button" onClick={() => setEditing(true)} className="rounded-md border border-border bg-card px-3 py-1.5 text-sm text-foreground hover:bg-muted">更新資料</button>}
+                {notice && <p role="status" className="text-sm text-success">{notice}</p>}
+                {editing && (
+                  <IdentityProfileForm
+                    persona={persona}
+                    fallback={identity}
+                    kinds={profileKinds}
+                    productionRoles={productionRoles}
+                    onCancel={() => setEditing(false)}
+                    onSubmitted={(message) => { setNotice(message); setEditing(false); }}
+                  />
+                )}
+              </div>
+            )}
           </div>
         </PublicProfileCard>
 

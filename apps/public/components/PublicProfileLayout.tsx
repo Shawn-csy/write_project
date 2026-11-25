@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ArrowUpRight, Clapperboard, FileText, Gamepad2, Headphones } from "lucide-react";
+import { PublicContentLink, PublicMetadataLabel } from "./PublicDirectoryDetails";
 import { PublicAvatarImage } from "./PublicAvatarImage";
 import type { MediaCropLike } from "@write/media-crop";
 import { CoverPlaceholder, CoverRenderer, type CoverDesign } from "@write/public-ui";
@@ -11,27 +12,27 @@ export function PublicProfileContainer({ children }: { children: ReactNode }) {
 }
 
 export function PublicProfileCard({ children, overlap = false }: { children: ReactNode; overlap?: boolean }) {
-  return <div className={`mb-8 border-b border-border pb-6 ${overlap ? "pt-5" : "pt-6"}`}>{children}</div>;
+  return <div className={`mb-5 border-b border-border pb-4 sm:mb-6 ${overlap ? "pt-3" : "pt-4"}`}>{children}</div>;
 }
 
 export function PublicProfileAvatar({ name, src, crop }: { name: string; src?: string | null; crop?: MediaCropLike | null }) {
-  return <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-28 sm:w-28">
-    <PublicAvatarImage src={src} name={name} crop={crop} sizes="144px" />
+  return <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border bg-muted sm:h-20 sm:w-20">
+    <PublicAvatarImage src={src} name={name} crop={crop} sizes="(min-width: 640px) 80px, 56px" />
   </div>;
 }
 
 export function PublicProfileRole({ children, href }: { children: ReactNode; href?: string }) {
-  const className = "rounded-sm bg-primary px-2 py-0.5 text-xs font-semibold text-primary-foreground";
-  return href ? <a href={href} className={className}>{children}</a> : <span className={className}>{children}</span>;
+  const role = <PublicMetadataLabel>{children}</PublicMetadataLabel>;
+  return href ? <PublicContentLink href={href} className="text-xs">{role}</PublicContentLink> : <span className="text-xs">{role}</span>;
 }
 
 export function PublicProfileLink({ label, url }: { label: string; url: string }) {
-  return <a href={url} target="_blank" rel="noopener noreferrer" className="tap-grow inline-flex items-center gap-0.5 text-sm text-link hover:underline">{label}<ArrowUpRight className="h-3.5 w-3.5" aria-hidden /></a>;
+  return <PublicContentLink href={url} target="_blank" rel="noopener noreferrer" appearance="source" className="text-sm" arrow>{label}</PublicContentLink>;
 }
 
 export function PublicProfileSection({ title, count, children }: { title: string; count?: number; children: ReactNode }) {
-  return <section className="mb-8" aria-label={title}>
-    <div className="section-bar mb-4 flex items-baseline gap-2"><h2 className="text-[17px] font-bold">{title}</h2>{count !== undefined && <span className="text-xs text-muted-foreground">{count}</span>}</div>
+  return <section className="mb-5 sm:mb-6" aria-label={title}>
+    <div className="section-bar mb-2.5 flex items-baseline gap-2"><h2 className="text-base font-bold">{title}</h2>{count !== undefined && <span className="text-xs text-muted-foreground">{count}</span>}</div>
     {children}
   </section>;
 }

@@ -82,6 +82,28 @@ describe("ResourcesClient", () => {
     expect(profile.getAttribute("target")).toBe("_blank");
   });
 
+  it("keeps legacy role labels out of tags while leaving real tags actionable", () => {
+    const resource: ProductionResource = {
+      ...base, id: "recording-person", personaId: "recording-person", name: "製作人甲",
+      categories: ["post_production", "recording_studio"], commissionCategories: ["post_production"],
+      recordingEntityType: "person", works: [],
+    };
+    render(<ResourceDirectoryFixture initialResources={[resource]} initialPersonas={[{
+      id: resource.id, displayName: resource.name,
+      tags: [" 錄音師 ", "錄音", "後製", "ＫＵ１００", "ku100", "業餘配音"],
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "後製" }));
+    const row = within(screen.getByRole("article"));
+    expect(within(row.getByRole("group", { name: "角色" })).getByText("錄音師")).toBeTruthy();
+    const tags = within(row.getByRole("group", { name: "標籤" }));
+    expect(tags.queryByRole("button", { name: /錄音|後製/ })).toBeNull();
+    expect(tags.getAllByRole("button").map((tag) => tag.textContent)).toEqual(["ＫＵ１００", "業餘配音"]);
+    fireEvent.click(tags.getByRole("button", { name: "ＫＵ１００" }));
+    expect(screen.getByText("1 筆")).toBeTruthy();
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "錄音師" } });
+    expect(screen.getByText("1 筆")).toBeTruthy();
+  });
+
   it("hides production resources without a credited work in the selected category", () => {
     const resources: ProductionResource[] = [
       { ...base, id: "empty", personaId: "empty", name: "沒有作品", works: [] },

@@ -10,15 +10,8 @@ import {
   normalizePublicMetadataKey,
 } from "@write/reader-export";
 import type { PublicPrefaceItem } from "@write/reader-export";
+import { mergePublicDemoLinks, parsePublicDemoLinks, type DemoLink } from "./publicDemoLinks";
 import type { PublicScript } from "./types";
-
-interface DemoLinkItem {
-  id?: string;
-  name?: string;
-  url: string;
-  cast?: string;
-  description?: string;
-}
 
 function buildPrefaceItems(script: PublicScript): PublicPrefaceItem[] {
   const meta: Record<string, string> = {};
@@ -28,17 +21,6 @@ function buildPrefaceItems(script: PublicScript): PublicPrefaceItem[] {
     if (key && value && meta[key] === undefined) meta[key] = value;
   }
   return buildPublicPrefaceItems(meta, { outline: script.outline });
-}
-
-function parseDemoLinks(raw: string | null | undefined): DemoLinkItem[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item) => item && typeof item === "object" && item.url);
-  } catch {
-    return [];
-  }
 }
 
 function normalizeLicenseSpecialTerms(raw: unknown[]): string[] {
@@ -51,7 +33,7 @@ function normalizeLicenseSpecialTerms(raw: unknown[]): string[] {
 
 export interface ScriptOverlayProps {
   prefaceItems: PublicPrefaceItem[];
-  demoLinks: DemoLinkItem[];
+  demoLinks: DemoLink[];
   commercialUse: string;
   derivativeUse: string;
   notifyOnModify: string;
@@ -81,7 +63,7 @@ export function buildScriptOverlayProps(script: PublicScript): ScriptOverlayProp
 
   return {
     prefaceItems: buildPrefaceItems(script),
-    demoLinks: parseDemoLinks(script.activityDemoLinks),
+    demoLinks: mergePublicDemoLinks(parsePublicDemoLinks(script.activityDemoLinks)),
     commercialUse: String(script.licenseCommercial ?? "").trim(),
     derivativeUse: String(script.licenseDerivative ?? "").trim(),
     notifyOnModify: String(script.licenseNotify ?? "").trim(),

@@ -11,7 +11,7 @@ from types import SimpleNamespace
 import models
 
 ROLES = ('scriptwriter', 'voice_actor', *models.PRODUCTION_ROLES)
-SOURCE_ROLES = {'script': 'scriptwriter', 'author': 'scriptwriter', 'voice_actor': 'voice_actor',
+SOURCE_ROLES = {'script': 'scriptwriter', 'author': 'scriptwriter', 'scriptwriter': 'scriptwriter', 'voice_actor': 'voice_actor',
                 'post_production': 'post_production', 'cover_art': 'cover_art',
                 'illustration': 'cover_art', 'recording': 'recording_studio'}
 # Illustration is newly normalized; legacy cover aliases do not confirm an illustration credit.

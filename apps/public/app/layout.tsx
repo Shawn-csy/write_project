@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./public-micro-motion.css";
+import "./public-directory-details.css";
 import "./homepage.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { MediaFallbackBridge } from "@/components/MediaFallbackBridge";

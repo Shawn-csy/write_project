@@ -32,7 +32,6 @@ export function combinePublicIdentities(personas: PublicPersona[], externalScrip
       avatar: persona.avatar || external.avatar,
       website: persona.website || external.website,
       links: persona.links?.length ? persona.links : external.links,
-      tags: Array.from(new Set([...(persona.tags || []), ...(external.tags || [])])),
     };
   });
   // A linked script whose persona is absent from this response still needs a card.

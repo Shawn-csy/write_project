@@ -1,9 +1,9 @@
 "use client";
 
+import { PublicContentLink } from "@/components/PublicDirectoryDetails";
 import { useProgressiveLimit } from "@/lib/useProgressiveLimit";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink } from "lucide-react";
 import { PublicSearchField } from "@/components/PublicSearchField";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicAvatarImage } from "@/components/PublicAvatarImage";
@@ -69,16 +69,16 @@ export function VoiceActorDirectoryClient({ initialDirectory, refreshOnMount = f
             {visible.slice(0, renderLimit).map((persona) => {
               const socials = socialLinks(persona);
               return (
-                <article key={persona.id} className="flex items-center gap-3 rounded-md border border-border bg-card p-3">
+                <article key={persona.id} className="flex min-w-0 items-start gap-2.5 border-b border-border py-2.5">
                   <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} aria-label={`${persona.displayName}身份頁`} className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted text-lg font-semibold text-muted-foreground">
                     <PublicAvatarImage src={persona.avatar} name={persona.displayName} sizes="48px" />
                   </a>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start gap-2">
-                      <a href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="truncate font-semibold hover:text-link">{persona.displayName}</a>
+                      <PublicContentLink href={persona.externalHref || `/author/${encodeURIComponent(persona.id)}`} className="break-words font-semibold" appearance="title">{persona.displayName}</PublicContentLink>
                     </div>
                     {persona.bio && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{persona.bio}</p>}
-                    {socials.length > 0 && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">{socials.slice(0, 3).map((social) => <a key={social.url} href={social.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-link hover:underline">{social.label}<ExternalLink className="h-3 w-3" aria-hidden /></a>)}</div>}
+                    {socials.length > 0 && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">{socials.slice(0, 3).map((social) => <PublicContentLink key={social.url} href={social.url} target="_blank" rel="noopener noreferrer" className="text-xs" arrow>{social.label}</PublicContentLink>)}</div>}
                   </div>
                 </article>
               );

@@ -121,7 +121,10 @@ def _get_approved_demo_submissions(db: Session) -> list[dict]:
             "coverUrl": row.coverUrl or "",
             "cast": row.cast,
             "voiceTypes": row.voiceTypes or [],
-            "voiceActorIds": row.voiceActorIds or [],
+            "voiceActorIds": list(dict.fromkeys([
+                *(row.voiceActorIds or []),
+                *([row.voiceActorPersonaId] if row.voiceActorPersonaId else []),
+            ])),
             "manualVoiceActors": row.manualVoiceActors or [],
             "description": row.description,
             "displayName": row.displayName,
@@ -146,6 +149,8 @@ def _get_approved_audio_work_submissions(db: Session) -> list[dict]:
     for row in rows:
         work_ids_by_url[row.url].add(row.id)
     linked_credits: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    reviewed_credits: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+    linked_personas: dict[str, models.Persona] = {}
     if work_ids:
         reviewed = db.query(models.PersonaCredit).filter(or_(
             models.PersonaCredit.audioWorkId.in_(work_ids),
@@ -159,27 +164,49 @@ def _get_approved_audio_work_submissions(db: Session) -> list[dict]:
         linked_personas = {person.id: person for person in db.query(models.Persona).filter(
             models.Persona.id.in_(linked_persona_ids)).all()} if linked_persona_ids else {}
         for credit in reviewed:
+            target_ids = ([credit.audioWorkId] if credit.audioWorkId in work_ids else []) if credit.audioWorkId else work_ids_by_url.get(credit.url, set())
+            if len(target_ids) != 1:
+                continue
+            key = (next(iter(target_ids)), credit.role, credit.creditedAs)
+            reviewed_credits[key].add(credit.personaId)
             person = linked_personas.get(credit.personaId)
             if (not person or (credit.personaId, credit.role) not in visible_roles
                     or (credit.role == "voice_actor" and person.voiceActorHidden)):
                 continue
-            target_ids = ([credit.audioWorkId] if credit.audioWorkId in work_ids else []) if credit.audioWorkId else work_ids_by_url.get(credit.url, set())
-            if len(target_ids) == 1:
-                linked_credits[(next(iter(target_ids)), credit.role, credit.creditedAs)].add(credit.personaId)
+            linked_credits[key].add(credit.personaId)
     credits_by_work: dict[str, list[dict]] = {row.id: [] for row in rows}
     if credits_by_work:
         credits = db.query(models.AudioWorkCredit).filter(
             models.AudioWorkCredit.audioWorkId.in_(credits_by_work)
         ).order_by(models.AudioWorkCredit.role, models.AudioWorkCredit.creditedAs).all()
+        source_provenance = {"official_page", "source_import", "reviewed_participation"}
+        source_identities: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+        visible_source_identities: dict[tuple[str, str, str], set[str]] = defaultdict(set)
+        # For source-only roles, reuse a reviewed identity only when the same work
+        # and source explicitly print the same signature under a supported role.
         for credit in credits:
-            identity_ids = linked_credits.get((credit.audioWorkId, SOURCE_ROLES.get(credit.role, ""), credit.creditedAs), set())
+            role = SOURCE_ROLES.get(credit.role)
+            if role and credit.provenance in source_provenance and (credit.sourceUrl or "").startswith("https://"):
+                key = (credit.audioWorkId, role, credit.creditedAs)
+                source_key = (credit.audioWorkId, credit.sourceUrl, credit.creditedAs)
+                source_identities[source_key].update(reviewed_credits.get(key, ()))
+                visible_source_identities[source_key].update(linked_credits.get(key, ()))
+        for credit in credits:
+            role = SOURCE_ROLES.get(credit.role)
+            identity_ids = linked_credits.get((credit.audioWorkId, role, credit.creditedAs), ()) if role else ()
+            if role is None and credit.provenance in source_provenance:
+                source_key = (credit.audioWorkId, credit.sourceUrl, credit.creditedAs)
+                if len(source_identities.get(source_key, ())) == 1:
+                    identity_ids = visible_source_identities[source_key]
+            persona = linked_personas.get(next(iter(identity_ids))) if len(identity_ids) == 1 else None
             credits_by_work[credit.audioWorkId].append({
                 "role": credit.role,
                 "sourceRole": credit.sourceRole,
                 "creditedAs": credit.creditedAs,
                 "provenance": credit.provenance,
                 "sourceUrl": credit.sourceUrl,
-                **({"personaId": next(iter(identity_ids))} if len(identity_ids) == 1 else {}),
+                **({"personaId": persona.id} if persona else {}),
+                **({"personaAvatar": persona.avatar} if persona and persona.avatar else {}),
             })
     return [
         {
@@ -192,7 +219,7 @@ def _get_approved_audio_work_submissions(db: Session) -> list[dict]:
             "creatorUrl": row.creatorUrl or "",
             "organizationId": row.organizationId,
             "voiceActors": [
-                {"id": actor_id, "name": actors[actor_id].displayName}
+                {"id": actor_id, "name": actors[actor_id].displayName, **({"avatar": actors[actor_id].avatar} if actors[actor_id].avatar else {})}
                 for actor_id in (row.voiceActorIds or []) if actor_id in actors and not actors[actor_id].voiceActorHidden
             ],
             "credits": credits_by_work[row.id],

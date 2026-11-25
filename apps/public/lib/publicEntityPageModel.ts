@@ -10,7 +10,7 @@
  */
 
 import type { PublicPersona, PublicOrg, PublicScript } from "./types";
-import { getPublicPersonaTags } from "./publicPersonaTags";
+import { publicIdentityTags } from "./publicIdentityMetadata";
 
 export type PublicEntityKind = "author" | "organization";
 
@@ -61,7 +61,7 @@ export function buildAuthorEntityModel(
   },
   scripts: PublicScript[]
 ): PublicEntityProfileModel {
-  const profileTags = getPublicPersonaTags(persona.tags);
+  const profileTags = publicIdentityTags(persona.tags);
   return {
     kind: "author",
     id: persona.id,

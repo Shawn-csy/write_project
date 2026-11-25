@@ -1,4 +1,5 @@
 import type { ExternalPublicScript } from "./types";
+import { cleanScriptSummary } from "./scriptSummary";
 import { externalEntityHref } from "./externalEntity";
 import { hasValidDemoLink } from "./galleryProjection";
 
@@ -51,7 +52,7 @@ export function externalScriptCardDetails(item: ExternalPublicScript) {
       : undefined;
   return {
     title: item.title || item.remoteTitle || item.sourceDomain || "未命名台本",
-    summary: item.summary || item.remoteSummary || "",
+    summary: cleanScriptSummary(item.summary || item.remoteSummary),
     authorName,
     authorHref,
     hasDemo: Boolean(item.hasDemo || hasValidDemoLink(item.demoLinks)),

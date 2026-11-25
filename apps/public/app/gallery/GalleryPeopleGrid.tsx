@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import type { AuthorLike, OrgLike } from "@write/public-ui";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { authorDirectoryWorks } from "@/lib/authorDirectoryWorks";
+import { PublicTag } from "@/components/PublicDirectoryDetails";
 import { PublicIdentityDirectoryRow } from "@/components/PublicIdentityDirectoryRow";
 import { BuildingIcon, LinkIcon } from "./GalleryIcons";
 import { PublicCardGridSkeleton } from "@/components/PublicSkeleton";
@@ -35,33 +36,25 @@ function CollapsedTagButtons({ tags, onTagClick, limit, className = "", singleRo
 
   return (
     <div className={`flex gap-1.5 ${singleRow && !expanded ? "flex-nowrap overflow-hidden" : "flex-wrap"} ${className}`}>
-      {visibleTags.map((tag) => (
+      {visibleTags.map((tag, index) => (
         <button
           key={tag}
           type="button"
           onClick={() => onTagClick(tag)}
-          className="tap-grow max-w-[9rem] shrink-0 truncate whitespace-nowrap [font-size:var(--public-font-caption)] px-2 py-0.5 rounded-sm bg-muted text-muted-foreground hover:text-link hover:underline"
+          className={`public-facet-tag [font-size:var(--public-font-caption)] ${index >= limit ? "public-tag-enter" : ""}`}
         >
-          {tag}
+          <PublicTag>{tag}</PublicTag>
         </button>
       ))}
-      {isCollapsed && (
+      {tags.length > limit && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
-          className="tap-grow shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)] text-link hover:underline"
-          aria-label={`展開更多標籤，尚有 ${tags.length - limit} 個`}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+          className="public-facet-tag shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)]"
+          aria-label={expanded ? undefined : `展開更多標籤，尚有 ${tags.length - limit} 個`}
         >
-          更多（{tags.length - limit}）
-        </button>
-      )}
-      {!isCollapsed && expanded && tags.length > limit && (
-        <button
-          type="button"
-          onClick={() => setExpanded(false)}
-          className="tap-grow shrink-0 whitespace-nowrap [font-size:var(--public-font-caption)] text-link hover:underline"
-        >
-          收合
+          {expanded ? "收合" : `更多（${tags.length - limit}）`}
         </button>
       )}
     </div>
@@ -94,47 +87,36 @@ function TagFilterChips({ allTags, selectedTags, onToggleTag, onResetFilters }: 
   const hiddenCount = allTags.length - visibleTags.length;
 
   return (
-    <div className="flex flex-wrap gap-1.5 mb-4">
-      {visibleTags.map((tag) => {
+    <div className="mb-4 flex flex-wrap items-center gap-x-1 gap-y-0.5 [font-size:var(--public-font-caption)]">
+      {visibleTags.map((tag, index) => {
         const active = selectedTags.includes(tag);
         return (
           <button
             key={tag}
             type="button"
             onClick={() => onToggleTag(tag)}
-            className={`h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border ${
- active
- ? "border-primary bg-primary text-primary-foreground"
-                : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
-            }`}
+            aria-pressed={active}
+            className={`public-facet-tag ${expanded && !active && index >= PEOPLE_TAG_VISIBLE_COUNT ? "public-tag-enter" : ""}`}
           >
-            {tag}
+            <PublicTag>{tag}</PublicTag>
           </button>
         );
       })}
-      {isCollapsed && hiddenCount > 0 && (
+      {allTags.length > PEOPLE_TAG_VISIBLE_COUNT && (expanded || hiddenCount > 0) && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] font-medium rounded-md border border-border bg-card text-link hover:bg-muted"
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+          className="public-facet-tag"
         >
-          更多標籤（{hiddenCount}）
-        </button>
-      )}
-      {!isCollapsed && expanded && allTags.length > PEOPLE_TAG_VISIBLE_COUNT && (
-        <button
-          type="button"
-          onClick={() => setExpanded(false)}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
-        >
-          收合標籤
+          {expanded ? "收合標籤" : `更多標籤（${hiddenCount}）`}
         </button>
       )}
       {selectedTags.length > 0 && onResetFilters && (
         <button
           type="button"
           onClick={onResetFilters}
-          className="h-6 px-2.5 [font-size:var(--public-font-caption)] rounded-md border border-border bg-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          className="public-facet-tag"
         >
           清除篩選
         </button>

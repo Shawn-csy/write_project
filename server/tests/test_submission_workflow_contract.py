@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import pytest
 
 from main import app
-from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, PersonaCredit, PersonaRole, ProductionResource, ProductionResourceCredit, ProductionResourceSubmission, PublicAudioWorkSubmission, User
+from models import AudioWorkCredit, ExternalAuthor, ExternalPublicScript, Organization, Persona, PersonaCredit, PersonaRole, ProductionResource, ProductionResourceCredit, ProductionResourceSubmission, PublicAudioWorkSubmission, PublicDemoSubmission, User
 from services.identity_convergence import converge_and_commit
 from routers import public as public_router
 from routers import public_bundle as public_bundle_router
@@ -344,7 +344,22 @@ def test_listing_submission_enters_moderation_inbox(client, monkeypatch):
     assert closed.json()["status"] == "closed"
 
 
-def test_demo_submission_is_private_until_approved(client, monkeypatch):
+def test_public_bundle_includes_single_legacy_demo_actor(db_session):
+    db_session.add(Persona(id="legacy-actor", displayName="舊聲演"))
+    db_session.flush()
+    db_session.add(PublicDemoSubmission(
+        id="legacy-demo", status="approved", scriptType="internal",
+        scriptTitle="舊台本", scriptUrl="/read/legacy", demoName="舊演出",
+        demoUrl="https://example.com/demo", voiceActorPersonaId="legacy-actor",
+        voiceActorIds=["current-actor"], createdAt=1,
+    ))
+    db_session.flush()
+
+    rows = public_bundle_router._get_approved_demo_submissions(db_session)
+    demo = next(row for row in rows if row["id"] == "legacy-demo")
+    assert demo["voiceActorIds"] == ["current-actor", "legacy-actor"]
+
+def test_demo_submission_is_private_until_approved(client, db_session, monkeypatch):
     monkeypatch.setattr(external_router, "fetch_external_public_script_metadata", lambda url: {
         "sourceUrl": url,
         "canonicalUrl": url,
@@ -382,6 +397,12 @@ def test_demo_submission_is_private_until_approved(client, monkeypatch):
     )
     assert approved.status_code == 200
     assert approved.json()["status"] == "approved"
+    persona_id = approved.json()["manualVoiceActors"][0]["personaId"]
+    persona = db_session.get(Persona, persona_id)
+    assert persona.tags == ["聲演"]
+    persona.tags = ["聲演", "Ｄｅｍｏ　投稿建立", "KU100"]
+    db_session.commit()
+    assert client.get(f"/api/public-personas/{persona_id}").json()["tags"] == ["聲演", "KU100"]
     assert item_id in {item["id"] for item in client.get("/api/public-bundle").json()["demoSubmissions"]}
 
 

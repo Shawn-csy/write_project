@@ -9,7 +9,7 @@ export function cleanScriptSummary(value: string | null | undefined): string {
   const original = String(value || "");
   const flat = original.replace(/\s+/g, " ").trim();
   if (!flat) return "";
-  const looksLikeDocumentHead = /(^|\s)作品資訊(\s|$)/.test(flat.slice(0, 80));
+  const looksLikeDocumentHead = /(^|\s)作品資訊([\s：:]|$)/.test(flat.slice(0, 80));
   if (!looksLikeDocumentHead) return original;
   const start = flat.indexOf("作品描述");
   if (start < 0) return "";

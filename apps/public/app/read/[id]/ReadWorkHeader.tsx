@@ -1,6 +1,12 @@
 "use client";
 
 import React from "react";
+import { PublicImage } from "@/components/PublicImage";
+import { demoArtwork } from "@/lib/demoArtwork";
+import { PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
+import { PublicPersonLink, PublicPlayLink } from "@/components/PublicDirectoryDetails";
+import { usePublicDemoIdentities } from "@/lib/usePublicDemoIdentities";
+import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
 import { PublicScriptInfoOverlay } from "@write/public-ui";
 import type { ReadWorkHeaderModel } from "@/lib/readWorkHeaderModel";
 
@@ -17,6 +23,8 @@ interface Props {
  * Delegates visual composition to PublicScriptInfoOverlay (transitional).
  */
 export function ReadWorkHeader({ model }: Props) {
+  const demoIdentities = usePublicDemoIdentities(model.demoLinks);
+  const author = model.author;
   return (
     <>
       <PublicScriptInfoOverlay
@@ -30,9 +38,13 @@ export function ReadWorkHeader({ model }: Props) {
             ? {
                 id: model.author.id,
                 displayName: model.author.displayName,
+                avatarUrl: model.author.avatarUrl,
               }
             : null
         }
+        renderAuthor={author?.href ? () => (
+          <PublicPersonLink href={author.href} name={author.displayName} avatar={author.avatarUrl} compact className="text-sm" />
+        ) : undefined}
         organization={
           model.organization
             ? {
@@ -56,6 +68,19 @@ export function ReadWorkHeader({ model }: Props) {
         contentRating={model.contentRating}
         prefaceItems={model.prefaceItems}
         demoLinks={model.demoLinks}
+        renderDemoLink={(item, index) => {
+          const artwork = demoArtwork(item.url, item.coverUrl, model.coverUrl ?? "");
+          return <PublicWorkDetails
+            title={item.name || `試聽連結 ${index + 1}`}
+            action={<PublicPlayLink href={item.url} target="_blank" rel="noopener noreferrer" className="text-xs">試聽</PublicPlayLink>}
+            meta={<PublicVoiceTypes types={item.voiceTypes} />}
+            artwork={artwork ? <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
+              <PublicImage src={artwork} alt="" preset="thumbnail" />
+            </div> : undefined}
+            performers={publicDemoPerformers(item, demoIdentities)}
+            description={item.description}
+          />;
+        }}
         customFields={model.customFields}
       />
       {model.series && (

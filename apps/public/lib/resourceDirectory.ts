@@ -1,3 +1,5 @@
+import { legacyVoiceWorkParticipations, mergePublicWorkParticipations } from "./publicWorkParticipations";
+import { publicIdentityRoleLabel, publicIdentityTags } from "./publicIdentityMetadata";
 import type { ProductionRole, PublicIdentityRole, PublicPersona, PublicProductionCredit, PublicWorkParticipation } from "./types";
 
 export type ResourceCategory = Exclude<PublicIdentityRole, "scriptwriter"> | "recording_engineer" | "recording_unclassified";
@@ -40,39 +42,40 @@ export function buildResourceDirectory(personas: PublicPersona[], resources: Pro
   return Array.from(new Set([...people.keys(), ...legacy.keys()])).flatMap((id) => {
     const person = people.get(id), resource = legacy.get(id);
     const commissions = resource?.commissionCategories || [];
+    const legacyVoiceWorks = legacyVoiceWorkParticipations(person);
     const roles = Array.from(new Set<PublicIdentityRole>([
       ...(person?.roles ?? []), ...(resource?.categories ?? []), ...commissions,
       ...((resource?.otherRoles || []).filter((r): r is PublicIdentityRole => ["scriptwriter", "voice_actor"].includes(r))),
       ...(person?.workParticipations ?? []).map((work) => work.creditRole),
       ...(resource?.works ?? []).map((work) => work.creditRole),
+      ...(person?.workParticipations ? [] : legacyVoiceWorks.map((work) => work.creditRole)),
     ])).filter((r) => !(r === "voice_actor" && person?.voiceActorHidden));
     if (!roles.some((r) => r !== "scriptwriter")) return [];
-    const seen = new Set<string>();
-    const works = (person?.workParticipations ?? resource?.works ?? person?.productionCredits ?? [])
-      .filter((work) => {
-        const key = `${work.creditRole}:${work.audioWorkId || work.url || work.id}`;
-        if (!roles.includes(work.creditRole) || seen.has(key)) return false;
-        seen.add(key); return true;
-      })
+    const works = (person?.workParticipations
+      ? mergePublicWorkParticipations(person.workParticipations)
+      : mergePublicWorkParticipations(resource?.works || [], person?.productionCredits || [], legacyVoiceWorks))
+      .filter((work) => roles.includes(work.creditRole))
       .map(({ id, title, url, coverUrl, creditRole, workType }) => ({
         id: `${id}-${creditRole}`, title, url, coverUrl, creditRole, workType,
       }));
     return [{ id, name: person?.displayName || resource?.name || "未命名", href: person?.externalHref || `/author/${encodeURIComponent(id)}`,
       avatar: person?.avatar || resource?.avatarUrl, bio: person?.bio || resource?.bio || resource?.summary || "",
-      roles, commissionRoles: commissions, tags: person?.tags || [], links: linksOf(person, resource), works,
+      roles, commissionRoles: commissions, tags: publicIdentityTags(person?.tags), links: linksOf(person, resource), works,
       recordingEntityType: (() => { const value = person?.roleProfiles?.recording_studio?.entityType ?? resource?.recordingEntityType; return value === "person" || value === "studio" ? value : "unknown"; })() }];
   });
 }
 
 export function selectResourceDirectory(entries: ResourceDirectoryEntry[], category: ResourceCategory, query: string) {
-  const needle = query.trim().toLocaleLowerCase();
+  const needle = query.normalize("NFKC").trim().toLocaleLowerCase();
   const role = category === "recording_engineer" || category === "recording_unclassified" ? "recording_studio" : category;
   return entries.filter((item) => item.roles.includes(role)
       && (category !== "recording_studio" || item.recordingEntityType === "studio")
       && (category !== "recording_engineer" || item.recordingEntityType === "person")
       && (category !== "recording_unclassified" || item.recordingEntityType === "unknown")
       && (role === "voice_actor" || item.works.some((w) => w.creditRole === role) || item.commissionRoles.includes(role)))
-    .filter((item) => !needle || `${item.name} ${item.bio} ${item.tags.join(" ")}`.toLocaleLowerCase().includes(needle))
+    .filter((item) => !needle || [
+      item.name, item.bio, ...item.tags, ...item.roles.map((role) => publicIdentityRoleLabel(role, item.recordingEntityType)),
+    ].join(" ").normalize("NFKC").toLocaleLowerCase().includes(needle))
     .sort((a, b) => b.works.filter((w) => w.creditRole === role).length - a.works.filter((w) => w.creditRole === role).length
       || a.name.localeCompare(b.name, "zh-Hant"));
 }
