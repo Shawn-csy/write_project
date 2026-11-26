@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalEntityHref, externalEntitySlug, socialAvatarUrl } from "@/lib/externalEntity";
-import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage } from "@/lib/seo";
 import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { decodeRouteName, findExternalAuthorModel } from "@/lib/entityModels";
@@ -41,7 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ name: str
   const model = await getModel(rawName);
   if (!model) return { title: `找不到作者｜${TITLE_SUFFIX}` };
   const canonicalUrl = `${BASE_URL}${externalEntityHref("author", model.name, model.profileUrl)}`;
-  const previewImage = model.profileAvatarUrl || socialAvatarUrl(model.profileUrl) || DEFAULT_OG_IMAGE_URL;
+  const previewImage = pickPreviewImage(model.profileAvatarUrl || socialAvatarUrl(model.profileUrl), "/og/authors.png");
   const title = `${model.name}｜${TITLE_SUFFIX}`;
   const description = model.bio || `${model.name} 收錄於本站的公開台本作品。`;
   return {

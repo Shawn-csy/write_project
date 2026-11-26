@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 import { TagPageClient } from "./TagPageClient";
 import { PublicTopBar } from "@/components/PublicTopBar";
 import { buildTagData, type PublicBundleLike, type TagData } from "@/lib/entityModels";
-import { BASE_URL, SITE_NAME, TITLE_SUFFIX, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { BASE_URL, SITE_NAME, TITLE_SUFFIX, absoluteUrl } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { getStaticTagParams } from "@/lib/staticParams";
 import { LiveTagPage } from "@/components/LiveEntityPages";
@@ -54,13 +54,13 @@ export async function generateMetadata({
       url: canonicalUrl,
       siteName: SITE_NAME,
       locale: "zh_TW",
-      images: [{ url: DEFAULT_OG_IMAGE_URL, alt: title }],
+      images: [{ url: absoluteUrl("/og/scripts.png"), alt: title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [DEFAULT_OG_IMAGE_URL],
+      images: [absoluteUrl("/og/scripts.png")],
     },
   };
 }

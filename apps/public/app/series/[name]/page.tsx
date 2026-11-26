@@ -44,7 +44,7 @@ export async function generateMetadata({
     : `${seriesName} 系列共 ${scripts.length + externalItems.length} 部台本，免費線上查看。`;
   const canonicalUrl = `${BASE_URL}/series/${name}`;
 
-  const previewImage = pickPreviewImage(coverUrl);
+  const previewImage = pickPreviewImage(coverUrl, "/og/scripts.png");
   return {
     title,
     description,

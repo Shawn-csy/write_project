@@ -26,7 +26,7 @@ describe("compact random recommendations", () => {
   it("keeps card links as siblings and no semantic copies", () => {
     render(<RandomRecommendationStrip entries={entries} navigationPolicyMap={policies} onShuffle={vi.fn()} />);
     expect(screen.getByRole("link", { name: "Script 1" })).toHaveAttribute("href", "/read/s1");
-    expect(screen.getByRole("link", { name: "查看「Script 1」的 Demo" })).toHaveAttribute("href", "/demos?script=internal%3As1");
+    expect(screen.getByRole("link", { name: "查看「Script 1」的 Demo" })).toHaveAttribute("href", "/demos/internal/s1");
     expect(screen.getAllByRole("link", { name: "Writer" })[0]).toHaveAttribute("href", "/author/writer");
     const track = screen.getByTestId("recommendation-track");
     expect(track.querySelector("a a")).toBeNull();

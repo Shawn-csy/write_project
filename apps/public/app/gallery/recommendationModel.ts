@@ -1,4 +1,5 @@
 import type { EnrichedGalleryScript, PublicGalleryEntry, ScriptNavigationPolicy } from "@write/public-ui";
+import { demoDetailHref } from "@write/public-ui/demo-detail-href";
 import type { ExternalPublicScript } from "@/lib/types";
 import { externalCoverSrc } from "@/lib/externalCover";
 import { externalEntityHref } from "@/lib/externalEntity";
@@ -29,7 +30,7 @@ export interface RecommendationCardData {
 
 function demoHref(script: EnrichedGalleryScript) {
   return script.hasDemo
-    ? `/demos?script=${encodeURIComponent(script.id.startsWith("external:") ? script.id : `internal:${script.id}`)}`
+    ? demoDetailHref(script.id.startsWith("external:") ? script.id : `internal:${script.id}`)
     : undefined;
 }
 function authorName(script: EnrichedGalleryScript) {
@@ -51,7 +52,7 @@ export function projectRecommendation(entry: MixedGalleryEntry, policies: Map<st
       author: detail.authorName, authorHref: detail.authorHref,
       summary: text(detail.summary), outline: detail.summary,
       coverUrl: externalCoverSrc(item), showAgeGate: detail.showAgeGate,
-      demoHref: detail.hasDemo ? `/demos?script=${encodeURIComponent(`external:${item.id}`)}` : undefined,
+      demoHref: detail.hasDemo ? demoDetailHref(`external:${item.id}`) : undefined,
       externalViewId: item.id,
     };
   }

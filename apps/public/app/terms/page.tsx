@@ -1,6 +1,5 @@
-import type { Metadata } from "next";
 import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
-import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { publicDirectoryMetadata } from "@/lib/seo";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
 
@@ -12,18 +11,11 @@ const webPageJsonLd = createPublicInfoWebPageJsonLd({
   description: "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
 });
 
-export const metadata: Metadata = {
-  title: "Terms of Service｜泛用型產品作坊",
-  description: "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
-  alternates: { canonical: `${BASE_URL}/terms` },
-  openGraph: {
-    title: "Terms of Service｜泛用型產品作坊",
-    description: "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
-    url: `${BASE_URL}/terms`,
-    siteName: "泛用型產品作坊",
-    images: [{ url: DEFAULT_OG_IMAGE_URL, width: 1200, height: 630 }],
-  },
-};
+export const metadata = publicDirectoryMetadata(
+  "/terms",
+  "Terms of Service｜泛用型產品作坊",
+  "泛用型產品作坊 terms of service — rules and guidelines for using the script and audio script platform.",
+);
 
 export default function TermsPage() {
   return (

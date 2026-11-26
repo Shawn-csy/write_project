@@ -80,7 +80,7 @@ export async function generateMetadata({
   const roleNames = (persona.roles || []).map((role) => ROLE_LABELS[role]).filter(Boolean).join("、");
   const description = (persona.bio || `${persona.displayName}${roleNames ? `（${roleNames}）` : ""} 的公開作品與參與紀錄`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/author/${id}`;
-  const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl);
+  const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl, "/og/authors.png");
 
   const structuredData = {
     "@context": "https://schema.org",

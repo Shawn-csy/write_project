@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
 import { PublicInfoSection } from "@/components/info/PublicInfoSection";
 import {
@@ -6,7 +5,7 @@ import {
   PublicInfoLead,
   PublicInfoBelowFold,
 } from "@/components/info/PublicInfoDocument";
-import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { publicDirectoryMetadata } from "@/lib/seo";
 import { SITE_VERSION } from "@/lib/siteVersion";
 import { JsonLdScript } from "@/lib/jsonLd";
 import { createPublicInfoWebPageJsonLd } from "@/lib/publicInfoJsonLd";
@@ -19,19 +18,11 @@ const webPageJsonLd = createPublicInfoWebPageJsonLd({
   description: "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
 });
 
-export const metadata: Metadata = {
-  title: "關於｜泛用型產品作坊",
-  description: "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
-  alternates: { canonical: `${BASE_URL}/about` },
-  openGraph: {
-    title: "關於｜泛用型產品作坊",
-    description: "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
-    url: `${BASE_URL}/about`,
-    siteName: "泛用型產品作坊",
-    locale: "zh_TW",
-    images: [{ url: DEFAULT_OG_IMAGE_URL, width: 1200, height: 630 }],
-  },
-};
+export const metadata = publicDirectoryMetadata(
+  "/about",
+  "關於｜泛用型產品作坊",
+  "泛用型產品作坊收錄公開台本、音聲作品、演出 Demo 與創作資源。",
+);
 
 export default function AboutPage() {
   return (

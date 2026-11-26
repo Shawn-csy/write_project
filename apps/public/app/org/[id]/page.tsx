@@ -56,7 +56,7 @@ export async function generateMetadata({
   const title = `${org.name}｜${TITLE_SUFFIX}`;
   const description = (org.description || `${org.name} 的公開台本作品`).slice(0, 200);
   const canonicalUrl = `${BASE_URL}/org/${id}`;
-  const previewImage = pickPreviewImage(org.logoUrl || org.bannerUrl);
+  const previewImage = pickPreviewImage(org.logoUrl || org.bannerUrl, "/og/scripts.png");
 
   const structuredData = {
     "@context": "https://schema.org",

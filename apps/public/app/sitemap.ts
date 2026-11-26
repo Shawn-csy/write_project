@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
+import { demoDetailHref } from "@write/public-ui/demo-detail-href";
 import { apiFetch } from "@/lib/api";
 import type { ExternalPublicScript, PublicDemoSubmission, PublicPersona, PublicScript } from "@/lib/types";
 import type { ProductionResource } from "./resources/ResourcesClient";
 import { externalEntityHref } from "@/lib/externalEntity";
+import { buildDemoCatalog } from "@/lib/demoCatalog";
 import {
   homeUrl,
   readUrl,
@@ -80,6 +82,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const scriptEntries: MetadataRoute.Sitemap = scripts.map((s) => ({
     url: readUrl(s.id),
     lastModified: toSitemapDate(s.updatedAt ?? s.lastModified, now),
+  }));
+  const demoEntries: MetadataRoute.Sitemap = buildDemoCatalog({
+    scripts, externalPublicScripts: externalScripts, demoSubmissions: externalBundle?.demoSubmissions,
+  }).groups.map((group) => ({
+    url: staticPageUrl(demoDetailHref(group.key)),
+    lastModified: toSitemapDate(group.sortAt || undefined, now),
   }));
 
   // ── Author pages — canonical personas only ───────────────────────────────────
@@ -205,6 +213,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const contentEntries = [
     ...scriptEntries,
+    ...demoEntries,
     ...authorEntries,
     ...orgEntries,
     ...externalAuthorEntries,
@@ -223,11 +232,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return dedupeSitemapEntries([
     homeEntry,
     ...staticEntries,
-    ...scriptEntries,
-    ...authorEntries,
-    ...orgEntries,
-    ...externalAuthorEntries,
-    ...externalOrgEntries,
-    ...seriesEntries,
+    ...contentEntries,
   ]);
 }

@@ -1,9 +1,8 @@
-import type { Metadata } from "next";
 import { PublicInfoPageShell } from "@/components/info/PublicInfoPageShell";
 import { PublicInfoSection } from "@/components/info/PublicInfoSection";
 import { PublicInfoDocument, PublicInfoLead, PublicInfoBelowFold } from "@/components/info/PublicInfoDocument";
 import { JsonLdScript } from "@/lib/jsonLd";
-import { BASE_URL, DEFAULT_OG_IMAGE_URL } from "@/lib/seo";
+import { publicDirectoryMetadata } from "@/lib/seo";
 import { studioUrl } from "@/lib/studioUrl";
 
 export const revalidate = 3600;
@@ -11,19 +10,11 @@ export const revalidate = 3600;
 const description = "公開台本、音聲作品、Demo 與創作資源的瀏覽、投稿及資料補充說明。";
 const linkClass = "font-medium text-link underline underline-offset-2 hover:text-link";
 
-export const metadata: Metadata = {
-  title: "使用說明｜泛用型產品作坊",
+export const metadata = publicDirectoryMetadata(
+  "/help",
+  "使用說明｜泛用型產品作坊",
   description,
-  alternates: { canonical: `${BASE_URL}/help` },
-  openGraph: {
-    title: "使用說明｜泛用型產品作坊",
-    description,
-    url: `${BASE_URL}/help`,
-    siteName: "泛用型產品作坊",
-    locale: "zh_TW",
-    images: [{ url: DEFAULT_OG_IMAGE_URL, width: 1200, height: 630 }],
-  },
-};
+);
 
 export default function HelpPage() {
   const faqData = {

@@ -5,6 +5,8 @@ import { PublicSearchField } from "@/components/PublicSearchField";
 import { PublicSubmissionTrigger } from "@/components/PublicSubmissionTrigger";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import { PublicActionArrow, PublicContentLink, PublicMetadataLabel, PublicPersonLink, PublicPlayLink } from "@/components/PublicDirectoryDetails";
 import { BookOpen, Check, Headphones, LayoutGrid, List, LoaderCircle, Plus, RefreshCw, Search, X } from "lucide-react";
@@ -15,12 +17,13 @@ import { PublicBackButton } from "@/components/PublicBackButton";
 import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
 import { PublicCast, PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
 import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
-import { PublicImage } from "@/components/PublicImage";
+import { DemoArtworkImage } from "@/components/DemoArtworkImage";
 import { LiveBannerStrip } from "@/components/LiveBannerStrip";
 import type { HeroSlide } from "@write/public-ui";
+import { demoDetailHref } from "@write/public-ui/demo-detail-href";
 import { liveApi } from "@/lib/liveApi";
 import { readPublicBundle } from "@/lib/readPublicBundle";
-import { demoArtwork } from "@/lib/demoArtwork";
+import { demoArtwork, demoArtworkSources } from "@/lib/demoArtwork";
 import type { PublicPersona } from "@/lib/types";
 import type { DemoCatalog, DemoCatalogBundle, DemoScriptGroup, ManualVoiceActor } from "@/lib/demoCatalog";
 import { DEMO_CATALOG_SECTIONS } from "@/lib/publicBundleProjection";
@@ -53,6 +56,7 @@ function randomRank(key: string, seed: number): number {
 interface Props {
   initialCatalog: DemoCatalog;
   initialBannerSlides?: HeroSlide[];
+  initialScriptKey?: string;
   refreshOnMount: boolean;
 }
 
@@ -63,7 +67,8 @@ function DemoAuthorName({ group }: { group: DemoScriptGroup }) {
 }
 
 
-export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refreshOnMount }: Props) {
+export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, initialScriptKey = "", refreshOnMount }: Props) {
+  const router = useRouter();
   const [catalog, setCatalog] = useState(initialCatalog);
   const { groups: scriptGroups, personas, submissionTargets } = catalog;
   const [liveBundleLoaded, setLiveBundleLoaded] = useState(!refreshOnMount);
@@ -71,7 +76,7 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
   const [sort, setSort] = useState<DemoSort>("newest");
   const [view, setView] = useState<DemoView>("grid");
   const [randomSeed, setRandomSeed] = useState(0);
-  const [selectedScriptKey, setSelectedScriptKey] = useState("");
+  const [selectedScriptKey, setSelectedScriptKey] = useState(initialScriptKey);
   const [showSubmissionForm, setShowSubmissionForm] = useState(false);
   const [target, setTarget] = useState("");
   const [targetSearch, setTargetSearch] = useState("");
@@ -124,11 +129,12 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
   };
 
   useEffect(() => {
+    if (initialScriptKey) return;
     const syncSelectionFromUrl = () => setSelectedScriptKey(new URL(window.location.href).searchParams.get("script") || "");
     syncSelectionFromUrl();
     window.addEventListener("popstate", syncSelectionFromUrl);
     return () => window.removeEventListener("popstate", syncSelectionFromUrl);
-  }, []);
+  }, [initialScriptKey]);
 
   useEffect(() => {
     if (liveBundleLoaded && selectedScriptKey && !scriptGroups.some((group) => group.key === selectedScriptKey)) setSelectedScriptKey("");
@@ -166,15 +172,11 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
     setVoiceActorIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   };
 
-  const openScript = (key: string) => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("script", key);
-    window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
-    setSelectedScriptKey(key);
-    window.requestAnimationFrame(() => document.querySelector("main")?.scrollIntoView({ block: "start" }));
-  };
-
   const returnToScriptList = () => {
+    if (initialScriptKey) {
+      router.push("/demos");
+      return;
+    }
     const url = new URL(window.location.href);
     url.searchParams.delete("script");
     window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
@@ -546,21 +548,25 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
               <div data-demo-view={view} className={view === "list" ? "grid grid-cols-1 gap-2.5" : "grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3"}>
                 {visibleGroups.slice(0, renderLimit).map((group) => {
                   const firstDemo = group.demos[0];
-                  const artwork = demoArtwork(firstDemo.url, firstDemo.coverUrl, group.coverUrl);
+                  const artwork = [...new Set([
+                    ...group.demos.flatMap((demo) => demoArtworkSources(demo.url, demo.coverUrl)),
+                    ...demoArtworkSources("", "", group.coverUrl),
+                  ])];
                   const performers = publicDemoPerformers(firstDemo, voiceActorById);
                   const cardTitle = group.demos.find((demo) => demo.name.includes("｜") && /PV|試聽/.test(demo.name))?.name || group.title;
+                  const href = demoDetailHref(group.key);
                   return (
                     <article key={group.key} className={`${view === "list" ? "grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[12rem_minmax(0,1fr)]" : "flex flex-col"} min-w-0 overflow-hidden rounded-xl border border-border bg-card`}>
-                      <button
-                        type="button"
-                        onClick={() => openScript(group.key)}
+                      <Link
+                        href={href}
+                        prefetch={false}
                         aria-label={`開啟「${group.title}」的演出`}
                         className={`group relative isolate block w-full min-w-0 overflow-hidden bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-link ${view === "list" ? "h-full min-h-28" : "aspect-video"}`}
                       >
                         <BookOpen className="absolute inset-0 m-auto h-8 w-8 text-muted-foreground/50" aria-hidden />
-                        {artwork && <PublicImage src={artwork} alt="" preset="script-cover" className="motion-safe:transition-[filter] group-hover:brightness-90" />}
+                        <DemoArtworkImage sources={artwork} alt="" className="motion-safe:transition-[filter] group-hover:brightness-90" />
                         {group.demos.length > 1 && <span aria-hidden="true" className="absolute bottom-2 right-2 rounded-full bg-black/75 px-2 py-0.5 text-xs font-medium text-white">{group.demos.length} 個版本</span>}
-                      </button>
+                      </Link>
                       <div className={`flex min-w-0 flex-1 flex-col p-2.5 ${view === "list" ? "sm:px-4 sm:py-3" : "sm:p-4"}`}>
                         <h2 className="line-clamp-2 text-[0.875rem] font-semibold leading-snug sm:text-base">{cardTitle}</h2>
                         {view === "list" && group.summary && <p className="mt-1 hidden text-sm leading-relaxed text-muted-foreground sm:block sm:truncate">{group.summary}</p>}
@@ -568,9 +574,9 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
                         {group.organizationName && group.organizationHref && <p className="mt-1 min-w-0 text-xs text-muted-foreground">社團：<PublicContentLink href={group.organizationHref} appearance="identity">{group.organizationName}</PublicContentLink></p>}
                         {performers.length > 0 && <div className="mt-1"><PublicCast performers={performers} compact /></div>}
                         <div className="mt-auto pt-3">
-                          <button type="button" onClick={() => openScript(group.key)} aria-label={`查看台本「${group.title}」的演出版本`} className="public-directory-action text-xs">
+                          <Link href={href} prefetch={false} aria-label={`查看台本「${group.title}」的演出版本`} className="public-directory-action text-xs">
                             {group.demos.length > 1 ? "查看版本" : "查看演出"}<PublicActionArrow />
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     </article>
@@ -585,7 +591,8 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
             <section aria-label="台本資料" className="rounded-xl bg-muted/45 p-3 ring-1 ring-inset ring-border sm:p-4">
               <div className={scriptArtwork ? "grid gap-3 sm:grid-cols-[minmax(9rem,0.32fr)_minmax(0,1fr)] sm:items-start" : undefined}>
                 {scriptArtwork && <div className="relative hidden aspect-[16/10] overflow-hidden rounded-lg bg-muted sm:block">
-                  <PublicImage src={scriptArtwork} alt={`${selectedGroup.title}台本封面`} preset="script-cover" />
+                  <BookOpen className="absolute inset-0 m-auto size-8 text-muted-foreground/50" aria-hidden />
+                  <DemoArtworkImage sources={[scriptArtwork]} alt={`${selectedGroup.title}台本封面`} />
                 </div>}
                 <div className="min-w-0">
                   <h2 className="text-base font-semibold sm:text-lg">{selectedGroup.summary ? "台本簡介" : "台本資料"}</h2>
@@ -607,7 +614,7 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
               <div className="grid gap-4">
                 {selectedGroup.demos.map((demo, index) => {
                   const performers = publicDemoPerformers(demo, voiceActorById);
-                  const artwork = demoArtwork(demo.url, demo.coverUrl, selectedGroup.coverUrl);
+                  const artwork = demoArtworkSources(demo.url, demo.coverUrl, selectedGroup.coverUrl);
                   return (
                     <PublicWorkDetails
                       key={`${demo.id}-${index}`}
@@ -616,7 +623,7 @@ export function DemoShowcaseClient({ initialCatalog, initialBannerSlides, refres
                       action={<PublicPlayLink href={demo.url} target="_blank" rel="noopener noreferrer" className="text-sm">開啟 Demo</PublicPlayLink>}
                       artwork={<div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
                         <Headphones className="absolute inset-0 m-auto size-8 text-muted-foreground/50" aria-hidden />
-                        {artwork && <PublicImage src={artwork} alt={`${demo.name || "演出 Demo"}封面`} preset="script-cover" />}
+                        <DemoArtworkImage sources={artwork} alt={`${demo.name || "演出 Demo"}封面`} />
                       </div>}
                       performers={performers}
                       description={demo.description}

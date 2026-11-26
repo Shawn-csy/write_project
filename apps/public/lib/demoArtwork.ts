@@ -13,6 +13,14 @@ export function youtubeThumbnail(url: string): string {
   }
 }
 
-export function demoArtwork(demoUrl: string, demoCoverUrl = "", scriptCoverUrl = ""): string {
-  return demoCoverUrl || youtubeThumbnail(demoUrl) || scriptCoverUrl;
+export function demoArtworkSources(demoUrl: string, coverUrl = "", scriptCoverUrl = ""): string[] {
+  // Skip signed Meta images whose URLs expire independently of the public catalog.
+  const temporaryCover = /^https:\/\/[^/]*\.fbcdn\.net\//i.test(coverUrl)
+    && /[?&]oe=/i.test(coverUrl);
+  return [...new Set([temporaryCover ? "" : coverUrl, youtubeThumbnail(demoUrl), scriptCoverUrl]
+    .map((src) => src.trim()).filter(Boolean))];
+}
+
+export function demoArtwork(demoUrl: string, coverUrl = "", scriptCoverUrl = ""): string {
+  return demoArtworkSources(demoUrl, coverUrl, scriptCoverUrl)[0] || "";
 }

@@ -64,14 +64,14 @@ describe("ScriptGalleryCard standard — href mode", () => {
 
   it("opens the matching external Demo detail from the badge while keeping the script link", () => {
     const { container } = render(<ScriptGalleryCard script={{ ...SCRIPT, id: "external:abc", hasDemo: true }} scriptHref="https://example.com/script" scriptTarget="_blank" />);
-    expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos?script=external%3Aabc");
+    expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos/external/abc");
     expect(screen.getByRole("link", { name: "Test Script" }).getAttribute("href")).toBe("https://example.com/script");
     assertNoNestedInteractive(container);
   });
 
   it("opens the matching internal Demo detail in compact mode", () => {
     render(<ScriptGalleryCard script={{ ...SCRIPT, hasDemo: true }} scriptHref="/read/s1" variant="compact" />);
-    expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos?script=internal%3As1");
+    expect(screen.getByRole("link", { name: "查看「Test Script」的 Demo" }).getAttribute("href")).toBe("/demos/internal/s1");
   });
   it("root is <article>", () => {
     const { container } = render(<ScriptGalleryCard script={SCRIPT} scriptHref="/read/s1" />);
