@@ -1,5 +1,5 @@
-import participations from "../../../server/scripts/data/taiwan_adult_games_participations_2026-11-26.json";
-import resourceProfiles from "../../../server/scripts/data/taiwan_adult_games_resource_profiles_2026-11-26.json";
+import participations from "./gameParticipations.json";
+import resourceProfiles from "./gameResourceProfiles.json";
 import { additionalGameScreenshots, gameCreditIdentity, gameCredits, type GameCreditCategory, type GameCreditsEntry } from "./gameCredits";
 import type { PublicIdentityRole, PublicPersona, PublicWorkParticipation } from "./types";
 

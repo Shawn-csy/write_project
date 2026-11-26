@@ -40,14 +40,17 @@ export async function generateStaticParams() {
 }
 
 const fetchPersona = cache(async (id: string): Promise<PublicPersona | null> => {
+  const localProfile = gameResourceProfiles.find((profile) => profile.id === id);
+  if (localProfile) return localProfile;
   try {
     return await apiFetch<PublicPersona>(`/public-personas/${id}`);
   } catch {
-    return gameResourceProfiles.find((profile) => profile.id === id) ?? null;
+    return null;
   }
 });
 
 async function fetchScripts(personaId: string): Promise<PublicScript[]> {
+  if (gameResourceProfiles.some((profile) => profile.id === personaId)) return [];
   try {
     return await apiFetch<PublicScript[]>(`/public-scripts?personaId=${personaId}`);
   } catch {
