@@ -97,6 +97,18 @@ describe("AuthorPageClient as the one identity page", () => {
     window.sessionStorage.clear();
   });
 
+  it("also switches script sections into compact overview cards in dense mode", () => {
+    const persona = { id: "writer-dense", displayName: "海聶", roles: ["scriptwriter"] } as PublicPersona;
+    render(<AuthorPageClient persona={persona} scripts={[]} externalScripts={[{
+      id: "doc-1", title: "外部台本甲", summary: "很長的台本簡介", sourceName: "Google Docs",
+      sourceUrl: "https://docs.google.com/document/d/abc/edit",
+    } as ExternalPublicScript]} />);
+    expect(screen.getByText("很長的台本簡介")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "密集" }));
+    expect(screen.queryByText("很長的台本簡介")).toBeNull();
+    expect(screen.getByRole("link", { name: "前往作品：外部台本甲" }).getAttribute("href")).toBe("https://docs.google.com/document/d/abc/edit");
+  });
+
   it.each([
     ["production", "recording_studio"], ["author", "scriptwriter"], ["voice_actor", "voice_actor"],
   ] as const)("proposes %s works through the shared profile submission", async (kind, role) => {

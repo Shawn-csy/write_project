@@ -129,4 +129,16 @@ describe("AudioWorksClient data loading", () => {
     expect(screen.getByText("待核署名")).toBeTruthy();
     expect(screen.getByRole("link", { name: "待核署名的署名來源" })).toHaveAttribute("href", initialWorks[0].url);
   });
+
+  it("remembers adult content confirmation across mounts within the same session", async () => {
+    readPublicBundle.mockResolvedValue({ data: { audioWorks: initialWorks, organizations: initialOrganizations } });
+    const first = render(<AudioWorksClient />);
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+    first.unmount();
+
+    render(<AudioWorksClient />);
+    expect(screen.queryByRole("heading", { name: "成人向內容提醒" })).toBeNull();
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+  });
 });
