@@ -1,1 +1,3 @@
-export const SITE_VERSION = "0.7.5";
+import { version } from "../package.json";
+
+export const SITE_VERSION = version;
