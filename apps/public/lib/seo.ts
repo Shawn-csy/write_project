@@ -45,13 +45,13 @@ export function absoluteUrl(pathOrUrl: string): string {
 }
 
 /** Returns entity image if provided, otherwise the default OG image. Both are absolute URLs. */
-export function pickPreviewImage(entityImage?: string | null): string {
-  if (entityImage) return absoluteUrl(entityImage);
-  return DEFAULT_OG_IMAGE_URL;
+export function pickPreviewImage(entityImage?: string | null, fallback = DEFAULT_OG_IMAGE_URL): string {
+  return absoluteUrl(entityImage?.trim() || fallback);
 }
 
 export function publicDirectoryMetadata(path: string, title: string, description: string): Metadata {
   const url = absoluteUrl(path);
+  const image = absoluteUrl(`/og${path}.png`);
   return {
     title,
     description,
@@ -63,13 +63,13 @@ export function publicDirectoryMetadata(path: string, title: string, description
       url,
       siteName: SITE_SEARCH_NAME,
       locale: "zh_TW",
-      images: [{ url: DEFAULT_OG_IMAGE_URL, alt: SITE_SEARCH_NAME }],
+      images: [{ url: image, alt: title, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [DEFAULT_OG_IMAGE_URL],
+      images: [{ url: image, alt: title }],
     },
   };
 }

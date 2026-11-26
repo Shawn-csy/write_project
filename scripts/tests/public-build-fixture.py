@@ -13,6 +13,10 @@ SCRIPT = {
     "createdAt": 1700000000000, "lastModified": 1700000000000, "isPublic": 1,
     "type": "script", "folder": "/", "tags": [{"name": "FixtureTag"}],
     "series": {"name": "FixtureSeries"},
+    "activityDemoLinks": json.dumps([{
+        "name": "Fixture Demo", "url": "https://www.youtube.com/watch?v=gg5sBENtuDI",
+        "coverUrl": "https://example.com/fixture-demo.jpg",
+    }]),
     "persona": {"id": "fixture-persona", "displayName": "Fixture Author"},
     "owner": {"id": "fixture-owner", "displayName": "Fixture Owner"},
 }

@@ -6,6 +6,8 @@ import {
   buildReadPageBreadcrumbData,
   buildReadPageExcerpt,
   buildReadPageRatingMeta,
+  buildReadPageOpenGraph,
+  buildReadPageTwitterCard,
   isAdultScript,
 } from "./readPageSeo";
 import type { PublicScript } from "./types";
@@ -13,6 +15,17 @@ import type { PublicScript } from "./types";
 function baseScript(overrides: Partial<PublicScript> = {}): PublicScript {
   return { id: "s1", title: "測試台本", ...overrides };
 }
+
+it("uses the same script artwork across social services and uses a Demo cover for an uncovered work", () => {
+  const demoCover = "https://example.com/performance.jpg";
+  const script = baseScript({
+    activityDemoLinks: JSON.stringify([{ url: "https://example.com/demo", coverUrl: demoCover }]),
+  });
+  expect(buildReadPageOpenGraph(script, script.id)).toMatchObject({ images: [{ url: demoCover }] });
+  expect(buildReadPageTwitterCard(script)).toMatchObject({ images: [demoCover] });
+  expect(buildReadPageTwitterCard({ ...script, coverUrl: "https://example.com/script.jpg" }))
+    .toMatchObject({ images: ["https://example.com/script.jpg"] });
+});
 
 describe("buildReadPageTitle", () => {
   it("no series, no author", () => {

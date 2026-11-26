@@ -86,12 +86,32 @@ def static_build(snapshot):
         for script in snapshot["/api/public-scripts"]:
             validate_html((output / "read" / (script["id"] + ".html")).read_text(), script)
         sitemap = (output / "sitemap.xml").read_text()
+        for name in ("authors", "resources", "audio-works", "demos", "voice-actors", "activities"):
+            preview = f"https://open-scripts.shawnup.com/og/{name}.png"
+            html = (output / f"{name}.html").read_text()
+            if not (output / f"og/{name}.png").is_file() or any(
+                tag not in html for tag in (
+                    f'property="og:image" content="{preview}"',
+                    f'name="twitter:image" content="{preview}"',
+                )
+            ):
+                raise RuntimeError(f"{name} is missing its exported share image")
         if "fixture-withdrawn" in sitemap or (output / "read/fixture-withdrawn.html").exists():
             raise RuntimeError("Withdrawn work remains in the export")
         if snapshot["/api/public-scripts"]:
             changed = (output / "read/fixture-script.html").read_text()
             if "Updated Fixture Script" not in changed or not (output / "read/fixture-new.html").is_file():
                 raise RuntimeError("Edited/newly published work missing from static export")
+            demo_path = "demos/internal/fixture-script"
+            demo_html = (output / f"{demo_path}.html").read_text()
+            if any(value not in demo_html for value in (
+                f'rel="canonical" href="https://open-scripts.shawnup.com/{demo_path}"',
+                'property="og:image" content="https://example.com/fixture-demo.jpg"',
+                "Updated Fixture Script｜演出 Demo",
+            )) or demo_path not in sitemap:
+                raise RuntimeError("Demo detail was not exported with work-specific SEO")
+        elif (output / "demos/internal/fixture-script.html").exists() or "demos/internal/fixture-script" in sitemap:
+            raise RuntimeError("Withdrawn Demo remains in the export")
         print("Frozen content export verified: " + ("publish/edit/withdraw" if snapshot["/api/public-scripts"] else "fully empty public catalog"))
 
 

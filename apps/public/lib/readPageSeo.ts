@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import type { PublicScript } from "./types";
 import { SEGMENT_TAGS } from "@write/public-ui/server";
 import { getScriptDescription } from "./scriptDescription";
+import { demoArtwork } from "./demoArtwork";
+import { parsePublicDemoLinks } from "./publicDemoLinks";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX, pickPreviewImage, absoluteUrl } from "./seo";
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -211,7 +213,7 @@ export function buildReadPageOpenGraph(
   const title = buildReadPageTitle(script);
   const description = buildReadPageDescription(script);
   const canonicalUrl = buildReadPageCanonicalUrl(scriptId);
-  const previewImage = pickPreviewImage(script.coverUrl);
+  const previewImage = readPagePreviewImage(script);
 
   return {
     type: "article",
@@ -227,7 +229,7 @@ export function buildReadPageOpenGraph(
 export function buildReadPageTwitterCard(script: PublicScript): Metadata["twitter"] {
   const title = buildReadPageTitle(script);
   const description = buildReadPageDescription(script);
-  const previewImage = pickPreviewImage(script.coverUrl);
+  const previewImage = readPagePreviewImage(script);
 
   return {
     card: "summary_large_image",
@@ -235,4 +237,11 @@ export function buildReadPageTwitterCard(script: PublicScript): Metadata["twitte
     description,
     images: [previewImage],
   };
+}
+
+function readPagePreviewImage(script: PublicScript): string {
+  const performanceArtwork = !script.coverUrl && !isAdultScript(script)
+    ? parsePublicDemoLinks(script.activityDemoLinks).map((demo) => demoArtwork(demo.url, demo.coverUrl)).find(Boolean)
+    : undefined;
+  return pickPreviewImage(script.coverUrl || performanceArtwork, "/og/scripts.png");
 }

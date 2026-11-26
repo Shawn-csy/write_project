@@ -4,6 +4,7 @@ import type { MediaCropLike as CropRef } from "@write/media-crop";
 import { normalizeOutlineText, truncateCardText } from "./gallery/cardText";
 import { useGalleryHoverPreview } from "./gallery/GalleryHoverPreview";
 import { CoverRenderer } from "./cover/CoverRenderer";
+import { demoDetailHref } from "./demoDetailHref";
 import { ScriptGalleryCardFrame } from "./ScriptGalleryCardFrame";
 import type { CardAuthorDisplay, CoverImageRenderer, AvatarImageRenderer } from "./ScriptGalleryCardFrame";
 export type { CoverImageRenderer, CoverImageRendererProps, AvatarImageRenderer, AvatarImageRendererProps } from "./ScriptGalleryCardFrame";
@@ -134,7 +135,7 @@ function ScriptGalleryCardInner({
 }: ScriptGalleryCardProps): React.JSX.Element {
   const { id, title, author, coverUrl, coverDesign, views = 0, likes = 0, contentLength } = script;
   const demoHref = script.hasDemo
-    ? `/demos?script=${encodeURIComponent(id.startsWith("external:") ? id : `internal:${id}`)}`
+    ? demoDetailHref(id.startsWith("external:") ? id : `internal:${id}`)
     : undefined;
 
   const estDurationMinutes = contentLength && contentLength > 0
