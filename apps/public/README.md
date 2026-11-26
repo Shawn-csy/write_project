@@ -31,6 +31,8 @@ npm run build:pages -w apps/public
 
 首頁及實體頁初始內容是建置快照；hydration 後由 browser API adapters 讀取公開資料。寫入、Firebase 認證與 PostgreSQL 由主 API 負責，fallback 不接收寫入。API／媒體 URL 必須是瀏覽器可達的公開來源，不能把 Docker 內部位址帶到產物。
 
+Demo 目錄連到 `/demos/{kind}/{id}` 的詳情頁。Pages 匯出同時寫入各 Demo 的 canonical、sitemap 和分享封面；既有查詢參數連結仍可開啟對應演出。音聲作品目錄另有 Pages 快照，供主 API 與備援 API 都無法讀取時使用。
+
 程式發布與內容刷新是兩條流程：正常發布在 CI 通過後由 Mac self-hosted runner 發布 API／Studio 並驗證 Pages；內容刷新排程在每小時 `7,22,37,52` 分，以已部署 SHA 重建快照，可能延遲或因資料變動延後建置，不是 webhook 或即時逐項發布。
 
 共享元件與產品模型邊界見[Frontend boundaries](../../docs/architecture/frontend-boundaries.md)、[Public homepage architecture](../../docs/architecture/public-homepage-architecture.md)及[Media presentation](../../docs/architecture/public-media-presentation-architecture.md)。

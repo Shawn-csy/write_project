@@ -85,7 +85,7 @@ export default function HelpPage() {
           <PublicInfoSection title="音聲作品與 Demo">
             <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
               <p><a href="/audio-works" className={linkClass}>音聲作品</a>頁依社團瀏覽作品，可能連往第三方試聽或販售頁。進入頁面前需確認已年滿 18 歲；作品可能分為免費與付費。使用「投稿作品」提供作品與來源連結，審核通過後才會公開。</p>
-              <p><a href="/demos" className={linkClass}>Demo</a> 頁展示與公開台本對應的演出試聽。投稿時先選擇對應台本，再填入公開 Demo 連結及聲演資料；名單外聲演也可一併提供。審核通過後會連到對應台本與聲演身份頁。</p>
+              <p><a href="/demos" className={linkClass}>Demo</a> 頁展示與公開台本對應的演出試聽。點選封面或「查看演出」即可開啟詳情，並複製網址分享這部作品的演出。投稿時先選擇對應台本，再填入公開 Demo 連結及聲演資料；名單外聲演也可一併提供。審核通過後會連到對應台本與聲演身份頁。</p>
             </div>
           </PublicInfoSection>
 

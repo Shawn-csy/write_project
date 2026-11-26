@@ -70,6 +70,15 @@ export default function AboutPage() {
           <PublicInfoSection title="近期更新" card>
             <ul className="space-y-3 text-sm">
               <li className="rounded-lg border bg-muted p-3">
+                <time dateTime="2026-11-26" className="text-xs text-muted-foreground">2026 年 11 月 26 日</time>
+                <h3 className="mt-1 font-medium text-foreground">v0.7.6</h3>
+                <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted-foreground">
+                  <li>統一公開頁的導覽、搜尋與投稿，讓作者、資源和作品目錄分批載入。</li>
+                  <li>整理作品卡、製作署名與聲演連結，分開顯示人物角色、個人標籤和作品分類。</li>
+                  <li>Demo 封面可直接開啟演出。詳情有自己的分享網址，主要公開頁面也有專屬分享圖。</li>
+                </ul>
+              </li>
+              <li className="rounded-lg border bg-muted p-3">
                 <time dateTime="2026-11-20" className="text-xs text-muted-foreground">2026 年 11 月 20 日</time>
                 <h3 className="mt-1 font-medium text-foreground">v0.7.5</h3>
                 <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted-foreground">
