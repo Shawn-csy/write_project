@@ -445,17 +445,17 @@ details[open] > .public-credit-summary svg {
   font-size: 0.625rem;
 }
 
-.public-audio-work-card {
-  container: audio-work-card / inline-size;
+.public-catalog-work-card {
+  container: catalog-work-card / inline-size;
 }
 
-.public-audio-work-lead {
+.public-catalog-work-lead {
   display: grid;
   gap: 0.625rem;
 }
 
-@container audio-work-card (inline-size >= 25rem) {
-  .public-audio-work-lead {
+@container catalog-work-card (inline-size >= 25rem) {
+  .public-catalog-work-lead {
     grid-template-columns: minmax(0, 10rem) minmax(0, 1fr);
     align-items: start;
   }

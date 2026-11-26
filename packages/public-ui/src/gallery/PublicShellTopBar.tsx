@@ -84,12 +84,12 @@ function cn(...classes: (string | undefined | false | null)[]): string {
 
 function TabItem({ tab, isActive, activeTabStyle, renderLink }: { tab: PublicShellTab; isActive: boolean; activeTabStyle: "pill" | "subtle" | "none"; renderLink?: LinkRenderer }) {
   const className = cn(
-    "relative flex h-full items-center justify-center whitespace-nowrap px-3 text-[0.875rem] transition-colors duration-100 focus-visible:-outline-offset-2",
+    "relative flex h-full shrink-0 items-center justify-center whitespace-nowrap px-3 text-[0.875rem] transition-colors duration-100 focus-visible:-outline-offset-2 sm:max-md:px-1.5",
     tab.hideOnTablet && "sm:hidden lg:flex",
     isActive && activeTabStyle === "pill"
       ? "bg-foreground text-background font-semibold"
       : isActive && activeTabStyle === "subtle"
-        ? "text-foreground font-bold after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-foreground"
+        ? "text-foreground font-bold after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:bg-foreground sm:max-md:after:inset-x-1.5"
         : "text-muted-foreground hover:text-foreground hover:bg-muted font-normal"
   );
 
@@ -186,10 +186,10 @@ export function PublicShellTopBar({
 
         {hasTabs && (
           <>
-            <div className="mx-2 hidden h-5 w-px shrink-0 bg-border sm:block" aria-hidden />
+            <div className="mx-2 hidden h-5 w-px shrink-0 bg-border sm:block sm:max-md:mx-1" aria-hidden />
             <nav
               className={cn(
-                "-mx-4 h-[2.5625rem] min-w-0 shrink-0 basis-[calc(100%+2rem)] items-stretch overflow-x-auto border-t border-border px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex sm:h-full sm:basis-auto sm:overflow-visible sm:border-0 sm:px-0",
+                "-mx-4 h-[2.5625rem] min-w-0 shrink-0 basis-[calc(100%+2rem)] items-stretch overflow-x-auto border-t border-border px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex sm:h-full sm:basis-auto sm:overflow-visible sm:border-0 sm:px-0 sm:max-md:shrink sm:max-md:overflow-x-auto",
                 mobileNav || mobileTabSwitcher ? "hidden" : "flex",
               )}
               aria-label="公開頁面導航"

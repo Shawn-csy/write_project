@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import Link from "next/link";
-import { ArrowUpRight, Headphones, MessageSquarePlus, Mic2, Play, UserRound, X } from "lucide-react";
+import { ArrowUpRight, Gamepad2, Headphones, MessageSquarePlus, Mic2, Play, UserRound, X } from "lucide-react";
 import { AppearanceMenuContent } from "@/components/PublicAppearanceMenu";
 import { InfoMenuContent } from "@/components/PublicInfoMenu";
 import { studioUrl } from "@/lib/studioUrl";
@@ -12,7 +12,7 @@ import { PUBLIC_SECTION_TABS } from "@/lib/publicNavigation";
 const sheetSectionTitleClass =
   "mb-2 px-0.5 text-xs font-semibold tracking-[0.12em] text-muted-foreground";
 
-const SECTION_ICONS = { authors: UserRound, resources: Mic2, "audio-works": Headphones, demos: Play };
+const SECTION_ICONS = { authors: UserRound, resources: Mic2, "audio-works": Headphones, games: Gamepad2, demos: Play };
 const PUBLIC_SECTIONS = PUBLIC_SECTION_TABS.map((tab) => ({ ...tab, Icon: SECTION_ICONS[tab.key] }));
 
 export function PublicMobileActionSheet({ onClose, onOpenFeedback, activeTab }: { onClose: () => void; onOpenFeedback: () => void; activeTab: string }) {

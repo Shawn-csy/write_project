@@ -22,6 +22,7 @@ describe("ResourcesClient", () => {
   it("only shows the unclassified recording tab while an unresolved identity exists", () => {
     const studio: ProductionResource = { id: "studio", personaId: "studio", name: "錄音室", categories: ["recording_studio"], recordingEntityType: "studio", summary: "", websiteUrl: "", works: [{ id: "w", title: "作品", url: "https://example.com/w", coverUrl: "", creditRole: "recording_studio", creditedAs: "錄音室" }] };
     const { unmount } = render(<ResourceDirectoryFixture initialPersonas={[]} initialResources={[studio]} />);
+    expect(screen.getByRole("button", { name: "美術" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "待分類錄音" })).toBeNull();
     unmount();
     render(<ResourceDirectoryFixture initialPersonas={[]} initialResources={[studio, { ...studio, id: "legacy", personaId: "legacy", name: "待核身份", recordingEntityType: undefined }]} />);
@@ -90,13 +91,13 @@ describe("ResourcesClient", () => {
     };
     render(<ResourceDirectoryFixture initialResources={[resource]} initialPersonas={[{
       id: resource.id, displayName: resource.name,
-      tags: [" 錄音師 ", "錄音", "後製", "ＫＵ１００", "ku100", "業餘配音"],
+      tags: [" 錄音師 ", "錄音", "後製", "封面", "美術", "ＫＵ１００", "ku100", "業餘配音"],
     }]} />);
     fireEvent.click(screen.getByRole("button", { name: "後製" }));
     const row = within(screen.getByRole("article"));
     expect(within(row.getByRole("group", { name: "角色" })).getByText("錄音師")).toBeTruthy();
     const tags = within(row.getByRole("group", { name: "標籤" }));
-    expect(tags.queryByRole("button", { name: /錄音|後製/ })).toBeNull();
+    expect(tags.queryByRole("button", { name: /錄音|後製|封面|美術/ })).toBeNull();
     expect(tags.getAllByRole("button").map((tag) => tag.textContent)).toEqual(["ＫＵ１００", "業餘配音"]);
     fireEvent.click(tags.getByRole("button", { name: "ＫＵ１００" }));
     expect(screen.getByText("1 筆")).toBeTruthy();

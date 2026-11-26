@@ -3,13 +3,19 @@
 import { useId } from "react";
 import Link from "next/link";
 
+const notices = {
+  "audio-works": "音聲作品與封面可能含成人向內容，僅供年滿 18 歲者瀏覽。",
+  games: "收錄的遊戲限年滿 18 歲者瀏覽，外部商店頁可能含成人向內容。",
+  participations: "參與作品可能含成人向內容。確認後會顯示作品與封面，本次瀏覽期間免重複確認。",
+};
+
 export function AdultContentNotice({ scope, onConfirm }: {
-  scope: "audio-works" | "participations";
+  scope: keyof typeof notices;
   onConfirm: () => void;
 }) {
   const titleId = useId();
   const descriptionId = useId();
-  const page = scope === "audio-works";
+  const page = scope !== "participations";
   const Heading = page ? "h1" : "h2";
   const actionClass = "inline-flex min-h-11 items-center justify-center rounded-md px-4 text-sm font-semibold";
 
@@ -21,9 +27,7 @@ export function AdultContentNotice({ scope, onConfirm }: {
           <Heading id={titleId} className={`font-semibold leading-snug ${page ? "text-xl" : "text-base"}`}>成人向內容提醒</Heading>
         </div>
         <p id={descriptionId} className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          {page
-            ? "音聲作品與封面可能含成人向內容，僅供年滿 18 歲者瀏覽。"
-            : "參與作品可能含成人向內容。確認後會顯示作品與封面，本次瀏覽期間免重複確認。"}
+          {notices[scope]}
         </p>
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">

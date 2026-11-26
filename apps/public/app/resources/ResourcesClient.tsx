@@ -16,21 +16,25 @@ import { ResourceSubmissionDialog } from "@/components/ResourceSubmissionDialog"
 import type { PublicPersona } from "@/lib/types";
 
 import { buildResourceDirectory, selectResourceDirectory, type ProductionResource, type ResourceCategory as Category, type ResourceDirectoryEntry } from "@/lib/resourceDirectory";
+import { mergeGameParticipations } from "@/lib/gameCatalog";
 import { publicIdentityRoleLabel } from "@/lib/publicIdentityMetadata";
 
 export type { ProductionResource } from "@/lib/resourceDirectory";
 const CATEGORIES: { key: Category; label: string }[] = [
   { key: "voice_actor", label: "聲演" },
   { key: "post_production", label: "後製" },
-  { key: "cover_art", label: "封面" },
+  { key: "cover_art", label: publicIdentityRoleLabel("cover_art") },
   { key: "recording_engineer", label: "錄音師" },
   { key: "recording_studio", label: "錄音室" },
   { key: "recording_unclassified", label: "待分類錄音" },
 ];
 
-export function ResourcesClient({ initialDirectory, refreshOnMount = false }: {
+const EMPTY_SUPPLEMENTAL_DIRECTORY: ResourceDirectoryEntry[] = [];
+
+export function ResourcesClient({ initialDirectory, refreshOnMount = false, supplementalDirectory = EMPTY_SUPPLEMENTAL_DIRECTORY }: {
   initialDirectory: ResourceDirectoryEntry[];
   refreshOnMount?: boolean;
+  supplementalDirectory?: ResourceDirectoryEntry[];
 }) {
   const [directory, setDirectory] = useState(initialDirectory);
   const [category, setCategory] = useState<Category>("voice_actor");
@@ -48,11 +52,13 @@ export function ResourcesClient({ initialDirectory, refreshOnMount = false }: {
     void readPublicBundle<{ personas?: PublicPersona[]; productionResources?: ProductionResource[] }>(["personas", "productionResources"])
       .then(({ data }) => {
         if (active && Array.isArray(data.personas) && Array.isArray(data.productionResources)) {
-          setDirectory(buildResourceDirectory(data.personas, data.productionResources));
+          const directory = buildResourceDirectory(mergeGameParticipations(data.personas), data.productionResources);
+          const existing = new Set(directory.map(({ id }) => id));
+          setDirectory([...directory, ...supplementalDirectory.filter(({ id }) => !existing.has(id))]);
         }
       }).catch(() => {});
     return () => { active = false; };
-  }, [refreshOnMount]);
+  }, [refreshOnMount, supplementalDirectory]);
 
   const needle = query.trim().toLocaleLowerCase();
   const hasUnclassifiedRecording = useMemo(() => selectResourceDirectory(directory, "recording_unclassified", "").length > 0, [directory]);

@@ -63,7 +63,7 @@ export function toSitemapDate(value: string | number | undefined, fallback = new
 // ─── Static public pages ──────────────────────────────────────────────────────
 
 /** Static pages that are always indexed and included in the sitemap. */
-export const STATIC_PUBLIC_PAGES = ["/about", "/audio-works", "/authors", "/demos", "/help", "/license", "/privacy", "/terms", "/resources", "/voice-actors"] as const;
+export const STATIC_PUBLIC_PAGES = ["/about", "/audio-works", "/authors", "/demos", "/games", "/help", "/license", "/privacy", "/terms", "/resources", "/voice-actors"] as const;
 
 /**
  * Last real edit of the static pages above (ISO-8601). Bump it when their copy

@@ -75,7 +75,7 @@ describe("AudioWorksClient data loading", () => {
     render(<AudioWorksClient />);
     fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
 
-    await screen.findByText("無法載入音聲作品");
+    await screen.findByText("無法載入音聲");
     readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: initialWorks, organizations: initialOrganizations } });
     fireEvent.click(screen.getByRole("button", { name: "重新載入" }));
 
@@ -121,6 +121,8 @@ describe("AudioWorksClient data loading", () => {
     fireEvent.click(screen.getByRole("button", { name: /我已年滿 18 歲/ }));
     fireEvent.click(await screen.findByRole("button", { name: /社團甲/ }));
     fireEvent.click(screen.getByText("製作人員與介紹"));
+    expect(screen.getAllByText("美術")).toHaveLength(2);
+    expect(screen.queryByText("封面")).toBeNull();
     expect(screen.getByRole("link", { name: "舊署名" }).getAttribute("href")).toBe("/author/artist-1");
     expect(screen.queryByRole("link", { name: "待核署名" })).toBeNull();
     expect(screen.getByText("待核署名")).toBeTruthy();

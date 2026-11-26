@@ -238,7 +238,7 @@ export function AudioWorksClient() {
         {selected ? (
           <PublicOrgMasthead org={selected.org} leading={
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <PublicBackButton label="返回音聲作品總覽" onClick={() => select(null)} />
+              <PublicBackButton label="返回音聲總覽" onClick={() => select(null)} />
               <div className="ml-auto flex flex-wrap justify-end gap-2">
                 <AudioWorkSubmissionDialog organizations={organizations} />
                 <AudioWorkAdApplicationDialog />
@@ -257,7 +257,7 @@ export function AudioWorksClient() {
           </PublicOrgMasthead>
         ) : (
           <PublicBrowseHeader
-            title="音聲作品"
+            title="音聲"
             search={catalog && !selectedId && works.length > 0 ? (
               <PublicSearchField value={studioQuery} onChange={setStudioQuery} placeholder="搜尋社團" />
             ) : undefined}
@@ -271,7 +271,7 @@ export function AudioWorksClient() {
         {loadFailed ? (
           <PublicEmptyState
             className="border-y border-border"
-            title="無法載入音聲作品"
+            title="無法載入音聲"
             primaryAction={{ label: "重新載入", onClick: () => { setLoadFailed(false); setLoadAttempt((attempt) => attempt + 1); } }}
           />
         ) : !catalog ? (
@@ -298,12 +298,12 @@ export function AudioWorksClient() {
             {filteredWorks.length > visibleCount && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
           </section>
         ) : selectedId ? (
-          <PublicEmptyState className="border-y border-border" title="找不到這個組織的公開作品。" primaryAction={{ label: "返回音聲作品總覽", onClick: () => select(null) }} />
+          <PublicEmptyState className="border-y border-border" title="找不到這個組織的公開作品。" primaryAction={{ label: "返回音聲總覽", onClick: () => select(null) }} />
         ) : works.length === 0 ? (
           <PublicEmptyState className="border-y border-border" title="目前沒有公開作品" icon={<Headphones className="h-5 w-5" aria-hidden />} />
         ) : (
           <div className="space-y-8">
-            <section aria-label="音聲作品組織">
+            <section aria-label="音聲組織">
               {visibleGroups.length > 0 ? <div className="grid gap-4 md:grid-cols-2">
               {visibleGroups.map(({ org, works: orgWorks }) => {
                 const banner = org.bannerUrl;

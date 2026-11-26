@@ -1,0 +1,396 @@
+{
+  "description": "台灣製作、台灣配音成人向遊戲之新進美術／後製／錄音／聲優建卡資料（resourceProfiles + 對應 works 參與關聯）。所有 UUID 採 uuid5 穩定產生，已核對正式站 248 筆 Persona 無撞名；尚未寫入任何資料庫。",
+  "checkedAt": "2026-11-26",
+  "scope": "New Persona profiles for Taiwanese adult game post-production engineers, recording studios, artists, and voice actors verified from Steam Store / OST pages, Wikipedia, Moegirlpedia, and official creator pages.",
+  "resourceProfiles": [
+    {
+      "id": "b6260b32-99e3-5e4c-83d1-8a6b31a5f422",
+      "displayName": "許柏煬 / Irro Hsu",
+      "website": "https://www.instagram.com/irro__1204/",
+      "roles": [
+        "post_production",
+        "recording_studio"
+      ],
+      "recordingEntityType": "person",
+      "entityTypeSourceUrl": "https://store.steampowered.com/app/3033250/",
+      "summary": "台灣音樂製作人、錄音師、混音師與母帶工程師，常與感聲錄音室合作參與台灣成人遊戲原聲帶與人聲錄音混音。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/3033250/",
+        "https://store.steampowered.com/app/3331470/",
+        "https://store.steampowered.com/app/3699300/"
+      ]
+    },
+    {
+      "id": "491c43be-3fd9-5414-a90b-006b7f365a8a",
+      "displayName": "維尼 / Narsil",
+      "website": "",
+      "sourceOnly": true,
+      "roles": [
+        "post_production",
+        "recording_studio"
+      ],
+      "recordingEntityType": "person",
+      "entityTypeSourceUrl": "https://store.steampowered.com/app/3033250/",
+      "summary": "台灣錄音師、混音師與音樂監督（紫外線音樂工作室負責人），參與多款台灣成人遊戲原聲帶人聲錄音與混音。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/3033250/",
+        "https://store.steampowered.com/app/3350470/"
+      ],
+      "avatarUrl": "/resources/avatar-491c43be.jpg"
+    },
+    {
+      "id": "e8d4d9fb-5714-500a-8071-1474cf6f94e2",
+      "displayName": "極栗音樂工作室（傲嬌栗子）",
+      "website": "https://clibo.tw/users/b59c67bf196a4758191e42f76670ceba",
+      "avatarUrl": "/resources/jili-music.jpg",
+      "roles": [
+        "post_production"
+      ],
+      "summary": "台灣音樂與聲音製作團隊，提供遊戲主題曲、原創配樂與人聲混音製作。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/2301710/",
+        "https://store.steampowered.com/app/3033250/",
+        "https://clibo.tw/users/b59c67bf196a4758191e42f76670ceba"
+      ]
+    },
+    {
+      "id": "174c356d-4012-569a-a2a0-4f8872f5fd65",
+      "displayName": "幽火的音樂工作室（TPOP Studio）",
+      "website": "",
+      "avatarUrl": "/resources/tpop-studio.jpg",
+      "sourceOnly": true,
+      "roles": [
+        "post_production"
+      ],
+      "summary": "台灣獨立遊戲配樂與音效設計工作室（負責人楊尚峰／幽火），參與《半妖忍少女》等台灣遊戲原聲帶製作。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/3331470/"
+      ]
+    },
+    {
+      "id": "2c871e46-4df7-5572-97fb-197df8a70be2",
+      "displayName": "藝昇國際有限公司",
+      "website": "https://www.facebook.com/Avoice.tw/",
+      "roles": [
+        "recording_studio"
+      ],
+      "recordingEntityType": "studio",
+      "entityTypeSourceUrl": "https://store.steampowered.com/app/1683430/",
+      "summary": "由資深配音員暨聲音導演于正昇創立的台灣配音與聲優事務所，承接遊戲中文配音製作。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/1683430/",
+        "https://www.facebook.com/Avoice.tw/"
+      ],
+      "avatarUrl": "/resources/avatar-2c871e46.jpg"
+    },
+    {
+      "id": "4e1db706-31d7-5267-86a0-044406e1e0ea",
+      "displayName": "搶眼數位影音",
+      "website": "https://www.eyemediastudio.com/",
+      "avatarUrl": "/resources/eyemedia.jpg",
+      "roles": [
+        "recording_studio"
+      ],
+      "recordingEntityType": "studio",
+      "entityTypeSourceUrl": "https://www.eyemediastudio.com/",
+      "summary": "新北新店數位影音與配音錄音室，曾參與《天下布魔》等台灣遊戲語音錄製。",
+      "sourceUrls": [
+        "https://www.eyemediastudio.com/"
+      ]
+    },
+    {
+      "id": "34c6c79a-7a38-5d19-9431-8b5a04416ec7",
+      "displayName": "WhitebearA",
+      "website": "https://www.pixiv.net/users/82842141",
+      "avatarUrl": "/resources/whitebeara.jpg",
+      "roles": [
+        "cover_art"
+      ],
+      "summary": "台灣插畫家與遊戲美術（別名白熊A／シロクマA），參與《與經紀人戀愛是絕對禁止2》角色立繪與美術設計。",
+      "sourceUrls": [
+        "https://zh.moegirl.org.cn/%E4%B8%8E%E7%BB%8F%E7%BA%AA%E4%BA%BA%E6%81%8B%E7%88%B1%E6%98%AF%E7%BB%9D%E5%AF%B9%E7%A6%81%E6%AD%A22",
+        "https://www.pixiv.net/users/82842141"
+      ]
+    },
+    {
+      "id": "cc9b34ec-139e-5d75-9713-736988f1320b",
+      "displayName": "蕭邦仲（龜頭生野郎）",
+      "website": "",
+      "sourceOnly": true,
+      "roles": [
+        "cover_art"
+      ],
+      "summary": "漫畫家與遊戲美術製作人（快樂怪物核心成員），擔任《女拳主義F-ist！》與《台灣戀愛物語⁵》原畫與美術。",
+      "sourceUrls": [
+        "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5",
+        "https://store.steampowered.com/app/1757490/"
+      ],
+      "avatarUrl": "/resources/avatar-cc9b34ec.jpg"
+    },
+    {
+      "id": "37d61341-c17e-5bc7-9d4e-01d77b6f1747",
+      "displayName": "鴉醬（カラスちゃん）",
+      "website": "https://x.com/Karasu_Chan1204",
+      "avatarUrl": "/resources/karasu-chan.png",
+      "roles": [
+        "cover_art"
+      ],
+      "summary": "台灣漫畫家與插畫家，負責《獸人按摩店》角色原設與人外娘視覺設計。",
+      "sourceUrls": [
+        "https://x.com/Karasu_Chan1204",
+        "https://store.steampowered.com/app/1129540/"
+      ]
+    },
+    {
+      "id": "9a734f44-6e89-55ef-97cf-9197d1564cf6",
+      "displayName": "兔姬 UsagiHime",
+      "website": "https://www.usagihime.net/",
+      "avatarUrl": "/resources/usagihime.jpg",
+      "roles": [
+        "cover_art"
+      ],
+      "summary": "台灣插畫家、角色設計師與 VTuber，擔任《天下布魔》美術總監與角色設計。",
+      "sourceUrls": [
+        "https://www.usagihime.net/",
+        "https://zh.wikipedia.org/wiki/%E5%A4%A9%E4%B8%8B%E5%B8%83%E9%AD%94"
+      ]
+    },
+    {
+      "id": "8cb57021-8761-5f49-be44-2c1d68540db7",
+      "displayName": "菜菜",
+      "website": "",
+      "sourceOnly": true,
+      "roles": [
+        "voice_actor"
+      ],
+      "summary": "台灣中文配音員，於 Steam《冥婚交友中心《厲鬼的戀愛指南》》官方頁署名演出角色「黛兒」。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/1683430/"
+      ]
+    },
+    {
+      "id": "a72a76f9-47c3-5f0d-a7ef-c094575bf451",
+      "displayName": "年糕",
+      "website": "",
+      "sourceOnly": true,
+      "roles": [
+        "voice_actor"
+      ],
+      "summary": "台灣中文配音員，於 Steam《冥婚交友中心《厲鬼的戀愛指南》》官方頁署名演出角色「媛」。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/1683430/"
+      ]
+    },
+    {
+      "id": "e4c41768-0bc5-58df-87d8-f09e696f73e1",
+      "displayName": "香草奈若",
+      "website": "https://www.youtube.com/@nyoro0606tw",
+      "avatarUrl": "/resources/nyoro0606tw.jpg",
+      "sourceOnly": true,
+      "roles": [
+        "voice_actor"
+      ],
+      "summary": "台灣中文配音員，於 Steam《冥婚交友中心《厲鬼的戀愛指南》》官方頁署名演出角色「月婆＆香草少女」。",
+      "sourceUrls": [
+        "https://store.steampowered.com/app/1683430/"
+      ]
+    }
+  ],
+  "works": [
+    {
+      "url": "https://store.steampowered.com/app/1683430/",
+      "title": "冥婚交友中心《厲鬼的戀愛指南》",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1683430/header.jpg?t=1745896971",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "8cb57021-8761-5f49-be44-2c1d68540db7",
+          "creditedAs": "菜菜",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/",
+          "sourceRole": "Taiwanese CV",
+          "characterName": "黛兒",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "a72a76f9-47c3-5f0d-a7ef-c094575bf451",
+          "creditedAs": "年糕",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/",
+          "sourceRole": "Taiwanese CV",
+          "characterName": "媛",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "e4c41768-0bc5-58df-87d8-f09e696f73e1",
+          "creditedAs": "香草奈若",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/",
+          "sourceRole": "Taiwanese CV",
+          "characterName": "月婆＆香草少女",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "2c871e46-4df7-5572-97fb-197df8a70be2",
+          "creditedAs": "藝昇國際有限公司",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/",
+          "sourceRole": "Taiwanese CV Staff",
+          "description": "中文配音製作團隊"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2976870/",
+      "title": "台灣戀愛物語⁵",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2976870/header_tchinese.jpg?t=1792139213",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "post_production",
+          "personaId": "b6260b32-99e3-5e4c-83d1-8a6b31a5f422",
+          "creditedAs": "許柏煬/Irro Hsu",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/",
+          "sourceRole": "人聲混音",
+          "description": "主題曲人聲混音（台中、台南）"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "b6260b32-99e3-5e4c-83d1-8a6b31a5f422",
+          "creditedAs": "許柏煬/Irro Hsu",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/",
+          "sourceRole": "人聲錄音",
+          "description": "主題曲人聲錄音（台中、台南）"
+        },
+        {
+          "role": "post_production",
+          "personaId": "491c43be-3fd9-5414-a90b-006b7f365a8a",
+          "creditedAs": "維尼/Narsil",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/",
+          "sourceRole": "人聲混音",
+          "description": "主題曲人聲混音"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "491c43be-3fd9-5414-a90b-006b7f365a8a",
+          "creditedAs": "維尼/Narsil",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/",
+          "sourceRole": "人聲錄音",
+          "description": "主題曲與高雄插曲人聲錄音"
+        },
+        {
+          "role": "post_production",
+          "personaId": "e8d4d9fb-5714-500a-8071-1474cf6f94e2",
+          "creditedAs": "傲嬌栗子（極栗音樂）/Ji-Li Music",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/",
+          "sourceRole": "作曲／編曲／人聲混音",
+          "description": "高雄插曲作曲、編曲與人聲混音"
+        },
+        {
+          "role": "cover_art",
+          "personaId": "cc9b34ec-139e-5d75-9713-736988f1320b",
+          "creditedAs": "蕭邦仲（龜頭生野郎）",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5",
+          "sourceRole": "美術／人物設定",
+          "description": "主美術與人物設定"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2460070/",
+      "title": "半妖忍少女",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2460070/header_tchinese.jpg?t=1792139363",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "post_production",
+          "personaId": "b6260b32-99e3-5e4c-83d1-8a6b31a5f422",
+          "creditedAs": "Irro",
+          "sourceUrl": "https://store.steampowered.com/app/3331470/",
+          "sourceRole": "編曲／混音 & 母帶",
+          "description": "主題曲編曲、混音與母帶後期"
+        },
+        {
+          "role": "post_production",
+          "personaId": "174c356d-4012-569a-a2a0-4f8872f5fd65",
+          "creditedAs": "幽火的音樂工作室",
+          "sourceUrl": "https://store.steampowered.com/app/3331470/",
+          "sourceRole": "原聲帶音樂",
+          "description": "遊戲原聲帶音樂製作"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2289720/",
+      "title": "暴食的怪獸公主：惑星美食之旅",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2289720/header_tchinese.jpg?t=1766072008",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "post_production",
+          "personaId": "491c43be-3fd9-5414-a90b-006b7f365a8a",
+          "creditedAs": "維尼",
+          "sourceUrl": "https://store.steampowered.com/app/3350470/",
+          "sourceRole": "Mixing",
+          "description": "原聲帶混音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2053940/",
+      "title": "與經紀人戀愛是絕對禁止2",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2053940/header_tchinese.jpg?t=1764132722",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "cover_art",
+          "personaId": "34c6c79a-7a38-5d19-9431-8b5a04416ec7",
+          "creditedAs": "WhitebearA",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%B8%8E%E7%BB%8F%E7%BA%AA%E4%BA%BA%E6%81%8B%E7%88%B1%E6%98%AF%E7%BB%9D%E5%AF%B9%E7%A6%81%E6%AD%A22",
+          "sourceRole": "美工",
+          "description": "角色立繪與美術設計（Rainie 等）"
+        },
+        {
+          "role": "post_production",
+          "personaId": "e8d4d9fb-5714-500a-8071-1474cf6f94e2",
+          "creditedAs": "極栗工作室",
+          "sourceUrl": "https://store.steampowered.com/app/2301710/",
+          "sourceRole": "原聲帶創作",
+          "description": "主題曲《戀愛禁行》與原聲帶製作"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1757490/",
+      "title": "女拳主義F-ist！",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1757490/header_tchinese.jpg?t=1724074956",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "cover_art",
+          "personaId": "cc9b34ec-139e-5d75-9713-736988f1320b",
+          "creditedAs": "蕭邦仲（龜頭生野郎）",
+          "sourceUrl": "https://store.steampowered.com/app/1757490/",
+          "sourceRole": "原畫",
+          "description": "遊戲原畫與角色設計"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1129540/",
+      "title": "獸人按摩店",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1129540/header.jpg?t=1730717444",
+      "workType": "game",
+      "participants": [
+        {
+          "role": "cover_art",
+          "personaId": "37d61341-c17e-5bc7-9d4e-01d77b6f1747",
+          "creditedAs": "鴉醬（カラスちゃん）",
+          "sourceUrl": "https://x.com/Karasu_Chan1204",
+          "sourceRole": "角色原設",
+          "description": "遊戲角色原設定與美術"
+        }
+      ]
+    }
+  ]
+}

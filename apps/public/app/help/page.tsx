@@ -51,7 +51,7 @@ export default function HelpPage() {
       <JsonLdScript data={faqData} />
       <PublicInfoDocument>
         <PublicInfoLead>
-          <p>本站可瀏覽公開台本、音聲作品、演出 Demo，以及聲演、後製、封面和錄音等創作資源。瀏覽公開內容與使用投稿表單不需登入。</p>
+          <p>本站可瀏覽公開台本、音聲作品、演出 Demo，以及聲演、後製、美術和錄音等創作資源。瀏覽公開內容與使用投稿表單不需登入。</p>
           <ol className="list-decimal space-y-2 pl-5 text-foreground/90">
             <li><strong>找內容</strong>：從首頁、音聲作品、Demo 或資源頁搜尋與篩選。</li>
             <li><strong>看來源與授權</strong>：本站台本可進入閱讀頁；外部收錄作品請開啟原始來源，確認使用條件。</li>
@@ -91,7 +91,7 @@ export default function HelpPage() {
 
           <PublicInfoSection title="創作資源：新增與補充資料">
             <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
-              <p><a href="/resources" className={linkClass}>資源頁</a>收錄聲演、後製、封面與錄音工作者或工作室，可搜尋名稱、查看聯絡連結與參與作品。參與作品可為音聲、遊戲、影片或其他類型；部分作品圖片會在年齡確認後顯示。</p>
+              <p><a href="/resources" className={linkClass}>資源頁</a>收錄聲演、後製、美術與錄音工作者或工作室，可搜尋名稱、查看聯絡連結與參與作品。參與作品可為音聲、遊戲、影片或其他類型；部分作品圖片會在年齡確認後顯示。</p>
               <p>新增資源請使用「投稿資源」。聲演的參與作品可選填；其他類別至少需要一部有名稱與網址的參與作品，並提供官方、委託或社群連結。已有資源頁時，請進入該頁使用「補充／更新資源資料」。兩種提交都須經管理員審核。</p>
             </div>
           </PublicInfoSection>

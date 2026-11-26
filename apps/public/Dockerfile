@@ -19,6 +19,7 @@ RUN npm ci
 
 COPY packages/ ./packages/
 COPY apps/public/ ./apps/public/
+COPY server/scripts/data/taiwan_adult_games_*_2026-11-26.json ./server/scripts/data/
 
 ARG NEXT_PUBLIC_BASE_URL=https://open-scripts.shawnup.com
 ENV NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}

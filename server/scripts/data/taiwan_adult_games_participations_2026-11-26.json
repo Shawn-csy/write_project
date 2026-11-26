@@ -1,0 +1,1016 @@
+{
+  "description": "台灣製作、台灣中文配音為主之成人向遊戲參與快照（workType: game）。works 陣列僅收錄已完成既有 Persona 身份核對之項目，可直接供 scripts.import_work_participations 預檢匯入；尚未建立 Persona 或待確認職務分類的配音／錄音／後製／美術署名收錄於 pendingIdentityReview。",
+  "checkedAt": "2026-11-26",
+  "scope": "Taiwanese-made adult games with verified Taiwanese voice acting and studio recording/art credits. Steam URLs, titles, and cover images verified via Steam Store API on 2026-11-26.",
+  "works": [
+    {
+      "url": "https://store.steampowered.com/app/1658310/",
+      "title": "股市淫狼",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1658310/header_tchinese.jpg?t=1725000860",
+      "workType": "game",
+      "developers": ["樹懶叫工作室", "sloth gamer"],
+      "publishers": ["Mango Party", "LewdLoco", "Mango Party News"],
+      "releasedOn": "2021-10-28",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "小澤瀧、辰佳薇",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "小C",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "趙雅楓",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+          "creditedAs": "十二日寄手琴",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%B0%B4%E6%9B%9C%E6%97%A5",
+          "sourceRole": "聲優",
+          "characterName": "舒蘭嬌",
+          "description": "台灣中文配音（以十二日寄手琴名義演出）"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "不敗教主",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+          "creditedAs": "默吹羽",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%BB%98%E5%90%B9%E7%BE%BD",
+          "sourceRole": "聲優",
+          "characterName": "申婉兒",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1129540/",
+      "title": "獸人按摩店",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1129540/header.jpg?t=1730717444",
+      "workType": "game",
+      "developers": ["TorchEntertainment"],
+      "publishers": ["Critical Bliss", "Mango Party"],
+      "releasedOn": "2022-02-08",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "人魚艾瑪",
+          "description": "角色語音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1854250/",
+      "title": "惡魔調酒師",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1854250/header_tchinese.jpg?t=1783975943",
+      "workType": "game",
+      "developers": ["樹懶叫工作室", "sloth gamer"],
+      "publishers": ["Mango Party", "LewdLoco", "Mango Party News"],
+      "releasedOn": "2022-07-11",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "狐精蒂歐、女神亞爾薇特、弓箭手亞爾薇特、哈比族",
+          "description": "台灣中文配音（兼任聲音導演）"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "龍族朵拉、女術士米奈娃、黑暗妖精",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "人魚梅樂蒂、聖女莎伊芙吉歐",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+          "creditedAs": "水曜日",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%B0%B4%E6%9B%9C%E6%97%A5",
+          "sourceRole": "聲優",
+          "characterName": "吸血鬼夏洛可可、魅魔",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "獸人劍士克蕾兒、商人受付娘瑪莎",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+          "creditedAs": "默吹羽",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%BB%98%E5%90%B9%E7%BE%BD",
+          "sourceRole": "聲優",
+          "characterName": "狼女辛婭、獨眼巨人娘",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1894080/",
+      "title": "撿到千年貓",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1894080/header_tchinese.jpg?t=1792295476",
+      "workType": "game",
+      "developers": ["CatBellUnion"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2022-10-06",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "貓貓",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "貓貓",
+          "description": "英文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1757490/",
+      "title": "女拳主義F-ist！",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1757490/header_tchinese.jpg?t=1724074956",
+      "workType": "game",
+      "developers": ["Happy Monster Studio"],
+      "publishers": ["Mango Party", "LewdLoco", "Mango Party News"],
+      "releasedOn": "2022-12-21",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "MK妹凱婷、中華娘春蘭",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "忍者姐妹（風香、火憐）、叢林戰士烏咪",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "吸血女王丹妮爾",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2053940/",
+      "title": "與經紀人戀愛是絕對禁止2",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2053940/header_tchinese.jpg?t=1764132722",
+      "workType": "game",
+      "developers": ["樹懶叫工作室", "Maker製造機", "sloth gamer"],
+      "publishers": ["Mango Party", "LewdLoco", "Mango Party News"],
+      "releasedOn": "2023-03-12",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "Rainie",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "宋允真",
+          "description": "台灣中文配音（並演唱主題曲《戀愛禁行》）"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "夏又晴",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+          "creditedAs": "默吹羽",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%BB%98%E5%90%B9%E7%BE%BD",
+          "sourceRole": "聲優",
+          "characterName": "Soe",
+          "description": "台灣中文配音（並參與演唱主題曲《戀愛禁行》）"
+        },
+        {
+          "role": "cover_art",
+          "personaId": "b4534f5c-ac87-413a-a79a-be91dcf2da98",
+          "creditedAs": "冬瓜冰茶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%B8%8E%E7%BB%8F%E7%BA%AA%E4%BA%BA%E6%81%8B%E7%88%B1%E6%98%AF%E7%BB%9D%E5%AF%B9%E7%A6%81%E6%AD%A22",
+          "sourceRole": "美工",
+          "description": "遊戲角色立繪與美術（宋允真等）"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1741040/",
+      "title": "末代君主",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1741040/header.jpg?t=1782937116",
+      "workType": "game",
+      "developers": ["Sand Traveler", "ado"],
+      "publishers": ["Mango Party"],
+      "releasedOn": "2023-03-15",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "夏洛蒂、魅魔莉維亞",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "獸人凱拉、哥布林米婭",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2143540/",
+      "title": "異世界猜拳勇者",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2143540/header_tchinese.jpg?t=1725000949",
+      "workType": "game",
+      "developers": ["BFS"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2023-09-21",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "爽朗牛娘",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "嫵媚妖狐",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "高雅女神",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+          "creditedAs": "水曜日",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%B0%B4%E6%9B%9C%E6%97%A5",
+          "sourceRole": "聲優",
+          "characterName": "天然精靈",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "傲嬌惡魔",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2019680/",
+      "title": "禁慾健身中心",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2019680/header.jpg?t=1783372635",
+      "workType": "game",
+      "developers": ["樹懶叫工作室", "sloth gamer", "Maker製造機"],
+      "publishers": ["Mango Party", "LewdLoco", "Mango Party News"],
+      "releasedOn": "2023-11-19",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "Nadia",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2273420/",
+      "title": "管理員的窺視",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2273420/8e02766e9327619e500908fd5cc1ee797eab7705/header_tchinese.jpg?t=1769048992",
+      "workType": "game",
+      "developers": ["HornyDoge"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2023-12-15",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "上原未來",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "芒果小姐",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "秋月美咲",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "木下由璃",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+          "creditedAs": "默吹羽",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%BB%98%E5%90%B9%E7%BE%BD",
+          "sourceRole": "聲優",
+          "characterName": "小鳥遊乙姬",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "cover_art",
+          "personaId": "1cfd3146-d634-413e-9208-f0e8f7971e90",
+          "creditedAs": "貓伊光",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E7%AE%A1%E7%90%86%E5%93%A1%E7%9A%84%E7%AA%BA%E8%A6%96",
+          "sourceRole": "美術",
+          "description": "遊戲主美術與角色設計"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1848270/",
+      "title": "零號生命體",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1848270/header_tchinese.jpg?t=1725000884",
+      "workType": "game",
+      "developers": ["Sins of Succubus"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2024-02-22",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "零號",
+          "description": "角色語音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2613010/",
+      "title": "轉錄少女拯救行動！",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2613010/header_tchinese.jpg?t=1725000879",
+      "workType": "game",
+      "developers": ["Backflip WildCAT"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2024-02-29",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "HINA",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2176570/",
+      "title": "哥布林祭司的隨從",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2176570/header_tchinese.jpg?t=1725000913",
+      "workType": "game",
+      "developers": ["BFGS"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2024-05-16",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "芭斯特",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "阿努",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2822030/",
+      "title": "亂鬥少女",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2822030/header_tchinese.jpg?t=1725000902",
+      "workType": "game",
+      "developers": ["18bitStudio"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2024-06-25",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "百華莉莉絲",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "不知火千花、神無月時雨",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "睦月澪",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2289720/",
+      "title": "暴食的怪獸公主：惑星美食之旅",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2289720/header_tchinese.jpg?t=1766072008",
+      "workType": "game",
+      "developers": ["PantyParrot"],
+      "publishers": ["Mango Party", "PantyParrot", "Mango Party News"],
+      "releasedOn": "2024-12-12",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "波奇Q、修女",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "亞紀",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+          "creditedAs": "默吹羽",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%BB%98%E5%90%B9%E7%BE%BD",
+          "sourceRole": "聲優",
+          "characterName": "型號V",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "46ff7730-c69a-4a9f-8afb-5079145efe68",
+          "creditedAs": "SenSonus Records",
+          "sourceUrl": "https://store.steampowered.com/app/3350470/",
+          "sourceRole": "Production",
+          "description": "原聲帶音樂製作（對應 Steam OST app/3350470）"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2460070/",
+      "title": "半妖忍少女",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2460070/header_tchinese.jpg?t=1792139363",
+      "workType": "game",
+      "developers": ["樹懶叫工作室", "紳士吉娃", "Maker製造機"],
+      "publishers": ["Mango Party", "LewdLoco"],
+      "releasedOn": "2024-12-17",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "嗔魔",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "痴魔",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "銀魔",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "夕瀧",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "dae719fd-b741-4708-9ec3-ec5420ea7ead",
+          "creditedAs": "默吹羽",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%BB%98%E5%90%B9%E7%BE%BD",
+          "sourceRole": "聲優",
+          "characterName": "真鳴",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "46ff7730-c69a-4a9f-8afb-5079145efe68",
+          "creditedAs": "感聲錄音室 SenSonus Records",
+          "sourceUrl": "https://store.steampowered.com/app/3331470/",
+          "sourceRole": "音樂製作",
+          "description": "音樂與原聲帶製作（對應 Steam OST app/3331470）"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2976870/",
+      "title": "台灣戀愛物語⁵",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2976870/header_tchinese.jpg?t=1792139213",
+      "workType": "game",
+      "developers": ["快樂怪物", "紳士吉娃", "Maker製造機"],
+      "publishers": ["LewdLoco", "Mango Party"],
+      "releasedOn": "2024-12-18",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "小咘",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "海蘇兒",
+          "description": "台灣中文配音（並演唱主題曲《我想大聲說喜歡你》）"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "張書嫚",
+          "description": "台灣中文配音（並演唱主題曲《我要大聲說喜歡你》）"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+          "creditedAs": "水曜日",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%B0%B4%E6%9B%9C%E6%97%A5",
+          "sourceRole": "聲優",
+          "characterName": "林姿婷",
+          "description": "台灣中文配音（並演唱主題曲《我想大聲說喜歡你》）"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "da53e2d9-d47f-43e6-92d7-2ff3f92a734c",
+          "creditedAs": "紗耶",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E7%BA%B1%E8%80%B6%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "王秋霞",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "46ff7730-c69a-4a9f-8afb-5079145efe68",
+          "creditedAs": "感聲錄音室",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5",
+          "sourceRole": "音樂／錄音",
+          "description": "錄音與原聲帶協力（對應 Steam OST app/3033250）"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2962420/",
+      "title": "外送熱",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2962420/header_tchinese.jpg?t=1742551526",
+      "workType": "game",
+      "developers": ["02 studios"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2025-03-12",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29",
+          "sourceRole": "聲優",
+          "characterName": "咲良",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "朵法娜",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "78d9cc82-9f6e-42eb-b073-197f24a44b42",
+          "creditedAs": "水曜日",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%B0%B4%E6%9B%9C%E6%97%A5",
+          "sourceRole": "聲優",
+          "characterName": "愛庫娃",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/3044740/",
+      "title": "請成為最能幹的VTuber吧！",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3044740/5c64927906d8cac6eecd09f59ccf88df4a2168e9/header_tchinese.jpg?t=1769150542",
+      "workType": "game",
+      "developers": ["Hentopia"],
+      "publishers": ["LewdLoco"],
+      "releasedOn": "2025-06-24",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "69cc7352-4313-432e-a446-6b06f702cd8c",
+          "creditedAs": "柔依",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E6%9F%94%E4%BE%9D",
+          "sourceRole": "聲優",
+          "characterName": "日向純子／花豹小葵",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "黑沼唯／魅魔莉莉絲",
+          "description": "台灣中文配音"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/3571750/",
+      "title": "29歲的人妻想成為職業coser是否搞錯了什麼？",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/bbb2d1476a8f8abbe22641c559bcfad5b1e52c49/header_tchinese.jpg?t=1763814145",
+      "workType": "game",
+      "developers": ["Gentleman.LTD"],
+      "publishers": ["Mango Party", "Mango Party News"],
+      "releasedOn": "2025-11-21",
+      "participants": [
+        {
+          "role": "voice_actor",
+          "personaId": "331591c8-f769-42c7-ba2d-50c23ccb7c5c",
+          "creditedAs": "霏筱雨",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8",
+          "sourceRole": "聲優",
+          "characterName": "戚子雅",
+          "description": "台灣中文配音"
+        },
+        {
+          "role": "recording_studio",
+          "personaId": "46ff7730-c69a-4a9f-8afb-5079145efe68",
+          "creditedAs": "感聲錄音室 SenSonus Records",
+          "sourceUrl": "https://store.steampowered.com/app/4193130/My_Wife_Wants_to_Be_a_Professional_Cosplayer_Soundtrack/",
+          "sourceRole": "音樂／錄音",
+          "description": "錄音與原聲帶協力（對應 Steam OST app/4193130）"
+        }
+      ]
+    }
+  ],
+  "pendingIdentityReview": [
+    {
+      "url": "https://store.steampowered.com/app/1683430/",
+      "title": "冥婚交友中心《厲鬼的戀愛指南》",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1683430/header.jpg?t=1745896971",
+      "workType": "game",
+      "developers": ["永恆艾莉絲工坊", "非魚工作室"],
+      "publishers": ["Alice Publication", "Eternal Alice Media"],
+      "releasedOn": "2022-02-08",
+      "reason": "Steam 商店頁明確列出中文配音員與錄音團隊，但目前尚未建立對應 Persona",
+      "unlinkedCredits": [
+        {
+          "role": "voice_actor",
+          "creditedAs": "菜菜",
+          "characterName": "黛兒",
+          "sourceRole": "Taiwanese CV",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "年糕",
+          "characterName": "媛",
+          "sourceRole": "Taiwanese CV",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/"
+        },
+        {
+          "role": "voice_actor",
+          "creditedAs": "香草奈若",
+          "characterName": "月婆＆香草少女",
+          "sourceRole": "Taiwanese CV",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/"
+        },
+        {
+          "role": "recording_studio",
+          "creditedAs": "藝昇國際有限公司",
+          "sourceRole": "Taiwanese CV Staff",
+          "sourceUrl": "https://store.steampowered.com/app/1683430/",
+          "note": "需確認 entityType: studio 並建立 Persona"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2976870/",
+      "title": "台灣戀愛物語⁵",
+      "workType": "game",
+      "reason": "維基百科列有完整美術、音樂與後製團隊，待建立對應 Persona 或確認角色歸類後補齊",
+      "unlinkedCredits": [
+        {
+          "role": "cover_art",
+          "creditedAs": "蕭邦仲（龜頭生野郎）",
+          "sourceRole": "美術／人物設定",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "多利",
+          "sourceRole": "人物設定／插畫",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5"
+        },
+        {
+          "role": "cover_art",
+          "creditedAs": "四季",
+          "sourceRole": "人物設定／插畫",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "苦瓜極栗音樂",
+          "sourceRole": "音樂／音效",
+          "sourceUrl": "https://zh.wikipedia.org/wiki/%E5%8F%B0%E7%81%A3%E6%88%80%E6%84%9B%E7%89%A9%E8%AA%9E%E2%81%B5"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "維尼/Narsil",
+          "sourceRole": "人聲錄音／人聲混音",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "許柏煬/Irro Hsu",
+          "sourceRole": "人聲錄音／人聲混音（台中、台南）",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "傲嬌栗子（極栗音樂）/Ji-Li Music",
+          "sourceRole": "高雄插曲作曲／編曲／人聲混音",
+          "sourceUrl": "https://store.steampowered.com/app/3033250/"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2460070/",
+      "title": "半妖忍少女",
+      "workType": "game",
+      "reason": "Steam 原聲帶頁明確列出混音與音樂後製人員，待建立對應 Persona 後可補齊",
+      "unlinkedCredits": [
+        {
+          "role": "post_production",
+          "creditedAs": "Irro",
+          "sourceRole": "編曲／混音 & 母帶",
+          "sourceUrl": "https://store.steampowered.com/app/3331470/"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "幽火的音樂工作室",
+          "sourceRole": "原聲帶音樂",
+          "sourceUrl": "https://store.steampowered.com/app/3331470/"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2053940/",
+      "title": "與經紀人戀愛是絕對禁止2",
+      "workType": "game",
+      "reason": "另一位主繪師與音樂製作團隊尚未建立 Persona（冬瓜冰茶已於 works 完成連結）",
+      "unlinkedCredits": [
+        {
+          "role": "cover_art",
+          "creditedAs": "WhitebearA",
+          "sourceRole": "美工",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%B8%8E%E7%BB%8F%E7%BA%AA%E4%BA%BA%E6%81%8B%E7%88%B1%E6%98%AF%E7%BB%9D%E5%AF%B9%E7%A6%81%E6%AD%A22"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "極栗音樂工作室（傲嬌栗子）",
+          "sourceRole": "主題曲與原聲帶製作",
+          "sourceUrl": "https://clibo.tw/users/b59c67bf196a4758191e42f76670ceba"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2289720/",
+      "title": "暴食的怪獸公主：惑星美食之旅",
+      "workType": "game",
+      "reason": "主美術與混音人員尚未建立 Persona（SenSonus Records 已於 works 完成連結）",
+      "unlinkedCredits": [
+        {
+          "role": "cover_art",
+          "creditedAs": "哲學",
+          "sourceRole": "核心美術／角色設計",
+          "sourceUrl": "https://store.steampowered.com/app/2289720/"
+        },
+        {
+          "role": "post_production",
+          "creditedAs": "維尼",
+          "sourceRole": "Mixing",
+          "sourceUrl": "https://store.steampowered.com/app/3350470/"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/3571750/",
+      "title": "29歲的人妻想成為職業coser是否搞錯了什麼？",
+      "workType": "game",
+      "reason": "Steam 原聲帶頁明確列出母帶監督，尚未建立 Persona",
+      "unlinkedCredits": [
+        {
+          "role": "post_production",
+          "creditedAs": "Tim",
+          "sourceRole": "音樂總監 & 母帶監督",
+          "sourceUrl": "https://store.steampowered.com/app/4193130/"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/1894080/",
+      "title": "撿到千年貓",
+      "workType": "game",
+      "reason": "伊橙擔任聲音導演，目前系統五種公開職務尚未獨立列出 sound_direction，待確認是否歸入 post_production 或另增職務",
+      "unlinkedCredits": [
+        {
+          "role": "sound_direction",
+          "personaId": "f878d56b-5077-418b-a15c-6755e65f7018",
+          "creditedAs": "伊橙",
+          "sourceRole": "聲音導演",
+          "sourceUrl": "https://zh.moegirl.org.cn/%E4%BC%8A%E6%A9%99%28%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98%29"
+        }
+      ]
+    },
+    {
+      "url": "https://store.steampowered.com/app/2971750/",
+      "title": "雙面夜孃",
+      "coverUrl": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2971750/454197493cd0c28a99ff9399174680a384ac39c6/header_tchinese.jpg?t=1762871174",
+      "workType": "game",
+      "developers": ["樹懶叫工作室", "Maker製造機"],
+      "publishers": ["Mango Party", "LewdLoco", "Mango Party News"],
+      "releasedOn": "2025-10-23",
+      "reason": "Steam 商店頁明確標註中／日／台語配音（台灣首套全台語配音成人遊戲），但目前公開資料尚未列出個別聲優／美術／後製署名，待後續由片尾 Staff Roll 或官方公告補齊",
+      "unlinkedCredits": []
+    }
+  ]
+}

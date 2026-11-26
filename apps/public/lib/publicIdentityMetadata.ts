@@ -15,7 +15,7 @@ const roleTags = new Set([
   ...Object.values(PARTICIPATION_ROLE_LABELS),
   publicIdentityRoleLabel("recording_studio", "person"),
   publicIdentityRoleLabel("recording_studio", "studio"),
-  "recording_engineer", "recording_unclassified", "待分類錄音", "封面插畫",
+  "recording_engineer", "recording_unclassified", "待分類錄音", "封面", "封面插畫",
 ]);
 
 export function publicIdentityTags(tags: readonly string[] | undefined): string[] {

@@ -44,6 +44,7 @@ import { externalScriptsForOrganization } from "@/lib/organizationExternalScript
 import { TITLE_SUFFIX } from "@/lib/seo";
 import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { useLiveData, type LiveData } from "@/lib/useLiveData";
+import type { GameCreditsEntry } from "@/lib/gameCredits";
 
 type Chrome = { activeTab: string; back?: boolean };
 
@@ -131,7 +132,9 @@ function useDocumentTitle(label: string | null): void {
 
 interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[]; audioWorks?: PublicAudioWork[]; audioScriptWorks?: PublicAudioWork[]; otherAudioWorks?: PublicAudioWork[] }
 
-export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: AuthorData; chrome?: Chrome }) {
+export function LiveAuthorPage({ id, initial, chrome, gameWorks, avatarsById }: {
+  id: string; initial?: AuthorData; chrome?: Chrome; gameWorks?: GameCreditsEntry[]; avatarsById?: Record<string, string>;
+}) {
   const state = useLiveData<AuthorData>(initial, async (signal) => {
     const persona = await readOrNull<PublicPersona>(`/api/public-personas/${encodeURIComponent(id)}`, signal);
     if (!persona) return null;
@@ -150,7 +153,7 @@ export function LiveAuthorPage({ id, initial, chrome }: { id: string; initial?: 
   const resolvedChrome = chrome ? { ...chrome, activeTab: "authors" } : undefined;
   return (
     <Frame state={state} chrome={resolvedChrome}>
-      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} audioScriptWorks={state.data.audioScriptWorks} otherAudioWorks={state.data.otherAudioWorks} />}
+      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} audioScriptWorks={state.data.audioScriptWorks} otherAudioWorks={state.data.otherAudioWorks} gameWorks={gameWorks} avatarsById={avatarsById} />}
     </Frame>
   );
 }

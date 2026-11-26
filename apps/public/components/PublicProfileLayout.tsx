@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import { ArrowUpRight, Clapperboard, FileText, Gamepad2, Headphones } from "lucide-react";
 import { PublicContentLink, PublicMetadataLabel } from "./PublicDirectoryDetails";
 import { PublicAvatarImage } from "./PublicAvatarImage";
@@ -47,12 +49,16 @@ export interface PublicProfileWorkCardProps {
 export function PublicProfileWorkCard({
   title, url, coverUrl, coverCrop, coverDesign, subtitle, workType, compact = false, sourceLabel, linkLabel,
 }: PublicProfileWorkCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const Container = url ? "a" : "article";
+  const isExternal = Boolean(url && !url.startsWith("/"));
   const Icon = workType === "game" ? Gamepad2 : workType === "video" ? Clapperboard : workType === "other" ? FileText : Headphones;
-  return <Container {...(url ? { href: url, target: "_blank", rel: "noopener noreferrer", "aria-label": `${linkLabel || "前往作品"}：${title}` } : {})} className="group block min-w-0">
+  const mediaBadge = workType === "game" ? "遊戲" : /soundtrack/i.test(title) ? "原聲帶" : null;
+  const showCover = Boolean(coverUrl && !imageFailed);
+  return <Container {...(url ? { href: url, ...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {}), "aria-label": `${linkLabel || "前往作品"}：${title}` } : {})} className="group block min-w-0">
     <div className="relative aspect-[4/3] overflow-hidden rounded-sm border border-border bg-muted group-hover:opacity-90">
-      {coverUrl ? (
-        <PublicImage src={coverUrl} crop={coverCrop} alt={`${title}封面`} preset="script-cover" sizes={compact ? "96px" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"} />
+      {showCover ? (
+        <PublicImage src={coverUrl!} crop={coverCrop} alt={`${title}封面`} preset="script-cover" sizes={compact ? "96px" : "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"} onError={() => setImageFailed(true)} />
       ) : coverDesign ? (
         <div className="absolute inset-0" aria-hidden="true">
           <CoverRenderer design={coverDesign} title={title} compact responsive responsiveFit="contain" />
@@ -67,6 +73,7 @@ export function PublicProfileWorkCard({
           {sourceLabel && <span className="text-center text-xs">{sourceLabel}</span>}
         </div>
       )}
+      {mediaBadge && <span className="pointer-events-none absolute left-1 top-1 rounded-sm bg-black/75 px-1 py-0.5 text-[10px] font-medium leading-none text-white">{mediaBadge}</span>}
     </div>
     <div className={compact ? "pt-1" : "pt-2"}>
       <h3 className={`line-clamp-2 group-hover:text-link group-hover:underline ${compact ? "text-xs leading-snug" : "text-sm font-bold"}`}>{title}</h3>

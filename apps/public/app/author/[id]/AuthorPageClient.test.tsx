@@ -77,7 +77,23 @@ describe("AuthorPageClient as the one identity page", () => {
     expect(screen.getByRole("region", { name: "參演作品" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "後製作品" })).toBeTruthy();
     expect(screen.queryByRole("region", { name: "台本作品" })).toBeNull();
-    expect(screen.queryByRole("region", { name: "封面作品" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "美術作品" })).toBeNull();
+    window.sessionStorage.clear();
+  });
+
+  it("switches participation sections between card and compact overview list", () => {
+    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
+    const persona = {
+      id: "actor-list", displayName: "伊橙", roles: ["voice_actor"],
+      workParticipations: [{ id: "w1", title: "測試音聲", url: "https://example.com/a", coverUrl: "", creditRole: "voice_actor" as const, creditedAs: "伊橙", workType: "audio" as const }],
+    } as PublicPersona;
+    render(<AuthorPageClient persona={persona} scripts={[]} gameWorks={[{
+      appId: "2976870", title: "台灣戀愛物語⁵", screenshotUrl: "https://example.com/g.jpg",
+      credits: [{ category: "配音", role: "配音", attribution: "伊橙（小咘）", sourceUrl: "https://example.com/s", personaId: "actor-list", creditedAs: "伊橙" }],
+    }]} />);
+    fireEvent.click(screen.getByRole("button", { name: "密集" }));
+    expect(screen.getByRole("link", { name: "前往作品：測試音聲" }).getAttribute("href")).toBe("https://example.com/a");
+    expect(screen.getByRole("link", { name: "前往作品：台灣戀愛物語⁵" }).getAttribute("href")).toBe("/games/2976870");
     window.sessionStorage.clear();
   });
 

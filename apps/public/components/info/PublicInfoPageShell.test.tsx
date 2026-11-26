@@ -100,7 +100,7 @@ describe("PublicInfoPageShell", () => {
     render(<PublicInfoPageShell title="T"><p>c</p></PublicInfoPageShell>);
     const nav = screen.getAllByRole("navigation", { name: "公開頁面導航" })[0];
     const hrefs = Array.from(nav.querySelectorAll("a")).map((link) => link.getAttribute("href"));
-    expect(hrefs).toEqual(["/authors", "/resources", "/audio-works", "/demos"]);
+    expect(hrefs).toEqual(["/authors", "/resources", "/audio-works", "/games", "/demos"]);
   });
 
   it("does not add information pages as extra top tabs", () => {

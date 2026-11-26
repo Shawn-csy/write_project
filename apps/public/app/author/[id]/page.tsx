@@ -14,6 +14,7 @@ import { getStaticAuthorParams } from "@/lib/staticParams";
 import { LiveAuthorPage } from "@/components/LiveEntityPages";
 import { ROLE_LABELS } from "@/components/identity/identityRoles";
 import { audioScriptWorksForPersona, audioWorksForOtherParticipations } from "@/lib/audioScriptWorks";
+import { gameResourceAvatars, gameResourceProfiles, gamesForIdentity } from "@/lib/gameCatalog";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
@@ -34,14 +35,15 @@ export const revalidate = 3600;
 export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  return getStaticAuthorParams();
+  const known = await getStaticAuthorParams();
+  return [...new Set([...known, ...gameResourceProfiles].map(({ id }) => id))].map((id) => ({ id }));
 }
 
 const fetchPersona = cache(async (id: string): Promise<PublicPersona | null> => {
   try {
     return await apiFetch<PublicPersona>(`/public-personas/${id}`);
   } catch {
-    return null;
+    return gameResourceProfiles.find((profile) => profile.id === id) ?? null;
   }
 });
 
@@ -59,9 +61,10 @@ const fetchPublicBundle = cache(async (): Promise<{
   demoSubmissions?: PublicDemoSubmission[];
   organizations?: PublicOrg[];
   audioWorks?: PublicAudioWork[];
+  personas?: PublicPersona[];
 }> => {
   try {
-    return await apiFetch("/public-bundle?sections=scripts,externalPublicScripts,demoSubmissions,organizations,audioWorks", { next: { revalidate: 300, tags: ["public-bundle"] } });
+    return await apiFetch("/public-bundle?sections=scripts,externalPublicScripts,demoSubmissions,organizations,audioWorks,personas", { next: { revalidate: 300, tags: ["public-bundle"] } });
   } catch {
     return {};
   }
@@ -129,6 +132,11 @@ export default async function AuthorPage({
   const audioWorks = publicAudioWorksForPerformer(bundle.audioWorks, id);
   const audioScriptWorks = audioScriptWorksForPersona(persona, bundle.audioWorks || []);
   const otherAudioWorks = audioWorksForOtherParticipations(persona, bundle.audioWorks || [], [...audioWorks, ...audioScriptWorks]);
+  const gameWorks = gamesForIdentity(id);
+  const avatarsById: Record<string, string> = {
+    ...gameResourceAvatars,
+    ...Object.fromEntries((bundle.personas || []).filter((p) => p.avatar).map((p) => [p.id, p.avatar!])),
+  };
   const displayPersona = combinePublicIdentities([persona], externalScripts)[0];
 
   const structuredData = {
@@ -163,10 +171,10 @@ export default async function AuthorPage({
           )}
         </article>
       </noscript>
-      {STATIC_EXPORT ? (
-        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks, audioScriptWorks, otherAudioWorks }} />
+      {STATIC_EXPORT && !gameResourceProfiles.includes(persona) ? (
+        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks, audioScriptWorks, otherAudioWorks }} gameWorks={gameWorks} avatarsById={avatarsById} />
       ) : (
-        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} audioScriptWorks={audioScriptWorks} otherAudioWorks={otherAudioWorks} />
+        <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} audioScriptWorks={audioScriptWorks} otherAudioWorks={otherAudioWorks} gameWorks={gameWorks} avatarsById={avatarsById} />
       )}
     </>
   );

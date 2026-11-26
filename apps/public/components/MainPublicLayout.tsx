@@ -10,7 +10,7 @@ export function MainPublicLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()?.replace(/\/$/, "") || "/";
   const home = pathname === "/";
   const section = PUBLIC_SECTION_TABS.find((tab) =>
-    tab.href === pathname || (tab.href === "/demos" && pathname.startsWith("/demos/")),
+    tab.href === pathname || ((tab.key === "demos" || tab.key === "games") && pathname.startsWith(`${tab.href}/`)),
   );
   const activeTab = home ? "scripts" : pathname === "/voice-actors" ? "resources" : section?.key;
 

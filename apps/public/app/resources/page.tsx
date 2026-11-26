@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 import type { PublicPersona } from "@/lib/types";
 import { publicDirectoryMetadata, TITLE_SUFFIX } from "@/lib/seo";
 import { buildResourceDirectory, type ProductionResource } from "@/lib/resourceDirectory";
+import { gameResourceProfiles, mergeGameParticipations } from "@/lib/gameCatalog";
 import { ResourcesClient } from "./ResourcesClient";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,7 @@ const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 export const metadata = publicDirectoryMetadata(
   "/resources",
   `資源｜${TITLE_SUFFIX}`,
-  "探索聲演、後製、封面繪製、錄音師與錄音室，查看創作者的參與作品與聯絡方式。",
+  "探索聲演、後製、美術、錄音師與錄音室，查看創作者的參與作品與聯絡方式。",
 );
 
 export default function ResourcesPage() {
@@ -33,5 +34,12 @@ async function ResourceDirectory() {
   } catch {
     // Static previews refresh from the public API in the browser.
   }
-  return <ResourcesClient initialDirectory={buildResourceDirectory(personas, resources)} refreshOnMount={STATIC_EXPORT} />;
+  const gameResources = buildResourceDirectory(gameResourceProfiles, []);
+  const directory = buildResourceDirectory(mergeGameParticipations(personas), resources);
+  const existing = new Set(directory.map(({ id }) => id));
+  return <ResourcesClient
+    initialDirectory={[...directory, ...gameResources.filter(({ id }) => !existing.has(id))]}
+    supplementalDirectory={gameResources}
+    refreshOnMount={STATIC_EXPORT}
+  />;
 }

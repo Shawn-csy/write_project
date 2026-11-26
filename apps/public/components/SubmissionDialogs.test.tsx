@@ -70,7 +70,8 @@ describe("public submission forms", () => {
     const user = userEvent.setup();
     render(<ResourceSubmissionDialog defaultCategory="cover_art" />);
     await user.click(screen.getByRole("button", { name: "投稿資源" }));
-    await user.type(screen.getByLabelText("名稱"), "測試封面師");
+    expect(screen.getByRole("option", { name: "美術" })).toHaveValue("cover_art");
+    await user.type(screen.getByLabelText("名稱"), "測試美術");
     await user.type(screen.getByLabelText("官方／委託頁網址"), "https://example.com/artist");
     await user.type(screen.getByLabelText("作品名稱 1"), "有名稱但沒網址");
     await user.type(screen.getByLabelText("投稿人稱呼"), "測試人");
