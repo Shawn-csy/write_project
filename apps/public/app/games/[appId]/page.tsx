@@ -6,7 +6,7 @@ import { gameCreditIdentity } from "@/lib/gameCredits";
 import gameDetailsMap from "@/lib/gameDetails.json";
 import { BASE_URL, SITE_NAME, TITLE_SUFFIX } from "@/lib/seo";
 import type { PublicPersona } from "@/lib/types";
-import { PublicBackButton } from "@/components/PublicBackButton";
+import { ArrowLeft } from "lucide-react";
 import { PublicContentLink, PublicPersonLink, PublicTag } from "@/components/PublicDirectoryDetails";
 import { PublicImage } from "@/components/PublicImage";
 import { PublicCast } from "@/components/PublicWorkDetails";
@@ -99,7 +99,10 @@ export default async function GameDetailPage({ params }: { params: Promise<{ app
       <main className="min-h-screen bg-background">
         <div className="mx-auto w-full max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
           <div className="pt-4">
-            <PublicBackButton label="返回遊戲" href="/games" />
+            <a href="/games" className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+              <ArrowLeft className="size-3.5" aria-hidden />
+              <span>返回遊戲</span>
+            </a>
           </div>
 
           <section className="mb-6 mt-3 grid gap-5 border-b border-border pb-6 md:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] md:items-start">
