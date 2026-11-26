@@ -13,6 +13,7 @@ const initialOrganizations = [{ id: "org-1", name: "社團甲" }] as PublicOrg[]
 
 describe("AudioWorksClient data loading", () => {
   beforeEach(() => {
+    window.sessionStorage.clear();
     window.history.replaceState(null, "", "/audio-works");
     readPublicBundle.mockReset().mockResolvedValue({ data: { audioWorkBanner: [] }, source: "primary" });
   });

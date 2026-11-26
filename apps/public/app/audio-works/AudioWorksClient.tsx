@@ -14,6 +14,7 @@ import { PublicBackButton } from "@/components/PublicBackButton";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
 import { AdultContentNotice } from "@/components/AdultContentNotice";
+import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
 import { PublicImage } from "@/components/PublicImage";
 import { AudioWorkSubmissionDialog } from "@/components/AudioWorkSubmissionDialog";
 import { AudioWorkAdApplicationDialog } from "@/components/AudioWorkAdApplicationDialog";
@@ -104,8 +105,7 @@ const HANDORU_OFFICIAL_LINKS = [
 ] as const;
 
 export function AudioWorksClient() {
-  // Confirm on each visit; the choice is intentionally not persisted between pages.
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
   const [catalog, setCatalog] = useState<AudioCatalog | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -229,7 +229,7 @@ export function AudioWorksClient() {
     <div className="flex flex-1 flex-col bg-background">
       {!ageConfirmed ? (
         <PublicBrowseMain width="narrow">
-          <AdultContentNotice scope="audio-works" onConfirm={() => setAgeConfirmed(true)} />
+          {ageGateReady && <AdultContentNotice scope="audio-works" onConfirm={confirmAge} />}
         </PublicBrowseMain>
       ) : (
       <>
