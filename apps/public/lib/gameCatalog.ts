@@ -82,13 +82,10 @@ for (const work of works) {
   groupedGames.set(appId, game);
 }
 
-// Games with Taiwanese voice performers appear first, ordered by completeness.
-export const gameCatalog: GameCreditsEntry[] = [...groupedGames.values()].sort((a, b) => {
-  const aHasCast = (a.performers?.length ?? 0) > 0 ? 1 : 0;
-  const bHasCast = (b.performers?.length ?? 0) > 0 ? 1 : 0;
-  if (bHasCast !== aHasCast) return bHasCast - aHasCast;
-  return (b.credits.length + (b.performers?.length ?? 0)) - (a.credits.length + (a.performers?.length ?? 0));
-});
+// Only include games with verified Taiwanese/Chinese voice performers, ordered by completeness.
+export const gameCatalog: GameCreditsEntry[] = [...groupedGames.values()]
+  .filter((game) => (game.performers?.length ?? 0) > 0)
+  .sort((a, b) => (b.credits.length + (b.performers?.length ?? 0)) - (a.credits.length + (a.performers?.length ?? 0)));
 
 export function gamesForIdentity(id: string): GameCreditsEntry[] {
   return gameCatalog.filter((game) => game.credits.some((credit) => gameCreditIdentity(credit)?.id === id));
