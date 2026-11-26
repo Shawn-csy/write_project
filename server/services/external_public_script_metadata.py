@@ -471,7 +471,16 @@ def fetch_google_docs_cover_preview(raw_url: str) -> str:
         )
         return _render_first_page_preview(pdf_bytes)
     except ExternalMetadataError:
-        raise
+        # Fallback for public view-only Google Docs that disable PDF export/download.
+        thumb_url = f"https://lh3.googleusercontent.com/d/{document_id}=w800"
+        _, img_bytes = _fetch_url_bytes(
+            thumb_url,
+            max_bytes=MAX_GOOGLE_DOC_PDF_BYTES,
+            accepted_content_types=("image/png", "image/jpeg", "image/webp"),
+            error_message="無法取得 Google 文件，請確認文件設定為知道連結的任何人都能查看。",
+        )
+        encoded = base64.b64encode(img_bytes).decode("ascii")
+        return f"data:image/png;base64,{encoded}"
 
 
 def fetch_google_drive_file_cover_preview(raw_url: str) -> str:
