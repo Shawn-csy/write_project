@@ -7,13 +7,15 @@ import type { ExternalPublicScript, ProductionRole, PublicAudioWork, PublicDemoS
 import { buildAuthorEntityModel } from "@/lib/publicEntityPageModel";
 import { EntityScriptGrid } from "@/components/EntityScriptGrid";
 import { PublicAudioWorkCard } from "@/components/PublicAudioWorkCard";
+import { PublicCatalogWorkCard } from "@/components/PublicCatalogWorkCard";
 import { PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
+import { audioWorkPurchaseLabel } from "@/lib/publicAudioWorkContent";
 import { legacyVoiceWorkParticipations, mergePublicWorkParticipations } from "@/lib/publicWorkParticipations";
 import { usePublicDemoIdentities } from "@/lib/usePublicDemoIdentities";
 import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
 import { PublicImage } from "@/components/PublicImage";
 import { LinkifiedText } from "@/components/LinkifiedText";
-import { ExternalLink, Grid2x2, Grid3x3, X } from "lucide-react";
+import { Clapperboard, ExternalLink, FileText, Gamepad2, Grid2x2, Grid3x3, Headphones, X } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
 import { AdultContentNotice } from "@/components/AdultContentNotice";
 import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
@@ -146,14 +148,25 @@ function productionSection(role: PublicIdentityRole): IdentitySection {
             heading="h3"
             avatarsById={ctx.avatarsById}
           />;
-          return <PublicWorkDetails
+          const FallbackIcon = credit.workType === "game" ? Gamepad2 : credit.workType === "video" ? Clapperboard : credit.workType === "other" ? FileText : Headphones;
+          return <PublicCatalogWorkCard
             key={`${credit.id}-${credit.creditRole}-${index}`}
             title={credit.title}
-            meta={<p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{attribution}</p>}
-            action={credit.url ? <PublicContentLink href={credit.url} target="_blank" rel="noopener noreferrer" appearance="source" className="text-xs" arrow>前往作品</PublicContentLink> : undefined}
-            artwork={credit.coverUrl ? <div className="relative aspect-video overflow-hidden rounded-lg bg-muted"><PublicImage src={credit.coverUrl} alt={`${credit.title}封面`} preset="script-cover" /></div> : undefined}
-            description={credit.description}
-          />;
+            heading="h3"
+            href={credit.url || undefined}
+            sourceLabel={credit.url ? (audioWorkPurchaseLabel(credit.url) || "前往作品") : undefined}
+            hasArtwork={Boolean(credit.coverUrl)}
+            linkArtwork={Boolean(credit.url)}
+            artwork={credit.coverUrl
+              ? <PublicImage src={credit.coverUrl} alt={`${credit.title}封面`} preset="script-cover" />
+              : <FallbackIcon className="absolute inset-0 m-auto size-8 text-muted-foreground/50" aria-hidden />}
+            details={credit.description ? <section className="mt-2">
+              <h4 className="text-sm font-semibold">作品介紹</h4>
+              <LinkifiedText text={credit.description} className="mt-1 whitespace-pre-line leading-7 text-foreground/85 [overflow-wrap:anywhere]" />
+            </section> : undefined}
+          >
+            {attribution && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{attribution}</p>}
+          </PublicCatalogWorkCard>;
         })}
       </div>;
     },
