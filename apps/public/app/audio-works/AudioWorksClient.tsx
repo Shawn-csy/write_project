@@ -22,6 +22,7 @@ import { AudioWorkAdApplicationDialog } from "@/components/AudioWorkAdApplicatio
 import { readPublicBundle } from "@/lib/readPublicBundle";
 import { AUDIO_CATALOG_SECTIONS, AUDIO_CATALOG_SNAPSHOT, parseAudioCatalog, type AudioCatalog } from "@/lib/audioCatalog";
 import { sortAudioWorks, type AudioWorkSortOrder } from "@/lib/audioWorkSorting";
+import type { HeroSlide } from "@write/public-ui";
 import type { PublicAudioWork, PublicOrg } from "@/lib/types";
 
 async function loadAudioCatalog(): Promise<AudioCatalog> {
@@ -37,7 +38,9 @@ async function loadAudioCatalog(): Promise<AudioCatalog> {
 }
 const EMPTY_WORKS: PublicAudioWork[] = [];
 const EMPTY_ORGANIZATIONS: PublicOrg[] = [];
+const EMPTY_FALLBACK_SLIDES: HeroSlide[] = [];
 const WORKS_PER_PAGE = 18;
+const FALLBACK_BANNER_COUNT = 12;
 type AudioBrowseMode = "studios" | "works";
 type AudioAccessFilter = "all" | "free" | "paid";
 
@@ -150,6 +153,7 @@ export function AudioWorksClient() {
   const [accessFilter, setAccessFilter] = useState<AudioAccessFilter>("all");
   const [sortOrder, setSortOrder] = useState<AudioWorkSortOrder>("newest");
   const [randomizedOrgIds, setRandomizedOrgIds] = useState<string[]>([]);
+  const [fallbackBannerSlides, setFallbackBannerSlides] = useState<HeroSlide[]>(EMPTY_FALLBACK_SLIDES);
   const [studioQuery, setStudioQuery] = useState("");
   const [workQuery, setWorkQuery] = useState("");
   const [allWorkQuery, setAllWorkQuery] = useState("");
@@ -207,6 +211,33 @@ export function AudioWorksClient() {
       return [...retained, ...added];
     });
   }, [organizationIds]);
+
+  useEffect(() => {
+    const withCover: PublicAudioWork[] = [];
+    const seenCovers = new Set<string>();
+    for (const work of works) {
+      const cover = (work.coverUrl || "").trim();
+      if (!cover || seenCovers.has(cover)) continue;
+      seenCovers.add(cover);
+      withCover.push(work);
+    }
+    if (withCover.length === 0) {
+      setFallbackBannerSlides(EMPTY_FALLBACK_SLIDES);
+      return;
+    }
+    for (let index = withCover.length - 1; index > 0; index--) {
+      const swap = Math.floor(Math.random() * (index + 1));
+      [withCover[index], withCover[swap]] = [withCover[swap], withCover[index]];
+    }
+    setFallbackBannerSlides(
+      withCover.slice(0, FALLBACK_BANNER_COUNT).map((work) => ({
+        id: `audio-fallback-${work.id}`,
+        title: work.title,
+        imageUrl: work.coverUrl!,
+        link: work.url,
+      })),
+    );
+  }, [works]);
 
   const visibleGroups = useMemo(() => {
     const rank = new Map(randomizedOrgIds.map((id, index) => [id, index]));
@@ -306,7 +337,7 @@ export function AudioWorksClient() {
         </PublicBrowseMain>
       ) : (
       <>
-      <LiveBannerStrip placement="audio-works" />
+      <LiveBannerStrip placement="audio-works" fallbackSlides={fallbackBannerSlides} />
       <PublicBrowseMain>
         {selected ? (
           <PublicOrgMasthead org={selected.org} leading={

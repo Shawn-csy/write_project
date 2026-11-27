@@ -64,4 +64,27 @@ describe("live ad placements", () => {
     expect(read).toHaveBeenCalledTimes(2);
     expect(screen.getByText("New day")).toBeTruthy();
   });
+
+  it("falls back to provided slides when audio-works placement has no active banners", async () => {
+    read.mockResolvedValue({ data: { audioWorkBanner: { items: [] } } });
+    render(
+      <LiveBannerStrip
+        placement="audio-works"
+        fallbackSlides={[{ id: "audio-fallback-1", title: "隨機推薦音聲", imageUrl: "/media/cover.jpg", link: "https://example.com/work-1" }]}
+      />,
+    );
+    expect(await screen.findByRole("img", { name: "隨機推薦音聲" })).toBeTruthy();
+  });
+
+  it("prefers configured audio-works banners over fallback slides", async () => {
+    read.mockResolvedValue({ data: { audioWorkBanner: { items: [{ id: "real-ad", title: "正式音聲廣告", imageUrl: "/media/ad.jpg" }] } } });
+    render(
+      <LiveBannerStrip
+        placement="audio-works"
+        fallbackSlides={[{ id: "audio-fallback-1", title: "隨機推薦音聲", imageUrl: "/media/cover.jpg" }]}
+      />,
+    );
+    expect(await screen.findByRole("img", { name: "正式音聲廣告" })).toBeTruthy();
+    expect(screen.queryByRole("img", { name: "隨機推薦音聲" })).toBeNull();
+  });
 });
