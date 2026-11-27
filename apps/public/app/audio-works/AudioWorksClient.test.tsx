@@ -1,5 +1,5 @@
 import React from "react";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PublicAudioWork, PublicOrg } from "@/lib/types";
 
@@ -152,15 +152,18 @@ describe("AudioWorksClient data loading", () => {
     fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
 
     expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "隨機推薦" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "換一批" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "企劃與單發作品" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "全部作品" }));
     expect(screen.getByRole("searchbox", { name: "搜尋作品、聲演或社團" })).toBeTruthy();
-    expect(screen.getAllByRole("article")).toHaveLength(2);
+    const allWorksRegion = screen.getByRole("region", { name: "全部音聲作品" });
+    expect(within(allWorksRegion).getAllByRole("article")).toHaveLength(2);
 
     fireEvent.keyDown(screen.getByRole("button", { name: "收聽類型 全部類型" }), { key: "ArrowDown" });
     fireEvent.click(await screen.findByRole("menuitemradio", { name: "免費" }));
-    expect(screen.getAllByRole("article")).toHaveLength(1);
-    expect(screen.getByText("社團免費作")).toBeTruthy();
+    expect(within(allWorksRegion).getAllByRole("article")).toHaveLength(1);
+    expect(within(allWorksRegion).getByText("社團免費作")).toBeTruthy();
   });
 });
