@@ -316,7 +316,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
           const roleOf = (work: CatalogWork) => work.credits.filter((c) => c.personaId === persona.id).map((c) => c.role);
           const groups: Array<{ id: string; title: string; items: CatalogWork[] }> = [
             { id: "scripts", title: "台本作品", items: visibleCards.filter((w) => w.kind === "script" || w.kind === "external") },
-            { id: "audio-scripts", title: "參與台本作品", items: visibleCards.filter((w) => w.kind !== "script" && w.kind !== "external" && roleOf(w).some((r) => /台本|編劇|腳本/.test(r))) },
+            { id: "audio-scripts", title: "參與台本作品", items: visibleCards.filter((w) => w.kind !== "script" && w.kind !== "external" && roleOf(w).some((r) => /台本|劇本|編劇|腳本|シナリオ|作者/.test(r))) },
             { id: "voice", title: "參演作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /聲演|配音/.test(r))) },
             { id: "post", title: "後製作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /後製/.test(r))) },
             { id: "art", title: "美術作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /美術|封面|插畫/.test(r))) },

@@ -27,12 +27,29 @@ const detailsByAppId = gameDetailsMap as Record<string, {
 }>;
 
 const sourceRoles: Record<string, string[]> = {
-  scriptwriter: ["台本", "編劇", "腳本"],
+  scriptwriter: ["台本", "台本師", "劇本", "編劇", "腳本", "シナリオ", "作者"],
   voice_actor: ["聲演", "配音"],
   cover_art: ["封面", "插畫", "美術"],
-  recording_studio: ["錄音", "錄音／混音"],
+  recording_studio: ["錄音", "錄音師", "錄音室", "錄音／混音"],
   post_production: ["後製"],
 };
+
+function normalizeCreditRole(role: string, sourceRole?: string): string {
+  const raw = (sourceRole || role || "").trim();
+  if (role === "scriptwriter" || role === "script" || role === "author" || /^(台本|台本師|劇本|編劇|腳本|シナリオ|作者)$/.test(raw)) {
+    return "台本";
+  }
+  if (role === "cover_art" || /^(封面|插畫|美術)$/.test(raw)) {
+    return "美術";
+  }
+  if (role === "post_production" || raw === "後製") {
+    return "後製";
+  }
+  if (role === "recording_studio" || role === "recording" || /^(錄音|錄音師|錄音室)$/.test(raw)) {
+    return "錄音";
+  }
+  return raw || role;
+}
 
 export function buildWorkCatalog(bundle: WorkBundle) {
   const works = new Map<string, CatalogWork>();
@@ -51,7 +68,9 @@ export function buildWorkCatalog(bundle: WorkBundle) {
       entry.avatar = avatarsById[entry.personaId];
     }
     const existing = work.credits.find(
-      (c) => c.role === entry.role && c.name.normalize("NFKC") === entry.name.normalize("NFKC") && c.href === entry.href,
+      (c) =>
+        c.role === entry.role
+        && ((entry.personaId && c.personaId === entry.personaId) || (c.name.normalize("NFKC") === entry.name.normalize("NFKC") && c.href === entry.href)),
     );
     if (existing) {
       existing.source ||= entry.source;
@@ -159,7 +178,7 @@ export function buildWorkCatalog(bundle: WorkBundle) {
     for (const c of item.credits ?? []) {
       if (c.role !== "voice_actor") {
         credit(w, {
-          role: c.sourceRole.trim() === "封面" ? "美術" : (c.sourceRole || c.role),
+          role: normalizeCreditRole(c.role, c.sourceRole),
           name: c.creditedAs,
           href: c.personaId ? `/author/${encodeURIComponent(c.personaId)}` : undefined,
           avatar: c.personaAvatar,
@@ -259,7 +278,7 @@ export function buildWorkCatalog(bundle: WorkBundle) {
       }
       const href = `/author/${encodeURIComponent(person.id)}`;
       const name = p.creditedAs || person.displayName;
-      const role = publicIdentityRoleLabel(p.creditRole);
+      const role = normalizeCreditRole(p.creditRole, publicIdentityRoleLabel(p.creditRole));
       if (!p.characterName && w.credits.some((c) => c.personaId === person.id && (c.role === role || sourceRoles[p.creditRole]?.includes(c.role)))) continue;
       credit(w, { role, name: p.characterName ? `${name}（${p.characterName}）` : name, href, avatar: person.avatar });
     }
