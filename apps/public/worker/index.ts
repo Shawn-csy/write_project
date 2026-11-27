@@ -46,6 +46,7 @@ interface SnapshotRow {
 const PUBLIC_READ_ROUTES = [
   /^\/api\/health\/ready$/,
   /^\/api\/public-bundle$/,
+  /^\/api\/public-resource-directory$/,
   /^\/api\/public-activity-status$/,
   /^\/api\/public-personas(?:\/[^/]+)?$/,
   /^\/api\/public-organizations(?:\/[^/]+)?$/,

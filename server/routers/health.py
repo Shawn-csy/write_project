@@ -24,6 +24,7 @@ PUBLIC_API_CAPABILITIES = (
     "external-cover-lookup",
     "public-activity-status",
     "audio-works",
+    "resource-directory",
 )
 
 def _schema_is_compatible(db: Session) -> bool:

@@ -29,7 +29,7 @@ describe("public service health endpoints", () => {
     vi.stubEnv("BACKEND_API_URL", "http://backend.test/");
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ status: "ready", publicApiCapabilities: [
-        "public-bundle-sections", "external-cover-lookup", "public-activity-status", "audio-works",
+        "public-bundle-sections", "external-cover-lookup", "public-activity-status", "audio-works", "resource-directory",
       ] }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

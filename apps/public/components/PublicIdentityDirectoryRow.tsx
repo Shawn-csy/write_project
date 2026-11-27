@@ -18,8 +18,8 @@ function contactHref(value: string): string | undefined {
   return undefined;
 }
 
-export function PublicIdentityDirectoryRow({ name, href, avatar, bio, works, roleLabels = [], tags = [], links = [], onTagClick, showWorks = true, extra, emptyLabel = "尚無參與作品" }: {
-  name: string; href: string; avatar?: string; bio?: string; works: PublicWorkLaneItem[];
+export function PublicIdentityDirectoryRow({ name, href, avatar, bio, works, workCount = works.length, roleLabels = [], tags = [], links = [], onTagClick, showWorks = true, extra, emptyLabel = "尚無參與作品" }: {
+  name: string; href: string; avatar?: string; bio?: string; works: PublicWorkLaneItem[]; workCount?: number;
   roleLabels?: string[]; tags?: string[]; links?: ContactLike[];
   onTagClick?: (tag: string) => void; showWorks?: boolean; extra?: React.ReactNode; emptyLabel?: string;
 }) {
@@ -35,7 +35,7 @@ export function PublicIdentityDirectoryRow({ name, href, avatar, bio, works, rol
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <h2 className="font-bold [font-size:var(--public-font-body)]"><PublicContentLink href={href} aria-label={`${name}的個人頁`} appearance="title">{name}</PublicContentLink></h2>
-          <span className="[font-size:var(--public-font-caption)] text-muted-foreground">{works.length ? `${works.length} 部參與作品` : emptyLabel}</span>
+          <span className="[font-size:var(--public-font-caption)] text-muted-foreground">{workCount ? `${workCount} 部參與作品` : emptyLabel}</span>
         </div>
         {bio && <p className="mt-0.5 line-clamp-2 [font-size:var(--public-font-caption)] leading-relaxed text-muted-foreground">{bio}</p>}
         {extra}

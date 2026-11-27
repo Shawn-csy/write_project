@@ -1,6 +1,6 @@
 import React from "react";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ResourcesClient } from "./ResourcesClient";
 import { buildResourceDirectory, type ProductionResource } from "@/lib/resourceDirectory";
 import type { PublicPersona } from "@/lib/types";
@@ -18,6 +18,7 @@ function ResourceDirectoryFixture({ initialPersonas, initialResources }: {
 }
 
 describe("ResourcesClient", () => {
+  afterEach(() => vi.restoreAllMocks());
   beforeEach(() => { window.history.replaceState({}, "", "/resources"); window.sessionStorage.clear(); });
   it("only shows the unclassified recording tab while an unresolved identity exists", () => {
     const studio: ProductionResource = { id: "studio", personaId: "studio", name: "錄音室", categories: ["recording_studio"], recordingEntityType: "studio", summary: "", websiteUrl: "", works: [{ id: "w", title: "作品", url: "https://example.com/w", coverUrl: "", creditRole: "recording_studio", creditedAs: "錄音室" }] };
@@ -31,17 +32,22 @@ describe("ResourcesClient", () => {
     expect(screen.getByText("待核身份")).toBeTruthy();
     expect(screen.getByText("1 筆")).toBeTruthy();
   });
-  it("uses the same role-filtered work lane for voice actors with deduplicated counts", () => {
+  it("uses the same role-filtered work lane for voice actors with deduplicated counts", async () => {
     window.sessionStorage.clear();
     const work = { id: "audio", title: "參演作品", url: "https://example.com/audio", coverUrl: "https://example.com/cover.jpg", creditRole: "voice_actor" as const, creditedAs: "聲演甲" };
+    const details = vi.spyOn(liveApi, "readJson").mockResolvedValue({ source: "primary", data: {
+      id: "actor", roles: ["voice_actor", "post_production"], workParticipations: [work, { ...work, title: "後製作品", creditRole: "post_production" }],
+    } });
     render(<ResourceDirectoryFixture initialResources={[]} initialPersonas={[{
       id: "actor", displayName: "聲演甲", roles: ["voice_actor", "post_production"],
       workParticipations: [work, { ...work, id: "duplicate" }, { ...work, id: "mix", title: "後製作品", creditRole: "post_production" }],
     }]} />);
     expect(screen.getByText("1 部參與作品")).toBeTruthy();
+    expect(details).not.toHaveBeenCalled();
     expect(screen.queryByRole("link", { name: "前往作品：參演作品" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
-    expect(screen.getAllByRole("link", { name: "前往作品：參演作品" })).toHaveLength(1);
+    expect(await screen.findAllByRole("link", { name: "前往作品：參演作品" })).toHaveLength(1);
+    expect(details).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("link", { name: "前往作品：後製作品" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "後製" }));
     expect(screen.getByRole("link", { name: "前往作品：後製作品" })).toBeTruthy();
@@ -144,16 +150,19 @@ describe("ResourcesClient", () => {
     expect(screen.queryByAltText("作品甲封面")).toBeNull();
   });
 
-  it("asks for age confirmation once before showing work covers", () => {
+  it("asks for age confirmation once before showing work covers", async () => {
     window.sessionStorage.clear();
     const item: ProductionResource = { ...base, id: "studio", personaId: "studio", name: "製作人甲",
       works: [{ id: "work-1", title: "作品甲", url: "https://example.com/work", coverUrl: "https://example.com/cover.jpg", creditRole: "post_production", creditedAs: "製作人甲" }],
     };
+    vi.spyOn(liveApi, "readJson").mockResolvedValue({ source: "fallback", data: {
+      id: item.id, displayName: item.name, roles: item.categories, workParticipations: item.works,
+    } });
     render(<ResourceDirectoryFixture initialPersonas={[]} initialResources={[item]} />);
     fireEvent.click(screen.getByRole("button", { name: "後製" }));
     fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
     expect(window.sessionStorage.getItem("public-resources-adult-confirmed")).toBe("1");
-    expect(screen.getByRole("link", { name: "前往作品：作品甲" })).toBeTruthy();
+    expect(await screen.findByRole("link", { name: "前往作品：作品甲" })).toBeTruthy();
     window.sessionStorage.clear();
   });
 });

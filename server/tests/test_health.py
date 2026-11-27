@@ -46,6 +46,7 @@ def test_readiness_checks_database(client):
                 "external-cover-lookup",
                 "public-activity-status",
                 "audio-works",
+                "resource-directory",
             ],
         }
         assert response.headers["cache-control"] == "no-store"

@@ -28,6 +28,7 @@ spec.loader.exec_module(refresh)
 def snapshot():
     def reader(path):
         if path == '/api/public-bundle': return dict(fixture.BUNDLE, scripts=[fixture.SCRIPT])
+        if path == '/api/public-resource-directory': return []
         if path == '/api/themes/public': return []
         if path.startswith('/api/public-scripts/'): return fixture.SCRIPT
         if path.startswith('/api/public-scripts'): return [fixture.SCRIPT]

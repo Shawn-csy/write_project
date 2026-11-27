@@ -1,10 +1,8 @@
 import { Suspense } from "react";
 import { PublicDirectoryLoading } from "@/components/PublicDirectoryLoading";
 import { apiFetch } from "@/lib/api";
-import type { PublicPersona } from "@/lib/types";
 import { publicDirectoryMetadata, TITLE_SUFFIX } from "@/lib/seo";
-import { buildResourceDirectory, type ProductionResource } from "@/lib/resourceDirectory";
-import { gameResourceProfiles, mergeGameParticipations } from "@/lib/gameCatalog";
+import { buildResourceIndex, type ResourceIndexRow } from "@/lib/resourceCatalog";
 import { ResourcesClient } from "./ResourcesClient";
 
 export const dynamic = "force-dynamic";
@@ -25,21 +23,12 @@ export default function ResourcesPage() {
 }
 
 async function ResourceDirectory() {
-  let personas: PublicPersona[] = [];
-  let resources: ProductionResource[] = [];
-  try {
-    const bundle = await apiFetch<{ personas?: PublicPersona[]; productionResources?: ProductionResource[] }>("/public-bundle?sections=personas,productionResources", { cache: "no-store" });
-    personas = Array.isArray(bundle.personas) ? bundle.personas : [];
-    resources = Array.isArray(bundle.productionResources) ? bundle.productionResources : [];
-  } catch {
-    // Static previews refresh from the public API in the browser.
-  }
-  const gameResources = buildResourceDirectory(gameResourceProfiles, []);
-  const directory = buildResourceDirectory(mergeGameParticipations(personas), resources);
-  const existing = new Set(directory.map(({ id }) => id));
-  return <ResourcesClient
-    initialDirectory={[...directory, ...gameResources.filter(({ id }) => !existing.has(id))]}
-    supplementalDirectory={gameResources}
-    refreshOnMount={STATIC_EXPORT}
-  />;
+  const rows = await apiFetch<ResourceIndexRow[]>(
+    "/public-resource-directory", { cache: "no-store" },
+  ).catch(error => {
+    if (STATIC_EXPORT) throw error;
+    return null;
+  });
+  return <ResourcesClient initialDirectory={buildResourceIndex(rows ?? [])}
+    refreshOnMount={STATIC_EXPORT || !rows} />;
 }

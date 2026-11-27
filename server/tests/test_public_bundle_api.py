@@ -388,3 +388,33 @@ def test_public_bundle_ignores_invalid_tag_entries(client, monkeypatch):
     assert payload["personas"] == [{"id": "p1"}]
     assert payload["organizations"] == [{"id": "org1"}]
     assert payload["topTags"] == ["ValidTag"]
+
+
+def test_resource_directory_index_and_detail_share_public_work_identity(client, db_session):
+    public_bundle_router.invalidate_public_bundle_cache()
+    person = models.Persona(id="index-actor", displayName="演員")
+    db_session.add(person)
+    db_session.add(models.PersonaRole(personaId=person.id, role="voice_actor", isVisible=True))
+    db_session.add(models.PublicAudioWorkSubmission(
+        id="index-audio", title="Audio detail", url="https://example.com/approved", status="approved",
+        coverUrl="https://example.com/cover.jpg", voiceActorIds=[person.id],
+    ))
+    db_session.add(models.PublicAudioWorkSubmission(
+        id="pending-audio", title="Pending", url="https://example.com/pending", status="pending",
+        voiceActorIds=[person.id],
+    ))
+    db_session.commit()
+    try:
+        response = client.get("/api/public-resource-directory")
+        assert response.status_code == 200
+        [row] = response.json()
+        detail = client.get("/api/public-personas/index-actor").json()
+        [work] = detail["workParticipations"]
+        assert row["workReferences"] == [{key: work[key] for key in ("id", "creditRole", "audioWorkId", "url")}]
+        assert row["displayName"] == detail["displayName"]
+        assert row["roles"] == detail["roles"]
+        assert "workParticipations" not in row
+        assert "productionCredits" not in row
+        assert work["coverUrl"] and "coverUrl" not in row["workReferences"][0]
+    finally:
+        public_bundle_router.invalidate_public_bundle_cache()
