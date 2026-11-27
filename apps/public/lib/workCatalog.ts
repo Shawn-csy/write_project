@@ -35,11 +35,11 @@ const sourceRoles: Record<string, string[]> = {
 };
 
 function normalizeCreditRole(role: string, sourceRole?: string): string {
-  const raw = (sourceRole || role || "").trim();
+  const raw = (sourceRole || role || "").replace(/^[▶■●・\s]+/, "").trim();
   if (role === "scriptwriter" || role === "script" || role === "author" || /^(台本|台本師|劇本|編劇|腳本|シナリオ|作者)$/.test(raw)) {
     return "台本";
   }
-  if (role === "cover_art" || /^(封面|插畫|美術)$/.test(raw)) {
+  if (role === "cover_art" || role === "illustration" || role === "art_design" || /^(封面|插畫|美術|イラスト)$/.test(raw)) {
     return "美術";
   }
   if (role === "post_production" || raw === "後製") {
@@ -48,6 +48,16 @@ function normalizeCreditRole(role: string, sourceRole?: string): string {
   if (role === "recording_studio" || role === "recording" || /^(錄音|錄音師|錄音室)$/.test(raw)) {
     return "錄音";
   }
+  if (role === "sound_direction" || /^(聲音導演|聲導)$/.test(raw)) {
+    return "聲音導演";
+  }
+  if (role === "sound_design" || raw === "音效") {
+    return "音效";
+  }
+  if (role === "music" || /^(音樂|作曲)$/.test(raw)) {
+    return "音樂";
+  }
+  if (raw === "封面/標題設計") return "封面／標題設計";
   return raw || role;
 }
 
