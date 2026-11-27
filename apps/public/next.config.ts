@@ -34,6 +34,8 @@ const nextConfig: NextConfig = {
   ...(!staticExport ? {
   async rewrites() {
     return [
+      { source: "/api/public-resource-directory", destination: `${backendUrl.replace(/\/+$/, "")}/api/public-resource-directory` },
+      { source: "/api/public-personas/:id", destination: `${backendUrl.replace(/\/+$/, "")}/api/public-personas/:id` },
       {
         // Local Next development uses the same media implementation as production.
         // Pages exports omit rewrites and use NEXT_PUBLIC_MEDIA_ORIGIN instead.

@@ -1,3 +1,5 @@
+import { Blob as WebBlob } from "node:buffer";
+import { gzipSync } from "node:zlib";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import worker from "./index";
 
@@ -66,6 +68,19 @@ describe("snapshot (D1 fallback) mode", () => {
     const response = await worker.fetch(get("/api/public-activity-status"), env);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ hasPublishedActivities: true });
+  });
+
+  it("reads the resource index directly from its compressed snapshot", async () => {
+    const index = [{ id: "staff", roles: ["cover_art"], workReferences: [{ id: "work", creditRole: "cover_art" }] }];
+    vi.stubGlobal("Blob", WebBlob);
+    const encoded = gzipSync(JSON.stringify(index)).toString("base64");
+    const bind = vi.fn((path: string) => ({ first: async () => path === "/api/public-resource-directory"
+      ? { active_generation: "test", synced_at: "v1", body_gzip: encoded } : null }));
+    const db = { prepare: () => ({ bind }) } as unknown as NonNullable<WorkerEnv["DB"]>;
+    const response = await worker.fetch(get("/api/public-resource-directory"), { ...env, DB: db });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(index);
+    expect(bind).toHaveBeenCalledExactlyOnceWith("/api/public-resource-directory");
   });
 
   it("answers 404 for a path with no snapshot", async () => {

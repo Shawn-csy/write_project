@@ -95,7 +95,7 @@ export function gameParticipationsForIdentity(id: string): PublicWorkParticipati
   return identityWorks.get(id) ?? [];
 }
 
-export function mergeGameParticipations(personas: PublicPersona[]): PublicPersona[] {
+export function mergeGameParticipations<T extends PublicPersona>(personas: T[]): T[] {
   return personas.map((person) => {
     const extra = identityWorks.get(person.id);
     if (!extra?.length) return person;

@@ -8,15 +8,14 @@ import { PublicSearchField } from "@/components/PublicSearchField";
 import { PublicBrowseHeader } from "@/components/PublicBrowseHeader";
 import { PublicBrowseMain } from "@/components/PublicBrowseMain";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
-import { PublicIdentityDirectoryRow } from "@/components/PublicIdentityDirectoryRow";
 import { AdultContentNotice } from "@/components/AdultContentNotice";
 import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
-import { readPublicBundle } from "@/lib/readPublicBundle";
+import { liveApi } from "@/lib/liveApi";
 import { ResourceSubmissionDialog } from "@/components/ResourceSubmissionDialog";
-import type { PublicPersona } from "@/lib/types";
+import { ResourceDirectoryRow } from "./ResourceDirectoryRow";
 
-import { buildResourceDirectory, selectResourceDirectory, type ProductionResource, type ResourceCategory as Category, type ResourceDirectoryEntry } from "@/lib/resourceDirectory";
-import { mergeGameParticipations } from "@/lib/gameCatalog";
+import { selectResourceDirectory, type ResourceCategory as Category } from "@/lib/resourceDirectory";
+import { buildResourceIndex, type ResourceIndexRow, type ResourceSummary } from "@/lib/resourceCatalog";
 import { publicIdentityRoleLabel } from "@/lib/publicIdentityMetadata";
 
 export type { ProductionResource } from "@/lib/resourceDirectory";
@@ -29,12 +28,9 @@ const CATEGORIES: { key: Category; label: string }[] = [
   { key: "recording_unclassified", label: "待分類錄音" },
 ];
 
-const EMPTY_SUPPLEMENTAL_DIRECTORY: ResourceDirectoryEntry[] = [];
-
-export function ResourcesClient({ initialDirectory, refreshOnMount = false, supplementalDirectory = EMPTY_SUPPLEMENTAL_DIRECTORY }: {
-  initialDirectory: ResourceDirectoryEntry[];
+export function ResourcesClient({ initialDirectory, refreshOnMount = false }: {
+  initialDirectory: ResourceSummary[];
   refreshOnMount?: boolean;
-  supplementalDirectory?: ResourceDirectoryEntry[];
 }) {
   const [directory, setDirectory] = useState(initialDirectory);
   const [category, setCategory] = useState<Category>("voice_actor");
@@ -48,17 +44,13 @@ export function ResourcesClient({ initialDirectory, refreshOnMount = false, supp
 
   useEffect(() => {
     if (!refreshOnMount) return;
-    let active = true;
-    void readPublicBundle<{ personas?: PublicPersona[]; productionResources?: ProductionResource[] }>(["personas", "productionResources"])
+    const controller = new AbortController();
+    void liveApi.readJson<ResourceIndexRow[]>("/api/public-resource-directory", { signal: controller.signal })
       .then(({ data }) => {
-        if (active && Array.isArray(data.personas) && Array.isArray(data.productionResources)) {
-          const directory = buildResourceDirectory(mergeGameParticipations(data.personas), data.productionResources);
-          const existing = new Set(directory.map(({ id }) => id));
-          setDirectory([...directory, ...supplementalDirectory.filter(({ id }) => !existing.has(id))]);
-        }
+        if (!controller.signal.aborted && Array.isArray(data)) setDirectory(buildResourceIndex(data));
       }).catch(() => {});
-    return () => { active = false; };
-  }, [refreshOnMount, supplementalDirectory]);
+    return () => controller.abort();
+  }, [refreshOnMount]);
 
   const needle = query.trim().toLocaleLowerCase();
   const hasUnclassifiedRecording = useMemo(() => selectResourceDirectory(directory, "recording_unclassified", "").length > 0, [directory]);
@@ -111,17 +103,9 @@ export function ResourcesClient({ initialDirectory, refreshOnMount = false, supp
         primaryAction={needle ? { label: "清除搜尋", onClick: () => setQuery("") } : undefined}
       /> :
         <ul>
-          {listings.slice(0, renderLimit).map((item) => {
-            const { links, href } = item;
-            const credited = item.works.filter((work) => work.creditRole === (category === "recording_engineer" || category === "recording_unclassified" ? "recording_studio" : category));
-            return <li key={item.id}><PublicIdentityDirectoryRow
-              name={item.name} href={href} avatar={item.avatar} bio={item.bio}
-              works={credited}
-              emptyLabel={category !== "voice_actor" && item.commissionRoles.includes(category === "recording_engineer" || category === "recording_unclassified" ? "recording_studio" : category) ? "提供委託資訊" : "尚無參與作品"}
-              roleLabels={item.roles.map((role) => publicIdentityRoleLabel(role, item.recordingEntityType))}
-              tags={item.tags}
-              onTagClick={setQuery} links={links} showWorks={ageConfirmed} /></li>;
-          })}
+          {listings.slice(0, renderLimit).map(item => <li key={item.id}>
+            <ResourceDirectoryRow item={item} category={category} showWorks={ageConfirmed} onTagClick={setQuery} />
+          </li>)}
         </ul>}
       {visibleCount > renderLimit && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
     </PublicBrowseMain>

@@ -14,6 +14,7 @@ const REQUIRED_PUBLIC_API_CAPABILITIES = [
   "external-cover-lookup",
   "public-activity-status",
   "audio-works",
+  "resource-directory",
 ] as const;
 
 export function livenessResponse(): NextResponse {

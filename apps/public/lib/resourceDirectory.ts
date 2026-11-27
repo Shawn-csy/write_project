@@ -12,7 +12,9 @@ export interface ProductionResource {
   links?: Array<{ label?: string; url: string }>; legacyIds?: string[];
   works: PublicProductionCredit[];
 }
+export type DirectoryWorkCounts = Partial<Record<PublicIdentityRole, number>>;
 export interface ResourceDirectoryEntry {
+  workCounts: DirectoryWorkCounts;
   id: string; name: string; href: string; avatar?: string; bio: string;
   roles: PublicIdentityRole[]; commissionRoles: ProductionRole[]; tags: string[];
   recordingEntityType: "person" | "studio" | "unknown";
@@ -35,13 +37,15 @@ function linksOf(person?: PublicPersona, resource?: ProductionResource): Resourc
     });
 }
 
+type DirectoryPersona = PublicPersona & Pick<ProductionResource, "commissionCategories" | "recordingEntityType">;
+
 /** A single identity/role/work projection for every directory tab. */
-export function buildResourceDirectory(personas: PublicPersona[], resources: ProductionResource[]): ResourceDirectoryEntry[] {
+export function buildResourceDirectory(personas: DirectoryPersona[], resources: ProductionResource[]): ResourceDirectoryEntry[] {
   const people = new Map(personas.map((p) => [p.id, p]));
   const legacy = new Map(resources.map((r) => [r.personaId || r.id, r]));
   return Array.from(new Set([...people.keys(), ...legacy.keys()])).flatMap((id) => {
     const person = people.get(id), resource = legacy.get(id);
-    const commissions = resource?.commissionCategories || [];
+    const commissions = person?.commissionCategories ?? resource?.commissionCategories ?? [];
     const legacyVoiceWorks = legacyVoiceWorkParticipations(person);
     const roles = Array.from(new Set<PublicIdentityRole>([
       ...(person?.roles ?? []), ...(resource?.categories ?? []), ...commissions,
@@ -58,24 +62,28 @@ export function buildResourceDirectory(personas: PublicPersona[], resources: Pro
       .map(({ id, title, url, coverUrl, creditRole, workType }) => ({
         id: `${id}-${creditRole}`, title, url, coverUrl, creditRole, workType,
       }));
-    return [{ id, name: person?.displayName || resource?.name || "未命名", href: person?.externalHref || `/author/${encodeURIComponent(id)}`,
+    const workCounts: DirectoryWorkCounts = {};
+    for (const work of works) workCounts[work.creditRole] = (workCounts[work.creditRole] ?? 0) + 1;
+    return [{ id, workCounts, name: person?.displayName || resource?.name || "未命名", href: person?.externalHref || `/author/${encodeURIComponent(id)}`,
       avatar: person?.avatar || resource?.avatarUrl, bio: person?.bio || resource?.bio || resource?.summary || "",
       roles, commissionRoles: commissions, tags: publicIdentityTags(person?.tags), links: linksOf(person, resource), works,
-      recordingEntityType: (() => { const value = person?.roleProfiles?.recording_studio?.entityType ?? resource?.recordingEntityType; return value === "person" || value === "studio" ? value : "unknown"; })() }];
+      recordingEntityType: (() => { const value = person?.roleProfiles?.recording_studio?.entityType ?? person?.recordingEntityType ?? resource?.recordingEntityType; return value === "person" || value === "studio" ? value : "unknown"; })() }];
   });
 }
 
-export function selectResourceDirectory(entries: ResourceDirectoryEntry[], category: ResourceCategory, query: string) {
+export type ResourceDirectorySummary = Omit<ResourceDirectoryEntry, "works">;
+
+export function selectResourceDirectory<T extends ResourceDirectorySummary>(entries: T[], category: ResourceCategory, query: string) {
   const needle = query.normalize("NFKC").trim().toLocaleLowerCase();
   const role = category === "recording_engineer" || category === "recording_unclassified" ? "recording_studio" : category;
   return entries.filter((item) => item.roles.includes(role)
       && (category !== "recording_studio" || item.recordingEntityType === "studio")
       && (category !== "recording_engineer" || item.recordingEntityType === "person")
       && (category !== "recording_unclassified" || item.recordingEntityType === "unknown")
-      && (role === "voice_actor" || item.works.some((w) => w.creditRole === role) || item.commissionRoles.includes(role)))
+      && (role === "voice_actor" || (item.workCounts[role] ?? 0) > 0 || item.commissionRoles.includes(role)))
     .filter((item) => !needle || [
       item.name, item.bio, ...item.tags, ...item.roles.map((role) => publicIdentityRoleLabel(role, item.recordingEntityType)),
     ].join(" ").normalize("NFKC").toLocaleLowerCase().includes(needle))
-    .sort((a, b) => b.works.filter((w) => w.creditRole === role).length - a.works.filter((w) => w.creditRole === role).length
+    .sort((a, b) => (b.workCounts[role] ?? 0) - (a.workCounts[role] ?? 0)
       || a.name.localeCompare(b.name, "zh-Hant"));
 }

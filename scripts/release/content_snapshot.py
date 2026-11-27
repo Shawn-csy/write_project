@@ -118,6 +118,7 @@ def capture(reader=None):
                 raise ContentError('Incomplete identity detail')
             if not set(entities(filtered)).issubset(set(bundle_ids)):
                 raise ContentError('Filtered catalog disagrees')
+    entities(get('/api/public-resource-directory', list))
     entities(get('/api/themes/public', list))
     if set(entities(bundle['personas'])) != set(entities(snapshot['/api/public-personas'])) or set(entities(bundle['organizations'])) != set(entities(snapshot['/api/public-organizations'])):
         raise ContentError('Bundle identities disagree with catalogs')

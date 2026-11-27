@@ -84,6 +84,11 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/public-bundle":
             selected = parse_qs(parsed.query).get("sections")
             body = {key: BUNDLE[key] for key in selected[0].split(",")} if selected else BUNDLE
+        elif path == "/api/public-resource-directory":
+            body = [{"id": row["id"], "displayName": row["name"], "roles": row["categories"],
+                     "commissionCategories": [], "workReferences": [
+                         {key: work[key] for key in ("id", "url", "creditRole")} for work in row["works"]
+                     ]} for row in BUNDLE["productionResources"]]
         elif path == "/api/public-personas":
             body = BUNDLE["personas"]
         elif path == "/api/public-personas/fixture-persona":

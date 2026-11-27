@@ -14,6 +14,7 @@ from dependencies import get_db
 from routers import public as public_router
 from routers.external_public_scripts import get_published_external_public_scripts
 from utils import normalize_homepage_banner_value, public_banner_value, seconds_until_taipei_midnight
+from services.resource_directory import resource_directory_rows
 from services.work_participations import SOURCE_ROLES
 
 router = APIRouter(prefix="/api", tags=["public"])
@@ -380,9 +381,28 @@ def _build_bundle(db: Session) -> dict:
 
 @router.get("/public-bundle")
 def public_bundle(db: Session = Depends(get_db), sections: str | None = None):
-    global _bundle_cache
     selected = _parse_bundle_sections(sections)
     key = selected if selected is not None else tuple(sorted(_BUNDLE_SECTIONS))
+    return _cached_public_response(key, lambda: (
+        _build_bundle(db) if selected is None else _build_bundle_sections(db, frozenset(selected))
+    ))
+
+
+@router.get("/public-resource-directory")
+def public_resource_directory(db: Session = Depends(get_db)):
+    def build():
+        personas = public_router.list_public_personas(db)
+        fields = {"id", "displayName", "bio", "avatar", "website", "links", "tags", "roles",
+                  "voiceActorHidden", "roleProfiles", "workParticipations"}
+        return resource_directory_rows(
+            [person.model_dump(include=fields) for person in personas], _production_directory(db),
+        )
+
+    return _cached_public_response(("resourceDirectory",), build)
+
+
+def _cached_public_response(key, build):
+    global _bundle_cache
     while True:
         with _bundle_cache_lock:
             if _bundle_cache is None:
@@ -405,7 +425,7 @@ def public_bundle(db: Session = Depends(get_db), sections: str | None = None):
             continue
 
         try:
-            payload = _build_bundle(db) if selected is None else _build_bundle_sections(db, frozenset(selected))
+            payload = build()
             built = (JSONResponse(content=payload).body, time.monotonic() + min(_BUNDLE_TTL, seconds_until_taipei_midnight()))
         except BaseException as error:
             with _bundle_cache_lock:
