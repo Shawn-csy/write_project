@@ -9,8 +9,21 @@ const audioEditions: Record<string, string> = {
   "84de9b5e-4827-4b76-8476-f3705349a5cb": "ab1beed0-1359-4b1c-94aa-a61f44795023",
 };
 
-export function audioCardId(id: string) {
-  return `audio-${audioEditions[id] ?? id}`;
+export function dlsiteCodeFromUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  const match = /\b((?:RJ|BJ|VJ)\d{6,})\b/i.exec(url);
+  return match ? match[1].toUpperCase() : undefined;
+}
+
+export function audioCardId(id: string, url?: string | null) {
+  const canonicalId = audioEditions[id] ?? id;
+  if (canonicalId !== id) {
+    // Edition alias points to primary work; caller resolves primary RJ code when available.
+    return `audio-${canonicalId}`;
+  }
+  const rj = dlsiteCodeFromUrl(url);
+  if (rj) return rj;
+  return `audio-${canonicalId}`;
 }
 
 export function workHref(id: string) {
@@ -29,7 +42,9 @@ export function referencedCardId(value: string) {
 }
 
 export function participationCardId(work: PublicWorkParticipation, personaId: string) {
-  if (work.audioWorkId) return audioCardId(work.audioWorkId);
+  const rj = dlsiteCodeFromUrl(work.url);
+  if (rj) return rj;
+  if (work.audioWorkId) return audioCardId(work.audioWorkId, work.url);
   const internalGame = /^\/games(?:\/|#game-)(\d+)\/?$/.exec(work.url);
   if (internalGame) return `steam-${internalGame[1]}`;
   try {

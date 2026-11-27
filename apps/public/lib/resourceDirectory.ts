@@ -1,5 +1,6 @@
 import { legacyVoiceWorkParticipations, mergePublicWorkParticipations } from "./publicWorkParticipations";
 import { publicIdentityRoleLabel, publicIdentityTags } from "./publicIdentityMetadata";
+import { authorHref, buildAuthorSlugMap } from "./authorSlug";
 import type { ProductionRole, PublicIdentityRole, PublicPersona, PublicProductionCredit, PublicWorkParticipation } from "./types";
 
 export type ResourceCategory = Exclude<PublicIdentityRole, "scriptwriter"> | "recording_engineer" | "recording_unclassified";
@@ -42,6 +43,7 @@ type DirectoryPersona = PublicPersona & Pick<ProductionResource, "commissionCate
 /** A single identity/role/work projection for every directory tab. */
 export function buildResourceDirectory(personas: DirectoryPersona[], resources: ProductionResource[]): ResourceDirectoryEntry[] {
   const people = new Map(personas.map((p) => [p.id, p]));
+  const authorSlugs = buildAuthorSlugMap(personas);
   const legacy = new Map(resources.map((r) => [r.personaId || r.id, r]));
   return Array.from(new Set([...people.keys(), ...legacy.keys()])).flatMap((id) => {
     const person = people.get(id), resource = legacy.get(id);
@@ -64,7 +66,7 @@ export function buildResourceDirectory(personas: DirectoryPersona[], resources: 
       }));
     const workCounts: DirectoryWorkCounts = {};
     for (const work of works) workCounts[work.creditRole] = (workCounts[work.creditRole] ?? 0) + 1;
-    return [{ id, workCounts, name: person?.displayName || resource?.name || "未命名", href: person?.externalHref || `/author/${encodeURIComponent(id)}`,
+    return [{ id, workCounts, name: person?.displayName || resource?.name || "未命名", href: person?.externalHref || authorHref(id, authorSlugs.get(id)),
       avatar: person?.avatar || resource?.avatarUrl, bio: person?.bio || resource?.bio || resource?.summary || "",
       roles, commissionRoles: commissions, tags: publicIdentityTags(person?.tags), links: linksOf(person, resource), works,
       recordingEntityType: (() => { const value = person?.roleProfiles?.recording_studio?.entityType ?? person?.recordingEntityType ?? resource?.recordingEntityType; return value === "person" || value === "studio" ? value : "unknown"; })() }];

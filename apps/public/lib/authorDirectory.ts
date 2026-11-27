@@ -1,4 +1,5 @@
 import { authorDirectoryWorks } from "./authorDirectoryWorks";
+import { authorHref, buildAuthorSlugMap } from "./authorSlug";
 import { buildGalleryAuthorIndex } from "./galleryAuthorIndex";
 import { parseHomepageBundle, type HomepageBundleResponse } from "./homepageBundle";
 
@@ -8,10 +9,13 @@ export function buildAuthorDirectory(bundle: HomepageBundleResponse) {
   const { scripts, externalPublicScripts, personas } = parseHomepageBundle(bundle);
   const externalScripts = externalPublicScripts.filter((script) => script.status === "published");
   const { authors, searchIndex } = buildGalleryAuthorIndex(personas, scripts, externalScripts);
+  const authorSlugs = buildAuthorSlugMap(personas);
 
   return {
     authors: authors.map(({ id, displayName, avatar, bio, links, tags, externalHref, organizations }) => ({
-      id, displayName, avatar, bio, links, tags, externalHref, organizations,
+      id, displayName, avatar, bio, links, tags,
+      externalHref: externalHref || (authorSlugs.has(id) ? authorHref(id, authorSlugs.get(id)) : undefined),
+      organizations,
     })),
     searchIndex: searchIndex.map(({ id, displayName, searchText, tags }) => ({ id, displayName, searchText, tags })),
     worksByAuthor: Object.fromEntries(authors.map((author) => [author.id, authorDirectoryWorks(author, scripts, externalPublicScripts)])),

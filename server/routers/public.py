@@ -1713,8 +1713,24 @@ def review_owned_voice_actor_profile_submission(
 
 @router.get("/public-personas/{persona_id}", response_model=schemas.PersonaPublic)
 def get_public_persona(persona_id: str, db: Session = Depends(get_db)):
-    # 1. Try Persona
+    # 1. Try Persona by exact ID, or by unique X/Twitter handle slug.
     persona = db.query(models.Persona).filter(models.Persona.id == persona_id).first()
+    if not persona and persona_id and len(persona_id) <= 30:
+        needle = persona_id.lower()
+        matches = []
+        for candidate in db.query(models.Persona).all():
+            urls = [candidate.website or ""] + [
+                (item.get("url") or "") for item in crud._ensure_list(candidate.links) if isinstance(item, dict)
+            ]
+            for raw in urls:
+                if not isinstance(raw, str) or ("x.com/" not in raw.lower() and "twitter.com/" not in raw.lower()):
+                    continue
+                parts = [p for p in raw.split("://", 1)[-1].split("/")[1:] if p]
+                if parts and parts[0].lstrip("@").lower() == needle:
+                    matches.append(candidate)
+                    break
+        if len(matches) == 1:
+            persona = matches[0]
     if persona:
         persona.organizationIds = crud.get_persona_org_ids(db, persona)
         persona.tags = _public_persona_tags(persona.tags)

@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { buildAuthorSlugMap } from "@/lib/authorSlug";
 import { externalEntitySlug } from "@/lib/externalEntity";
 import type { ExternalPublicScript, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 
@@ -59,7 +60,11 @@ export async function getStaticReadParams(): Promise<Array<{ id: string }>> {
 export async function getStaticAuthorParams(): Promise<Array<{ id: string }>> {
   if (!PREBUILD_PUBLIC_PAGES) return [];
   const personas = await apiFetch<PublicPersona[]>("/public-personas");
-  return unique(personas.map((persona) => persona.id).filter(Boolean)).map((id) => ({ id }));
+  const slugs = buildAuthorSlugMap(personas);
+  return unique([
+    ...personas.map((persona) => persona.id).filter(Boolean),
+    ...Array.from(slugs.values()),
+  ]).map((id) => ({ id }));
 }
 
 export async function getStaticOrgParams(): Promise<Array<{ id: string }>> {

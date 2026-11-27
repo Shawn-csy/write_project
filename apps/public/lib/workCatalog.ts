@@ -12,6 +12,7 @@ import { publicAudioPerformers, publicDemoPerformers } from "./publicWorkPerform
 import { externalCoverSrc } from "./externalCover";
 import { cleanScriptSummary } from "./scriptSummary";
 import { audioCardId, participationCardId, referencedCardId, workHref } from "./workIdentity";
+import { authorHref, buildAuthorSlugMap } from "./authorSlug";
 import { legacyVoiceWorkParticipations } from "./publicWorkParticipations";
 import type { PublicAudioWork, PublicWorkParticipation } from "./types";
 import type { WorkSummary, WorkKind, CatalogWork, Credit } from "./workCardModel";
@@ -65,6 +66,9 @@ export function buildWorkCatalog(bundle: WorkBundle) {
   const works = new Map<string, CatalogWork>();
   const byUrl = new Map<string, CatalogWork>();
   const people = new Map((bundle.personas ?? []).map((person) => [person.id, person]));
+  const authorSlugs = buildAuthorSlugMap(bundle.personas ?? []);
+  const slugToId = new Map(Array.from(authorSlugs.entries(), ([id, slug]) => [slug.toLowerCase(), id]));
+  const personHref = (personaId: string) => authorHref(personaId, authorSlugs.get(personaId));
   const avatarsById: Record<string, string> = {
     ...gameResourceAvatars,
     ...Object.fromEntries((bundle.personas ?? []).filter((p) => p.avatar).map((p) => [p.id, p.avatar!])),
@@ -73,7 +77,13 @@ export function buildWorkCatalog(bundle: WorkBundle) {
   function credit(work: CatalogWork, entry: Credit) {
     if (!entry.name) return;
     const match = entry.href?.match(/^\/author\/([^/]+)$/);
-    if (match) entry.personaId = decodeURIComponent(match[1]);
+    if (match) {
+      const token = decodeURIComponent(match[1]);
+      entry.personaId = slugToId.get(token.toLowerCase()) ?? token;
+      entry.href = personHref(entry.personaId);
+    } else if (entry.personaId && !entry.href) {
+      entry.href = personHref(entry.personaId);
+    }
     if (!entry.avatar && entry.personaId) {
       entry.avatar = avatarsById[entry.personaId];
     }
@@ -159,14 +169,20 @@ export function buildWorkCatalog(bundle: WorkBundle) {
   const audio = [...(bundle.audioWorks ?? [])].sort(
     (a, b) => Number(audioCardId(a.id) !== `audio-${a.id}`) - Number(audioCardId(b.id) !== `audio-${b.id}`),
   );
+  const audioIdToCardId = new Map<string, string>();
   for (const item of audio) {
+    const rawCanonical = audioCardId(item.id);
+    const primaryAudioId = rawCanonical.startsWith("audio-") ? rawCanonical.slice(6) : item.id;
+    const resolvedCardId = audioIdToCardId.get(primaryAudioId) ?? audioCardId(item.id, item.url);
+    audioIdToCardId.set(item.id, resolvedCardId);
+    audioIdToCardId.set(primaryAudioId, resolvedCardId);
     const performers = publicAudioPerformers(item);
     const { isAdult, introduction } = publicAudioWorkContent(item, performers);
     const publication = audioWorkPublication(item);
     const purchaseLabel = audioWorkPurchaseLabel(item.url);
     const subtitleParts = [item.creatorName?.trim(), publication ? `${publication.label} ${publication.text}` : ""].filter(Boolean);
     const w = add({
-      id: audioCardId(item.id),
+      id: resolvedCardId,
       kind: "audio",
       gated: true,
       title: item.title,
@@ -268,7 +284,7 @@ export function buildWorkCatalog(bundle: WorkBundle) {
     for (const p of participations) {
       if (p.creditRole === "voice_actor" && person.voiceActorHidden) continue;
       const reference = referencedCardId(p.url);
-      const id = reference || participationCardId(p, person.id);
+      const id = reference || (p.audioWorkId && audioIdToCardId.get(p.audioWorkId)) || participationCardId(p, person.id);
       const appId = id.startsWith("steam-") ? id.slice(6) : "";
       let w = p.audioWorkId ? works.get(id) : byUrl.get(p.url) ?? works.get(id);
       if (!w) {

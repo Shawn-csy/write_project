@@ -54,4 +54,25 @@ describe("public work cards", () => {
     const roles = catalog.get("audio-aw-1")?.credits.filter((c) => c.personaId === "writer-1").map((c) => c.role);
     expect(roles).toEqual(["台本", "錄音"]);
   });
+
+  it("uses DLsite RJ codes for audio work IDs and unique Twitter handles for author hrefs", () => {
+    const person: PublicPersona = {
+      id: "3c62fbd1-e653-4b84-9d9c-d33efbe2b898",
+      displayName: "海聶",
+      website: "https://x.com/nightingalto",
+    };
+    const aw: PublicAudioWork = {
+      id: "uuid-dlsite-1",
+      title: "中文音聲圈大拜拜 2026",
+      url: "https://www.dlsite.com/maniax/work/=/product_id/RJ01623884.html",
+      credits: [
+        { role: "scriptwriter", sourceRole: "劇本", creditedAs: "海聶", personaId: person.id, provenance: "official_page", sourceUrl: "https://www.dlsite.com/maniax/work/=/product_id/RJ01623884.html" },
+      ],
+    };
+    const catalog = buildWorkCatalog({ audioWorks: [aw], personas: [person] });
+    const card = catalog.get("RJ01623884");
+    expect(card?.title).toBe("中文音聲圈大拜拜 2026");
+    expect(card?.credits[0]?.href).toBe("/author/nightingalto");
+    expect(card?.credits[0]?.personaId).toBe(person.id);
+  });
 });

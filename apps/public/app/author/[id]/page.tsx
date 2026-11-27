@@ -16,6 +16,7 @@ import { getStaticAuthorParams } from "@/lib/staticParams";
 import { LiveAuthorPage } from "@/components/LiveEntityPages";
 import { ROLE_LABELS } from "@/components/identity/identityRoles";
 import { gameResourceProfiles } from "@/lib/gameCatalog";
+import { authorHref, buildAuthorSlugMap, findPersonaByIdOrSlug } from "@/lib/authorSlug";
 
 const STATIC_EXPORT = process.env.CF_STATIC_EXPORT === "1";
 
@@ -40,11 +41,19 @@ export async function generateStaticParams() {
   return [...new Set([...known, ...gameResourceProfiles].map(({ id }) => id))].map((id) => ({ id }));
 }
 
-const fetchPersona = cache(async (id: string): Promise<PublicPersona | null> => {
-  const localProfile = gameResourceProfiles.find((profile) => profile.id === id);
+const fetchPersona = cache(async (idOrSlug: string): Promise<PublicPersona | null> => {
+  const localProfile = findPersonaByIdOrSlug(gameResourceProfiles, idOrSlug);
   if (localProfile) return localProfile;
+  let resolvedId = idOrSlug;
   try {
-    return await apiFetch<PublicPersona>(`/public-personas/${id}`);
+    const bundle = await getWorkBundle();
+    const matched = findPersonaByIdOrSlug(bundle.personas ?? [], idOrSlug);
+    if (matched) resolvedId = matched.id;
+  } catch {
+    // Fall back to querying backend directly.
+  }
+  try {
+    return await apiFetch<PublicPersona>(`/public-personas/${encodeURIComponent(resolvedId)}`);
   } catch {
     return null;
   }
@@ -71,7 +80,9 @@ export async function generateMetadata({
   const title = `${persona.displayName}｜${TITLE_SUFFIX}`;
   const roleNames = (persona.roles || []).map((role) => ROLE_LABELS[role]).filter(Boolean).join("、");
   const description = (persona.bio || `${persona.displayName}${roleNames ? `（${roleNames}）` : ""} 的公開作品與參與紀錄`).slice(0, 200);
-  const canonicalUrl = `${BASE_URL}/author/${id}`;
+  const bundle = await getWorkBundle().catch(() => ({ personas: [] }));
+  const slugs = buildAuthorSlugMap([...(bundle.personas ?? []), ...gameResourceProfiles]);
+  const canonicalUrl = `${BASE_URL}${authorHref(persona.id, slugs.get(persona.id))}`;
   const previewImage = pickPreviewImage(persona.avatar || persona.bannerUrl, "/og/authors.png");
 
   const structuredData = {
@@ -112,21 +123,24 @@ export default async function AuthorPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [persona, scripts, bundle] = await Promise.all([fetchPersona(id), fetchScripts(id), getWorkBundle()]);
+  const [persona, bundle] = await Promise.all([fetchPersona(id), getWorkBundle()]);
 
   if (!persona) notFound();
 
-  const performances = getPublicVoicePerformances(id, bundle);
+  const scripts = await fetchScripts(persona.id);
+  const performances = getPublicVoicePerformances(persona.id, bundle);
   const externalScripts = externalScriptsForPersona(persona, bundle.externalPublicScripts || []);
-  const audioWorks = publicAudioWorksForPerformer(bundle.audioWorks, id);
-  const workCards = cardsForPersona(await getWorkCatalog(), id);
+  const audioWorks = publicAudioWorksForPerformer(bundle.audioWorks, persona.id);
+  const workCards = cardsForPersona(await getWorkCatalog(), persona.id);
   const displayPersona = combinePublicIdentities([persona], externalScripts)[0];
+  const slugs = buildAuthorSlugMap([...(bundle.personas ?? []), ...gameResourceProfiles]);
+  const canonicalPath = authorHref(persona.id, slugs.get(persona.id));
 
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Person",
     name: persona.displayName,
-    url: `${BASE_URL}/author/${id}`,
+    url: `${BASE_URL}${canonicalPath}`,
     ...(displayPersona.bio && { description: displayPersona.bio }),
     ...(displayPersona.avatar && { image: absoluteUrl(displayPersona.avatar) }),
     ...(displayPersona.website && { sameAs: [displayPersona.website] }),
@@ -155,7 +169,7 @@ export default async function AuthorPage({
         </article>
       </noscript>
       {STATIC_EXPORT && !gameResourceProfiles.includes(persona) ? (
-        <LiveAuthorPage id={id} initial={{ persona, scripts, performances, externalScripts, audioWorks, workCards }} />
+        <LiveAuthorPage id={persona.id} initial={{ persona, scripts, performances, externalScripts, audioWorks, workCards }} />
       ) : (
         <AuthorPageClient persona={persona} scripts={scripts} performances={performances} externalScripts={externalScripts} audioWorks={audioWorks} workCards={workCards} />
       )}
