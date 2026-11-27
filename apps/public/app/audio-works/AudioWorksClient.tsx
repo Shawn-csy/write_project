@@ -13,6 +13,7 @@ import { PublicBrowseMain } from "@/components/PublicBrowseMain";
 import { PublicBackButton } from "@/components/PublicBackButton";
 import { PublicEmptyState } from "@/components/PublicEmptyState";
 import { PublicMorphDropdown } from "@/components/PublicMorphDropdown";
+import { AnimatedSegment } from "@/components/AnimatedSegment";
 import { AdultContentNotice } from "@/components/AdultContentNotice";
 import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
 import { PublicImage } from "@/components/PublicImage";
@@ -37,6 +38,18 @@ async function loadAudioCatalog(): Promise<AudioCatalog> {
 const EMPTY_WORKS: PublicAudioWork[] = [];
 const EMPTY_ORGANIZATIONS: PublicOrg[] = [];
 const WORKS_PER_PAGE = 18;
+type AudioBrowseMode = "studios" | "works";
+type AudioAccessFilter = "all" | "free" | "paid";
+
+const AUDIO_BROWSE_OPTIONS: { value: AudioBrowseMode; label: string }[] = [
+  { value: "studios", label: "社團與頻道" },
+  { value: "works", label: "全部作品" },
+];
+const AUDIO_ACCESS_GROUPS = [{ options: [
+  { value: "all", label: "全部類型" },
+  { value: "free", label: "免費" },
+  { value: "paid", label: "付費" },
+] satisfies { value: AudioAccessFilter; label: string }[] }];
 const AUDIO_SORT_GROUPS = [{ options: [
   { value: "newest", label: "最新優先" },
   { value: "oldest", label: "最舊優先" },
@@ -103,6 +116,27 @@ const HANDORU_OFFICIAL_LINKS = [
   { label: "X", url: "https://x.com/HandoruClub" },
   { label: "DLsite", url: "https://www.dlsite.com/maniax/circle/profile/=/maker_id/RG63553.html" },
 ] as const;
+const ELEPHANTBOND2_ORG_ID = "e1a2b3c4-7d8e-5f9a-8b0c-1d2e3f4a5b01";
+const ELEPHANTBOND2_OFFICIAL_LINKS = [
+  { label: "Firstory", url: "https://open.firstory.fm/user/elephantbond2" },
+  { label: "Threads", url: "https://www.threads.com/@elephantbond2" },
+  { label: "X", url: "https://x.com/elephantbond2" },
+] as const;
+const SECRET_DIARY_ORG_ID = "e1a2b3c4-7d8e-5f9a-8b0c-1d2e3f4a5b02";
+const SECRET_DIARY_OFFICIAL_LINKS = [
+  { label: "Portaly", url: "https://portaly.cc/secret_diary" },
+  { label: "Firstory", url: "https://open.firstory.fm/user/ckf0zxee8rw490839m0gz57ae" },
+  { label: "Threads", url: "https://www.threads.com/@secret.diary.podcast" },
+  { label: "X", url: "https://x.com/sd_podcast_chad" },
+] as const;
+const SEXUAL_COLORING_ORG_ID = "e1a2b3c4-7d8e-5f9a-8b0c-1d2e3f4a5b03";
+const SEXUAL_COLORING_OFFICIAL_LINKS = [
+  { label: "Firstory", url: "https://open.firstory.fm/user/ckzxyheh815pk0886klenhsf8" },
+  { label: "Firstory 訂閱", url: "https://open.firstory.me/join/sexualcoloring" },
+  { label: "Threads", url: "https://www.threads.com/@sexual_coloring" },
+  { label: "Plurk", url: "https://www.plurk.com/sexual_coloring" },
+  { label: "方格子", url: "https://vocus.cc/user/@non_sexual_coloring" },
+] as const;
 
 export function AudioWorksClient() {
   const { confirmed: ageConfirmed, ready: ageGateReady, confirm: confirmAge } = useResourceAgeGate();
@@ -112,15 +146,22 @@ export function AudioWorksClient() {
   const works = catalog?.audioWorks ?? EMPTY_WORKS;
   const organizations = catalog?.organizations ?? EMPTY_ORGANIZATIONS;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [browseMode, setBrowseMode] = useState<AudioBrowseMode>("studios");
+  const [accessFilter, setAccessFilter] = useState<AudioAccessFilter>("all");
   const [sortOrder, setSortOrder] = useState<AudioWorkSortOrder>("newest");
   const [randomizedOrgIds, setRandomizedOrgIds] = useState<string[]>([]);
   const [studioQuery, setStudioQuery] = useState("");
   const [workQuery, setWorkQuery] = useState("");
+  const [allWorkQuery, setAllWorkQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(WORKS_PER_PAGE);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const syncSelection = () => setSelectedId(new URLSearchParams(window.location.search).get("organization"));
+    const syncSelection = () => {
+      const params = new URLSearchParams(window.location.search);
+      setSelectedId(params.get("organization"));
+      setBrowseMode(params.get("view") === "all" ? "works" : "studios");
+    };
     syncSelection();
     window.addEventListener("popstate", syncSelection);
     return () => window.removeEventListener("popstate", syncSelection);
@@ -135,8 +176,9 @@ export function AudioWorksClient() {
     return () => { active = false; };
   }, [loadAttempt]);
 
+  const orgById = useMemo(() => new Map(organizations.map((org) => [org.id, org])), [organizations]);
+
   const groups = useMemo(() => {
-    const orgById = new Map(organizations.map((org) => [org.id, org]));
     const grouped = new Map<string, { org: PublicOrg; works: PublicAudioWork[] }>();
     const unassigned: PublicAudioWork[] = [];
     for (const work of works) {
@@ -148,7 +190,7 @@ export function AudioWorksClient() {
     }
     for (const group of grouped.values()) group.works = sortAudioWorks(group.works, sortOrder);
     return { grouped: [...grouped.values()], unassigned: sortAudioWorks(unassigned, sortOrder) };
-  }, [organizations, works, sortOrder]);
+  }, [orgById, works, sortOrder]);
 
   const organizationIds = groups.grouped.map(({ org }) => org.id).join("|");
   useEffect(() => {
@@ -184,22 +226,42 @@ export function AudioWorksClient() {
       || publicAudioPerformers(work).some((actor) => actor.name.toLocaleLowerCase().includes(query))
     );
   }, [selected, workQuery]);
+
+  const allFilteredWorks = useMemo(() => {
+    const sorted = sortAudioWorks(works, sortOrder);
+    const query = allWorkQuery.trim().toLocaleLowerCase();
+    return sorted.filter((work) => {
+      if (accessFilter === "free" && work.accessType !== "free") return false;
+      if (accessFilter === "paid" && work.accessType !== "paid") return false;
+      if (!query) return true;
+      const orgName = work.organizationId ? orgById.get(work.organizationId)?.name ?? "" : "";
+      return (
+        work.title.toLocaleLowerCase().includes(query)
+        || (work.creatorName ?? "").toLocaleLowerCase().includes(query)
+        || orgName.toLocaleLowerCase().includes(query)
+        || publicAudioPerformers(work).some((actor) => actor.name.toLocaleLowerCase().includes(query))
+      );
+    });
+  }, [works, sortOrder, accessFilter, allWorkQuery, orgById]);
+
+  const activeListLength = selected ? filteredWorks.length : browseMode === "works" ? allFilteredWorks.length : 0;
+
   useEffect(() => {
-    if (!ageConfirmed || !selected || visibleCount >= filteredWorks.length) return;
+    if (!ageConfirmed || (!selected && browseMode !== "works") || visibleCount >= activeListLength) return;
     const target = loadMoreRef.current;
     if (!target) return;
     if (typeof IntersectionObserver === "undefined") {
-      setVisibleCount(filteredWorks.length);
+      setVisibleCount(activeListLength);
       return;
     }
     const observer = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;
       observer.disconnect();
-      setVisibleCount((count) => Math.min(count + WORKS_PER_PAGE, filteredWorks.length));
+      setVisibleCount((count) => Math.min(count + WORKS_PER_PAGE, activeListLength));
     }, { rootMargin: "300px 0px" });
     observer.observe(target);
     return () => observer.disconnect();
-  }, [ageConfirmed, selected?.org.id, filteredWorks.length, visibleCount]);
+  }, [ageConfirmed, selected?.org.id, browseMode, activeListLength, visibleCount]);
   const studioLinks = selected?.org.id === BEDTIME_ORG_ID ? BEDTIME_OFFICIAL_LINKS
     : selected?.org.id === NEON_VOICE_ORG_ID ? NEON_VOICE_OFFICIAL_LINKS
     : selected?.org.id === PURELYSILK_ORG_ID ? PURELYSILK_OFFICIAL_LINKS
@@ -210,6 +272,9 @@ export function AudioWorksClient() {
     : selected?.org.id === WANWAN_VOICE_ORG_ID ? WANWAN_VOICE_OFFICIAL_LINKS
     : selected?.org.id === HANSEI_SAIWA_ORG_ID ? HANSEI_SAIWA_OFFICIAL_LINKS
     : selected?.org.id === HANDORU_ORG_ID ? HANDORU_OFFICIAL_LINKS
+    : selected?.org.id === ELEPHANTBOND2_ORG_ID ? ELEPHANTBOND2_OFFICIAL_LINKS
+    : selected?.org.id === SECRET_DIARY_ORG_ID ? SECRET_DIARY_OFFICIAL_LINKS
+    : selected?.org.id === SEXUAL_COLORING_ORG_ID ? SEXUAL_COLORING_OFFICIAL_LINKS
     : [];
   const officialLinks = studioLinks.length ? studioLinks : selected?.org.website
     ? [{ label: "官方網站", url: selected.org.website }]
@@ -223,6 +288,14 @@ export function AudioWorksClient() {
     setWorkQuery("");
     setVisibleCount(WORKS_PER_PAGE);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const changeBrowseMode = (nextMode: AudioBrowseMode) => {
+    const url = new URL(window.location.href);
+    if (nextMode === "works") url.searchParams.set("view", "all");
+    else url.searchParams.delete("view");
+    window.history.pushState(null, "", `${url.pathname}${url.search}${url.hash}`);
+    setBrowseMode(nextMode);
+    setVisibleCount(WORKS_PER_PAGE);
   };
 
   return (
@@ -259,7 +332,15 @@ export function AudioWorksClient() {
           <PublicBrowseHeader
             title="音聲"
             search={catalog && !selectedId && works.length > 0 ? (
-              <PublicSearchField value={studioQuery} onChange={setStudioQuery} placeholder="搜尋社團" />
+              browseMode === "works" ? (
+                <PublicSearchField
+                  value={allWorkQuery}
+                  onChange={(next) => { setAllWorkQuery(next); setVisibleCount(WORKS_PER_PAGE); }}
+                  placeholder="搜尋作品、聲演或社團"
+                />
+              ) : (
+                <PublicSearchField value={studioQuery} onChange={setStudioQuery} placeholder="搜尋社團或頻道" />
+              )
             ) : undefined}
             actions={<>
               {catalog && <AudioWorkSubmissionDialog organizations={organizations} />}
@@ -302,39 +383,104 @@ export function AudioWorksClient() {
         ) : works.length === 0 ? (
           <PublicEmptyState className="border-y border-border" title="目前沒有公開作品" icon={<Headphones className="h-5 w-5" aria-hidden />} />
         ) : (
-          <div className="space-y-8">
-            <section aria-label="音聲組織">
-              {visibleGroups.length > 0 ? <div className="grid gap-4 md:grid-cols-2">
-              {visibleGroups.map(({ org, works: orgWorks }) => {
-                const banner = org.bannerUrl;
-                const previewWorks = orgWorks.filter((work) => Boolean(work.coverUrl)).slice(0, 3);
-                return <button type="button" key={org.id} onClick={() => select(org.id)} className="group flex w-full flex-col overflow-hidden rounded-md border border-border bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                  <span className="relative block aspect-[2.4/1] w-full overflow-hidden bg-muted">
-                    {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : previewWorks.length > 0 ? (
-                      <span className={`grid h-full ${previewWorks.length === 1 ? "grid-cols-1" : previewWorks.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-                        {previewWorks.map((work) => <span key={work.id} className="relative min-w-0 overflow-hidden"><PublicImage src={work.coverUrl || ""} alt={`${work.title}封面預覽`} preset="org-banner" /></span>)}
-                        <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-4 pb-3 pt-9 text-xs font-medium text-white">代表作品封面</span>
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <AnimatedSegment
+                options={AUDIO_BROWSE_OPTIONS}
+                value={browseMode}
+                onChange={changeBrowseMode}
+                label="音聲瀏覽方式"
+                className="inline-flex w-full sm:w-56"
+                btnClassName="px-3 font-medium"
+              />
+              {browseMode === "works" && (
+                <>
+                  <span className="text-xs text-muted-foreground" aria-live="polite">
+                    {allWorkQuery.trim() || accessFilter !== "all"
+                      ? `找到 ${allFilteredWorks.length} 件作品`
+                      : `共 ${works.length} 件作品`}
+                  </span>
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <PublicMorphDropdown
+                      label="收聽類型"
+                      value={accessFilter}
+                      groups={AUDIO_ACCESS_GROUPS}
+                      onChange={(next) => { setAccessFilter(next); setVisibleCount(WORKS_PER_PAGE); }}
+                      align="end"
+                    />
+                    <PublicMorphDropdown
+                      label="時間排序"
+                      value={sortOrder}
+                      groups={AUDIO_SORT_GROUPS}
+                      onChange={setSortOrder}
+                      align="end"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {browseMode === "works" ? (
+              <section aria-label="全部音聲作品">
+                {allFilteredWorks.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">
+                    {allFilteredWorks.slice(0, visibleCount).map((work, index) => (
+                      <PublicAudioWorkCard
+                        key={work.id}
+                        work={work}
+                        organization={work.organizationId ? orgById.get(work.organizationId) : undefined}
+                        highlightCover={index < 3}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <PublicEmptyState
+                    className="border-y border-border"
+                    title="找不到符合的作品或聲演。"
+                    primaryAction={allWorkQuery.trim() || accessFilter !== "all" ? {
+                      label: "清除篩選",
+                      onClick: () => { setAllWorkQuery(""); setAccessFilter("all"); setVisibleCount(WORKS_PER_PAGE); },
+                    } : undefined}
+                  />
+                )}
+                {allFilteredWorks.length > visibleCount && <div ref={loadMoreRef} aria-hidden="true" className="h-px" />}
+              </section>
+            ) : (
+              <div className="space-y-8">
+                <section aria-label="音聲社團與頻道">
+                  {visibleGroups.length > 0 ? <div className="grid gap-4 md:grid-cols-2">
+                  {visibleGroups.map(({ org, works: orgWorks }) => {
+                    const banner = org.bannerUrl;
+                    const previewWorks = orgWorks.filter((work) => Boolean(work.coverUrl)).slice(0, 3);
+                    return <button type="button" key={org.id} onClick={() => select(org.id)} className="group flex w-full flex-col overflow-hidden rounded-md border border-border bg-card text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                      <span className="relative block aspect-[2.4/1] w-full overflow-hidden bg-muted">
+                        {banner ? <PublicImage src={banner} alt={`${org.name}橫幅`} preset="org-banner" crop={org.bannerCrop} /> : previewWorks.length > 0 ? (
+                          <span className={`grid h-full ${previewWorks.length === 1 ? "grid-cols-1" : previewWorks.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+                            {previewWorks.map((work) => <span key={work.id} className="relative min-w-0 overflow-hidden"><PublicImage src={work.coverUrl || ""} alt={`${work.title}封面預覽`} preset="org-banner" /></span>)}
+                            <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-4 pb-3 pt-9 text-xs font-medium text-white">代表作品封面</span>
+                          </span>
+                        ) : <span className="flex h-full items-center justify-center text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden /><span className="block px-4 text-xl font-bold text-foreground">{org.name}</span></span></span>}
+                        {org.logoUrl && <span className="absolute bottom-3 left-3 h-14 w-14 overflow-hidden rounded-md border border-border bg-white"><PublicImage src={org.logoUrl} alt={`${org.name}圖像`} preset="logo" /></span>}
                       </span>
-                    ) : <span className="flex h-full items-center justify-center text-center"><span className="space-y-2"><Headphones className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden /><span className="block px-4 text-xl font-bold text-foreground">{org.name}</span></span></span>}
-                    {org.logoUrl && <span className="absolute bottom-3 left-3 h-14 w-14 overflow-hidden rounded-md border border-border bg-white"><PublicImage src={org.logoUrl} alt={`${org.name}圖像`} preset="logo" /></span>}
-                  </span>
-                  <span className="flex flex-1 flex-col gap-2 px-5 py-4">
-                    <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><span className="text-lg font-semibold sm:text-xl">{org.name}</span><span className="text-xs text-muted-foreground">{orgWorks.length} 件作品</span></span>
-                    {org.description && <span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{org.description}</span>}
-                    <span className="mt-auto inline-flex items-center gap-1 pt-1 text-sm text-link group-hover:underline">查看作品 <ArrowRight className="h-4 w-4" /></span>
-                  </span>
-                </button>;
-              })}
-              </div> : <PublicEmptyState
-                className="border-y border-border"
-                title="找不到符合的社團。"
-                primaryAction={studioQuery.trim() ? { label: "清除搜尋", onClick: () => setStudioQuery("") } : undefined}
-              />}
-            </section>
-            {groups.unassigned.length > 0 && <section aria-labelledby="other-audio-works">
-              <h2 id="other-audio-works" className="mb-4 text-sm font-semibold">其他公開作品</h2>
-              <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{groups.unassigned.map((work) => <PublicAudioWorkCard key={work.id} work={work} />)}</div>
-            </section>}
+                      <span className="flex flex-1 flex-col gap-2 px-5 py-4">
+                        <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><span className="text-lg font-semibold sm:text-xl">{org.name}</span><span className="text-xs text-muted-foreground">{orgWorks.length} 件作品</span></span>
+                        {org.description && <span className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">{org.description}</span>}
+                        <span className="mt-auto inline-flex items-center gap-1 pt-1 text-sm text-link group-hover:underline">查看作品 <ArrowRight className="h-4 w-4" /></span>
+                      </span>
+                    </button>;
+                  })}
+                  </div> : <PublicEmptyState
+                    className="border-y border-border"
+                    title="找不到符合的社團或頻道。"
+                    primaryAction={studioQuery.trim() ? { label: "清除搜尋", onClick: () => setStudioQuery("") } : undefined}
+                  />}
+                </section>
+                {groups.unassigned.length > 0 && <section aria-labelledby="other-audio-works">
+                  <h2 id="other-audio-works" className="mb-4 text-sm font-semibold">企劃與單發作品</h2>
+                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3">{groups.unassigned.map((work) => <PublicAudioWorkCard key={work.id} work={work} />)}</div>
+                </section>}
+              </div>
+            )}
           </div>
         )}
       </PublicBrowseMain>

@@ -141,4 +141,26 @@ describe("AudioWorksClient data loading", () => {
     expect(screen.queryByRole("heading", { name: "成人向內容提醒" })).toBeNull();
     expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
   });
+
+  it("supports switching between studios/channels and all works with access filtering", async () => {
+    const works = [
+      { id: "work-1", title: "社團免費作", url: "https://example.com/1", organizationId: "org-1", accessType: "free" },
+      { id: "work-2", title: "企劃付費作", url: "https://example.com/2", accessType: "paid" },
+    ] as PublicAudioWork[];
+    readPublicBundle.mockResolvedValueOnce({ data: { audioWorks: works, organizations: initialOrganizations } });
+    render(<AudioWorksClient />);
+    fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
+
+    expect(await screen.findByRole("button", { name: /社團甲/ })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "企劃與單發作品" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "全部作品" }));
+    expect(screen.getByRole("searchbox", { name: "搜尋作品、聲演或社團" })).toBeTruthy();
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+
+    fireEvent.keyDown(screen.getByRole("button", { name: "收聽類型 全部類型" }), { key: "ArrowDown" });
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "免費" }));
+    expect(screen.getAllByRole("article")).toHaveLength(1);
+    expect(screen.getByText("社團免費作")).toBeTruthy();
+  });
 });
