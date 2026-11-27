@@ -6,6 +6,7 @@ import { NotFoundContent } from "@/components/NotFoundContent";
 // Only the static build ever reaches these branches; lazy keeps the live pages
 // out of the 404 bundle of a normal Next deployment.
 const LiveEntityRoute = lazy(() => import("@/components/LiveEntityPages").then((m) => ({ default: m.LiveEntityRoute })));
+const LiveWorkDetail = lazy(() => import("./works/LiveWorkDetail").then(m => ({ default: m.LiveWorkDetail })));
 const LiveReader = lazy(() => import("./read/[id]/LiveReader").then((m) => ({ default: m.LiveReader })));
 
 /**
@@ -18,18 +19,18 @@ const LiveReader = lazy(() => import("./read/[id]/LiveReader").then((m) => ({ de
  */
 const STATIC_EXPORT = process.env.NEXT_PUBLIC_STATIC_EXPORT === "1";
 
-type Resolved = { kind: "pending" } | { kind: "missing" } | { kind: "read"; id: string } | { kind: "entity"; pathname: string };
+type Resolved = { kind: "pending" } | { kind: "missing" } | { kind: "read" | "work"; id: string } | { kind: "entity"; pathname: string };
 
 const ENTITY_PATH = /^\/(?:author|org|tag|series|resources)\/[^/]+(?:\/[^/]+)?\/?$/;
 
 function resolveLocation(): Resolved {
-  const match = window.location.pathname.match(/^\/read\/([^/]+)\/?$/);
+  const match = window.location.pathname.match(/^\/(read|works)\/([^/]+)\/?$/);
   if (!match) {
     const { pathname } = window.location;
     return ENTITY_PATH.test(pathname) ? { kind: "entity", pathname } : { kind: "missing" };
   }
   try {
-    return { kind: "read", id: decodeURIComponent(match[1]) };
+    return { kind: match[1] === "works" ? "work" : "read", id: decodeURIComponent(match[2]) };
   } catch {
     return { kind: "missing" };
   }
@@ -43,6 +44,7 @@ export default function NotFound() {
   }, []);
 
   const blank = <div className="min-h-screen" aria-busy="true" />;
+  if (resolved.kind === "work") return <Suspense fallback={blank}><LiveWorkDetail id={resolved.id} /></Suspense>;
   if (resolved.kind === "read") {
     return (
       <Suspense fallback={blank}>

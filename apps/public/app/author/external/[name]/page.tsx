@@ -1,3 +1,5 @@
+import { getWorkCatalog } from "@/lib/workPageData";
+import { cardsForExternalScripts } from "@/lib/workCatalog";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -62,13 +64,14 @@ export default async function ExternalAuthorPage({ params }: { params: Promise<{
   if (decodeName(rawName).trim() !== externalEntitySlug(model.name, model.profileUrl)) {
     redirect(canonicalPath);
   }
+  const workCards = cardsForExternalScripts(await getWorkCatalog(), model.items);
   return (
     <>
       <PublicTopBar activeTab="authors" showBack backHref="/authors" backLabel="返回作者列表" />
       {STATIC_EXPORT ? (
-        <LiveExternalAuthorPage rawName={rawName} initial={model} />
+        <LiveExternalAuthorPage rawName={rawName} initial={{ ...model, workCards }} />
       ) : (
-        <ExternalEntityPage kind="author" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} authorKey={model.authorKey} externalAuthorId={model.externalAuthorId} supplement={model.supplement} contributors={model.contributors} items={model.items} />
+        <ExternalEntityPage kind="author" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} authorKey={model.authorKey} externalAuthorId={model.externalAuthorId} supplement={model.supplement} contributors={model.contributors} items={model.items} workCards={workCards} />
       )}
     </>
   );

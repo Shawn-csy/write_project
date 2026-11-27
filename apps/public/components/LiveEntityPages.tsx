@@ -10,6 +10,7 @@
  * author or tag) is rendered by LiveEntityRoute from 404.html.
  */
 
+import { buildWorkCatalog, cardsForExternalScripts, cardsForPersona, WORK_SECTIONS, type CatalogWork } from "@/lib/workCatalog";
 import { publicAudioWorksForPerformer } from "@/lib/publicWorkPerformers";
 import { useEffect, type ReactNode } from "react";
 import { PublicTopBar } from "@/components/PublicTopBar";
@@ -18,7 +19,6 @@ import { ExternalEntityPage } from "@/components/ExternalEntityPage";
 import { AuthorPageClient } from "@/app/author/[id]/AuthorPageClient";
 import { IdentityRedirect } from "@/components/IdentityRedirect";
 import { identityHrefForLegacyResource } from "@/lib/legacyResourceRedirect";
-import { audioScriptWorksForPersona, audioWorksForOtherParticipations } from "@/lib/audioScriptWorks";
 import type { ProductionResource } from "@/app/resources/ResourcesClient";
 import { OrgPageClient } from "@/app/org/[id]/OrgPageClient";
 import { SeriesPageClient } from "@/app/series/[name]/SeriesPageClient";
@@ -44,7 +44,6 @@ import { externalScriptsForOrganization } from "@/lib/organizationExternalScript
 import { TITLE_SUFFIX } from "@/lib/seo";
 import type { ExternalPublicScript, PublicAudioWork, PublicDemoSubmission, PublicOrg, PublicPersona, PublicScript } from "@/lib/types";
 import { useLiveData, type LiveData } from "@/lib/useLiveData";
-import type { GameCreditsEntry } from "@/lib/gameCredits";
 
 type Chrome = { activeTab: string; back?: boolean };
 
@@ -95,9 +94,8 @@ async function readOrNull<T>(path: string, signal: AbortSignal): Promise<T | nul
   }
 }
 
-const VOICE_PROFILE_SECTIONS = ["scripts", "externalPublicScripts", "demoSubmissions", "organizations", "audioWorks"] as const;
+const VOICE_PROFILE_SECTIONS = ["scripts", "externalPublicScripts", "demoSubmissions", "organizations", "audioWorks", "personas"] as const;
 const SCRIPT_ENTITY_SECTIONS = ["scripts", "externalPublicScripts"] as const;
-const EXTERNAL_ENTITY_SECTIONS = ["externalPublicScripts"] as const;
 
 /** A retired /resources/<id> address: send it to the identity page that replaced it. */
 function LiveLegacyResourceRedirect({ id }: { id: string }) {
@@ -130,10 +128,10 @@ function useDocumentTitle(label: string | null): void {
 
 // ── Author / organization (profile plus their works) ────────────────────────
 
-interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[]; audioWorks?: PublicAudioWork[]; audioScriptWorks?: PublicAudioWork[]; otherAudioWorks?: PublicAudioWork[] }
+interface AuthorData { persona: PublicPersona; scripts: PublicScript[]; performances: PublicDemoSubmission[]; externalScripts: ExternalPublicScript[]; audioWorks?: PublicAudioWork[]; workCards: CatalogWork[] }
 
-export function LiveAuthorPage({ id, initial, chrome, gameWorks, avatarsById }: {
-  id: string; initial?: AuthorData; chrome?: Chrome; gameWorks?: GameCreditsEntry[]; avatarsById?: Record<string, string>;
+export function LiveAuthorPage({ id, initial, chrome }: {
+  id: string; initial?: AuthorData; chrome?: Chrome;
 }) {
   const state = useLiveData<AuthorData>(initial, async (signal) => {
     const persona = await readOrNull<PublicPersona>(`/api/public-personas/${encodeURIComponent(id)}`, signal);
@@ -145,15 +143,15 @@ export function LiveAuthorPage({ id, initial, chrome, gameWorks, avatarsById }: 
     const performances = getPublicVoicePerformances(id, bundle || {});
     const externalScripts = externalScriptsForPersona(persona, bundle?.externalPublicScripts || []);
     const audioWorks = publicAudioWorksForPerformer(bundle?.audioWorks, id);
-    const audioScriptWorks = audioScriptWorksForPersona(persona, bundle?.audioWorks || []);
-    const otherAudioWorks = audioWorksForOtherParticipations(persona, bundle?.audioWorks || [], [...audioWorks, ...audioScriptWorks]);
-    return { persona, scripts: scripts ?? [], performances, externalScripts, audioWorks, audioScriptWorks, otherAudioWorks };
+    if (!bundle) throw new Error("作品資料載入失敗");
+    const workCards = cardsForPersona(buildWorkCatalog(bundle), id);
+    return { persona, scripts: scripts ?? [], performances, externalScripts, audioWorks, workCards };
   }, `author:${id}`);
   useDocumentTitle(!initial && state.status === "ready" ? state.data.persona.displayName : null);
   const resolvedChrome = chrome ? { ...chrome, activeTab: "authors" } : undefined;
   return (
     <Frame state={state} chrome={resolvedChrome}>
-      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} audioScriptWorks={state.data.audioScriptWorks} otherAudioWorks={state.data.otherAudioWorks} gameWorks={gameWorks} avatarsById={avatarsById} />}
+      {state.status === "ready" && <AuthorPageClient persona={state.data.persona} scripts={state.data.scripts} performances={state.data.performances} externalScripts={state.data.externalScripts} audioWorks={state.data.audioWorks} workCards={state.data.workCards} />}
     </Frame>
   );
 }
@@ -231,13 +229,15 @@ export function LiveSeriesPage({ seriesName, initial, chrome }: { seriesName: st
 function LiveExternalPage({ kind, rawName, initial, chrome }: {
   kind: "author" | "org";
   rawName: string;
-  initial?: ExternalEntityModel;
+  initial?: ExternalEntityModel & { workCards: CatalogWork[] };
   chrome?: Chrome;
 }) {
   const find = kind === "author" ? findExternalAuthorModel : findExternalOrgModel;
-  const state = useLiveData<ExternalEntityModel>(initial, async (signal) => {
-    const bundle = await readBundle(signal, EXTERNAL_ENTITY_SECTIONS);
-    return bundle ? find(publishedExternalScripts(bundle), rawName) : null;
+  const state = useLiveData(initial, async (signal) => {
+    const bundle = await readBundle(signal, WORK_SECTIONS);
+    if (!bundle) return null;
+    const model = find(publishedExternalScripts(bundle), rawName);
+    return model ? { ...model, workCards: cardsForExternalScripts(buildWorkCatalog(bundle), model.items) } : null;
   }, `external-${kind}:${rawName}`);
   useEffect(() => {
     if (kind === "author" && state.status === "ready" && state.data.personaId) {
@@ -258,15 +258,16 @@ function LiveExternalPage({ kind, rawName, initial, chrome }: {
           supplement={state.data.supplement}
           contributors={state.data.contributors}
           items={state.data.items}
+          workCards={state.data.workCards}
         />
       )}
     </Frame>
   );
 }
 
-export const LiveExternalAuthorPage = (props: { rawName: string; initial?: ExternalEntityModel; chrome?: Chrome }) =>
+export const LiveExternalAuthorPage = (props: { rawName: string; initial?: ExternalEntityModel & { workCards: CatalogWork[] }; chrome?: Chrome }) =>
   <LiveExternalPage kind="author" {...props} />;
-export const LiveExternalOrgPage = (props: { rawName: string; initial?: ExternalEntityModel; chrome?: Chrome }) =>
+export const LiveExternalOrgPage = (props: { rawName: string; initial?: ExternalEntityModel & { workCards: CatalogWork[] }; chrome?: Chrome }) =>
   <LiveExternalPage kind="org" {...props} />;
 
 // ── Route dispatch for addresses with no prebuilt page ──────────────────────

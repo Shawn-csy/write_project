@@ -3,19 +3,17 @@
 import { PublicContentLink, PublicPersonLink, PublicPlayLink, PublicTag } from "@/components/PublicDirectoryDetails";
 import { partitionContacts } from "@/lib/publicContactPrivacy";
 import { useMemo, useState, type ReactNode } from "react";
-import type { ExternalPublicScript, ProductionRole, PublicAudioWork, PublicDemoSubmission, PublicIdentityRole, PublicPersona, PublicWorkParticipation, PublicScript } from "@/lib/types";
+import type { ExternalPublicScript, ProductionRole, PublicAudioWork, PublicDemoSubmission, PublicIdentityRole, PublicPersona, PublicScript } from "@/lib/types";
 import { buildAuthorEntityModel } from "@/lib/publicEntityPageModel";
-import { EntityScriptGrid } from "@/components/EntityScriptGrid";
-import { PublicAudioWorkCard } from "@/components/PublicAudioWorkCard";
-import { PublicCatalogWorkCard } from "@/components/PublicCatalogWorkCard";
+import { cleanScriptSummary } from "@/lib/scriptSummary";
+import { LinkifiedText } from "@/components/LinkifiedText";
+import { WorkCard } from "@/components/WorkCard";
+import type { CatalogWork } from "@/lib/workCatalog";
 import { PublicVoiceTypes, PublicWorkDetails } from "@/components/PublicWorkDetails";
-import { audioWorkPurchaseLabel } from "@/lib/publicAudioWorkContent";
-import { legacyVoiceWorkParticipations, mergePublicWorkParticipations } from "@/lib/publicWorkParticipations";
 import { usePublicDemoIdentities } from "@/lib/usePublicDemoIdentities";
 import { publicDemoPerformers } from "@/lib/publicWorkPerformers";
 import { PublicImage } from "@/components/PublicImage";
-import { LinkifiedText } from "@/components/LinkifiedText";
-import { Clapperboard, ExternalLink, FileText, Gamepad2, Grid2x2, Grid3x3, Headphones, X } from "lucide-react";
+import { ExternalLink, Grid2x2, Grid3x3, X } from "lucide-react";
 import { PublicFooter } from "@/components/PublicFooter";
 import { AdultContentNotice } from "@/components/AdultContentNotice";
 import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
@@ -25,10 +23,6 @@ import { PublicProfileAvatar, PublicProfileCard, PublicProfileContainer, PublicP
 import { IdentityProfileForm } from "@/components/identity/IdentityProfileForm";
 import { editableProfileKinds, productionRolesOf, resolveIdentityRoles } from "@/components/identity/identityRoles";
 import { publicIdentityRoleLabel } from "@/lib/publicIdentityMetadata";
-import { externalCoverSrc } from "@/lib/externalCover";
-import { cleanScriptSummary } from "@/lib/scriptSummary";
-import type { GameCreditsEntry } from "@/lib/gameCredits";
-import { GameCard } from "@/app/games/GameCard";
 
 /**
  * The one public page for a person: writer, voice actor, post-production,
@@ -45,24 +39,14 @@ interface Props {
   performances?: PublicDemoSubmission[];
   externalScripts?: ExternalPublicScript[];
   audioWorks?: PublicAudioWork[];
-  audioScriptWorks?: PublicAudioWork[];
-  otherAudioWorks?: PublicAudioWork[];
-  gameWorks?: GameCreditsEntry[];
-  avatarsById?: Record<string, string>;
+  workCards: CatalogWork[];
 }
 
 type WorkViewMode = "card" | "list";
 
 interface SectionContext {
-  persona: Props["persona"];
-  scripts: PublicScript[];
-  externalScripts: ExternalPublicScript[];
   performances: PublicDemoSubmission[];
-  catalogWorks: PublicAudioWork[];
   demoIdentities: ReadonlyMap<string, PublicPersona>;
-  credits: PublicWorkParticipation[];
-  gameWorks: NonNullable<Props["gameWorks"]>;
-  avatarsById: Record<string, string>;
   series: Array<{ name: string; count: number; coverUrl: string | null }>;
   viewMode: WorkViewMode;
 }
@@ -79,15 +63,6 @@ interface IdentitySection {
   render: (ctx: SectionContext) => ReactNode;
 }
 
-const WORK_TYPE_LABELS = { audio: "音聲", game: "遊戲", video: "影片", other: "其他" } as const;
-const PRODUCTION_SECTION_TITLES: Record<PublicIdentityRole, string> = {
-  scriptwriter: "參與台本作品",
-  voice_actor: "參演作品",
-  post_production: "後製作品",
-  cover_art: "美術作品",
-  recording_studio: "錄音作品",
-};
-
 function parseLinks(links: PublicPersona["links"]): Array<{ url?: string; label?: string }> {
   if (Array.isArray(links)) return links;
   if (typeof links === "string") {
@@ -99,78 +74,6 @@ function parseLinks(links: PublicPersona["links"]): Array<{ url?: string; label?
     }
   }
   return [];
-}
-
-function productionSection(role: PublicIdentityRole): IdentitySection {
-  const items = (ctx: SectionContext) => ctx.credits.filter((credit) => credit.creditRole === role);
-  return {
-    id: `production-${role}`,
-    title: PRODUCTION_SECTION_TITLES[role],
-    roles: [role],
-    ageGated: true,
-    count: (ctx) => items(ctx).length,
-    render: (ctx) => {
-      const list = items(ctx);
-      if (ctx.viewMode === "list") {
-        return <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {list.map((credit, index) => {
-            const audio = ctx.catalogWorks.find((work) => work.id === credit.audioWorkId || work.id === credit.id || (credit.url && work.url === credit.url));
-            const matchedGame = credit.workType === "game"
-              ? ctx.gameWorks.find((game) => credit.url === `/games/${game.appId}` || credit.url === `/games#game-${game.appId}` || credit.url?.includes(`/app/${game.appId}`))
-              : undefined;
-            return <PublicProfileWorkCard
-              key={`${credit.id}-${credit.creditRole}-${index}`}
-              title={matchedGame?.title || audio?.title || credit.title}
-              url={matchedGame ? `/games/${matchedGame.appId}` : (audio?.url || credit.url || "")}
-              coverUrl={matchedGame?.screenshotUrl || audio?.coverUrl || credit.coverUrl}
-              workType={credit.workType || "audio"}
-              compact
-            />;
-          })}
-        </div>;
-      }
-      return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {list.map((credit, index) => {
-          const audio = ctx.catalogWorks.find((work) => work.id === credit.audioWorkId || work.id === credit.id || (credit.url && work.url === credit.url));
-          const attribution = [WORK_TYPE_LABELS[credit.workType || "audio"], credit.creditedAs && credit.creditedAs !== ctx.persona.displayName ? `署名 ${credit.creditedAs}` : "", credit.characterName ? `角色：${credit.characterName}` : ""].filter(Boolean).join("・");
-          if (audio) return <PublicAudioWorkCard
-            key={`${credit.id}-${credit.creditRole}-${index}`}
-            work={audio}
-            description={credit.description}
-            attribution={attribution}
-          />;
-          const matchedGame = credit.workType === "game"
-            ? ctx.gameWorks.find((game) => credit.url === `/games/${game.appId}` || credit.url === `/games#game-${game.appId}` || credit.url?.includes(`/app/${game.appId}`))
-            : undefined;
-          if (matchedGame) return <GameCard
-            key={`${credit.id}-${credit.creditRole}-${index}`}
-            game={matchedGame}
-            heading="h3"
-            avatarsById={ctx.avatarsById}
-          />;
-          const FallbackIcon = credit.workType === "game" ? Gamepad2 : credit.workType === "video" ? Clapperboard : credit.workType === "other" ? FileText : Headphones;
-          return <PublicCatalogWorkCard
-            key={`${credit.id}-${credit.creditRole}-${index}`}
-            title={credit.title}
-            heading="h3"
-            href={credit.url || undefined}
-            sourceLabel={credit.url ? (audioWorkPurchaseLabel(credit.url) || "前往作品") : undefined}
-            hasArtwork={Boolean(credit.coverUrl)}
-            linkArtwork={Boolean(credit.url)}
-            artwork={credit.coverUrl
-              ? <PublicImage src={credit.coverUrl} alt={`${credit.title}封面`} preset="script-cover" />
-              : <FallbackIcon className="absolute inset-0 m-auto size-8 text-muted-foreground/50" aria-hidden />}
-            details={credit.description ? <section className="mt-2">
-              <h4 className="text-sm font-semibold">作品介紹</h4>
-              <LinkifiedText text={credit.description} className="mt-1 whitespace-pre-line leading-7 text-foreground/85 [overflow-wrap:anywhere]" />
-            </section> : undefined}
-          >
-            {attribution && <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{attribution}</p>}
-          </PublicCatalogWorkCard>;
-        })}
-      </div>;
-    },
-  };
 }
 
 const SECTIONS: IdentitySection[] = [
@@ -215,29 +118,6 @@ const SECTIONS: IdentitySection[] = [
       </div>;
     },
   },
-  ...(["scriptwriter", "voice_actor", "post_production", "cover_art", "recording_studio"] as const).map(productionSection),
-  {
-    id: "games", title: "參與遊戲", roles: ["voice_actor", "post_production", "cover_art", "recording_studio"], ageGated: true,
-    count: (ctx) => ctx.gameWorks.filter((game) => !ctx.credits.some((credit) => credit.workType === "game" && (credit.url === `/games/${game.appId}` || credit.url === `/games#game-${game.appId}` || credit.url?.includes(`/app/${game.appId}`)))).length,
-    render: (ctx) => {
-      const standaloneGames = ctx.gameWorks.filter((game) => !ctx.credits.some((credit) => credit.workType === "game" && (credit.url === `/games/${game.appId}` || credit.url === `/games#game-${game.appId}` || credit.url?.includes(`/app/${game.appId}`))));
-      if (ctx.viewMode === "list") {
-        return <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {standaloneGames.map((game) => <PublicProfileWorkCard
-            key={game.appId}
-            title={game.title}
-            url={`/games/${game.appId}`}
-            coverUrl={game.screenshotUrl}
-            workType="game"
-            compact
-          />)}
-        </div>;
-      }
-      return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {standaloneGames.map((game) => <GameCard key={game.appId} game={game} heading="h3" avatarsById={ctx.avatarsById} />)}
-      </div>;
-    },
-  },
   {
     id: "series", title: "系列作品", roles: ["scriptwriter"],
     count: (ctx) => ctx.series.length,
@@ -248,45 +128,9 @@ const SECTIONS: IdentitySection[] = [
       </a>)}
     </div>,
   },
-  {
-    id: "scripts", title: "台本作品", roles: ["scriptwriter"], showWhenEmpty: "目前沒有公開台本",
-    count: (ctx) => ctx.scripts.length + ctx.externalScripts.length,
-    render: (ctx) => {
-      if (ctx.viewMode === "list") {
-        return <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
-          {ctx.scripts.map((script) => <PublicProfileWorkCard
-            key={script.id}
-            title={script.title}
-            url={`/read/${script.id}`}
-            coverUrl={script.coverUrl}
-            workType="script"
-            compact
-          />)}
-          {ctx.externalScripts.map((script) => <PublicProfileWorkCard
-            key={script.id}
-            title={script.title || script.remoteTitle || "未命名台本"}
-            url={script.sourceUrl}
-            coverUrl={externalCoverSrc(script)}
-            workType="other"
-            sourceLabel={script.sourceName || script.sourceDomain || "外部台本"}
-            compact
-          />)}
-        </div>;
-      }
-      return <>
-        {ctx.scripts.length > 0 && <EntityScriptGrid scripts={ctx.scripts} />}
-        {ctx.externalScripts.length > 0 && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ctx.externalScripts.map((script) => <PublicProfileWorkCard key={script.id}
-            title={script.title || script.remoteTitle || "未命名台本"} url={script.sourceUrl} coverUrl={externalCoverSrc(script)}
-            workType="other" sourceLabel={script.sourceName || script.sourceDomain || "外部台本"}
-            subtitle={cleanScriptSummary(script.summary || script.remoteSummary)} linkLabel="閱讀台本" />)}
-        </div>}
-      </>;
-    },
-  },
 ];
 
-export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [], audioScriptWorks = [], otherAudioWorks = [], gameWorks = [], avatarsById = {} }: Props) {
+export function AuthorPageClient({ persona, scripts, performances = [], externalScripts = [], audioWorks = [], workCards }: Props) {
   const demoIdentities = usePublicDemoIdentities(performances, persona);
   const identity = combinePublicIdentities([persona], externalScripts)[0];
   const model = buildAuthorEntityModel(identity, scripts);
@@ -315,14 +159,8 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
     return Array.from(map.values());
   }, [scripts]);
 
-  const legacyCredits: PublicWorkParticipation[] = [
-    ...(persona.productionCredits || []),
-    ...audioWorks.map((work) => ({ ...work, creditRole: "voice_actor" as const, coverUrl: work.coverUrl || "", creditedAs: "" })),
-    ...audioScriptWorks.map((work) => ({ ...work, creditRole: "scriptwriter" as const, coverUrl: work.coverUrl || "", creditedAs: "" })),
-    ...legacyVoiceWorkParticipations(persona),
-  ];
-  const ctx: SectionContext = { persona, scripts, externalScripts, performances, demoIdentities, catalogWorks: [...audioWorks, ...audioScriptWorks, ...otherAudioWorks],
-    credits: mergePublicWorkParticipations(persona.workParticipations ?? legacyCredits), gameWorks, avatarsById, series, viewMode };
+  const ctx: SectionContext = { performances, demoIdentities, series, viewMode };
+  const visibleCards = workCards.filter(work => !work.gated || ageConfirmed);
   const commissionOffers = Object.values(persona.roleProfiles || {}).flatMap((profile) => {
     const raw = profile?.commissionOffers;
     if (!Array.isArray(raw)) return [];
@@ -332,7 +170,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
       && typeof offer.sourceUpdatedOn === "string");
   });
   const sections = SECTIONS.filter((section) => section.roles.some((role) => roles.includes(role)) && (section.count(ctx) > 0 || section.showWhenEmpty));
-  const needsAgeGate = sections.some((section) => section.ageGated && section.count(ctx) > 0);
+  const needsAgeGate = workCards.some(work => work.gated) || sections.some((section) => section.ageGated && section.count(ctx) > 0);
   const contributors = persona.profileContributors?.length ? persona.profileContributors : persona.voiceActorContributors || [];
 
   // Contacts: website, links and the external writer's profile, without repeats.
@@ -451,7 +289,7 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
 
         {needsAgeGate && ageGateReady && !ageConfirmed && <div className="my-4"><AdultContentNotice scope="participations" onConfirm={confirmAge} /></div>}
 
-        {sections.some((section) => (!section.ageGated || ageConfirmed) && section.count(ctx) > 0 && (section.id.startsWith("production-") || section.id === "games" || section.id === "scripts" || section.id === "performances")) && (
+        {(visibleCards.length > 0 || sections.some(section => section.id === "performances" && ageConfirmed && section.count(ctx) > 0)) && (
           <div className="mb-3 flex items-center justify-end gap-1" role="group" aria-label="作品顯示方式">
             <button
               type="button"
@@ -473,6 +311,31 @@ export function AuthorPageClient({ persona, scripts, performances = [], external
             </button>
           </div>
         )}
+
+        {(() => {
+          const roleOf = (work: CatalogWork) => work.credits.filter((c) => c.personaId === persona.id).map((c) => c.role);
+          const groups: Array<{ id: string; title: string; items: CatalogWork[] }> = [
+            { id: "scripts", title: "台本作品", items: visibleCards.filter((w) => w.kind === "script" || w.kind === "external") },
+            { id: "audio-scripts", title: "參與台本作品", items: visibleCards.filter((w) => w.kind !== "script" && w.kind !== "external" && roleOf(w).some((r) => /台本|編劇|腳本/.test(r))) },
+            { id: "voice", title: "參演作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /聲演|配音/.test(r))) },
+            { id: "post", title: "後製作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /後製/.test(r))) },
+            { id: "art", title: "美術作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /美術|封面|插畫/.test(r))) },
+            { id: "recording", title: "錄音作品", items: visibleCards.filter((w) => w.kind !== "game" && roleOf(w).some((r) => /錄音/.test(r))) },
+            { id: "games", title: "參與遊戲", items: visibleCards.filter((w) => w.kind === "game") },
+          ];
+          const groupedIds = new Set(groups.flatMap((g) => g.items.map((w) => w.id)));
+          const rest = visibleCards.filter((w) => !groupedIds.has(w.id));
+          if (rest.length > 0) groups.push({ id: "other-works", title: "參與作品", items: rest });
+          const nonEmpty = groups.filter((g) => g.items.length > 0);
+          return nonEmpty.map((group) => (
+            <PublicProfileSection key={group.id} title={group.title} count={group.items.length}>
+              <div className={viewMode === "list" ? "grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6" : "grid gap-3 sm:grid-cols-2 lg:grid-cols-3"}>
+                {group.items.map((work) => <WorkCard key={`${group.id}-${work.id}`} work={work} personaId={persona.id} compact={viewMode === "list"} />)}
+              </div>
+            </PublicProfileSection>
+          ));
+        })()}
+        {!workCards.length && roles.includes("scriptwriter") && <p className="py-4 text-sm text-muted-foreground">目前沒有公開作品</p>}
 
         {sections.map((section) => (
           (!section.ageGated || ageConfirmed) && (

@@ -4,109 +4,57 @@ import { describe, expect, it, vi } from "vitest";
 import { AuthorPageClient } from "./AuthorPageClient";
 import type { ExternalPublicScript, PublicAudioWork, PublicPersona } from "@/lib/types";
 
-describe("AuthorPageClient resource age confirmation", () => {
-  it("keeps voice work covers behind the shared resource confirmation", () => {
+import { buildWorkCatalog, cardsForPersona } from "@/lib/workCatalog";
+
+describe("AuthorPageClient work cards", () => {
+  const writer: PublicPersona = { id: "writer", displayName: "編劇甲", roles: ["scriptwriter"] };
+  const actor: PublicPersona = { id: "actor", displayName: "聲演乙", roles: ["voice_actor", "post_production"] };
+  const audio: PublicAudioWork = {
+    id: "recording", title: "測試錄音", url: "https://example.com/work",
+    voiceActors: [{ id: actor.id, name: actor.displayName }],
+    credits: [
+      { role: "script", sourceRole: "台本", creditedAs: writer.displayName, personaId: writer.id, provenance: "official_page", sourceUrl: "https://example.com/credits" },
+      { role: "post_production", sourceRole: "後製", creditedAs: actor.displayName, personaId: actor.id, provenance: "official_page", sourceUrl: "https://example.com/credits" },
+    ],
+  };
+
+  it("embeds the same card on two profiles, with all roles and both identity links", () => {
     window.sessionStorage.clear();
-    const persona = {
-      id: "voice-1", displayName: "聲演甲", roles: ["voice_actor"],
-      voiceActorWorks: [{ title: "參演甲", url: "https://example.com/work", coverUrl: "https://example.com/cover.jpg" }],
-    } as PublicPersona;
-    render(<AuthorPageClient persona={persona} scripts={[]} />);
-    expect(screen.getByRole("heading", { name: "成人向內容提醒", level: 2 })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "我已年滿 18 歲" })).toBeTruthy();
-    expect(screen.queryByText("參演甲")).toBeNull();
+    const catalog = buildWorkCatalog({ personas: [writer, actor], audioWorks: [audio] });
+    const writersCards = cardsForPersona(catalog, writer.id);
+    const actorsCards = cardsForPersona(catalog, actor.id);
+    expect(actorsCards).toHaveLength(1);
+    expect(actorsCards[0]).toBe(writersCards[0]);
+    const view = render(<AuthorPageClient persona={writer} scripts={[]} workCards={writersCards} />);
+    expect(screen.queryByText(audio.title)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "我已年滿 18 歲" }));
-    expect(screen.getByText("參演甲")).toBeTruthy();
-    window.sessionStorage.clear();
-  });
-});
-
-describe("AuthorPageClient as the one identity page", () => {
-  it("preserves source links and a cover area for external scripts without artwork", () => {
-    render(<AuthorPageClient persona={{ id: "writer", displayName: "作者", roles: ["scriptwriter"] }} scripts={[]} externalScripts={[{
-      id: "doc", title: "星光", sourceUrl: "https://docs.google.com/document/d/example/edit", sourceName: "Google Docs", coverUrl: "", summary: "作品簡介",
-    } as ExternalPublicScript]} />);
-    expect(screen.getByLabelText("星光尚未提供封面")).toBeTruthy();
-    expect(screen.getByText("Google Docs")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "閱讀台本：星光" }).getAttribute("href")).toBe("https://docs.google.com/document/d/example/edit");
-  });
-
-  it("shows sourced commission terms and credited audio scripts", () => {
-    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
-    const persona = {
-      id: "writer", displayName: "風蓮/Hong Liân", roles: ["scriptwriter"],
-      roleProfiles: { scriptwriter: { commissionOffers: [{
-        service: "台本師", details: "每字 $2", scope: "商用含稅參考價",
-        sourceUrl: "https://ci-en.dlsite.com/example", sourceUpdatedOn: "2026-11-05",
-      }] } },
-    } as PublicPersona;
-    render(<AuthorPageClient persona={persona} scripts={[]} audioScriptWorks={[{
-      id: "audio-1", title: "音聲台本甲", url: "https://example.com/audio", coverUrl: "",
-    } as PublicAudioWork]} />);
-    expect(screen.getByRole("region", { name: "音聲委託參考價" }).textContent).toContain("每字 $2");
-    expect(screen.getByRole("link", { name: /查看收費標準來源/ }).getAttribute("href")).toBe("https://ci-en.dlsite.com/example");
-    expect(screen.getByRole("region", { name: "參與台本作品" }).textContent).toContain("音聲台本甲");
-    window.sessionStorage.clear();
-  });
-
-  it("renders all confirmed roles from one participation payload", () => {
-    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
-    const persona = {
-      id: "unified", displayName: "新名稱", voiceActorWorks: [{ title: "舊清單不重複", url: "https://example.com/work" }], roles: ["scriptwriter", "voice_actor", "recording_studio"],
-      workParticipations: ["scriptwriter", "voice_actor", "recording_studio"].map((creditRole) => ({
-        id: "same-work", audioWorkId: "same-work", creditRole, title: "同一作品", url: "https://example.com/work", coverUrl: "", creditedAs: "舊署名",
-      })),
-    } as PublicPersona;
-    render(<AuthorPageClient persona={persona} scripts={[]} />);
-    expect(screen.queryByText("舊清單不重複")).toBeNull();
-    for (const name of ["參與台本作品", "參演作品", "錄音作品"]) {
-      expect(screen.getByRole("region", { name }).textContent).toContain("同一作品");
-    }
-    window.sessionStorage.clear();
-  });
-
-  it("opens the sections each role brings and hides the rest", () => {
-    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
-    const persona = {
-      id: "multi", displayName: "一介", roles: ["voice_actor", "post_production"],
-      voiceActorWorks: [{ title: "參演甲", url: "https://example.com/role" }],
-      productionCredits: [{ id: "w1", title: "後製作品甲", url: "https://example.com/mix", coverUrl: "", creditRole: "post_production", creditedAs: "一介", workType: "audio" }],
-    } as PublicPersona;
-    render(<AuthorPageClient persona={persona} scripts={[]} />);
-    expect(screen.getByLabelText("創作者身份").textContent).toBe("聲演後製");
+    expect(screen.getByRole("region", { name: "參與台本作品" })).toBeTruthy();
+    expect(screen.getByText("· 台本")).toBeTruthy();
+    view.rerender(<AuthorPageClient persona={actor} scripts={[]} workCards={actorsCards} />);
     expect(screen.getByRole("region", { name: "參演作品" })).toBeTruthy();
     expect(screen.getByRole("region", { name: "後製作品" })).toBeTruthy();
-    expect(screen.queryByRole("region", { name: "台本作品" })).toBeNull();
-    expect(screen.queryByRole("region", { name: "美術作品" })).toBeNull();
+    const card = view.container.querySelector('[data-work-id="audio-recording"]')!;
+    for (const id of ["actor", "writer"]) expect(card.querySelector(`a[href="/author/${id}"]`)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "密集" }));
+    expect(view.container.querySelector('a[href="/works/audio-recording"]')).toBeTruthy();
     window.sessionStorage.clear();
   });
 
-  it("switches participation sections between card and compact overview list", () => {
-    window.sessionStorage.setItem("public-resources-adult-confirmed", "1");
-    const persona = {
-      id: "actor-list", displayName: "伊橙", roles: ["voice_actor"],
-      workParticipations: [{ id: "w1", title: "測試音聲", url: "https://example.com/a", coverUrl: "", creditRole: "voice_actor" as const, creditedAs: "伊橙", workType: "audio" as const }],
-    } as PublicPersona;
-    render(<AuthorPageClient persona={persona} scripts={[]} gameWorks={[{
-      appId: "2976870", title: "台灣戀愛物語⁵", screenshotUrl: "https://example.com/g.jpg",
-      credits: [{ category: "配音", role: "配音", attribution: "伊橙（小咘）", sourceUrl: "https://example.com/s", personaId: "actor-list", creditedAs: "伊橙" }],
-    }]} />);
-    fireEvent.click(screen.getByRole("button", { name: "密集" }));
-    expect(screen.getByRole("link", { name: "前往作品：測試音聲" }).getAttribute("href")).toBe("https://example.com/a");
-    expect(screen.getByRole("link", { name: "前往作品：台灣戀愛物語⁵" }).getAttribute("href")).toBe("/games/2976870");
-    window.sessionStorage.clear();
+  it("keeps the external reading link and the original attribution", () => {
+    const external: ExternalPublicScript = { id: "doc", title: "星光", status: "published", sourceUrl: "https://example.com/script", authorPersonaId: writer.id, authorName: "刊登時署名" };
+    const cards = cardsForPersona(buildWorkCatalog({ externalPublicScripts: [external] }), writer.id);
+    const view = render(<AuthorPageClient persona={writer} scripts={[]} workCards={cards} />);
+    expect(view.container.querySelector('a[href="https://example.com/script"]')).toHaveTextContent("閱讀原作");
+    expect(view.container.querySelector('[data-work-id="external-doc"] a[href="/author/writer"]')).toHaveTextContent("刊登時署名");
   });
 
-  it("also switches script sections into compact overview cards in dense mode", () => {
-    const persona = { id: "writer-dense", displayName: "海聶", roles: ["scriptwriter"] } as PublicPersona;
-    render(<AuthorPageClient persona={persona} scripts={[]} externalScripts={[{
-      id: "doc-1", title: "外部台本甲", summary: "很長的台本簡介", sourceName: "Google Docs",
-      sourceUrl: "https://docs.google.com/document/d/abc/edit",
-    } as ExternalPublicScript]} />);
-    expect(screen.getByText("很長的台本簡介")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "密集" }));
-    expect(screen.queryByText("很長的台本簡介")).toBeNull();
-    expect(screen.getByRole("link", { name: "前往作品：外部台本甲" }).getAttribute("href")).toBe("https://docs.google.com/document/d/abc/edit");
+  it("preserves sourced commission terms beside the portfolio", () => {
+    const persona = { ...writer, roleProfiles: { scriptwriter: { commissionOffers: [{
+      service: "台本師", details: "每字 $2", scope: "商用含稅參考價", sourceUrl: "https://example.com/terms", sourceUpdatedOn: "2026-11-05",
+    }] } } };
+    render(<AuthorPageClient persona={persona} scripts={[]} workCards={[]} />);
+    expect(screen.getByRole("region", { name: "音聲委託參考價" })).toHaveTextContent("每字 $2");
+    expect(screen.getByRole("link", { name: /查看收費標準來源/ })).toHaveAttribute("href", "https://example.com/terms");
   });
 
   it.each([
@@ -117,7 +65,7 @@ describe("AuthorPageClient as the one identity page", () => {
     const write = vi.spyOn(liveApi, "write").mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
     try {
       const persona = { id: "studio", displayName: "錄音室甲", roles: [role], productionCredits: [] } as PublicPersona;
-      render(<AuthorPageClient persona={persona} scripts={[]} />);
+      render(<AuthorPageClient persona={persona} scripts={[]} workCards={[]} />);
       fireEvent.click(screen.getByRole("button", { name: "更新資料" }));
       fireEvent.change(screen.getByLabelText("參與作品名稱 1"), { target: { value: "新遊戲" } });
       fireEvent.change(screen.getByLabelText("參與作品網址 1"), { target: { value: "https://example.com/game" } });

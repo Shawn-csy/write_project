@@ -38,7 +38,7 @@ export interface DemoCatalogBundle {
   demoSubmissions?: PublicDemoSubmission[];
 }
 
-function buildScriptGroups(
+export function buildScriptGroups(
   scripts: PublicScript[],
   externalScripts: ExternalPublicScript[],
   submissions: PublicDemoSubmission[],

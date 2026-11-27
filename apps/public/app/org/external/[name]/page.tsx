@@ -1,3 +1,5 @@
+import { getWorkCatalog } from "@/lib/workPageData";
+import { cardsForExternalScripts } from "@/lib/workCatalog";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { apiFetch } from "@/lib/api";
@@ -61,13 +63,14 @@ export default async function ExternalOrgPage({ params }: { params: Promise<{ na
   if (decodeName(rawName).trim() !== externalEntitySlug(model.name, model.profileUrl)) {
     redirect(canonicalPath);
   }
+  const workCards = cardsForExternalScripts(await getWorkCatalog(), model.items);
   return (
     <>
       <PublicTopBar activeTab="orgs" showBack backHref="/?view=orgs" backLabel="返回組織列表" />
       {STATIC_EXPORT ? (
-        <LiveExternalOrgPage rawName={rawName} initial={model} />
+        <LiveExternalOrgPage rawName={rawName} initial={{ ...model, workCards }} />
       ) : (
-        <ExternalEntityPage kind="org" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} />
+        <ExternalEntityPage kind="org" name={model.name} bio={model.bio} profileUrl={model.profileUrl} profileAvatarUrl={model.profileAvatarUrl} items={model.items} workCards={workCards} />
       )}
     </>
   );

@@ -5,8 +5,11 @@ import Link from "next/link";
 import type { ExternalEntityKind } from "@/lib/externalEntity";
 import { socialAvatarUrl } from "@/lib/externalEntity";
 import type { ExternalPublicScript } from "@/lib/types";
-import { ExternalPublicScriptCard } from "./ExternalPublicScriptSection";
-import { GalleryHoverPreviewProvider } from "@write/public-ui";
+import { WorkCard } from "./WorkCard";
+import type { CatalogWork } from "@/lib/workCardModel";
+import { useResourceAgeGate } from "@/lib/useResourceAgeGate";
+import { AdultContentNotice } from "./AdultContentNotice";
+
 import { PublicContentLink } from "./PublicDirectoryDetails";
 import { PublicWorkDetails } from "./PublicWorkDetails";
 import { LinkifiedText } from "./LinkifiedText";
@@ -24,12 +27,14 @@ interface Props {
   supplement?: NonNullable<ExternalPublicScript["authorSupplement"]>;
   contributors?: NonNullable<ExternalPublicScript["authorContributors"]>;
   items: ExternalPublicScript[];
+  workCards: CatalogWork[];
 }
 
-export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarUrl, supplement, contributors = [], items }: Props) {
+export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarUrl, supplement, contributors = [], items, workCards }: Props) {
   const avatarUrl = profileAvatarUrl
     || (items[0] && (kind === "author" ? items[0].authorAvatarUrl : items[0].organizationAvatarUrl))
     || socialAvatarUrl(profileUrl);
+  const age = useResourceAgeGate();
   const isAuthor = kind === "author";
   // Email / Discord supplements are never published on the page unless explicitly marked public.
   const approvedLinks = partitionContacts(supplement?.links || []).visible;
@@ -129,11 +134,12 @@ export function ExternalEntityPage({ kind, name, bio, profileUrl, profileAvatarU
           {items.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">目前沒有公開作品</p>
           ) : (
-            <GalleryHoverPreviewProvider>
-              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))" }}>
-                {items.map((item) => <ExternalPublicScriptCard key={item.id} item={item} variant="standard" />)}
+            <>
+              {age.ready && !age.confirmed && workCards.some(w => w.gated) && <AdultContentNotice scope="participations" onConfirm={age.confirm} />}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {workCards.filter(w => age.confirmed || !w.gated).map(w => <WorkCard key={w.id} work={w} />)}
               </div>
-            </GalleryHoverPreviewProvider>
+            </>
           )}
         </section>
       </div>

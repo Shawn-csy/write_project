@@ -1,3 +1,4 @@
+import { audioCardId, workHref } from "@/lib/workIdentity";
 import { Headphones } from "lucide-react";
 import { PARTICIPATION_ROLE_LABELS } from "@write/public-ui/participation-roles";
 import type { PublicAudioWork, PublicOrg } from "@/lib/types";
@@ -30,6 +31,8 @@ export function PublicAudioWorkCard({ work, organization, highlightCover = false
   return <PublicCatalogWorkCard
     title={work.title}
     href={work.url}
+    titleHref={workHref(audioCardId(work.id))}
+    linkArtwork
     sourceLabel={sourceLabel}
     hasArtwork={Boolean(work.coverUrl)}
     className={highlightCover ? "public-featured-glare" : undefined}

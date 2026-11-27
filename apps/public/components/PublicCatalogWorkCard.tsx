@@ -4,7 +4,7 @@ import { PublicContentLink } from "./PublicDirectoryDetails";
 
 type Props = Omit<HTMLAttributes<HTMLElement>, "title" | "children"> & {
   title: string;
-  heading?: "h2" | "h3";
+  heading?: "h1" | "h2" | "h3";
   href?: string;
   titleHref?: string;
   sourceLabel?: string;

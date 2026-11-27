@@ -14,7 +14,7 @@ export function MainPublicLayout({ children }: { children: ReactNode }) {
   );
   const activeTab = home ? "scripts" : pathname === "/voice-actors" ? "resources" : section?.key;
 
-  if (!activeTab && pathname !== "/activities") return children;
+  if (!activeTab && pathname !== "/activities" && pathname !== "/works" && !pathname.startsWith("/works/")) return children;
 
   return (
     <>
