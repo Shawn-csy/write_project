@@ -252,6 +252,41 @@ export const gameCredits: GameCreditsEntry[] = [
       { category: "配音", role: "配音", attribution: "柔依（HINA 希娜）", creditedAs: "柔依", personaId: "69cc7352-4313-432e-a446-6b06f702cd8c", sourceUrl: "https://store.steampowered.com/app/2613010/" },
     ],
   },
+  { appId: "3571750", title: "29歲的人妻想成為職業coser是否搞錯了什麼？",
+    screenshotUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/4d391c1f792ea8c0da815e5d55a804fa5b2de764/ss_4d391c1f792ea8c0da815e5d55a804fa5b2de764.600x338.jpg?t=1763814145",
+    performers: ["霏筱雨"],
+    credits: [
+      { category: "配音", role: "配音", attribution: "霏筱雨（戚子雅）", creditedAs: "霏筱雨", personaId: "331591c8-f769-42c7-ba2d-50c23ccb7c5c", sourceUrl: "https://zh.moegirl.org.cn/%E9%9C%8F%E7%AD%B1%E9%9B%A8" },
+    ],
+  },
+  { appId: "1909270", title: "米可可大冒險",
+    screenshotUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/0119b2f7334a0862890e7866259729fb88bb0188/ss_0119b2f7334a0862890e7866259729fb88bb0188.600x338.jpg?t=1781834544",
+    performers: ["柔依"],
+    credits: [
+      { category: "配音", role: "配音", attribution: "柔依（米可可）", creditedAs: "柔依", personaId: "69cc7352-4313-432e-a446-6b06f702cd8c", sourceUrl: "https://mzh.moegirl.org.cn/%E6%9F%94%E4%BE%9D" },
+    ],
+  },
+  { appId: "2650590", title: "森海幻夢",
+    screenshotUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_61d178ba32c00415945df0af49794a45d999028d.600x338.jpg?t=1789464503",
+    performers: ["紗耶"],
+    credits: [
+      { category: "配音", role: "配音", attribution: "紗耶（塞拉）", creditedAs: "紗耶", personaId: "da53e2d9-d47f-43e6-92d7-2ff3f92a734c", sourceUrl: "https://mzh.moegirl.org.cn/%E7%BA%B1%E8%80%B6(%E9%85%8D%E9%9F%B3%E6%BC%94%E5%91%98)" },
+    ],
+  },
+  { appId: "2085410", title: "絕對人權女子監獄",
+    screenshotUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_708a1389a98aaedb48f5b7ea3485de93112a6b7d.600x338.jpg?t=1725000856",
+    performers: ["芽瑪"],
+    credits: [
+      { category: "配音", role: "配音", attribution: "芽瑪（小薰、艾瑪）", creditedAs: "芽瑪", personaId: "2c67052d-ce2b-50dc-b990-9c52b05d83c1", sourceUrl: "https://store.steampowered.com/app/2085410/" },
+    ],
+  },
+  { appId: "4263880", title: "AiO Verse（凱普勒186F）",
+    screenshotUrl: "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/80bf5a35274f951c4068dfa2af239c15e4c57dbb/ss_80bf5a35274f951c4068dfa2af239c15e4c57dbb.600x338.jpg?t=1793752647",
+    performers: ["兔姬"],
+    credits: [
+      { category: "配音", role: "配音", attribution: "兔姬（兔子小姐）", creditedAs: "兔姬", personaId: "9a734f44-6e89-55ef-97cf-9197d1564cf6", sourceUrl: "https://store.steampowered.com/app/4263880/" },
+    ],
+  },
 ];
 
 export const additionalGameScreenshots: Readonly<Record<string, string>> = {

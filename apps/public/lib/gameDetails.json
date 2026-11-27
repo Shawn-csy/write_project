@@ -486,7 +486,9 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/4d391c1f792ea8c0da815e5d55a804fa5b2de764/ss_4d391c1f792ea8c0da815e5d55a804fa5b2de764.600x338.jpg?t=1763814145",
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/5d311b958a2ba4513f6931f66ff63e52c56e0a53/ss_5d311b958a2ba4513f6931f66ff63e52c56e0a53.600x338.jpg?t=1763814145",
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/316bb40e72e4f3dc8453e3ae00383362118de524/ss_316bb40e72e4f3dc8453e3ae00383362118de524.600x338.jpg?t=1763814145",
-      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/ae3a3f1c9a20cb3e9b0461807731527831d65066/ss_ae3a3f1c9a20cb3e9b0461807731527831d65066.600x338.jpg?t=1763814145"
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/ae3a3f1c9a20cb3e9b0461807731527831d65066/ss_ae3a3f1c9a20cb3e9b0461807731527831d65066.600x338.jpg?t=1763814145",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/24ec84bcb8185cc62f809236a7db223cb163f17a/ss_24ec84bcb8185cc62f809236a7db223cb163f17a.600x338.jpg?t=1763814145",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/3571750/9a3a14ddb55db23b01b0eec2989ba2e74dfe65cf/ss_9a3a14ddb55db23b01b0eec2989ba2e74dfe65cf.600x338.jpg?t=1763814145"
     ]
   },
   "1894080": {
@@ -1136,6 +1138,120 @@
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1965270/ss_4f0834e00f3273e047d21c255146eec617b20472.600x338.jpg?t=1791373187",
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1965270/ss_d8916666773bf5b706006a23ecd3ec83720b52bb.600x338.jpg?t=1791373187",
       "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1965270/ss_c00dd865211d0a86d9141b0c4d339bb5f7f13a00.600x338.jpg?t=1791373187"
+    ]
+  },
+  "1909270": {
+    "developers": [
+      "PantyParrot"
+    ],
+    "publishers": [
+      "Mango Party",
+      "PantyParrot",
+      "Mango Party News"
+    ],
+    "releaseDate": "2022 年 11 月 8 日",
+    "shortDescription": "這是一部講述冒險者米可可探索一座廢墟的故事。這座廢墟不僅異常凶險，裡頭還潛伏著各種好色的觸手魔物！究竟米可可有沒有辦法解開隱藏在廢墟裡的謎團，成功完成委託呢？",
+    "audioLanguages": [
+      "日文",
+      "繁體中文",
+      "簡體中文"
+    ],
+    "genres": [
+      "冒險",
+      "休閒",
+      "角色扮演"
+    ],
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/0119b2f7334a0862890e7866259729fb88bb0188/ss_0119b2f7334a0862890e7866259729fb88bb0188.600x338.jpg?t=1781834544",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/14c5e812b27e495d75fbb1ee84bd08800b8e2327/ss_14c5e812b27e495d75fbb1ee84bd08800b8e2327.600x338.jpg?t=1781834544",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/fc46c326f2aabf985c223883aff0117be4cd7830/ss_fc46c326f2aabf985c223883aff0117be4cd7830.600x338.jpg?t=1781834544",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/b46b4df59d3ef6487e27ca79c09843b848b83fe8/ss_b46b4df59d3ef6487e27ca79c09843b848b83fe8.600x338.jpg?t=1781834544",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/d3d85b371b084755d1da207b9cc16213a592946c/ss_d3d85b371b084755d1da207b9cc16213a592946c.600x338.jpg?t=1781834544",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/1909270/b7a6d976d815ad1e74074e853d1e0706ab4c282e/ss_b7a6d976d815ad1e74074e853d1e0706ab4c282e.600x338.jpg?t=1781834544"
+    ]
+  },
+  "2650590": {
+    "developers": [
+      "Seeking-chan"
+    ],
+    "publishers": [
+      "Mango Party",
+      "Mango Party News"
+    ],
+    "releaseDate": "2024 年 10 月 10 日",
+    "shortDescription": "在充滿觸手和怪物們的競技場內生存下去吧，每擊敗一波敵人便可以取得增強自身的道具，藉由組合搭配出最適合妳的build，一舉闖關擊潰這些色色的外星生物！",
+    "audioLanguages": [
+      "簡體中文",
+      "日文",
+      "繁體中文"
+    ],
+    "genres": [
+      "動作",
+      "休閒"
+    ],
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_61d178ba32c00415945df0af49794a45d999028d.600x338.jpg?t=1789464503",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_de382decde959344e8de64b003565c135531552a.600x338.jpg?t=1789464503",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_160fd7abf8babe81c8830091127fed0f685c03e6.600x338.jpg?t=1789464503",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_8bfbfabb0d673dd455613a5e1498af639f9cf126.600x338.jpg?t=1789464503",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_1762e52e2a34dc12fe90a0a4d187e12076d0565b.600x338.jpg?t=1789464503",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2650590/ss_243556c5842d7b3829df96298ccaa25149b4690d.600x338.jpg?t=1789464503"
+    ]
+  },
+  "2085410": {
+    "developers": [
+      "AIROTS",
+      "非魚工作室"
+    ],
+    "publishers": [
+      "Mango Party",
+      "STORIA GAMES CO., LTD",
+      "Mango Party News"
+    ],
+    "releaseDate": "2023 年 2 月 16 日",
+    "shortDescription": "通過「絕對人權法案」後，身為實驗女子監獄的獄服員，你必須滿足他們所有需求，除了食慾、睡眠欲……當然還有性慾！要是遭到投訴，可能就要被調到男子♂監獄！？",
+    "audioLanguages": [],
+    "genres": [
+      "休閒"
+    ],
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_708a1389a98aaedb48f5b7ea3485de93112a6b7d.600x338.jpg?t=1725000856",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_c2cfef957dee5d8959a72122912aec5efb499d7c.600x338.jpg?t=1725000856",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_459ce3f2cbdb8e2227560543e09620505d8dbe9a.600x338.jpg?t=1725000856",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_9efbb1178e5dad95c4f985566c57c042b1ac0ab5.600x338.jpg?t=1725000856",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_b2539ec44edfc171610886131780f4b1db142cc5.600x338.jpg?t=1725000856",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/2085410/ss_ac1b68ed4bb60160244ee15cdc828a062cb26c9d.600x338.jpg?t=1725000856"
+    ]
+  },
+  "4263880": {
+    "developers": [
+      "Axiox Media Technology LTD"
+    ],
+    "publishers": [
+      "Axiox Media Technology LTD"
+    ],
+    "releaseDate": "2026 年 7 月 22 日",
+    "shortDescription": "以型號37機器人身份調查凱普勒186F上的失落殖民地。AiO 宇宙的第一章。",
+    "audioLanguages": [
+      "英文",
+      "簡體中文",
+      "繁體中文"
+    ],
+    "genres": [
+      "動作",
+      "冒險",
+      "獨立製作",
+      "角色扮演",
+      "模擬",
+      "搶先體驗"
+    ],
+    "screenshots": [
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/80bf5a35274f951c4068dfa2af239c15e4c57dbb/ss_80bf5a35274f951c4068dfa2af239c15e4c57dbb.600x338.jpg?t=1793752647",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/8d72a586726159087d7490f4d83a12011d354e50/ss_8d72a586726159087d7490f4d83a12011d354e50.600x338.jpg?t=1793752647",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/ae6c446b65adc8ceaa5eb86081820825eb6b60b5/ss_ae6c446b65adc8ceaa5eb86081820825eb6b60b5.600x338.jpg?t=1793752647",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/734a853ddd546707aaa9ce74ace2091c26dfa4c9/ss_734a853ddd546707aaa9ce74ace2091c26dfa4c9.600x338.jpg?t=1793752647",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/785cdeeb7a22f0d23a77cb14974e127345356dfc/ss_785cdeeb7a22f0d23a77cb14974e127345356dfc.600x338.jpg?t=1793752647",
+      "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/4263880/97d2feea02795ef6de1088c810f62625b0aff03a/ss_97d2feea02795ef6de1088c810f62625b0aff03a.600x338.jpg?t=1793752647"
     ]
   }
 }
